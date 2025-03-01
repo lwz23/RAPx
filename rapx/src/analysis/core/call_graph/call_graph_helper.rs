@@ -90,7 +90,7 @@ impl CallGraphInfo {
     }
 
     pub fn print_call_graph(&self) {
-        rap_info!("CallGraph Analysis:");
+        rap_info!("CallGraph Analysis(modify by LWZ):");
         // println!("There are {} functions calls!", self.function_calls.len());
         for (caller_id, callees) in self.function_calls.clone() {
             if let Some(caller_node) = self.functions.get(&caller_id) {

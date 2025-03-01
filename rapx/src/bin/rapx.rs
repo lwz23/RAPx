@@ -53,6 +53,7 @@ fn main() {
             "-O" | "-opt" => compiler.enable_opt(),
             "-mir" => compiler.enable_show_mir(),
             "-api-dep" => compiler.enable_api_dep(),
+            "-lwz" => compiler.enable_lwz(), // Add the new option here
             "-adt" => {}
             "-z3" => {}
             "-meta" => {}

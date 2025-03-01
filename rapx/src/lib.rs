@@ -54,6 +54,7 @@ pub struct RapCallback {
     show_mir: bool,
     dataflow: usize,
     opt: bool,
+    lwz: bool,
 }
 
 impl Default for RapCallback {
@@ -69,6 +70,7 @@ impl Default for RapCallback {
             show_mir: false,
             dataflow: 0,
             opt: false,
+            lwz: false,
         }
     }
 }
@@ -184,6 +186,14 @@ impl RapCallback {
     pub fn is_opt_enabled(self) -> bool {
         self.opt
     }
+
+    pub fn enable_lwz(&mut self) {
+        self.lwz = true;
+    }
+
+    pub fn is_lwz_enabled(self) -> bool {
+        self.lwz
+    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
@@ -269,5 +279,10 @@ pub fn start_analyzer(tcx: TyCtxt, callback: RapCallback) {
 
     if callback.is_opt_enabled() {
         Opt::new(tcx).start();
+    }
+
+    if callback.is_lwz_enabled() {
+        println!("LWZ is enabled");
+        analysis::lwz::LwzCheck::new(tcx).start();
     }
 }

@@ -14,23 +14,34 @@ use super::{
     generate_dot::{NodeType, UigUnit},
     UnsafetyIsolationCheck,
 };
+use crate::analysis::unsafety_isolation::draw_dot::render_dot_graphs;
 
 impl<'tcx> UnsafetyIsolationCheck<'tcx> {
     pub fn handle_std_unsafe(&mut self) {
         self.get_all_std_unsafe_def_id_by_treat_std_as_local_crate(self.tcx);
         let mut dot_strs = Vec::new();
+        
+        // 添加打印信息
+        println!("Found {} UIG groups", self.uigs.len());
+        println!("Found {} single nodes", self.single.len());
+        
         for uig in &self.uigs {
             let dot_str = uig.generate_dot_str();
             uig.compare_labels();
             dot_strs.push(dot_str);
+            // 打印每个 UIG 的信息
+            println!("UIG node: {:?}", uig);
         }
+        
         for uig in &self.single {
             let dot_str = uig.generate_dot_str();
-            // uig.compare_labels();
             dot_strs.push(dot_str);
+            // 打印单独节点的信息
+            println!("Single node: {:?}", uig);
         }
-        // println!("single {:?}",self.single.len());
-        // render_dot_graphs(dot_strs);
+        
+        // 取消注释渲染部分
+        render_dot_graphs(dot_strs);
     }
 
     pub fn get_all_std_unsafe_def_id_by_rustc_extern_crates(
