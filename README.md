@@ -38,7 +38,11 @@ cargo rapx [rapx options] -- [cargo check options]
 Check out supported options with `-help`:
 
 ```shell
-cargo +nightly-2024-10-12 rapx -help
+cargo rapx -help 
+```
+or by manually specifying the toolchain version.
+```shell
+cargo +nightly-2024-10-12 rapx -help 
 ```
 
 Environment variables (Values are case insensitive):
@@ -56,42 +60,33 @@ For `RAP_RECURSIVE`:
  
 NOTE: for shallow or deep, rapx will enter each member folder to do the check.
 
+### Alias Analysis
+The following command analyzes each function and output the aliases.
+```
+RAP_LOG=debug cargo rapx -alias=mop
+```
+If RAPx gets stuck after executing `cargo clean`, try manually downloading metadata dependencies by running `cargo metadata`.
+
+### API-dependency Graph
+The following command generates the API-dependency graph, which is useful for code synthesis, e.g., generating fuzz drivers.
+```
+cargo rapx -api-dep
+```
+The generated dot file can be visualized via graphviz.
+```
+dot -Tpng api_graph.dot -o output.png
+```
+
 ### Use-After-Free Detection
 Detect bugs such as use-after-free and double free in Rust crates caused by unsafe code.
 ```shell
-cargo +nightly-2024-10-12 rapx -uaf
-```
-
-If RAPx gets stuck after executing `cargo clean`, try manually downloading metadata dependencies by running `cargo metadata`.
-
-The feature is based on our SafeDrop paper, which was published in TOSEM.  
-```
-@article{cui2023safedrop,
-  title={SafeDrop: Detecting memory deallocation bugs of rust programs via static data-flow analysis},
-  author={Mohan Cui, Chengjun Chen, Hui Xu, and Yangfan Zhou},
-  journal={ACM Transactions on Software Engineering and Methodology},
-  volume={32},
-  number={4},
-  pages={1--21},
-  year={2023},
-  publisher={ACM New York, NY, USA}
-}
+cargo rapx -F
 ```
 
 ### Memory Leakage Detection 
 Detect memory leakage bugs caused by apis like [ManuallyDrop](https://doc.rust-lang.org/std/mem/struct.ManuallyDrop.html) and [into_raw()](https://doc.rust-lang.org/std/boxed/struct.Box.html#method.into_raw).
 
 ```shell
-cargo +nightly-2024-10-12 rapx -mleak
-```
-
-The feature is based on our rCanary work, which was published in TSE
-```
-@article{cui2024rcanary,
-  title={rCanary: rCanary: Detecting memory leaks across semi-automated memory management boundary in Rust},
-  author={Mohan Cui, Hongliang Tian, Hui Xu, and Yangfan Zhou},
-  journal={IEEE Transactions on Software Engineering},
-  year={2024},
-}
+cargo rapx -M
 ```
 

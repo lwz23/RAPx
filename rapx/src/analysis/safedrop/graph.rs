@@ -208,7 +208,7 @@ impl<'tcx> SafeDropGraph<'tcx> {
                 need_drop || may_drop,
             );
             node.kind = kind(local_decl.ty);
-            alias.push(values.len());
+            alias.push(alias.len());
             dead.push(false);
             values.push(node);
         }
@@ -295,7 +295,7 @@ impl<'tcx> SafeDropGraph<'tcx> {
                                 lvl0.birth = values[lv_local].birth;
                                 lvl0.field_id = 0;
                                 values[lv_local].fields.insert(0, lvl0.index);
-                                alias.push(values.len());
+                                alias.push(alias.len());
                                 dead.push(false);
                                 values.push(lvl0);
                             }

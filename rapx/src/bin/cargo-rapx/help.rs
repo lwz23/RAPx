@@ -10,8 +10,11 @@ Use-After-Free/double free detection.
 Memory leakage detection.
     -M or -mleak     command: "cargo rapx -mleak"
 
-Debugging options:
-    -mir             print the MIR of each function
+API dependency analysis
+    -api-dep       generate API dependency graphs
+
+Alias Analysis
+    -alias=mop     perform mop-based alias analysis
 
 General command: 
     -H or -help:     show help information
@@ -32,9 +35,6 @@ Internal unsafe function analysis.
 
 Automatic optimization
     -O or -opt       automatically detect code optimization chances
-
-API dependency analysis
-    -api-dep       generate API dependency graphs
 
 NOTE: multiple detections can be processed in single run by 
 appending the options to the arguments. Like `cargo rapx -F -M`

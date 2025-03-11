@@ -1,17 +1,16 @@
+mod extract;
 mod graph;
+mod lifetime;
 mod visitor;
-use crate::{rap_info, utils::fs::rap_create_file};
-
+use crate::{rap_debug, rap_info};
 use graph::ApiDepGraph;
 use rustc_hir::{
-    def_id::{DefId, LocalDefId},
+    def_id::{DefId, LocalDefId, LOCAL_CRATE},
     intravisit::{self, FnKind, Visitor},
     BodyId, FnDecl,
 };
-use rustc_middle::{dep_graph, ty::TyCtxt};
-use rustc_span::Span;
+use rustc_middle::ty::TyCtxt;
 
-use std::io::Write;
 use visitor::FnVisitor;
 
 pub struct ApiDep<'tcx> {
@@ -22,31 +21,34 @@ impl<'tcx> ApiDep<'tcx> {
     pub fn new(tcx: TyCtxt<'tcx>) -> ApiDep<'tcx> {
         ApiDep { tcx }
     }
-    pub fn start(&self) {
-        rap_info!("Build API dependency graph");
+    pub fn start(&self) -> ApiDepGraph<'tcx> {
+        let local_crate_name = self.tcx.crate_name(LOCAL_CRATE);
+        let local_crate_type = self.tcx.crate_types()[0];
+        rap_debug!(
+            "Build API dependency graph on {} ({})",
+            local_crate_name.as_str(),
+            local_crate_type
+        );
+
         let mut api_graph = ApiDepGraph::new();
         let mut fn_visitor = FnVisitor::new(self.tcx, &mut api_graph);
         self.tcx
             .hir()
             .visit_all_item_likes_in_crate(&mut fn_visitor);
-        rap_info!("visitor find {} APIs.", fn_visitor.fn_cnt());
-        let mut file = rap_create_file("visitor.txt", "fail when create file");
-        fn_visitor.write_funcs(&mut file);
+        rap_debug!("api-dep find {} APIs.", fn_visitor.fn_cnt());
 
-        api_graph.dump_to_dot("api_graph.dot", self.tcx);
+        let statistics = api_graph.statistics();
+        // print all statistics
+        rap_debug!(
+            "API Graph contains {} API nodes, {} type nodes, {} generic parameter def nodes",
+            statistics.api_count,
+            statistics.type_count,
+            statistics.generic_param_count
+        );
 
-        let mut file = rap_create_file("traverse.txt", "fail when create file");
-        let mut fn_cnt = 0;
-        // TODO: try self.tcx.mir_keys(())
-        for local_def_id in self.tcx.iter_local_def_id() {
-            let hir_map = self.tcx.hir();
-            if hir_map.maybe_body_owned_by(local_def_id).is_some() {
-                write!(&mut file, "{}\n", self.tcx.def_path_str(local_def_id))
-                    .expect("fail when write file");
-                // rap_info!("find API: {}", self.tcx.def_path_str(local_def_id));
-                fn_cnt += 1;
-            }
-        }
-        rap_info!("find {} APIs.", fn_cnt);
+        let dot_filename = format!("api_graph_{}_{}.dot", local_crate_name, local_crate_type);
+        rap_info!("Dump API dependency graph to {}", dot_filename);
+        api_graph.dump_to_dot(dot_filename, self.tcx);
+        api_graph
     }
 }
