@@ -280,9 +280,18 @@ impl<'tcx> LwzCheck<'tcx> {
         
         // Then report paths from pub functions to internal unsafe functions
         for (&internal_fn, path) in &self.shortest_paths {
-            // Skip if already reported (direct pub functions)
-            if self.pub_fns_in_pub_mods.contains(&internal_fn) && path.len() == 1 {
+            // Skip if the internal unsafe function is already a public function in a public module
+            // This eliminates redundant paths where a public function calls another public unsafe function
+            if self.pub_fns_in_pub_mods.contains(&internal_fn) {
                 continue;
+            }
+            
+            // 获取路径的最后一个节点，即实际的内部不安全函数
+            if let Some(&last_fn) = path.last() {
+                // 如果最后一个节点（内部不安全函数）已经是公开函数，则跳过
+                if self.pub_fns_in_pub_mods.contains(&last_fn) && last_fn != internal_fn {
+                    continue;
+                }
             }
             
             count += 1;
