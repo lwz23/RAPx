@@ -11,6 +11,7 @@ use rustc_hir::{
 };
 use rustc_middle::ty::TyCtxt;
 use rustc_middle::hir::nested_filter;
+use rustc_middle::mir::{Operand, TerminatorKind};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::rap_info;
@@ -66,6 +67,15 @@ impl<'tcx> Visitor<'tcx> for ContainsUnsafe<'tcx> {
     }
 }
 
+/// 表示一个具体的不安全操作
+#[derive(Debug, Clone)]
+struct UnsafeOperation {
+    /// 操作类型（函数调用、解引用等）
+    operation_type: String,
+    /// 操作的详细描述（比如被调用的函数名）
+    operation_detail: String,
+}
+
 /// Represents an internal unsafe function
 #[derive(Clone, Debug)]
 struct InternalUnsafe {
@@ -73,6 +83,8 @@ struct InternalUnsafe {
     name: String,
     is_public: bool,
     is_in_pub_mod: bool,
+    /// 存储该函数中的不安全操作
+    unsafe_operations: Vec<UnsafeOperation>,
 }
 
 /// The main analysis struct that checks for internal unsafe functions
@@ -140,14 +152,18 @@ impl<'tcx> LwzCheck<'tcx> {
                     let is_public = self.is_public_fn(def_id);
                     let is_in_pub_mod = self.is_in_public_module(def_id);
                     
+                    // 提取不安全操作
+                    let unsafe_operations = self.extract_unsafe_operations(def_id);
+                    
                     let internal_unsafe = InternalUnsafe {
                         def_id,
                         name: self.get_fn_name(def_id),
                         is_public,
                         is_in_pub_mod,
+                        unsafe_operations,
                     };
                     
-                    // LWZ: Debug output
+                    // Debug output
                     // rap_info!("Found internal unsafe function: {} (public: {}, in pub mod: {})",
                     //           internal_unsafe.name, internal_unsafe.is_public, internal_unsafe.is_in_pub_mod);
                     
@@ -270,26 +286,31 @@ impl<'tcx> LwzCheck<'tcx> {
         let mut count = 0;
         
         // First, report internal unsafe functions that are directly pub functions in pub modules
-        for &internal_fn in self.internal_unsafe_fns.keys() {
+        for (&internal_fn, internal_unsafe) in &self.internal_unsafe_fns {
             if self.pub_fns_in_pub_mods.contains(&internal_fn) {
                 count += 1;
                 rap_info!("{}: Internal unsafe function is directly a public function in a public module: {}", 
                          count, self.get_fn_name(internal_fn));
+                
+                // 显示不安全操作
+                if !internal_unsafe.unsafe_operations.is_empty() {
+                    rap_info!("(unsafe operations: ");
+                    for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
+                        rap_info!("({}) {}, ", i+1, op.operation_detail);
+                    }
+                    rap_info!(")");
+                }
             }
         }
         
         // Then report paths from pub functions to internal unsafe functions
         for (&internal_fn, path) in &self.shortest_paths {
-            // Skip if the internal unsafe function is already a public function in a public module
-            // This eliminates redundant paths where a public function calls another public unsafe function
-            if self.pub_fns_in_pub_mods.contains(&internal_fn) {
-                continue;
-            }
-            
-            // 获取路径的最后一个节点，即实际的内部不安全函数
-            if let Some(&last_fn) = path.last() {
-                // 如果最后一个节点（内部不安全函数）已经是公开函数，则跳过
-                if self.pub_fns_in_pub_mods.contains(&last_fn) && last_fn != internal_fn {
+            // 只跳过那些"本身就是公共函数且在公共模块中"的内部不安全函数
+            // 注意：我们需要保留"公共模块中的私有内部不安全函数"的路径
+            let internal_unsafe = self.internal_unsafe_fns.get(&internal_fn);
+            if let Some(internal_unsafe) = internal_unsafe {
+                // 只有当函数既在公共模块中，又是公共函数时，才跳过
+                if internal_unsafe.is_public && internal_unsafe.is_in_pub_mod {
                     continue;
                 }
             }
@@ -304,6 +325,17 @@ impl<'tcx> LwzCheck<'tcx> {
                 
                 rap_info!("{}: Path from public function to internal unsafe function: {}", 
                          count, path_str);
+                
+                // 显示不安全操作
+                if let Some(internal_unsafe) = internal_unsafe {
+                    if !internal_unsafe.unsafe_operations.is_empty() {
+                        rap_info!("(unsafe operations: ");
+                        for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
+                            rap_info!("({}) {}, ", i+1, op.operation_detail);
+                        }
+                        rap_info!(")");
+                    }
+                }
             }
         }
         
@@ -337,8 +369,6 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     fn get_callees(&self, def_id: DefId) -> Vec<DefId> {
-        use rustc_middle::mir::{Operand, TerminatorKind};
-        
         let mut callees = Vec::new();
         
         if !self.tcx.is_mir_available(def_id) {
@@ -361,5 +391,102 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         callees
+    }
+
+    /// 提取函数中的不安全操作
+    fn extract_unsafe_operations(&self, def_id: DefId) -> Vec<UnsafeOperation> {
+        let mut operations = Vec::new();
+        
+        if !self.tcx.is_mir_available(def_id) {
+            return operations;
+        }
+        
+        let body = self.tcx.optimized_mir(def_id);
+        
+        // 遍历所有基本块
+        for block_data in body.basic_blocks.iter() {
+            if let Some(terminator) = &block_data.terminator {
+                // 检查函数调用
+                if let TerminatorKind::Call { func, args, .. } = &terminator.kind {
+                    if let Operand::Constant(constant) = func {
+                        if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
+                            // 获取被调用函数的名称
+                            let callee_name = self.get_fn_name(*callee_def_id);
+                            
+                            // 检查是否为unsafe函数调用
+                            let is_unsafe_fn = self.is_unsafe_fn(*callee_def_id);
+                            
+                            if is_unsafe_fn {
+                                // 添加函数调用类型的不安全操作
+                                let operation = UnsafeOperation {
+                                    operation_type: "unsafe function call".to_string(),
+                                    operation_detail: callee_name.clone(),
+                                };
+                                operations.push(operation);
+                            }
+                            
+                            // 记录函数参数中的指针操作
+                            for (i, arg) in args.iter().enumerate() {
+                                if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                                    let ty = place.ty(&body.local_decls, self.tcx).ty;
+                                    
+                                    // 检查是否为原始指针操作
+                                    if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
+                                        let operation = UnsafeOperation {
+                                            operation_type: "raw pointer operation".to_string(),
+                                            operation_detail: format!("arg {} in call to {}", i, callee_name),
+                                        };
+                                        operations.push(operation);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 检查内联汇编
+                if let TerminatorKind::InlineAsm { .. } = &terminator.kind {
+                    let operation = UnsafeOperation {
+                        operation_type: "inline assembly".to_string(),
+                        operation_detail: "inline assembly code".to_string(),
+                    };
+                    operations.push(operation);
+                }
+            }
+            
+            // 检查语句中的不安全操作
+            for _statement in &block_data.statements {
+                // TODO: 可以进一步细化对语句中不安全操作的检测
+                // 例如检测对原始指针的解引用等
+            }
+        }
+        
+        operations
+    }
+    
+    /// 判断函数是否是unsafe函数
+    fn is_unsafe_fn(&self, def_id: DefId) -> bool {
+        // 检查函数是否可用
+        if !self.tcx.is_mir_available(def_id) {
+            return false;
+        }
+        
+        // 获取函数签名
+        if let Some(local_def_id) = def_id.as_local() {
+            let hir = self.tcx.hir();
+            if let Some(node) = hir.get_if_local(def_id) {
+                if let rustc_hir::Node::Item(item) = node {
+                    if let rustc_hir::ItemKind::Fn(sig, ..) = &item.kind {
+                        return matches!(sig.header.safety, rustc_hir::Safety::Unsafe);
+                    }
+                }
+            }
+        } else {
+            // 对于非本地函数，使用其他方法获取函数签名
+            let sig = self.tcx.fn_sig(def_id);
+            return matches!(sig.skip_binder().safety(), rustc_hir::Safety::Unsafe);
+        }
+        
+        false
     }
 }
