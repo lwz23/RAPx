@@ -294,11 +294,11 @@ impl<'tcx> LwzCheck<'tcx> {
                 
                 // 显示不安全操作
                 if !internal_unsafe.unsafe_operations.is_empty() {
-                    rap_info!("(unsafe operations: ");
+                    rap_info!("\n unsafe operations: ");
                     for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
                         rap_info!("({}) {}, ", i+1, op.operation_detail);
                     }
-                    rap_info!(")");
+                    rap_info!("\n");
                 }
             }
         }
