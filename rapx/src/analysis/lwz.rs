@@ -294,7 +294,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 
                 // 显示不安全操作
                 if !internal_unsafe.unsafe_operations.is_empty() {
-                    rap_info!("\n unsafe operations: ");
+                    rap_info!("unsafe operations: ");
                     for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
                         rap_info!("({}) {}, ", i+1, op.operation_detail);
                     }
@@ -329,11 +329,11 @@ impl<'tcx> LwzCheck<'tcx> {
                 // 显示不安全操作
                 if let Some(internal_unsafe) = internal_unsafe {
                     if !internal_unsafe.unsafe_operations.is_empty() {
-                        rap_info!("(unsafe operations: ");
+                        rap_info!("unsafe operations: ");
                         for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
                             rap_info!("({}) {}, ", i+1, op.operation_detail);
                         }
-                        rap_info!(")");
+                        rap_info!("\n");
                     }
                 }
             }
@@ -401,63 +401,122 @@ impl<'tcx> LwzCheck<'tcx> {
             return operations;
         }
         
+        // 获取MIR
         let body = self.tcx.optimized_mir(def_id);
         
-        // 遍历所有基本块
+        // 遍历所有基本块 
         for block_data in body.basic_blocks.iter() {
-            if let Some(terminator) = &block_data.terminator {
-                // 检查函数调用
-                if let TerminatorKind::Call { func, args, .. } = &terminator.kind {
-                    if let Operand::Constant(constant) = func {
-                        if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
-                            // 获取被调用函数的名称
-                            let callee_name = self.get_fn_name(*callee_def_id);
-                            
-                            // 检查是否为unsafe函数调用
-                            let is_unsafe_fn = self.is_unsafe_fn(*callee_def_id);
-                            
-                            if is_unsafe_fn {
-                                // 添加函数调用类型的不安全操作
+            // 检查语句中的不安全操作
+            for statement in &block_data.statements {
+                // 检查statement中的不安全操作
+                match &statement.kind {
+                    // 检查Assign语句中可能的不安全操作
+                    rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) => {
+                        // 解引用原始指针
+                        if place.projection.iter().any(|proj| matches!(proj, rustc_middle::mir::ProjectionElem::Deref)) {
+                            let ty = place.ty(&body.local_decls, self.tcx).ty;
+                            if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
                                 let operation = UnsafeOperation {
-                                    operation_type: "unsafe function call".to_string(),
-                                    operation_detail: callee_name.clone(),
+                                    operation_type: "raw pointer dereference".to_string(),
+                                    operation_detail: format!("dereference of raw pointer"),
                                 };
                                 operations.push(operation);
                             }
-                            
-                            // 记录函数参数中的指针操作
-                            for (i, arg) in args.iter().enumerate() {
-                                if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
-                                    let ty = place.ty(&body.local_decls, self.tcx).ty;
-                                    
-                                    // 检查是否为原始指针操作
-                                    if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
-                                        let operation = UnsafeOperation {
-                                            operation_type: "raw pointer operation".to_string(),
-                                            operation_detail: format!("arg {} in call to {}", i, callee_name),
-                                        };
-                                        operations.push(operation);
+                        }
+                        
+                        // 检查右值中的不安全操作
+                        match rvalue {
+                            // 检查使用原始指针
+                            rustc_middle::mir::Rvalue::Use(operand) => {
+                                if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                                    if source_place.projection.iter().any(|proj| matches!(proj, rustc_middle::mir::ProjectionElem::Deref)) {
+                                        let ty = source_place.ty(&body.local_decls, self.tcx).ty;
+                                        if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
+                                            let operation = UnsafeOperation {
+                                                operation_type: "raw pointer dereference".to_string(),
+                                                operation_detail: format!("dereference of raw pointer"),
+                                            };
+                                            operations.push(operation);
+                                        }
                                     }
+                                }
+                            },
+                            // 检查原始指针算术操作
+                            rustc_middle::mir::Rvalue::BinaryOp(op, box (left, _)) => {
+                                if let rustc_middle::mir::BinOp::Offset = op {
+                                    if let Operand::Copy(place) | Operand::Move(place) = left {
+                                        let ty = place.ty(&body.local_decls, self.tcx).ty;
+                                        if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
+                                            let operation = UnsafeOperation {
+                                                operation_type: "pointer arithmetic".to_string(),
+                                                operation_detail: "offset operation on raw pointer".to_string(),
+                                            };
+                                            operations.push(operation);
+                                        }
+                                    }
+                                }
+                            },
+                            // 其他可能的不安全操作，我们不再特殊处理特定方法
+                            _ => {}
+                        }
+                    },
+                    // 检查Intrinsic调用，比如copy_nonoverlapping
+                    rustc_middle::mir::StatementKind::Intrinsic(box intrinsic) => {
+                        // 内部函数调用通常是unsafe的
+                        let operation = UnsafeOperation {
+                            operation_type: "intrinsic function call".to_string(),
+                            operation_detail: format!("intrinsic call: {:?}", intrinsic),
+                        };
+                        operations.push(operation);
+                    },
+                    _ => {}
+                }
+            }
+
+            // 检查终结符中的不安全操作
+            if let Some(terminator) = &block_data.terminator {
+                match &terminator.kind {
+                    // 检查函数调用
+                    TerminatorKind::Call { func, .. } => {
+                        // 处理函数调用
+                        if let Operand::Constant(constant) = func {
+                            if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
+                                // 检查被调用函数是否标记为unsafe
+                                if self.is_unsafe_fn(*callee_def_id) {
+                                    let callee_name = self.get_fn_name(*callee_def_id);
+                                    let operation = UnsafeOperation {
+                                        operation_type: "unsafe function call".to_string(),
+                                        operation_detail: callee_name,
+                                    };
+                                    operations.push(operation);
+                                }
+                            }
+                        } else if let Operand::Copy(place) | Operand::Move(place) = func {
+                            // 处理方法调用
+                            // 尝试确定方法是否是不安全的
+                            if let Some(method_def_id) = self.resolve_method(place, &body.local_decls) {
+                                if self.is_unsafe_fn(method_def_id) {
+                                    let method_name = self.get_fn_name(method_def_id);
+                                    let operation = UnsafeOperation {
+                                        operation_type: "unsafe method call".to_string(),
+                                        operation_detail: method_name,
+                                    };
+                                    operations.push(operation);
                                 }
                             }
                         }
-                    }
+                    },
+                    // 检查内联汇编
+                    TerminatorKind::InlineAsm { .. } => {
+                        let operation = UnsafeOperation {
+                            operation_type: "inline assembly".to_string(),
+                            operation_detail: "inline assembly code".to_string(),
+                        };
+                        operations.push(operation);
+                    },
+                    // 检查其他可能的不安全操作类型
+                    _ => {}
                 }
-                
-                // 检查内联汇编
-                if let TerminatorKind::InlineAsm { .. } = &terminator.kind {
-                    let operation = UnsafeOperation {
-                        operation_type: "inline assembly".to_string(),
-                        operation_detail: "inline assembly code".to_string(),
-                    };
-                    operations.push(operation);
-                }
-            }
-            
-            // 检查语句中的不安全操作
-            for _statement in &block_data.statements {
-                // TODO: 可以进一步细化对语句中不安全操作的检测
-                // 例如检测对原始指针的解引用等
             }
         }
         
@@ -466,27 +525,27 @@ impl<'tcx> LwzCheck<'tcx> {
     
     /// 判断函数是否是unsafe函数
     fn is_unsafe_fn(&self, def_id: DefId) -> bool {
-        // 检查函数是否可用
-        if !self.tcx.is_mir_available(def_id) {
-            return false;
+        // 参考 unsafety_isolation 模块的实现
+        if self.tcx.is_mir_available(def_id) {
+            let poly_fn_sig = self.tcx.fn_sig(def_id);
+            let fn_sig = poly_fn_sig.skip_binder();
+            return fn_sig.safety() == rustc_hir::Safety::Unsafe;
         }
-        
-        // 获取函数签名
-        if let Some(local_def_id) = def_id.as_local() {
-            let hir = self.tcx.hir();
-            if let Some(node) = hir.get_if_local(def_id) {
-                if let rustc_hir::Node::Item(item) = node {
-                    if let rustc_hir::ItemKind::Fn(sig, ..) = &item.kind {
-                        return matches!(sig.header.safety, rustc_hir::Safety::Unsafe);
-                    }
-                }
-            }
-        } else {
-            // 对于非本地函数，使用其他方法获取函数签名
-            let sig = self.tcx.fn_sig(def_id);
-            return matches!(sig.skip_binder().safety(), rustc_hir::Safety::Unsafe);
-        }
-        
         false
+    }
+
+    /// 尝试解析方法调用对应的函数定义ID
+    fn resolve_method(&self, place: &rustc_middle::mir::Place<'tcx>, local_decls: &rustc_middle::mir::LocalDecls<'tcx>) -> Option<DefId> {
+        // 这是一个简化的实现，实际上解析方法调用比较复杂
+        // 在实际场景中，可能需要使用typeck结果或其他机制来准确解析方法
+        // 此实现仅作为示例
+        if let Some(field) = place.projection.last() {
+            if let rustc_middle::mir::ProjectionElem::Field(_, _) = field {
+                // 这里应该有更复杂的逻辑来解析方法调用
+                // 但由于限制，我们返回None
+                return None;
+            }
+        }
+        None
     }
 }
