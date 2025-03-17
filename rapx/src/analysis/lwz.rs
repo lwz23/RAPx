@@ -412,33 +412,16 @@ impl<'tcx> LwzCheck<'tcx> {
                 match &statement.kind {
                     // 检查Assign语句中可能的不安全操作
                     rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) => {
-                        // 解引用原始指针
-                        if place.projection.iter().any(|proj| matches!(proj, rustc_middle::mir::ProjectionElem::Deref)) {
-                            let ty = place.ty(&body.local_decls, self.tcx).ty;
-                            if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
-                                let operation = UnsafeOperation {
-                                    operation_type: "raw pointer dereference".to_string(),
-                                    operation_detail: format!("dereference of raw pointer"),
-                                };
-                                operations.push(operation);
-                            }
-                        }
+                        // 检查左侧的place是否包含解引用裸指针
+                        self.check_place_for_raw_ptr_deref(place, &body.local_decls, &mut operations);
                         
                         // 检查右值中的不安全操作
                         match rvalue {
                             // 检查使用原始指针
                             rustc_middle::mir::Rvalue::Use(operand) => {
                                 if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
-                                    if source_place.projection.iter().any(|proj| matches!(proj, rustc_middle::mir::ProjectionElem::Deref)) {
-                                        let ty = source_place.ty(&body.local_decls, self.tcx).ty;
-                                        if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
-                                            let operation = UnsafeOperation {
-                                                operation_type: "raw pointer dereference".to_string(),
-                                                operation_detail: format!("dereference of raw pointer"),
-                                            };
-                                            operations.push(operation);
-                                        }
-                                    }
+                                    // 检查操作数中是否包含解引用裸指针
+                                    self.check_place_for_raw_ptr_deref(source_place, &body.local_decls, &mut operations);
                                 }
                             },
                             // 检查原始指针算术操作
@@ -456,7 +439,21 @@ impl<'tcx> LwzCheck<'tcx> {
                                     }
                                 }
                             },
-                            // 其他可能的不安全操作，我们不再特殊处理特定方法
+                            // 检查RawPtr操作
+                            rustc_middle::mir::Rvalue::RawPtr(_, _place) => {
+                                // 创建原始指针是安全的，但解引用是不安全的
+                                // 这里我们只记录创建操作，不标记为不安全
+                            },
+                            // 检查Ref操作，可能涉及到裸指针
+                            rustc_middle::mir::Rvalue::Ref(_, _, place) => {
+                                // 检查是否对裸指针进行了引用操作
+                                let ty = place.ty(&body.local_decls, self.tcx).ty;
+                                if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
+                                    // 对裸指针取引用可能是不安全的，取决于上下文
+                                    self.check_place_for_raw_ptr_deref(place, &body.local_decls, &mut operations);
+                                }
+                            },
+                            // 其他可能的不安全操作
                             _ => {}
                         }
                     },
@@ -504,6 +501,9 @@ impl<'tcx> LwzCheck<'tcx> {
                                     operations.push(operation);
                                 }
                             }
+                            
+                            // 检查函数指针是否是裸指针解引用
+                            self.check_place_for_raw_ptr_deref(place, &body.local_decls, &mut operations);
                         }
                     },
                     // 检查内联汇编
@@ -523,6 +523,94 @@ impl<'tcx> LwzCheck<'tcx> {
         operations
     }
     
+    /// 检查Place中是否包含解引用裸指针的操作
+    fn check_place_for_raw_ptr_deref(&self, 
+                                     place: &rustc_middle::mir::Place<'tcx>, 
+                                     local_decls: &rustc_middle::mir::LocalDecls<'tcx>, 
+                                     operations: &mut Vec<UnsafeOperation>) {
+        // 检查投影序列中是否有解引用操作
+        for (i, proj) in place.projection.iter().enumerate() {
+            if let rustc_middle::mir::ProjectionElem::Deref = proj {
+                // 获取被解引用的类型
+                let prefix_place = rustc_middle::mir::Place {
+                    local: place.local,
+                    projection: self.tcx.mk_place_elems(&place.projection[0..i]),
+                };
+                
+                let prefix_ty = prefix_place.ty(local_decls, self.tcx).ty;
+                
+                // 检查是否是裸指针类型
+                if let rustc_middle::ty::TyKind::RawPtr(..) = prefix_ty.kind() {
+                    // 尝试从 MIR 获取变量名信息
+                    let var_name = self.get_place_description(&prefix_place, local_decls);
+                    
+                    let operation = UnsafeOperation {
+                        operation_type: "raw pointer dereference".to_string(),
+                        operation_detail: format!("*{}", var_name),
+                    };
+                    operations.push(operation);
+                }
+            }
+        }
+    }
+
+    /// 尝试从 Place 获取变量描述
+    fn get_place_description(&self, place: &rustc_middle::mir::Place<'tcx>, 
+                            local_decls: &rustc_middle::mir::LocalDecls<'tcx>) -> String {
+        // 获取局部变量名
+        let local = place.local;
+        let local_decl = &local_decls[local];
+        
+        // 尝试获取变量名
+        let base_name = match local_decl.local_info {
+            rustc_middle::mir::ClearCrossCrate::Set(ref info) => {
+                match **info {
+                    rustc_middle::mir::LocalInfo::User(ref binding) => {
+                        // BindingForm没有实现ToString，使用Debug格式化
+                        format!("{:?}", binding)
+                    },
+                    rustc_middle::mir::LocalInfo::BlockTailTemp(ref _block) => {
+                        format!("_temp_{}", local.as_usize())
+                    },
+                    rustc_middle::mir::LocalInfo::Boring => {
+                        format!("_var_{}", local.as_usize())
+                    },
+                    // 匹配任何其他变体
+                    _ => format!("_var_{}", local.as_usize()),
+                }
+            },
+            rustc_middle::mir::ClearCrossCrate::Clear => {
+                // 如果信息被清除，使用默认格式
+                if local.as_usize() == 0 {
+                    // 返回值特殊处理
+                    "_return".to_string()
+                } else {
+                    // 为临时变量使用下标
+                    format!("_{}", local.as_usize())
+                }
+            }
+        };
+        
+        // 处理投影
+        let mut result = base_name;
+        for elem in place.projection.iter() {
+            match elem {
+                rustc_middle::mir::ProjectionElem::Deref => {
+                    result = format!("*{}", result);
+                },
+                rustc_middle::mir::ProjectionElem::Field(field, _) => {
+                    result = format!("{}.{}", result, field.index());
+                },
+                rustc_middle::mir::ProjectionElem::Index(idx) => {
+                    result = format!("{}[_{:?}]", result, idx);
+                },
+                _ => {}
+            }
+        }
+        
+        result
+    }
+
     /// 判断函数是否是unsafe函数
     fn is_unsafe_fn(&self, def_id: DefId) -> bool {
         // 参考 unsafety_isolation 模块的实现
@@ -535,7 +623,7 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     /// 尝试解析方法调用对应的函数定义ID
-    fn resolve_method(&self, place: &rustc_middle::mir::Place<'tcx>, local_decls: &rustc_middle::mir::LocalDecls<'tcx>) -> Option<DefId> {
+    fn resolve_method(&self, place: &rustc_middle::mir::Place<'tcx>, _local_decls: &rustc_middle::mir::LocalDecls<'tcx>) -> Option<DefId> {
         // 这是一个简化的实现，实际上解析方法调用比较复杂
         // 在实际场景中，可能需要使用typeck结果或其他机制来准确解析方法
         // 此实现仅作为示例
