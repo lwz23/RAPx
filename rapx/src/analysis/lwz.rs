@@ -474,16 +474,40 @@ impl<'tcx> LwzCheck<'tcx> {
             if let Some(terminator) = &block_data.terminator {
                 match &terminator.kind {
                     // 检查函数调用
-                    TerminatorKind::Call { func, .. } => {
+                    TerminatorKind::Call { func, args, .. } => {
                         // 处理函数调用
                         if let Operand::Constant(constant) = func {
                             if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
                                 // 检查被调用函数是否标记为unsafe
                                 if self.is_unsafe_fn(*callee_def_id) {
                                     let callee_name = self.get_fn_name(*callee_def_id);
+                                    
+                                    // 提取函数参数信息
+                                    let mut arg_descriptions = Vec::new();
+                                    for arg in args.iter() {
+                                        match &arg.node {
+                                            Operand::Copy(place) | Operand::Move(place) => {
+                                                // 尝试获取参数变量名
+                                                let arg_str = self.get_place_description(place, &body.local_decls);
+                                                arg_descriptions.push(arg_str);
+                                            },
+                                            Operand::Constant(constant) => {
+                                                // 处理常量参数
+                                                arg_descriptions.push(format!("{:?}", constant.const_));
+                                            },
+                                        }
+                                    }
+                                    
+                                    // 构建参数字符串
+                                    let args_str = if !arg_descriptions.is_empty() {
+                                        arg_descriptions.join(", ")
+                                    } else {
+                                        String::new()
+                                    };
+                                    
                                     let operation = UnsafeOperation {
                                         operation_type: "unsafe function call".to_string(),
-                                        operation_detail: callee_name,
+                                        operation_detail: format!("{}({})", callee_name, args_str),
                                     };
                                     operations.push(operation);
                                 }
@@ -494,9 +518,33 @@ impl<'tcx> LwzCheck<'tcx> {
                             if let Some(method_def_id) = self.resolve_method(place, &body.local_decls) {
                                 if self.is_unsafe_fn(method_def_id) {
                                     let method_name = self.get_fn_name(method_def_id);
+                                    
+                                    // 提取参数信息
+                                    let mut arg_descriptions = Vec::new();
+                                    for arg in args.iter() {
+                                        match &arg.node {
+                                            Operand::Copy(place) | Operand::Move(place) => {
+                                                // 尝试获取参数变量名
+                                                let arg_str = self.get_place_description(place, &body.local_decls);
+                                                arg_descriptions.push(arg_str);
+                                            },
+                                            Operand::Constant(constant) => {
+                                                // 处理常量参数
+                                                arg_descriptions.push(format!("{:?}", constant.const_));
+                                            },
+                                        }
+                                    }
+                                    
+                                    // 构建参数字符串
+                                    let args_str = if !arg_descriptions.is_empty() {
+                                        arg_descriptions.join(", ")
+                                    } else {
+                                        String::new()
+                                    };
+                                    
                                     let operation = UnsafeOperation {
                                         operation_type: "unsafe method call".to_string(),
-                                        operation_detail: method_name,
+                                        operation_detail: format!("{}({})", method_name, args_str),
                                     };
                                     operations.push(operation);
                                 }
