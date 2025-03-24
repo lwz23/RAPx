@@ -95,6 +95,8 @@ pub struct LwzCheck<'tcx> {
     call_graph: HashMap<DefId, Vec<DefId>>,
     reverse_call_graph: HashMap<DefId, Vec<DefId>>,
     shortest_paths: HashMap<DefId, Vec<DefId>>,
+    /// 存储符合pattern1的函数和对应的unsafe操作
+    pattern1_matches: HashMap<DefId, Vec<UnsafeOperation>>,
 }
 
 impl<'tcx> LwzCheck<'tcx> {
@@ -106,6 +108,7 @@ impl<'tcx> LwzCheck<'tcx> {
             call_graph: HashMap::new(),
             reverse_call_graph: HashMap::new(),
             shortest_paths: HashMap::new(),
+            pattern1_matches: HashMap::new(),
         }
     }
 
@@ -115,6 +118,7 @@ impl<'tcx> LwzCheck<'tcx> {
         self.collect_functions();
         self.build_call_graphs();
         self.find_shortest_paths();
+        self.detect_pattern1_matches();
         self.report_findings();
     }
 
@@ -340,6 +344,30 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         rap_info!("Total paths reported: {}", count);
+        
+        // 输出pattern1匹配结果
+        if !self.pattern1_matches.is_empty() {
+            rap_info!("\n===== Pattern1 (Parameter Directly Used in Unsafe Operation) Report =====");
+            let mut pattern1_count = 0;
+            
+            for (&fn_id, ops) in &self.pattern1_matches {
+                pattern1_count += 1;
+                let fn_name = self.get_fn_name(fn_id);
+                
+                rap_info!("{}: Public function with direct parameter to unsafe operation: {}", pattern1_count, fn_name);
+                
+                // 显示不安全操作
+                if !ops.is_empty() {
+                    rap_info!("unsafe operations: ");
+                    for (i, op) in ops.iter().enumerate() {
+                        rap_info!("({}) {}, ", i+1, op.operation_detail);
+                    }
+                    rap_info!("\n");
+                }
+            }
+            
+            rap_info!("Total pattern1 functions found: {}", pattern1_count);
+        }
     }
 
     // Helper functions
@@ -357,7 +385,10 @@ impl<'tcx> LwzCheck<'tcx> {
             let mod_def_id = self.tcx.parent_module(hir_id);
             
             // 检查模块是否是public
-            self.tcx.visibility(mod_def_id).is_public()
+            // 注意：避免在impl块内部项上调用visibility，因为这可能导致ICE
+            // 对于impl块中的项，查看其所属类型或模块的可见性
+            let parent_vis = self.tcx.visibility(mod_def_id);
+            return parent_vis.is_public();
         } else {
             // 如果不是本地def_id，假设为非公开模块
             false
@@ -683,5 +714,123 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         None
+    }
+
+    /// 检测符合pattern1的函数
+    /// pattern1: pub函数的参数直接传入unsafe操作
+    fn detect_pattern1_matches(&mut self) {
+        for local_def_id in self.tcx.iter_local_def_id() {
+            let def_id = local_def_id.to_def_id();
+            
+            // 检查是否是函数或方法
+            let is_fn = matches!(self.tcx.def_kind(def_id), 
+                rustc_hir::def::DefKind::Fn | rustc_hir::def::DefKind::AssocFn);
+            
+            if !is_fn {
+                continue;
+            }
+            
+            // 只检查公共函数
+            if !self.is_public_fn(def_id) {
+                continue;
+            }
+            
+            if !self.tcx.is_mir_available(def_id) {
+                continue;
+            }
+            
+            // 获取MIR
+            let body = self.tcx.optimized_mir(def_id);
+            let mut pattern1_ops = Vec::new();
+            
+            // 遍历所有基本块检查pattern1
+            for block_data in body.basic_blocks.iter() {
+                // 检查终结符中的不安全操作
+                if let Some(terminator) = &block_data.terminator {
+                    match &terminator.kind {
+                        // 检查函数调用
+                        TerminatorKind::Call { func, args, .. } => {
+                            if let Operand::Constant(constant) = func {
+                                if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
+                                    // 检查被调用函数是否标记为unsafe
+                                    if self.is_unsafe_fn(*callee_def_id) {
+                                        let callee_name = self.get_fn_name(*callee_def_id);
+                                        
+                                        // 检查参数是否是函数的输入参数
+                                        for (arg_idx, arg) in args.iter().enumerate() {
+                                            match &arg.node {
+                                                Operand::Copy(place) | Operand::Move(place) => {
+                                                    // 检查是否是函数参数(MIR中参数从_1开始)
+                                                    if place.local.as_usize() > 0 && place.projection.is_empty() {
+                                                        // 找到pattern1: 参数直接传给unsafe函数
+                                                        let arg_str = self.get_place_description(place, &body.local_decls);
+                                                        let operation = UnsafeOperation {
+                                                            operation_type: "unsafe function call with direct parameter".to_string(),
+                                                            operation_detail: format!("{}({})", callee_name, arg_str),
+                                                        };
+                                                        pattern1_ops.push(operation);
+                                                    }
+                                                },
+                                                _ => {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+                
+                // 检查语句中的不安全操作
+                for statement in &block_data.statements {
+                    match &statement.kind {
+                        // 检查Assign语句中的解引用裸指针操作
+                        rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) => {
+                            match rvalue {
+                                // 检查右值中的指针解引用
+                                rustc_middle::mir::Rvalue::Use(operand) => {
+                                    if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                                        // 检查是否包含解引用操作
+                                        for (i, proj) in source_place.projection.iter().enumerate() {
+                                            if let rustc_middle::mir::ProjectionElem::Deref = proj {
+                                                // 获取被解引用的地方
+                                                let prefix_place = rustc_middle::mir::Place {
+                                                    local: source_place.local,
+                                                    projection: self.tcx.mk_place_elems(&source_place.projection[0..i]),
+                                                };
+                                                
+                                                let prefix_ty = prefix_place.ty(&body.local_decls, self.tcx).ty;
+                                                
+                                                // 检查是否是裸指针类型
+                                                if let rustc_middle::ty::TyKind::RawPtr(..) = prefix_ty.kind() {
+                                                    // 检查是否是函数参数
+                                                    if prefix_place.local.as_usize() > 0 && prefix_place.projection.is_empty() {
+                                                        // 找到pattern1: 解引用参数裸指针
+                                                        let var_name = self.get_place_description(&prefix_place, &body.local_decls);
+                                                        let operation = UnsafeOperation {
+                                                            operation_type: "raw pointer dereference of parameter".to_string(),
+                                                            operation_detail: format!("*{}", var_name),
+                                                        };
+                                                        pattern1_ops.push(operation);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                _ => {}
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            
+            // 如果找到了pattern1操作，保存结果
+            if !pattern1_ops.is_empty() {
+                self.pattern1_matches.insert(def_id, pattern1_ops);
+            }
+        }
     }
 }
