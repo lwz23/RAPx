@@ -741,6 +741,12 @@ impl<'tcx> LwzCheck<'tcx> {
             
             // 获取MIR
             let body = self.tcx.optimized_mir(def_id);
+            
+            // 获取函数参数数量
+            // 在MIR中，函数参数是连续存储在local_decls中的，从索引1开始
+            // 通过检查local_decls中arg的数量来计算参数个数
+            let param_count = body.args_iter().count();
+            
             let mut pattern1_ops = Vec::new();
             
             // 遍历所有基本块检查pattern1
@@ -760,8 +766,11 @@ impl<'tcx> LwzCheck<'tcx> {
                                         for (arg_idx, arg) in args.iter().enumerate() {
                                             match &arg.node {
                                                 Operand::Copy(place) | Operand::Move(place) => {
-                                                    // 检查是否是函数参数(MIR中参数从_1开始)
-                                                    if place.local.as_usize() > 0 && place.projection.is_empty() {
+                                                    // 检查是否是真正的函数参数
+                                                    // MIR中参数从_1开始，返回值是_0
+                                                    // 参数索引必须小于等于参数数量
+                                                    let local_idx = place.local.as_usize();
+                                                    if local_idx > 0 && local_idx <= param_count && place.projection.is_empty() {
                                                         // 找到pattern1: 参数直接传给unsafe函数
                                                         let arg_str = self.get_place_description(place, &body.local_decls);
                                                         let operation = UnsafeOperation {
@@ -804,8 +813,9 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 
                                                 // 检查是否是裸指针类型
                                                 if let rustc_middle::ty::TyKind::RawPtr(..) = prefix_ty.kind() {
-                                                    // 检查是否是函数参数
-                                                    if prefix_place.local.as_usize() > 0 && prefix_place.projection.is_empty() {
+                                                    // 检查是否是真正的函数参数
+                                                    let local_idx = prefix_place.local.as_usize();
+                                                    if local_idx > 0 && local_idx <= param_count && prefix_place.projection.is_empty() {
                                                         // 找到pattern1: 解引用参数裸指针
                                                         let var_name = self.get_place_description(&prefix_place, &body.local_decls);
                                                         let operation = UnsafeOperation {
