@@ -760,76 +760,68 @@ impl<'tcx> LwzCheck<'tcx> {
                     // DEBUG输出
                     rap_info!("DEBUG: 函数 {} 有 {} 个参数", fn_name, param_count);
                     
-                    // 如果是from_utf8或者call_from_utf8这两个特殊函数，直接匹配并添加到pattern1
-                    // 这里通过MIR直接检查函数的特征而不是名称匹配
-                    let is_from_utf8_pattern = self.check_is_from_utf8_pattern(def_id, body, &internal_unsafe.unsafe_operations);
-                    if is_from_utf8_pattern {
-                        rap_info!("DEBUG: 检测到from_utf8模式函数: {}", fn_name);
-                        pattern1_ops.extend(internal_unsafe.unsafe_operations.clone());
-                    } else {
-                        // 检查常规参数传递情况
-                        for op in &internal_unsafe.unsafe_operations {
-                            // DEBUG输出
-                            rap_info!("DEBUG: 检查不安全操作: {}", op.operation_detail);
-                            
-                            // 1. 检查解引用参数的情况
-                            if op.operation_detail.starts_with("*_") {
-                                // 从操作详情中提取变量编号
-                                if let Some(var_number) = self.extract_var_number(&op.operation_detail) {
-                                    // 检查变量编号是否在参数范围内，或者是否是参数的复制
-                                    if self.is_param_or_copy(body, var_number, param_count) {
-                                        pattern1_ops.push(op.clone());
-                                        // DEBUG输出
-                                        rap_info!("DEBUG: 发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name);
-                                    } else {
-                                        // DEBUG输出
-                                        rap_info!("DEBUG: 变量 {} 不是参数或参数复制", var_number);
-                                    }
+                    // 检查所有不安全操作，是否有直接或间接使用参数的情况
+                    for op in &internal_unsafe.unsafe_operations {
+                        // DEBUG输出
+                        rap_info!("DEBUG: 检查不安全操作: {}", op.operation_detail);
+                        
+                        // 1. 检查解引用参数的情况
+                        if op.operation_detail.starts_with("*_") {
+                            // 从操作详情中提取变量编号
+                            if let Some(var_number) = self.extract_var_number(&op.operation_detail) {
+                                // 检查变量编号是否在参数范围内，或者是否是参数的复制
+                                if self.is_param_or_copy(body, var_number, param_count) {
+                                    pattern1_ops.push(op.clone());
+                                    // DEBUG输出
+                                    rap_info!("DEBUG: 发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name);
+                                } else {
+                                    // DEBUG输出
+                                    rap_info!("DEBUG: 变量 {} 不是参数或参数复制", var_number);
                                 }
-                            } 
-                            // 2. 检查函数调用参数的情况
-                            else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
-                                // DEBUG输出
-                                rap_info!("DEBUG: 分析函数调用: {}", op.operation_detail);
-                                
-                                // 提取函数调用中的所有参数
-                                if let Some(start_pos) = op.operation_detail.find('(') {
-                                    if let Some(end_pos) = op.operation_detail.rfind(')') {
-                                        if start_pos < end_pos {
-                                            let args_str = &op.operation_detail[start_pos+1..end_pos];
+                            }
+                        } 
+                        // 2. 检查函数调用参数的情况
+                        else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
+                            // DEBUG输出
+                            rap_info!("DEBUG: 分析函数调用: {}", op.operation_detail);
+                            
+                            // 提取函数调用中的所有参数
+                            if let Some(start_pos) = op.operation_detail.find('(') {
+                                if let Some(end_pos) = op.operation_detail.rfind(')') {
+                                    if start_pos < end_pos {
+                                        let args_str = &op.operation_detail[start_pos+1..end_pos];
+                                        // DEBUG输出
+                                        rap_info!("DEBUG: 提取的参数字符串: '{}'", args_str);
+                                        
+                                        // 分割参数
+                                        for arg in args_str.split(',') {
+                                            let arg = arg.trim();
                                             // DEBUG输出
-                                            rap_info!("DEBUG: 提取的参数字符串: '{}'", args_str);
+                                            rap_info!("DEBUG: 检查参数: '{}'", arg);
                                             
-                                            // 分割参数
-                                            for arg in args_str.split(',') {
-                                                let arg = arg.trim();
-                                                // DEBUG输出
-                                                rap_info!("DEBUG: 检查参数: '{}'", arg);
-                                                
-                                                if arg.starts_with("_") {
-                                                    // 尝试提取参数编号
-                                                    if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                            if arg.starts_with("_") {
+                                                // 尝试提取参数编号
+                                                if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                                    // DEBUG输出
+                                                    rap_info!("DEBUG: 解析参数编号: {}", arg_num);
+                                                    
+                                                    // 检查编号是否在参数范围内，或者是否是参数的复制
+                                                    if self.is_param_or_copy(body, arg_num, param_count) {
+                                                        pattern1_ops.push(op.clone());
                                                         // DEBUG输出
-                                                        rap_info!("DEBUG: 解析参数编号: {}", arg_num);
-                                                        
-                                                        // 检查编号是否在参数范围内，或者是否是参数的复制
-                                                        if self.is_param_or_copy(body, arg_num, param_count) {
-                                                            pattern1_ops.push(op.clone());
-                                                            // DEBUG输出
-                                                            rap_info!("DEBUG: 发现pattern1函数调用参数: {} 在函数 {}", arg_num, fn_name);
-                                                            break; // 找到一个匹配的参数就足够了
-                                                        } else {
-                                                            // DEBUG输出
-                                                            rap_info!("DEBUG: 变量 {} 不是参数或参数复制", arg_num);
-                                                        }
+                                                        rap_info!("DEBUG: 发现pattern1函数调用参数: {} 在函数 {}", arg_num, fn_name);
+                                                        break; // 找到一个匹配的参数就足够了
                                                     } else {
                                                         // DEBUG输出
-                                                        rap_info!("DEBUG: 无法解析参数编号: '{}'", arg);
+                                                        rap_info!("DEBUG: 变量 {} 不是参数或参数复制", arg_num);
                                                     }
                                                 } else {
                                                     // DEBUG输出
-                                                    rap_info!("DEBUG: 不是参数变量: '{}'", arg);
+                                                    rap_info!("DEBUG: 无法解析参数编号: '{}'", arg);
                                                 }
+                                            } else {
+                                                // DEBUG输出
+                                                rap_info!("DEBUG: 不是参数变量: '{}'", arg);
                                             }
                                         }
                                     }
@@ -853,53 +845,6 @@ impl<'tcx> LwzCheck<'tcx> {
         
         // DEBUG输出
         rap_info!("DEBUG: pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len());
-    }
-    
-    /// 检查函数是否符合from_utf8模式（接收byte数组直接传给from_utf8_unchecked）
-    fn check_is_from_utf8_pattern(&self, def_id: DefId, body: &rustc_middle::mir::Body<'tcx>, unsafe_ops: &[UnsafeOperation]) -> bool {
-        // 判断依据：
-        // 1. 函数至少有一个参数
-        // 2. 第一个参数是&[u8]类型（字节数组）
-        // 3. 有一个unsafe操作是调用from_utf8_unchecked
-        
-        // 检查函数是否有参数
-        if body.arg_count == 0 {
-            return false;
-        }
-        
-        // 检查第一个参数的类型
-        let param_index = 1; // 第一个参数的索引
-        let param_decl = &body.local_decls[rustc_middle::mir::Local::from_usize(param_index)];
-        let param_ty = param_decl.ty;
-        
-        // 检查类型是否是&[u8]（引用到字节数组）
-        let is_byte_slice = if let rustc_middle::ty::TyKind::Ref(_, inner_ty, _) = param_ty.kind() {
-            if let rustc_middle::ty::TyKind::Slice(elem_ty) = inner_ty.kind() {
-                // 检查元素类型是否是u8
-                if let rustc_middle::ty::TyKind::Uint(rustc_middle::ty::UintTy::U8) = elem_ty.kind() {
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
-        
-        if !is_byte_slice {
-            return false;
-        }
-        
-        // 检查是否有unsafe操作调用from_utf8_unchecked
-        for op in unsafe_ops {
-            if op.operation_detail.contains("from_utf8_unchecked") {
-                return true;
-            }
-        }
-        
-        false
     }
     
     /// 检查变量是否是函数参数或参数的复制
