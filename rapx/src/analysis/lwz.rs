@@ -70,8 +70,6 @@ impl<'tcx> Visitor<'tcx> for ContainsUnsafe<'tcx> {
 /// 表示一个具体的不安全操作
 #[derive(Debug, Clone)]
 struct UnsafeOperation {
-    /// 操作类型（函数调用、解引用等）
-    operation_type: String,
     /// 操作的详细描述（比如被调用的函数名）
     operation_detail: String,
 }
@@ -80,7 +78,6 @@ struct UnsafeOperation {
 #[derive(Clone, Debug)]
 struct InternalUnsafe {
     def_id: DefId,
-    name: String,
     is_public: bool,
     is_in_pub_mod: bool,
     /// 存储该函数中的不安全操作
@@ -161,7 +158,6 @@ impl<'tcx> LwzCheck<'tcx> {
                     
                     let internal_unsafe = InternalUnsafe {
                         def_id,
-                        name: self.get_fn_name(def_id),
                         is_public,
                         is_in_pub_mod,
                         unsafe_operations,
@@ -437,7 +433,7 @@ impl<'tcx> LwzCheck<'tcx> {
         let fn_name = self.get_fn_name(def_id);
         
         // DEBUG输出
-        rap_info!("DEBUG: 开始提取不安全操作 - 函数: {}", fn_name);
+        self.debug_log(format!("开始提取不安全操作 - 函数: {}", fn_name));
         
         // 遍历所有基本块 
         for block_data in body.basic_blocks.iter() {
@@ -466,7 +462,6 @@ impl<'tcx> LwzCheck<'tcx> {
                                         let ty = place.ty(&body.local_decls, self.tcx).ty;
                                         if let rustc_middle::ty::TyKind::RawPtr(..) = ty.kind() {
                                             let operation = UnsafeOperation {
-                                                operation_type: "pointer arithmetic".to_string(),
                                                 operation_detail: "offset operation on raw pointer".to_string(),
                                             };
                                             operations.push(operation);
@@ -496,7 +491,6 @@ impl<'tcx> LwzCheck<'tcx> {
                     rustc_middle::mir::StatementKind::Intrinsic(box intrinsic) => {
                         // 内部函数调用通常是unsafe的
                         let operation = UnsafeOperation {
-                            operation_type: "intrinsic function call".to_string(),
                             operation_detail: format!("intrinsic call: {:?}", intrinsic),
                         };
                         operations.push(operation);
@@ -518,7 +512,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     let callee_name = self.get_fn_name(*callee_def_id);
                                     
                                     // DEBUG输出
-                                    rap_info!("DEBUG: 发现unsafe函数调用: {} 在函数 {}", callee_name, fn_name);
+                                    self.debug_log(format!("发现unsafe函数调用: {} 在函数 {}", callee_name, fn_name));
                                     
                                     // 提取函数参数信息
                                     let mut arg_descriptions = Vec::new();
@@ -530,8 +524,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 arg_descriptions.push(arg_str.clone());
                                                 
                                                 // DEBUG输出
-                                                rap_info!("DEBUG: 参数 #{}: {} (本地变量ID: {})", 
-                                                          i, arg_str, place.local.as_usize());
+                                                self.debug_log(format!("参数 #{}: {} (本地变量ID: {})", 
+                                                          i, arg_str, place.local.as_usize()));
                                             },
                                             Operand::Constant(constant) => {
                                                 // 处理常量参数
@@ -539,7 +533,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 arg_descriptions.push(arg_str.clone());
                                                 
                                                 // DEBUG输出
-                                                rap_info!("DEBUG: 参数 #{}: {} (常量)", i, arg_str);
+                                                self.debug_log(format!("参数 #{}: {} (常量)", i, arg_str));
                                             },
                                         }
                                     }
@@ -552,7 +546,6 @@ impl<'tcx> LwzCheck<'tcx> {
                                     };
                                     
                                     let operation = UnsafeOperation {
-                                        operation_type: "unsafe function call".to_string(),
                                         operation_detail: format!("{}({})", callee_name, args_str),
                                     };
                                     operations.push(operation);
@@ -589,7 +582,6 @@ impl<'tcx> LwzCheck<'tcx> {
                                     };
                                     
                                     let operation = UnsafeOperation {
-                                        operation_type: "unsafe method call".to_string(),
                                         operation_detail: format!("{}({})", method_name, args_str),
                                     };
                                     operations.push(operation);
@@ -603,8 +595,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     // 检查内联汇编
                     TerminatorKind::InlineAsm { .. } => {
                         let operation = UnsafeOperation {
-                            operation_type: "inline assembly".to_string(),
-                            operation_detail: "inline assembly code".to_string(),
+                            operation_detail: "inline assembly".to_string(),
                         };
                         operations.push(operation);
                     },
@@ -615,9 +606,9 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         // DEBUG输出
-        rap_info!("DEBUG: 函数 {} 中共发现 {} 个不安全操作", fn_name, operations.len());
+        self.debug_log(format!("函数 {} 中共发现 {} 个不安全操作", fn_name, operations.len()));
         for (i, op) in operations.iter().enumerate() {
-            rap_info!("DEBUG:   不安全操作 #{}: {}", i+1, op.operation_detail);
+            self.debug_log(format!("   不安全操作 #{}: {}", i+1, op.operation_detail));
         }
         
         operations
@@ -645,7 +636,6 @@ impl<'tcx> LwzCheck<'tcx> {
                     let var_name = self.get_place_description(&prefix_place, local_decls);
                     
                     let operation = UnsafeOperation {
-                        operation_type: "raw pointer dereference".to_string(),
                         operation_detail: format!("*{}", var_name),
                     };
                     operations.push(operation);
@@ -740,15 +730,13 @@ impl<'tcx> LwzCheck<'tcx> {
     /// 检测符合pattern1的函数
     /// pattern1: pub函数的参数直接传入unsafe操作
     fn detect_pattern1_matches(&mut self) {
-        // DEBUG输出
-        rap_info!("DEBUG: 开始检测pattern1匹配...");
+        self.debug_log("开始检测pattern1匹配...");
         
         for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
             if self.is_public_fn(def_id) {
                 let fn_name = self.get_fn_name(def_id);
                 
-                // DEBUG输出
-                rap_info!("DEBUG: 检查公共函数: {}", fn_name);
+                self.debug_log(format!("检查公共函数: {}", fn_name));
                 
                 // 处理函数参数的情况
                 let mut pattern1_ops = Vec::new();
@@ -757,13 +745,11 @@ impl<'tcx> LwzCheck<'tcx> {
                 if let Some(body) = self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id)) {
                     let param_count = body.arg_count;
                     
-                    // DEBUG输出
-                    rap_info!("DEBUG: 函数 {} 有 {} 个参数", fn_name, param_count);
+                    self.debug_log(format!("函数 {} 有 {} 个参数", fn_name, param_count));
                     
                     // 检查所有不安全操作，是否有直接或间接使用参数的情况
                     for op in &internal_unsafe.unsafe_operations {
-                        // DEBUG输出
-                        rap_info!("DEBUG: 检查不安全操作: {}", op.operation_detail);
+                        self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
                         
                         // 1. 检查解引用参数的情况
                         if op.operation_detail.starts_with("*_") {
@@ -772,60 +758,19 @@ impl<'tcx> LwzCheck<'tcx> {
                                 // 检查变量编号是否在参数范围内，或者是否是参数的复制
                                 if self.is_param_or_copy(body, var_number, param_count) {
                                     pattern1_ops.push(op.clone());
-                                    // DEBUG输出
-                                    rap_info!("DEBUG: 发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name);
+                                    self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
                                 } else {
-                                    // DEBUG输出
-                                    rap_info!("DEBUG: 变量 {} 不是参数或参数复制", var_number);
+                                    self.debug_log(format!("变量 {} 不是参数或参数复制", var_number));
                                 }
                             }
                         } 
                         // 2. 检查函数调用参数的情况
                         else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
-                            // DEBUG输出
-                            rap_info!("DEBUG: 分析函数调用: {}", op.operation_detail);
+                            self.debug_log(format!("分析函数调用: {}", op.operation_detail));
                             
-                            // 提取函数调用中的所有参数
-                            if let Some(start_pos) = op.operation_detail.find('(') {
-                                if let Some(end_pos) = op.operation_detail.rfind(')') {
-                                    if start_pos < end_pos {
-                                        let args_str = &op.operation_detail[start_pos+1..end_pos];
-                                        // DEBUG输出
-                                        rap_info!("DEBUG: 提取的参数字符串: '{}'", args_str);
-                                        
-                                        // 分割参数
-                                        for arg in args_str.split(',') {
-                                            let arg = arg.trim();
-                                            // DEBUG输出
-                                            rap_info!("DEBUG: 检查参数: '{}'", arg);
-                                            
-                                            if arg.starts_with("_") {
-                                                // 尝试提取参数编号
-                                                if let Ok(arg_num) = arg[1..].parse::<usize>() {
-                                                    // DEBUG输出
-                                                    rap_info!("DEBUG: 解析参数编号: {}", arg_num);
-                                                    
-                                                    // 检查编号是否在参数范围内，或者是否是参数的复制
-                                                    if self.is_param_or_copy(body, arg_num, param_count) {
-                                                        pattern1_ops.push(op.clone());
-                                                        // DEBUG输出
-                                                        rap_info!("DEBUG: 发现pattern1函数调用参数: {} 在函数 {}", arg_num, fn_name);
-                                                        break; // 找到一个匹配的参数就足够了
-                                                    } else {
-                                                        // DEBUG输出
-                                                        rap_info!("DEBUG: 变量 {} 不是参数或参数复制", arg_num);
-                                                    }
-                                                } else {
-                                                    // DEBUG输出
-                                                    rap_info!("DEBUG: 无法解析参数编号: '{}'", arg);
-                                                }
-                                            } else {
-                                                // DEBUG输出
-                                                rap_info!("DEBUG: 不是参数变量: '{}'", arg);
-                                            }
-                                        }
-                                    }
-                                }
+                            if self.check_function_call_args(&op.operation_detail, body, param_count) {
+                                pattern1_ops.push(op.clone());
+                                self.debug_log(format!("发现pattern1函数调用参数在函数 {}", fn_name));
                             }
                         }
                     }
@@ -834,21 +779,31 @@ impl<'tcx> LwzCheck<'tcx> {
                 // 如果找到pattern1操作，保存结果
                 if !pattern1_ops.is_empty() {
                     self.pattern1_matches.insert(def_id, pattern1_ops.clone());
-                    // DEBUG输出
-                    rap_info!("DEBUG: 函数 {} 匹配pattern1，共 {} 个匹配操作", fn_name, pattern1_ops.len());
+                    self.debug_log(format!("函数 {} 匹配pattern1，共 {} 个匹配操作", fn_name, pattern1_ops.len()));
                 } else {
-                    // DEBUG输出
-                    rap_info!("DEBUG: 函数 {} 没有匹配pattern1", fn_name);
+                    self.debug_log(format!("函数 {} 没有匹配pattern1", fn_name));
                 }
             }
         }
         
-        // DEBUG输出
-        rap_info!("DEBUG: pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len());
+        self.debug_log(format!("pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len()));
     }
     
     /// 检查变量是否是函数参数或参数的复制
     fn is_param_or_copy(&self, body: &rustc_middle::mir::Body<'tcx>, var_num: usize, param_count: usize) -> bool {
+        self.is_param_or_copy_with_visited(body, var_num, param_count, &mut HashSet::new())
+    }
+
+    fn is_param_or_copy_with_visited(&self, 
+                                    body: &rustc_middle::mir::Body<'tcx>, 
+                                    var_num: usize, 
+                                    param_count: usize,
+                                    visited: &mut HashSet<usize>) -> bool {
+        // 如果已经访问过这个变量，避免循环
+        if !visited.insert(var_num) {
+            return false;
+        }
+        
         // 如果变量本身就是参数，直接返回true
         if var_num > 0 && var_num <= param_count {
             return true;
@@ -868,13 +823,13 @@ impl<'tcx> LwzCheck<'tcx> {
                                     // 检查源变量是否是参数
                                     if source_local > 0 && source_local <= param_count {
                                         // DEBUG输出
-                                        rap_info!("DEBUG: 变量 {} 是参数 {} 的直接复制", var_num, source_local);
+                                        self.debug_log(format!("变量 {} 是参数 {} 的直接复制", var_num, source_local));
                                         return true;
                                     }
                                     // 递归检查源变量是否是参数的复制
-                                    if self.is_param_or_copy(body, source_local, param_count) {
+                                    if self.is_param_or_copy_with_visited(body, source_local, param_count, visited) {
                                         // DEBUG输出
-                                        rap_info!("DEBUG: 变量 {} 是间接复制自参数", var_num);
+                                        self.debug_log(format!("变量 {} 是间接复制自参数", var_num));
                                         return true;
                                     }
                                 }
@@ -884,12 +839,12 @@ impl<'tcx> LwzCheck<'tcx> {
                                 // 检查源变量是否是参数或参数的复制
                                 if source_local > 0 && source_local <= param_count {
                                     // DEBUG输出
-                                    rap_info!("DEBUG: 变量 {} 是对参数 {} 的引用", var_num, source_local);
+                                    self.debug_log(format!("变量 {} 是对参数 {} 的引用", var_num, source_local));
                                     return true;
                                 }
-                                if self.is_param_or_copy(body, source_local, param_count) {
+                                if self.is_param_or_copy_with_visited(body, source_local, param_count, visited) {
                                     // DEBUG输出
-                                    rap_info!("DEBUG: 变量 {} 是对参数复制的引用", var_num);
+                                    self.debug_log(format!("变量 {} 是对参数复制的引用", var_num));
                                     return true;
                                 }
                             },
@@ -906,30 +861,50 @@ impl<'tcx> LwzCheck<'tcx> {
     // 从操作详情中提取变量编号（如从 "*_1" 提取出 1）
     fn extract_var_number(&self, op_detail: &str) -> Option<usize> {
         let prefixes = ["*_", "copy _", "move _"];
+        
         for prefix in &prefixes {
             if op_detail.starts_with(prefix) {
                 let var_part = &op_detail[prefix.len()..];
-                if let Some(end_pos) = var_part.find(|c: char| !c.is_ascii_digit()) {
-                    if let Ok(number) = var_part[..end_pos].parse::<usize>() {
-                        return Some(number);
-                    }
-                } else if let Ok(number) = var_part.parse::<usize>() {
-                    return Some(number);
-                }
+                // 使用 split_at_first_non_digit 辅助函数获取数字部分
+                let digit_end = var_part.find(|c: char| !c.is_ascii_digit()).unwrap_or(var_part.len());
+                return var_part[..digit_end].parse::<usize>().ok();
             }
         }
         None
     }
 
-    // 从函数调用中提取参数详情（如从 "from_utf8_unchecked(_1)" 提取出 "_1"）
-    fn extract_arg_detail(&self, op_detail: &str) -> Option<String> {
+    // 添加一个辅助函数控制调试输出
+    fn debug_log(&self, msg: impl AsRef<str>) {
+        // 可以根据环境变量或其他条件决定是否输出调试信息
+        rap_info!("DEBUG: {}", msg.as_ref());
+    }
+
+    // 添加辅助函数检查函数调用中的参数
+    fn check_function_call_args(&self, 
+                               op_detail: &str, 
+                               body: &rustc_middle::mir::Body<'tcx>, 
+                               param_count: usize) -> bool {
         if let Some(start_pos) = op_detail.find('(') {
             if let Some(end_pos) = op_detail.rfind(')') {
                 if start_pos < end_pos {
-                    return Some(op_detail[start_pos+1..end_pos].to_string());
+                    let args_str = &op_detail[start_pos+1..end_pos];
+                    // 分割参数
+                    for arg in args_str.split(',') {
+                        let arg = arg.trim();
+                        if arg.starts_with("_") {
+                            // 尝试提取参数编号
+                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                // 检查编号是否在参数范围内，或者是否是参数的复制
+                                if self.is_param_or_copy(body, arg_num, param_count) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-        None
+        false
     }
+
 }
