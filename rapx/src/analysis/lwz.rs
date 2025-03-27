@@ -12,6 +12,7 @@ use rustc_hir::{
 use rustc_middle::ty::TyCtxt;
 use rustc_middle::hir::nested_filter;
 use rustc_middle::mir::{Operand, TerminatorKind};
+use rustc_target::abi::VariantIdx;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::rap_info;
@@ -84,6 +85,27 @@ struct InternalUnsafe {
     unsafe_operations: Vec<UnsafeOperation>,
 }
 
+/// 表示结构体字段的信息
+#[derive(Debug, Clone)]
+struct FieldInfo {
+    /// 字段在结构体中的索引
+    index: usize,
+    /// 字段名称
+    name: String,
+    /// 字段是否为pub
+    is_public: bool,
+}
+
+/// 表示一个公共结构体的信息
+#[derive(Debug, Clone)]
+struct PubStructInfo {
+    def_id: DefId,
+    /// 结构体是否在公共模块中
+    is_in_pub_mod: bool,
+    /// 存储结构体的公共字段信息
+    pub_fields: HashMap<usize, FieldInfo>,
+}
+
 /// The main analysis struct that checks for internal unsafe functions
 pub struct LwzCheck<'tcx> {
     pub tcx: TyCtxt<'tcx>,
@@ -94,6 +116,10 @@ pub struct LwzCheck<'tcx> {
     shortest_paths: HashMap<DefId, Vec<DefId>>,
     /// 存储符合pattern1的函数和对应的unsafe操作
     pattern1_matches: HashMap<DefId, Vec<UnsafeOperation>>,
+    /// 存储公共结构体信息
+    pub_structs: HashMap<DefId, PubStructInfo>,
+    /// 存储符合pattern2的函数和对应的unsafe操作与字段信息
+    pattern2_matches: HashMap<DefId, Vec<(UnsafeOperation, String)>>,
 }
 
 impl<'tcx> LwzCheck<'tcx> {
@@ -106,6 +132,8 @@ impl<'tcx> LwzCheck<'tcx> {
             reverse_call_graph: HashMap::new(),
             shortest_paths: HashMap::new(),
             pattern1_matches: HashMap::new(),
+            pub_structs: HashMap::new(),
+            pattern2_matches: HashMap::new(),
         }
     }
 
@@ -116,6 +144,9 @@ impl<'tcx> LwzCheck<'tcx> {
         self.build_call_graphs();
         self.find_shortest_paths();
         self.detect_pattern1_matches();
+        // 收集结构体信息并检测pattern2
+        self.collect_pub_structs();
+        self.detect_pattern2_matches();
         self.report_findings();
     }
 
@@ -363,6 +394,31 @@ impl<'tcx> LwzCheck<'tcx> {
             }
             
             rap_info!("Total pattern1 functions found: {}", pattern1_count);
+        }
+        
+        // 输出pattern2匹配结果
+        if !self.pattern2_matches.is_empty() {
+            rap_info!("\n===== Pattern2 (Public Struct Field Used in Unsafe Operation) Report =====");
+            let mut pattern2_count = 0;
+            
+            for (&fn_id, ops_with_fields) in &self.pattern2_matches {
+                pattern2_count += 1;
+                let fn_name = self.get_fn_name(fn_id);
+                
+                rap_info!("{}: Public function using public struct field in unsafe operation: {}", 
+                         pattern2_count, fn_name);
+                
+                // 显示不安全操作和相关字段
+                if !ops_with_fields.is_empty() {
+                    rap_info!("unsafe operations with struct fields: ");
+                    for (i, (op, field_path)) in ops_with_fields.iter().enumerate() {
+                        rap_info!("({}) Field {} used in {}, ", i+1, field_path, op.operation_detail);
+                    }
+                    rap_info!("\n");
+                }
+            }
+            
+            rap_info!("Total pattern2 functions found: {}", pattern2_count);
         }
     }
 
@@ -907,4 +963,296 @@ impl<'tcx> LwzCheck<'tcx> {
         false
     }
 
+    /// 收集所有公共结构体及其公共字段的信息
+    fn collect_pub_structs(&mut self) {
+        self.debug_log("开始收集公共结构体信息...");
+        
+        // 遍历所有本地定义
+        for local_def_id in self.tcx.iter_local_def_id() {
+            let def_id = local_def_id.to_def_id();
+            
+            // 先检查是否是结构体类型，避免对非结构体调用type_of
+            let def_kind = self.tcx.def_kind(def_id);
+            if def_kind != rustc_hir::def::DefKind::Struct {
+                continue;
+            }
+            
+            // 检查结构体是否是公共的
+            let is_public = self.tcx.visibility(def_id).is_public();
+            let is_in_pub_mod = self.is_in_public_module(def_id);
+            
+            if is_public {
+                let mut pub_struct_info = PubStructInfo {
+                    def_id,
+                    is_in_pub_mod,
+                    pub_fields: HashMap::new(),
+                };
+                
+                // 现在安全地获取结构体的类型信息
+                let adt_def = self.tcx.adt_def(def_id);
+                
+                // 遍历结构体字段
+                // 使用正确的VariantIdx类型
+                let variant_idx = VariantIdx::from_usize(0);
+                if let Some(variant) = adt_def.variants().get(variant_idx) {
+                    for (idx, field) in variant.fields.iter().enumerate() {
+                        let field_def_id = field.did;
+                        let field_vis = self.tcx.visibility(field_def_id);
+                        let field_name = field.ident(self.tcx).to_string();
+                        
+                        // 记录公共字段
+                        if field_vis.is_public() {
+                            pub_struct_info.pub_fields.insert(idx, FieldInfo {
+                                index: idx,
+                                name: field_name,
+                                is_public: true,
+                            });
+                        }
+                    }
+                }
+                
+                // 只保存有公共字段的公共结构体
+                if !pub_struct_info.pub_fields.is_empty() {
+                    let struct_name = self.get_fn_name(def_id);
+                    self.debug_log(format!("发现公共结构体: {} 有 {} 个公共字段", 
+                                       struct_name, pub_struct_info.pub_fields.len()));
+                    self.pub_structs.insert(def_id, pub_struct_info);
+                }
+            }
+        }
+        
+        self.debug_log(format!("公共结构体收集完成，共 {} 个", self.pub_structs.len()));
+    }
+    
+    /// 检测符合pattern2的函数：pub结构体的pub字段传入impl的pub函数的unsafe操作
+    fn detect_pattern2_matches(&mut self) {
+        self.debug_log("开始检测pattern2匹配...");
+        
+        // 遍历所有内部不安全函数
+        for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
+            // 只检查公共函数
+            if self.is_public_fn(def_id) {
+                let fn_name = self.get_fn_name(def_id);
+                self.debug_log(format!("检查公共函数: {}", fn_name));
+                
+                // 获取MIR
+                if let Some(body) = self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id)) {
+                    // 检查此函数是否是某个结构体的impl方法
+                    if let Some(impl_self_ty) = self.get_impl_self_type(def_id) {
+                        // 尝试获取结构体类型
+                        if let Some(struct_def_id) = self.extract_struct_from_type(impl_self_ty) {
+                            // 检查是否是我们记录的公共结构体
+                            if let Some(struct_info) = self.pub_structs.get(&struct_def_id) {
+                                let struct_name = self.get_fn_name(struct_def_id);
+                                self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
+                                
+                                // 检查函数参数中是否有对该结构体的引用
+                                let self_param = self.find_self_param(body);
+                                if let Some(self_param) = self_param {
+                                    // 分析每个不安全操作
+                                    let mut pattern2_ops = Vec::new();
+                                    
+                                    for op in &internal_unsafe.unsafe_operations {
+                                        // 在函数体中查找结构体字段的访问
+                                        let field_accesses = self.find_struct_field_accesses(body, self_param);
+                                        
+                                        // 检查不安全操作是否使用了结构体的公共字段
+                                        for (field_idx, field_var, _field_path) in &field_accesses {
+                                            // 检查该字段是否是公共字段
+                                            if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
+                                                // 检查该字段是否传递给了不安全操作
+                                                if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
+                                                    let field_name = &field_info.name;
+                                                    pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
+                                                    self.debug_log(format!(
+                                                        "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
+                                                        struct_name, field_name, op.operation_detail));
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // 保存结果
+                                    if !pattern2_ops.is_empty() {
+                                        self.pattern2_matches.insert(def_id, pattern2_ops);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.debug_log(format!("pattern2检测完成，共发现 {} 个匹配函数", self.pattern2_matches.len()));
+    }
+    
+    /// 查找函数中的self参数
+    fn find_self_param(&self, body: &rustc_middle::mir::Body<'tcx>) -> Option<usize> {
+        // 一般来说，self参数是第一个参数(索引1)
+        if body.arg_count >= 1 {
+            return Some(1);
+        }
+        None
+    }
+    
+    /// 查找对结构体字段的访问
+    /// 返回 (字段索引, 字段被赋值到的变量, 访问路径)
+    fn find_struct_field_accesses(&self, body: &rustc_middle::mir::Body<'tcx>, self_param: usize) 
+        -> Vec<(usize, usize, String)> {
+        let mut field_accesses = Vec::new();
+        
+        // 遍历所有基本块和语句
+        for block_data in body.basic_blocks.iter() {
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    // 查找类似 *_3 = &((**_1).0) 的模式，其中_1是self参数
+                    if let rustc_middle::mir::Rvalue::Ref(_, _, source_place) = rvalue {
+                        // 检查是否访问了结构体字段
+                        if let Some((base, proj)) = self.get_base_and_projection(source_place) {
+                            if base.as_usize() == self_param {
+                                // 检查投影是否包含字段访问
+                                for proj_elem in proj {
+                                    if let rustc_middle::mir::ProjectionElem::Field(field_index, _) = proj_elem {
+                                        let field_idx = field_index.index();
+                                        let dest_var = place.local.as_usize();
+                                        let access_path = format!("(self).{}", field_idx);
+                                        
+                                        field_accesses.push((field_idx, dest_var, access_path));
+                                        self.debug_log(format!("发现字段访问: 字段 {} 被赋值到变量 {}", field_idx, dest_var));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 检查直接使用字段的情况 (例如通过self.name.as_slice())
+                    if let rustc_middle::mir::Rvalue::Use(operand) = rvalue {
+                        if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                            if let Some((base, proj)) = self.get_base_and_projection(source_place) {
+                                if base.as_usize() == self_param {
+                                    // 检查投影是否包含字段访问
+                                    for proj_elem in proj {
+                                        if let rustc_middle::mir::ProjectionElem::Field(field_index, _) = proj_elem {
+                                            let field_idx = field_index.index();
+                                            let dest_var = place.local.as_usize();
+                                            let access_path = format!("(self).{}", field_idx);
+                                            
+                                            field_accesses.push((field_idx, dest_var, access_path));
+                                            self.debug_log(format!("发现字段使用: 字段 {} 被赋值到变量 {}", field_idx, dest_var));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        field_accesses
+    }
+    
+    /// 获取place的基本变量和投影
+    fn get_base_and_projection(&self, place: &rustc_middle::mir::Place<'tcx>) 
+        -> Option<(rustc_middle::mir::Local, &[rustc_middle::mir::PlaceElem<'tcx>])> {
+        Some((place.local, place.projection.as_ref()))
+    }
+    
+    /// 检查变量是否被用于不安全操作
+    fn is_var_used_in_unsafe_op(&self, body: &rustc_middle::mir::Body<'tcx>, var: usize, op_detail: &str) -> bool {
+        // 先检查操作描述中是否直接包含该变量
+        let var_str = format!("_{}", var);
+        if op_detail.contains(&var_str) {
+            return true;
+        }
+        
+        // 使用更全面的数据流分析
+        let mut visited = HashSet::new();
+        self.check_var_flows_to_unsafe_op(body, var, op_detail, &mut visited)
+    }
+    
+    /// 检查变量是否通过数据流传递给了不安全操作
+    fn check_var_flows_to_unsafe_op(&self, 
+                                    body: &rustc_middle::mir::Body<'tcx>, 
+                                    var: usize, 
+                                    op_detail: &str,
+                                    visited: &mut HashSet<usize>) -> bool {
+        // 避免循环
+        if !visited.insert(var) {
+            return false;
+        }
+        
+        // 直接检查操作描述
+        let var_str = format!("_{}", var);
+        if op_detail.contains(&var_str) {
+            return true;
+        }
+        
+        // 检查该变量的值是否传递给了其他变量
+        for block_data in body.basic_blocks.iter() {
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    match rvalue {
+                        rustc_middle::mir::Rvalue::Use(operand) => {
+                            if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                                if source_place.local.as_usize() == var {
+                                    // 该变量的值被复制/移动到另一个变量
+                                    let dest_var = place.local.as_usize();
+                                    if self.check_var_flows_to_unsafe_op(body, dest_var, op_detail, visited) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        },
+                        rustc_middle::mir::Rvalue::Ref(_, _, source_place) => {
+                            if source_place.local.as_usize() == var {
+                                // 取该变量的引用
+                                let dest_var = place.local.as_usize();
+                                if self.check_var_flows_to_unsafe_op(body, dest_var, op_detail, visited) {
+                                    return true;
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+            
+            // 检查终结器中的函数调用
+            if let Some(terminator) = &block_data.terminator {
+                if let TerminatorKind::Call { func: _, args, .. } = &terminator.kind {
+                    for arg in args {
+                        if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                            if place.local.as_usize() == var {
+                                // 如果变量作为参数传递给函数，就认为它可能流入不安全操作
+                                // 简化处理，不再尝试追踪destination
+                                self.debug_log(format!("变量 {} 作为参数传递给函数，可能流入不安全操作", var));
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+    
+    /// 从类型中提取结构体DefId
+    fn extract_struct_from_type(&self, ty: rustc_middle::ty::Ty<'tcx>) -> Option<DefId> {
+        match ty.kind() {
+            rustc_middle::ty::TyKind::Adt(adt_def, _) if adt_def.is_struct() => Some(adt_def.did()),
+            rustc_middle::ty::TyKind::Ref(_, inner_ty, _) => self.extract_struct_from_type(*inner_ty),
+            _ => None,
+        }
+    }
+    
+    /// 获取方法的实现类型（如果是impl方法）
+    fn get_impl_self_type(&self, def_id: DefId) -> Option<rustc_middle::ty::Ty<'tcx>> {
+        if let Some(impl_def_id) = self.tcx.impl_of_method(def_id) {
+            // 获取impl的自身类型
+            return Some(self.tcx.type_of(impl_def_id).skip_binder());
+        }
+        None
+    }
 }
