@@ -812,7 +812,7 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     /// 检测符合pattern1的函数
-    /// pattern1: pub函数的参数直接传入unsafe操作
+    /// pattern1: pub函数的参数(非self.<field>)直接传入unsafe操作
     fn detect_pattern1_matches(&mut self) {
         self.debug_log("开始检测pattern1匹配...");
         
@@ -826,10 +826,14 @@ impl<'tcx> LwzCheck<'tcx> {
                 let mut pattern1_ops = Vec::new();
                 
                 // 获取MIR以分析参数
-                if let Some(body) = self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id)) {
+                if let Some(body) = self.get_mir_safely(def_id) {
                     let param_count = body.arg_count;
                     
                     self.debug_log(format!("函数 {} 有 {} 个参数", fn_name, param_count));
+                    
+                    // 判断是否是结构体impl方法
+                    let is_method = param_count > 0 && self.get_impl_self_type(def_id).is_some();
+                    let self_param = if is_method { Some(1) } else { None };
                     
                     // 检查所有不安全操作，是否有直接或间接使用参数的情况
                     for op in &internal_unsafe.unsafe_operations {
@@ -839,12 +843,13 @@ impl<'tcx> LwzCheck<'tcx> {
                         if op.operation_detail.starts_with("*_") {
                             // 从操作详情中提取变量编号
                             if let Some(var_number) = self.extract_var_number(&op.operation_detail) {
-                                // 检查变量编号是否在参数范围内，或者是否是参数的复制
-                                if self.is_param_or_copy(body, var_number, param_count) {
+                                // 检查变量编号是否在参数范围内，但不是self参数
+                                let is_pattern1 = self.is_non_self_param_or_copy(body, var_number, param_count, self_param);
+                                if is_pattern1 {
                                     pattern1_ops.push(op.clone());
                                     self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
                                 } else {
-                                    self.debug_log(format!("变量 {} 不是参数或参数复制", var_number));
+                                    self.debug_log(format!("变量 {} 不是参数、或是self参数/字段", var_number));
                                 }
                             }
                         } 
@@ -852,7 +857,7 @@ impl<'tcx> LwzCheck<'tcx> {
                         else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
                             self.debug_log(format!("分析函数调用: {}", op.operation_detail));
                             
-                            if self.check_function_call_args(&op.operation_detail, body, param_count) {
+                            if self.check_function_call_non_self_args(&op.operation_detail, body, param_count, self_param) {
                                 pattern1_ops.push(op.clone());
                                 self.debug_log(format!("发现pattern1函数调用参数在函数 {}", fn_name));
                             }
@@ -873,62 +878,99 @@ impl<'tcx> LwzCheck<'tcx> {
         self.debug_log(format!("pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len()));
     }
     
-    /// 检查变量是否是函数参数或参数的复制
-    fn is_param_or_copy(&self, body: &rustc_middle::mir::Body<'tcx>, var_num: usize, param_count: usize) -> bool {
-        self.is_param_or_copy_with_visited(body, var_num, param_count, &mut HashSet::new())
+    /// 检查变量是否是非self参数或非self参数的复制
+    fn is_non_self_param_or_copy(&self, body: &rustc_middle::mir::Body<'tcx>, var_num: usize, param_count: usize, self_param: Option<usize>) -> bool {
+        // 排除self参数
+        if let Some(self_idx) = self_param {
+            if var_num == self_idx {
+                return false;
+            }
+        }
+        
+        // 检查是否是普通参数
+        if var_num > 0 && var_num <= param_count {
+            if let Some(self_idx) = self_param {
+                return var_num != self_idx; // 确保不是self参数
+            }
+            return true;
+        }
+        
+        // 检查是否源自普通参数的复制
+        let mut visited = HashSet::new();
+        self.is_non_self_param_or_copy_with_visited(body, var_num, param_count, self_param, &mut visited)
     }
 
-    fn is_param_or_copy_with_visited(&self, 
-                                    body: &rustc_middle::mir::Body<'tcx>, 
-                                    var_num: usize, 
-                                    param_count: usize,
-                                    visited: &mut HashSet<usize>) -> bool {
-        // 如果已经访问过这个变量，避免循环
+    /// 递归检查变量是否源自非self参数
+    fn is_non_self_param_or_copy_with_visited(&self, 
+                                 body: &rustc_middle::mir::Body<'tcx>, 
+                                 var_num: usize, 
+                                 param_count: usize,
+                                 self_param: Option<usize>,
+                                 visited: &mut HashSet<usize>) -> bool {
+        // 防止循环递归
         if !visited.insert(var_num) {
             return false;
         }
         
-        // 如果变量本身就是参数，直接返回true
-        if var_num > 0 && var_num <= param_count {
-            return true;
+        // 再次检查是否是self参数
+        if let Some(self_idx) = self_param {
+            if var_num == self_idx {
+                return false;
+            }
         }
         
-        // 检查变量是否是参数的复制
+        // 检查变量是否直接从self参数的字段获取
+        // 如果变量是从self.<field>获取的，应该排除
+        if self.is_from_self_field(body, var_num, self_param) {
+            return false;
+        }
+        
+        // 检查赋值来源
         for block_data in body.basic_blocks.iter() {
             for statement in &block_data.statements {
                 if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
-                    // 检查赋值的左侧是否是我们关注的变量
+                    // 检查赋值目标是否是当前变量
                     if place.local.as_usize() == var_num {
-                        // 检查右侧是否是对参数的引用或复制
                         match rvalue {
                             rustc_middle::mir::Rvalue::Use(operand) => {
                                 if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
                                     let source_local = source_place.local.as_usize();
+                                    
                                     // 检查源变量是否是参数
                                     if source_local > 0 && source_local <= param_count {
-                                        // DEBUG输出
-                                        self.debug_log(format!("变量 {} 是参数 {} 的直接复制", var_num, source_local));
-                                        return true;
+                                        // 确保不是self参数
+                                        if let Some(self_idx) = self_param {
+                                            if source_local != self_idx {
+                                                return true; // 是普通参数
+                                            }
+                                        } else {
+                                            return true; // 没有self参数，所有参数都是普通参数
+                                        }
                                     }
-                                    // 递归检查源变量是否是参数的复制
-                                    if self.is_param_or_copy_with_visited(body, source_local, param_count, visited) {
-                                        // DEBUG输出
-                                        self.debug_log(format!("变量 {} 是间接复制自参数", var_num));
+                                    
+                                    // 递归检查源变量
+                                    if self.is_non_self_param_or_copy_with_visited(body, source_local, param_count, self_param, visited) {
                                         return true;
                                     }
                                 }
                             },
-                            rustc_middle::mir::Rvalue::Ref(_, _, place) => {
-                                let source_local = place.local.as_usize();
-                                // 检查源变量是否是参数或参数的复制
+                            rustc_middle::mir::Rvalue::Ref(_, _, source_place) => {
+                                let source_local = source_place.local.as_usize();
+                                
+                                // 检查源变量是否是参数
                                 if source_local > 0 && source_local <= param_count {
-                                    // DEBUG输出
-                                    self.debug_log(format!("变量 {} 是对参数 {} 的引用", var_num, source_local));
-                                    return true;
+                                    // 确保不是self参数
+                                    if let Some(self_idx) = self_param {
+                                        if source_local != self_idx {
+                                            return true; // 是普通参数的引用
+                                        }
+                                    } else {
+                                        return true; // 没有self参数
+                                    }
                                 }
-                                if self.is_param_or_copy_with_visited(body, source_local, param_count, visited) {
-                                    // DEBUG输出
-                                    self.debug_log(format!("变量 {} 是对参数复制的引用", var_num));
+                                
+                                // 递归检查
+                                if self.is_non_self_param_or_copy_with_visited(body, source_local, param_count, self_param, visited) {
                                     return true;
                                 }
                             },
@@ -942,7 +984,77 @@ impl<'tcx> LwzCheck<'tcx> {
         false
     }
 
-    // 从操作详情中提取变量编号（如从 "*_1" 提取出 1）
+    /// 检查变量是否来自self字段
+    fn is_from_self_field(&self, body: &rustc_middle::mir::Body<'tcx>, var_num: usize, self_param: Option<usize>) -> bool {
+        // 如果没有self参数，直接返回false
+        let self_idx = match self_param {
+            Some(idx) => idx,
+            None => return false,
+        };
+        
+        for block_data in body.basic_blocks.iter() {
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    if place.local.as_usize() != var_num {
+                        continue;
+                    }
+                    
+                    match rvalue {
+                        // 直接使用self字段的情况
+                        rustc_middle::mir::Rvalue::Use(operand) => {
+                            if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                                if source_place.local.as_usize() == self_idx && !source_place.projection.is_empty() {
+                                    // 这里检测到从self字段获取值
+                                    return true;
+                                }
+                            }
+                        },
+                        // 引用self字段的情况
+                        rustc_middle::mir::Rvalue::Ref(_, _, source_place) => {
+                            if source_place.local.as_usize() == self_idx && !source_place.projection.is_empty() {
+                                // 从self字段获取引用
+                                return true;
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+
+    // 修改函数调用参数检查，排除self参数
+    fn check_function_call_non_self_args(&self, 
+                            op_detail: &str, 
+                            body: &rustc_middle::mir::Body<'tcx>, 
+                            param_count: usize,
+                            self_param: Option<usize>) -> bool {
+        if let Some(start_pos) = op_detail.find('(') {
+            if let Some(end_pos) = op_detail.rfind(')') {
+                if start_pos < end_pos {
+                    let args_str = &op_detail[start_pos+1..end_pos];
+                    // 分割参数
+                    for arg in args_str.split(',') {
+                        let arg = arg.trim();
+                        if arg.starts_with("_") {
+                            // 尝试提取参数编号
+                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                // 检查是否是非self参数或从非self参数复制
+                                if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    /// 从操作详情中提取变量编号（如从 "*_1" 提取出 1）
     fn extract_var_number(&self, op_detail: &str) -> Option<usize> {
         let prefixes = ["*_", "copy _", "move _"];
         
@@ -961,34 +1073,6 @@ impl<'tcx> LwzCheck<'tcx> {
     fn debug_log(&self, msg: impl AsRef<str>) {
         // 可以根据环境变量或其他条件决定是否输出调试信息
         rap_info!("DEBUG: {}", msg.as_ref());
-    }
-
-    // 添加辅助函数检查函数调用中的参数
-    fn check_function_call_args(&self, 
-                               op_detail: &str, 
-                               body: &rustc_middle::mir::Body<'tcx>, 
-                               param_count: usize) -> bool {
-        if let Some(start_pos) = op_detail.find('(') {
-            if let Some(end_pos) = op_detail.rfind(')') {
-                if start_pos < end_pos {
-                    let args_str = &op_detail[start_pos+1..end_pos];
-                    // 分割参数
-                    for arg in args_str.split(',') {
-                        let arg = arg.trim();
-                        if arg.starts_with("_") {
-                            // 尝试提取参数编号
-                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
-                                // 检查编号是否在参数范围内，或者是否是参数的复制
-                                if self.is_param_or_copy(body, arg_num, param_count) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        false
     }
 
     /// 收集所有公共结构体及其公共字段的信息
