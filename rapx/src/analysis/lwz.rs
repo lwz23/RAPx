@@ -454,11 +454,15 @@ impl<'tcx> LwzCheck<'tcx> {
     fn get_callees(&self, def_id: DefId) -> Vec<DefId> {
         let mut callees = Vec::new();
         
-        if !self.tcx.is_mir_available(def_id) {
-            return callees;
-        }
-        
-        let body = self.tcx.optimized_mir(def_id);
+        // 安全地获取MIR
+        let body = match self.get_mir_safely(def_id) {
+            Some(body) => body,
+            None => {
+                self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过调用图构建", 
+                               self.get_fn_name(def_id)));
+                return callees;
+            }
+        };
         
         // Correctly iterate through basic blocks
         for block_data in body.basic_blocks.iter() {
@@ -476,16 +480,40 @@ impl<'tcx> LwzCheck<'tcx> {
         callees
     }
 
+    /// 安全地获取MIR，捕获可能的panic
+    fn get_mir_safely(&self, def_id: DefId) -> Option<&rustc_middle::mir::Body<'tcx>> {
+        use std::panic::{self, AssertUnwindSafe};
+        
+        // 使用catch_unwind捕获可能的panic
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id))
+        }));
+        
+        match result {
+            Ok(Some(mir)) => Some(mir),
+            Ok(None) => None,
+            Err(_) => {
+                // 记录错误并返回None
+                self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
+                None
+            }
+        }
+    }
+
     /// 提取函数中的不安全操作
     fn extract_unsafe_operations(&self, def_id: DefId) -> Vec<UnsafeOperation> {
         let mut operations = Vec::new();
         
-        if !self.tcx.is_mir_available(def_id) {
-            return operations;
-        }
+        // 使用安全的MIR获取方法
+        let body = match self.get_mir_safely(def_id) {
+            Some(body) => body,
+            None => {
+                self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过不安全操作分析", 
+                               self.get_fn_name(def_id)));
+                return operations;
+            }
+        };
         
-        // 获取MIR
-        let body = self.tcx.optimized_mir(def_id);
         let fn_name = self.get_fn_name(def_id);
         
         // DEBUG输出
@@ -988,17 +1016,36 @@ impl<'tcx> LwzCheck<'tcx> {
                     pub_fields: HashMap::new(),
                 };
                 
-                // 现在安全地获取结构体的类型信息
+                // 安全地获取结构体的类型信息
                 let adt_def = self.tcx.adt_def(def_id);
                 
                 // 遍历结构体字段
-                // 使用正确的VariantIdx类型
                 let variant_idx = VariantIdx::from_usize(0);
                 if let Some(variant) = adt_def.variants().get(variant_idx) {
                     for (idx, field) in variant.fields.iter().enumerate() {
                         let field_def_id = field.did;
                         let field_vis = self.tcx.visibility(field_def_id);
                         let field_name = field.ident(self.tcx).to_string();
+                        
+                        // 使用安全的方法获取字段类型
+                        if let Some(field_ty) = self.get_field_type_safely(field) {
+                            // 检查字段类型是否可能导致问题
+                            let is_problematic_type = match field_ty.kind() {
+                                rustc_middle::ty::TyKind::Array(_, _) => true,
+                                // 可能需要添加其他可能导致问题的类型
+                                _ => false,
+                            };
+                            
+                            if is_problematic_type {
+                                self.debug_log(format!("跳过可能导致编译器崩溃的字段类型: {:?} (字段: {})", 
+                                               field_ty, field_name));
+                                continue;
+                            }
+                        } else {
+                            // 如果无法安全获取字段类型，跳过该字段
+                            self.debug_log(format!("无法安全获取字段 {} 的类型，已跳过", field_name));
+                            continue;
+                        }
                         
                         // 记录公共字段
                         if field_vis.is_public() {
@@ -1024,6 +1071,28 @@ impl<'tcx> LwzCheck<'tcx> {
         self.debug_log(format!("公共结构体收集完成，共 {} 个", self.pub_structs.len()));
     }
     
+    /// 安全地获取字段类型，避免编译器内部panic
+    fn get_field_type_safely(&self, field: &rustc_middle::ty::FieldDef) -> Option<rustc_middle::ty::Ty<'tcx>> {
+        use std::panic::{self, AssertUnwindSafe};
+        
+        // 使用空的泛型参数列表
+        let substsref = rustc_middle::ty::List::empty();
+        
+        // 使用catch_unwind捕获可能的panic
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            field.ty(self.tcx, substsref)
+        }));
+        
+        match result {
+            Ok(ty) => Some(ty),
+            Err(_) => {
+                // 记录错误并返回None
+                self.debug_log(format!("获取字段 {:?} 的类型时发生panic，已跳过", field.did));
+                None
+            }
+        }
+    }
+    
     /// 检测符合pattern2的函数：pub结构体的pub字段传入impl的pub函数的unsafe操作
     fn detect_pattern2_matches(&mut self) {
         self.debug_log("开始检测pattern2匹配...");
@@ -1035,47 +1104,53 @@ impl<'tcx> LwzCheck<'tcx> {
                 let fn_name = self.get_fn_name(def_id);
                 self.debug_log(format!("检查公共函数: {}", fn_name));
                 
-                // 获取MIR
-                if let Some(body) = self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id)) {
-                    // 检查此函数是否是某个结构体的impl方法
-                    if let Some(impl_self_ty) = self.get_impl_self_type(def_id) {
-                        // 尝试获取结构体类型
-                        if let Some(struct_def_id) = self.extract_struct_from_type(impl_self_ty) {
-                            // 检查是否是我们记录的公共结构体
-                            if let Some(struct_info) = self.pub_structs.get(&struct_def_id) {
-                                let struct_name = self.get_fn_name(struct_def_id);
-                                self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
+                // 安全地获取MIR
+                let body = match self.get_mir_safely(def_id) {
+                    Some(body) => body,
+                    None => {
+                        self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过pattern2检测", fn_name));
+                        continue;
+                    }
+                };
+                
+                // 检查此函数是否是某个结构体的impl方法
+                if let Some(impl_self_ty) = self.get_impl_self_type(def_id) {
+                    // 尝试获取结构体类型
+                    if let Some(struct_def_id) = self.extract_struct_from_type(impl_self_ty) {
+                        // 检查是否是我们记录的公共结构体
+                        if let Some(struct_info) = self.pub_structs.get(&struct_def_id) {
+                            let struct_name = self.get_fn_name(struct_def_id);
+                            self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
+                            
+                            // 检查函数参数中是否有对该结构体的引用
+                            let self_param = self.find_self_param(body);
+                            if let Some(self_param) = self_param {
+                                // 分析每个不安全操作
+                                let mut pattern2_ops = Vec::new();
                                 
-                                // 检查函数参数中是否有对该结构体的引用
-                                let self_param = self.find_self_param(body);
-                                if let Some(self_param) = self_param {
-                                    // 分析每个不安全操作
-                                    let mut pattern2_ops = Vec::new();
+                                for op in &internal_unsafe.unsafe_operations {
+                                    // 在函数体中查找结构体字段的访问
+                                    let field_accesses = self.find_struct_field_accesses(body, self_param);
                                     
-                                    for op in &internal_unsafe.unsafe_operations {
-                                        // 在函数体中查找结构体字段的访问
-                                        let field_accesses = self.find_struct_field_accesses(body, self_param);
-                                        
-                                        // 检查不安全操作是否使用了结构体的公共字段
-                                        for (field_idx, field_var, _field_path) in &field_accesses {
-                                            // 检查该字段是否是公共字段
-                                            if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
-                                                // 检查该字段是否传递给了不安全操作
-                                                if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
-                                                    let field_name = &field_info.name;
-                                                    pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
-                                                    self.debug_log(format!(
-                                                        "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
-                                                        struct_name, field_name, op.operation_detail));
-                                                }
+                                    // 检查不安全操作是否使用了结构体的公共字段
+                                    for (field_idx, field_var, _field_path) in &field_accesses {
+                                        // 检查该字段是否是公共字段
+                                        if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
+                                            // 检查该字段是否传递给了不安全操作
+                                            if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
+                                                let field_name = &field_info.name;
+                                                pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
+                                                self.debug_log(format!(
+                                                    "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
+                                                    struct_name, field_name, op.operation_detail));
                                             }
                                         }
                                     }
-                                    
-                                    // 保存结果
-                                    if !pattern2_ops.is_empty() {
-                                        self.pattern2_matches.insert(def_id, pattern2_ops);
-                                    }
+                                }
+                                
+                                // 保存结果
+                                if !pattern2_ops.is_empty() {
+                                    self.pattern2_matches.insert(def_id, pattern2_ops);
                                 }
                             }
                         }
