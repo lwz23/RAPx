@@ -846,8 +846,13 @@ impl<'tcx> LwzCheck<'tcx> {
                                 // 检查变量编号是否在参数范围内，但不是self参数
                                 let is_pattern1 = self.is_non_self_param_or_copy(body, var_number, param_count, self_param);
                                 if is_pattern1 {
-                                    pattern1_ops.push(op.clone());
-                                    self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
+                                    // 检查变量是否经过净化操作
+                                    if !self.is_var_sanitized(body, var_number, def_id) {
+                                        pattern1_ops.push(op.clone());
+                                        self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
+                                    } else {
+                                        self.debug_log(format!("变量 {} 在函数 {} 中已经过净化，跳过", var_number, fn_name));
+                                    }
                                 } else {
                                     self.debug_log(format!("变量 {} 不是参数、或是self参数/字段", var_number));
                                 }
@@ -857,7 +862,7 @@ impl<'tcx> LwzCheck<'tcx> {
                         else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
                             self.debug_log(format!("分析函数调用: {}", op.operation_detail));
                             
-                            if self.check_function_call_non_self_args(&op.operation_detail, body, param_count, self_param) {
+                            if self.check_function_call_non_self_args_with_sanitization(&op.operation_detail, body, param_count, self_param, def_id) {
                                 pattern1_ops.push(op.clone());
                                 self.debug_log(format!("发现pattern1函数调用参数在函数 {}", fn_name));
                             }
@@ -876,6 +881,87 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         self.debug_log(format!("pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len()));
+    }
+    
+    /// 检查函数调用中是否包含非self参数，并且参数没有经过净化
+    fn check_function_call_non_self_args_with_sanitization(&self, 
+                                          op_detail: &str, 
+                                          body: &rustc_middle::mir::Body<'tcx>, 
+                                          param_count: usize,
+                                          self_param: Option<usize>,
+                                          def_id: DefId) -> bool {
+        let fn_name = self.get_fn_name(def_id);
+        self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
+        
+        // 特殊处理：检查是否为已知的不安全函数调用
+        let known_unsafe_ops = [
+            "from_utf8_unchecked", "get_unchecked", "read", "write", 
+            "from_raw_parts", "add", "offset", "copy_nonoverlapping"
+        ];
+        
+        let mut is_unsafe_op = false;
+        for unsafe_op in &known_unsafe_ops {
+            if op_detail.contains(unsafe_op) {
+                self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}, 不应被过滤", op_detail, unsafe_op));
+                is_unsafe_op = true;
+                // 对于已知的不安全函数，我们需要继续检查参数
+                break;
+            }
+        }
+        
+        // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
+        // 例如 from_utf8_unchecked 可能在不同位置包含不同的命名空间
+        if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
+            self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
+            is_unsafe_op = true;
+        }
+        
+        // 如果不是不安全操作，直接返回false
+        if !is_unsafe_op {
+            self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
+            return false;
+        }
+        
+        if let Some(start_pos) = op_detail.find('(') {
+            if let Some(end_pos) = op_detail.rfind(')') {
+                if start_pos < end_pos {
+                    let args_str = &op_detail[start_pos+1..end_pos];
+                    self.debug_log(format!("  解析参数字符串: {}", args_str));
+                    
+                    // 分割参数
+                    for arg in args_str.split(',') {
+                        let arg = arg.trim();
+                        self.debug_log(format!("  检查参数: {}", arg));
+                        
+                        if arg.starts_with("_") {
+                            // 尝试提取参数编号
+                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                self.debug_log(format!("  参数编号: {}", arg_num));
+                                
+                                // 检查是否是非self参数或从非self参数复制
+                                if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
+                                    self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
+                                    
+                                    // 检查变量是否经过净化操作
+                                    if !self.is_var_sanitized(body, arg_num, def_id) {
+                                        // 直接传递给不安全操作的参数
+                                        self.debug_log(format!("  变量 {} 未经过净化，匹配pattern1", arg_num));
+                                        return true;
+                                    } else {
+                                        self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
+                                    }
+                                } else {
+                                    self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.debug_log("  函数调用不匹配pattern1");
+        false
     }
     
     /// 检查变量是否是非self参数或非self参数的复制
@@ -1022,35 +1108,6 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        false
-    }
-
-    // 修改函数调用参数检查，排除self参数
-    fn check_function_call_non_self_args(&self, 
-                            op_detail: &str, 
-                            body: &rustc_middle::mir::Body<'tcx>, 
-                            param_count: usize,
-                            self_param: Option<usize>) -> bool {
-        if let Some(start_pos) = op_detail.find('(') {
-            if let Some(end_pos) = op_detail.rfind(')') {
-                if start_pos < end_pos {
-                    let args_str = &op_detail[start_pos+1..end_pos];
-                    // 分割参数
-                    for arg in args_str.split(',') {
-                        let arg = arg.trim();
-                        if arg.starts_with("_") {
-                            // 尝试提取参数编号
-                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
-                                // 检查是否是非self参数或从非self参数复制
-                                if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
         false
     }
 
@@ -1222,11 +1279,18 @@ impl<'tcx> LwzCheck<'tcx> {
                                         if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
                                             // 检查该字段是否传递给了不安全操作
                                             if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
-                                                let field_name = &field_info.name;
-                                                pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
-                                                self.debug_log(format!(
-                                                    "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
-                                                    struct_name, field_name, op.operation_detail));
+                                                // 检查变量是否经过净化操作
+                                                if !self.is_var_sanitized(body, *field_var, def_id) {
+                                                    let field_name = &field_info.name;
+                                                    pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
+                                                    self.debug_log(format!(
+                                                        "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
+                                                        struct_name, field_name, op.operation_detail));
+                                                } else {
+                                                    self.debug_log(format!(
+                                                        "结构体 {} 的字段 {} 经过净化，跳过", 
+                                                        struct_name, field_info.name));
+                                                }
                                             }
                                         }
                                     }
@@ -1391,6 +1455,238 @@ impl<'tcx> LwzCheck<'tcx> {
                         }
                     }
                 }
+            }
+        }
+        
+        false
+    }
+    
+    /// 检查变量是否经过了净化函数
+    /// 净化函数是指函数名中包含"valid"、"check"、"is_"等关键词的函数
+    fn is_var_sanitized(&self, body: &rustc_middle::mir::Body<'tcx>, var: usize, def_id: DefId) -> bool {
+        let fn_name = self.get_fn_name(def_id);
+        self.debug_log(format!("检查变量 {} 在函数 {} 中是否经过净化", var, fn_name));
+        
+        // 特殊处理from_utf8函数，但必须是精确匹配，不包括from_utf82等
+        // 这里使用结尾检查或者完整函数名比较
+        let exact_from_utf8 = fn_name.ends_with("::from_utf8") || fn_name == "from_utf8";
+        if exact_from_utf8 && !fn_name.contains("unchecked") {
+            // 对于from_utf8函数，我们假定它内部已经进行了安全检查
+            self.debug_log(format!("  特殊情况：函数 {} 内部应已进行安全检查", fn_name));
+            return true;
+        }
+        
+        // 首先检查是否有sanitizer函数调用
+        let mut sanitizer_found = false;
+        
+        // 遍历所有基本块
+        for (block_idx, block_data) in body.basic_blocks.iter().enumerate() {
+            // 检查终结符中的函数调用
+            if let Some(terminator) = &block_data.terminator {
+                match &terminator.kind {
+                    // 检查函数调用
+                    TerminatorKind::Call { func, args, .. } => {
+                        // 处理函数调用
+                        if let Operand::Constant(constant) = func {
+                            if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
+                                let callee_fn_name = self.get_fn_name(*callee_def_id);
+                                self.debug_log(format!("  检查函数调用: {} 在基本块 {}", callee_fn_name, block_idx));
+                                
+                                // 检查函数名是否含有净化关键词
+                                if self.is_sanitizer_function_name(&callee_fn_name) {
+                                    // 检查参数中是否包含目标变量
+                                    for arg in args.iter() {
+                                        if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                                            if place.local.as_usize() == var {
+                                                self.debug_log(format!("  变量 {} 作为参数传递给净化函数 {}", var, callee_fn_name));
+                                                sanitizer_found = true;
+                                            }
+                                        }
+                                    }
+                                    
+                                    // 如果没有直接作为参数，检查函数调用结果是否在条件判断中使用
+                                    if !sanitizer_found && self.check_result_used_in_condition(body, block_idx) {
+                                        self.debug_log(format!("  净化函数 {} 的结果用于条件判断", callee_fn_name));
+                                        sanitizer_found = true;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    // 检查SwitchInt终结符，表示变量被用于match或if条件判断
+                    TerminatorKind::SwitchInt { discr, .. } => {
+                        if let Operand::Copy(place) | Operand::Move(place) = discr {
+                            // 直接检查条件变量
+                            if place.local.as_usize() == var {
+                                self.debug_log(format!("  变量 {} 直接用于条件判断", var));
+                                sanitizer_found = true;
+                            } else {
+                                // 检查条件表达式中是否包含目标变量
+                                let terminator_str = format!("{:?}", terminator);
+                                if terminator_str.contains(&format!("_{}", var)) {
+                                    self.debug_log(format!("  变量 {} 在条件表达式中: {}", var, terminator_str));
+                                    sanitizer_found = true;
+                                }
+                                
+                                // 特别处理：检查条件是sanitizer函数调用的结果
+                                let cond_var = place.local.as_usize();
+                                if self.is_var_from_sanitizer_call(body, cond_var, var) {
+                                    self.debug_log(format!("  条件变量 {} 来自验证变量 {} 的sanitizer函数调用", cond_var, var));
+                                    sanitizer_found = true;
+                                }
+                            }
+                        }
+                    },
+                    _ => {}
+                }
+            }
+            
+            // 检查块中的语句
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (_place, rvalue)) = &statement.kind {
+                    let rvalue_str = format!("{:?}", rvalue);
+                    
+                    // 检查rvalue中是否包含目标变量和sanitizer关键词
+                    if rvalue_str.contains(&format!("_{}", var)) && self.is_sanitizer_function_name(&rvalue_str) {
+                        self.debug_log(format!("  变量 {} 在sanitizer表达式中: {}", var, rvalue_str));
+                        sanitizer_found = true;
+                    }
+                }
+            }
+        }
+        
+        if sanitizer_found {
+            self.debug_log(format!("  变量 {} 在函数 {} 中已经过净化", var, fn_name));
+            return true;
+        }
+        
+        // 如果是特殊函数，检查函数名本身
+        if self.is_sanitizer_function_name(&fn_name) {
+            // 是检查是否是参数，1~arg_count的变量是参数
+            if var > 0 && var <= body.arg_count {
+                self.debug_log(format!("  变量 {} 是净化函数 {} 的参数", var, fn_name));
+                return true;
+            }
+        }
+        
+        self.debug_log(format!("  变量 {} 在函数 {} 中未检测到净化操作", var, fn_name));
+        false
+    }
+
+    /// 检查变量是否来自sanitizer函数调用
+    fn is_var_from_sanitizer_call(&self, body: &rustc_middle::mir::Body<'tcx>, var: usize, target_var: usize) -> bool {
+        for block_data in body.basic_blocks.iter() {
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    if place.local.as_usize() == var {
+                        // 变量是否来自函数调用结果
+                        let rvalue_str = format!("{:?}", rvalue);
+                        
+                        // 检查rvalue是否包含目标变量和安全检查关键词
+                        if rvalue_str.contains(&format!("_{}", target_var)) && 
+                           (rvalue_str.contains("is_ascii") || rvalue_str.contains("from_utf8")) {
+                            self.debug_log(format!("  变量 {} 来自对变量 {} 的安全检查: {}", 
+                                           var, target_var, rvalue_str));
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // 检查终结符中的函数调用
+            if let Some(terminator) = &block_data.terminator {
+                if let TerminatorKind::Call { func, args, destination, .. } = &terminator.kind {
+                    if destination.local.as_usize() == var {
+                        // 函数调用结果赋值给了目标变量
+                        
+                        // 检查是否是sanitizer函数
+                        if let Operand::Constant(constant) = func {
+                            if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
+                                let callee_fn_name = self.get_fn_name(*callee_def_id);
+                                
+                                if self.is_sanitizer_function_name(&callee_fn_name) {
+                                    // 检查参数中是否包含目标变量
+                                    for arg in args.iter() {
+                                        if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                                            if place.local.as_usize() == target_var {
+                                                self.debug_log(format!("  变量 {} 是对变量 {} 的sanitizer函数 {} 调用结果", 
+                                                               var, target_var, callee_fn_name));
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+    
+    /// 检查函数调用结果是否用于条件判断
+    fn check_result_used_in_condition(&self, body: &rustc_middle::mir::Body<'tcx>, block_idx: usize) -> bool {
+        // 获取当前块的终结符
+        if let Some(block_data) = body.basic_blocks.get(rustc_middle::mir::BasicBlock::from_usize(block_idx)) {
+            if let Some(terminator) = &block_data.terminator {
+                if let TerminatorKind::Call { destination, .. } = &terminator.kind {
+                    let result_var = destination.local.as_usize();
+                    
+                    // 遍历所有块，查找使用结果变量的条件判断
+                    for next_block_data in body.basic_blocks.iter() {
+                        if let Some(next_terminator) = &next_block_data.terminator {
+                            if let TerminatorKind::SwitchInt { discr, .. } = &next_terminator.kind {
+                                if let Operand::Copy(place) | Operand::Move(place) = discr {
+                                    if place.local.as_usize() == result_var {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        false
+    }
+
+    /// 判断函数名是否为净化函数（包含"valid"、"check"、"is_"等关键词）
+    fn is_sanitizer_function_name(&self, name: &str) -> bool {
+        let sanitizer_keywords = [
+            "valid", "check", "is_", "has_", "ensure", "verify", "safe", "ascii", "utf8"
+        ];
+        
+        // 排除本身是unsafe函数的情况
+        let unsafe_functions = [
+            "unchecked", "raw_parts", "transmute", "copy_nonoverlapping", 
+            "write", "read", "ptr", "get_unchecked", "from_utf8_unchecked"
+        ];
+        
+        // 如果函数名包含unsafe关键词，不应该算作sanitizer
+        let name_lower = name.to_lowercase();
+        
+        // 首先检查是否包含unsafe关键词
+        for unsafe_keyword in &unsafe_functions {
+            if name_lower.contains(unsafe_keyword) {
+                self.debug_log(format!("函数名 '{}' 包含unsafe关键词 '{}', 不视为sanitizer", name, unsafe_keyword));
+                return false;
+            }
+        }
+        
+        // 特殊处理：将from_utf8视为sanitizer，但from_utf8_unchecked不是
+        if name_lower.contains("from_utf8") && !name_lower.contains("unchecked") {
+            self.debug_log(format!("函数名 '{}' 匹配sanitizer函数 'from_utf8'", name));
+            return true;
+        }
+        
+        // 然后检查是否包含sanitizer关键词
+        for keyword in &sanitizer_keywords {
+            if name_lower.contains(keyword) {
+                self.debug_log(format!("函数名 '{}' 匹配sanitizer关键词 '{}'", name, keyword));
+                return true;
             }
         }
         
