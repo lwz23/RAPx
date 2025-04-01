@@ -1467,15 +1467,6 @@ impl<'tcx> LwzCheck<'tcx> {
         let fn_name = self.get_fn_name(def_id);
         self.debug_log(format!("检查变量 {} 在函数 {} 中是否经过净化", var, fn_name));
         
-        // 特殊处理from_utf8函数，但必须是精确匹配，不包括from_utf82等
-        // 这里使用结尾检查或者完整函数名比较
-        let exact_from_utf8 = fn_name.ends_with("::from_utf8") || fn_name == "from_utf8";
-        if exact_from_utf8 && !fn_name.contains("unchecked") {
-            // 对于from_utf8函数，我们假定它内部已经进行了安全检查
-            self.debug_log(format!("  特殊情况：函数 {} 内部应已进行安全检查", fn_name));
-            return true;
-        }
-        
         // 首先检查是否有sanitizer函数调用
         let mut sanitizer_found = false;
         
@@ -1656,7 +1647,7 @@ impl<'tcx> LwzCheck<'tcx> {
     /// 判断函数名是否为净化函数（包含"valid"、"check"、"is_"等关键词）
     fn is_sanitizer_function_name(&self, name: &str) -> bool {
         let sanitizer_keywords = [
-            "valid", "check", "is_", "has_", "ensure", "verify", "safe", "ascii", "utf8"
+            "valid", "check", "is_", "has_", "ensure", "verify", "safe","is_null"
         ];
         
         // 排除本身是unsafe函数的情况
