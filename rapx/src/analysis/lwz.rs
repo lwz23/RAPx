@@ -75,6 +75,32 @@ struct UnsafeOperation {
     operation_detail: String,
 }
 
+/// 表示污点传播路径中的函数
+#[derive(Debug, Clone)]
+struct PatternCarrier {
+    /// 函数的DefId
+    def_id: DefId,
+    /// 被污染的参数索引（从1开始）
+    tainted_param_idx: usize,
+    /// 污染最终流向的不安全操作
+    unsafe_ops: Vec<UnsafeOperation>,
+    /// 识别的模式类型（1=Pattern1, 2=Pattern2）
+    pattern_type: u8,
+}
+
+/// 存储过程间分析结果
+#[derive(Debug, Clone)]
+struct InterproceduralMatch {
+    /// 公开函数
+    pub_fn_id: DefId,
+    /// 调用链路径
+    call_path: Vec<DefId>,
+    /// 最终的不安全操作
+    unsafe_ops: Vec<UnsafeOperation>,
+    /// 基于哪种模式传播（1=Pattern1, 2=Pattern2）
+    base_pattern: u8,
+}
+
 /// Represents an internal unsafe function
 #[derive(Clone, Debug)]
 struct InternalUnsafe {
@@ -120,6 +146,10 @@ pub struct LwzCheck<'tcx> {
     pub_structs: HashMap<DefId, PubStructInfo>,
     /// 存储符合pattern2的函数和对应的unsafe操作与字段信息
     pattern2_matches: HashMap<DefId, Vec<(UnsafeOperation, String)>>,
+    /// 存储所有的"模式载体"函数
+    pattern_carriers: HashMap<DefId, PatternCarrier>,
+    /// 存储过程间分析的结果
+    interprocedural_matches: HashMap<DefId, InterproceduralMatch>,
 }
 
 impl<'tcx> LwzCheck<'tcx> {
@@ -134,6 +164,8 @@ impl<'tcx> LwzCheck<'tcx> {
             pattern1_matches: HashMap::new(),
             pub_structs: HashMap::new(),
             pattern2_matches: HashMap::new(),
+            pattern_carriers: HashMap::new(),
+            interprocedural_matches: HashMap::new(),
         }
     }
 
@@ -143,10 +175,18 @@ impl<'tcx> LwzCheck<'tcx> {
         self.collect_functions();
         self.build_call_graphs();
         self.find_shortest_paths();
+        
+        // 第一阶段：识别所有"模式载体"
+        self.identify_pattern_carriers();
+        
+        // 第二阶段：基于"模式载体"进行过程间分析
+        self.perform_interprocedural_analysis();
+        
+        // 原有的分析
         self.detect_pattern1_matches();
-        // 收集结构体信息并检测pattern2
         self.collect_pub_structs();
         self.detect_pattern2_matches();
+        
         self.report_findings();
     }
 
@@ -419,6 +459,36 @@ impl<'tcx> LwzCheck<'tcx> {
             }
             
             rap_info!("Total pattern2 functions found: {}", pattern2_count);
+        }
+        
+        // 报告过程间分析结果
+        if !self.interprocedural_matches.is_empty() {
+            rap_info!("\n===== 过程间污点传播分析报告 =====");
+            let mut count = 0;
+            
+            for (&fn_id, interprocedural_match) in &self.interprocedural_matches {
+                count += 1;
+                let fn_name = self.get_fn_name(fn_id);
+                
+                // 构建调用链路径字符串
+                let path_str = interprocedural_match.call_path.iter()
+                    .map(|&def_id| self.get_fn_name(def_id))
+                    .collect::<Vec<_>>()
+                    .join(" -> ");
+                
+                rap_info!("{}: 过程间污点传播: {}", count, path_str);
+                
+                // 显示不安全操作
+                if !interprocedural_match.unsafe_ops.is_empty() {
+                    rap_info!("unsafe operations: ");
+                    for (i, op) in interprocedural_match.unsafe_ops.iter().enumerate() {
+                        rap_info!("({}) {}, ", i+1, op.operation_detail);
+                    }
+                    rap_info!("\n");
+                }
+            }
+            
+            rap_info!("总计发现 {} 个过程间污点传播", count);
         }
     }
 
@@ -1698,6 +1768,358 @@ impl<'tcx> LwzCheck<'tcx> {
         if let Some(impl_def_id) = self.tcx.impl_of_method(def_id) {
             // 获取impl的自身类型
             return Some(self.tcx.type_of(impl_def_id).skip_binder());
+        }
+        None
+    }
+
+    /// 识别所有"模式载体"函数
+    fn identify_pattern_carriers(&mut self) {
+        self.debug_log("开始识别模式载体...");
+        
+        // 遍历所有内部不安全函数，不限于公共函数
+        for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
+            let fn_name = self.get_fn_name(def_id);
+            
+            self.debug_log(format!("检查函数: {}", fn_name));
+            
+            // 处理函数参数的情况
+            let mut pattern1_ops = Vec::new();
+            let mut tainted_param_idx = 0;
+            
+            // 获取MIR以分析参数
+            if let Some(body) = self.get_mir_safely(def_id) {
+                let param_count = body.arg_count;
+                
+                // 判断是否是结构体impl方法
+                let is_method = param_count > 0 && self.get_impl_self_type(def_id).is_some();
+                let self_param = if is_method { Some(1) } else { None };
+                
+                // 检查所有不安全操作，是否有直接或间接使用参数的情况
+                for op in &internal_unsafe.unsafe_operations {
+                    self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
+                    
+                    // 1. 检查解引用参数的情况
+                    if op.operation_detail.starts_with("*_") {
+                        // 从操作详情中提取变量编号
+                        if let Some(var_number) = self.extract_var_number(&op.operation_detail) {
+                            // 检查变量编号是否在参数范围内，但不是self参数
+                            let is_pattern1 = self.is_non_self_param_or_copy(body, var_number, param_count, self_param);
+                            if is_pattern1 {
+                                // 检查变量是否经过净化操作
+                                if !self.is_var_sanitized(body, var_number, def_id) {
+                                    pattern1_ops.push(op.clone());
+                                    // 查找源参数
+                                    if let Some(source_param) = self.find_source_parameter(body, var_number, param_count, self_param) {
+                                        tainted_param_idx = source_param;
+                                        self.debug_log(format!("发现从参数 {} 到不安全操作的传播路径", source_param));
+                                    }
+                                }
+                            }
+                        }
+                    } 
+                    // 2. 检查函数调用参数的情况
+                    else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
+                        if let Some(source_param) = self.check_function_call_tainted_param(
+                            &op.operation_detail, body, param_count, self_param, def_id) {
+                            pattern1_ops.push(op.clone());
+                            tainted_param_idx = source_param;
+                            self.debug_log(format!("发现从参数 {} 到函数调用的传播路径", source_param));
+                        }
+                    }
+                }
+            }
+            
+            // 如果找到pattern1操作，保存结果为模式载体
+            if !pattern1_ops.is_empty() && tainted_param_idx > 0 {
+                let carrier = PatternCarrier {
+                    def_id,
+                    tainted_param_idx,
+                    unsafe_ops: pattern1_ops.clone(),
+                    pattern_type: 1, // Pattern1
+                };
+                self.pattern_carriers.insert(def_id, carrier);
+                self.debug_log(format!("函数 {} 被识别为Pattern1载体，污染参数索引: {}", fn_name, tainted_param_idx));
+            }
+        }
+        
+        self.debug_log(format!("模式载体识别完成，共发现 {} 个", self.pattern_carriers.len()));
+    }
+    
+    /// 查找变量的源参数
+    fn find_source_parameter(&self, 
+                           body: &rustc_middle::mir::Body<'tcx>, 
+                           var_num: usize, 
+                           param_count: usize,
+                           self_param: Option<usize>) -> Option<usize> {
+        // 如果变量本身是参数
+        if var_num > 0 && var_num <= param_count {
+            // 确保不是self参数
+            if let Some(self_idx) = self_param {
+                if var_num != self_idx {
+                    return Some(var_num);
+                }
+            } else {
+                return Some(var_num);
+            }
+        }
+        
+        // 否则回溯查找变量的来源
+        let mut visited = HashSet::new();
+        self.find_source_parameter_with_visited(body, var_num, param_count, self_param, &mut visited)
+    }
+
+    /// 递归回溯查找变量的源参数
+    fn find_source_parameter_with_visited(&self, 
+                                        body: &rustc_middle::mir::Body<'tcx>, 
+                                        var_num: usize, 
+                                        param_count: usize,
+                                        self_param: Option<usize>,
+                                        visited: &mut HashSet<usize>) -> Option<usize> {
+        // 防止循环递归
+        if !visited.insert(var_num) {
+            return None;
+        }
+        
+        // 检查赋值来源
+        for block_data in body.basic_blocks.iter() {
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    // 检查赋值目标是否是当前变量
+                    if place.local.as_usize() == var_num {
+                        match rvalue {
+                            rustc_middle::mir::Rvalue::Use(operand) => {
+                                if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                                    let source_local = source_place.local.as_usize();
+                                    
+                                    // 检查源变量是否是参数
+                                    if source_local > 0 && source_local <= param_count {
+                                        // 确保不是self参数
+                                        if let Some(self_idx) = self_param {
+                                            if source_local != self_idx {
+                                                return Some(source_local);
+                                            }
+                                        } else {
+                                            return Some(source_local);
+                                        }
+                                    }
+                                    
+                                    // 递归检查源变量
+                                    if let Some(param) = self.find_source_parameter_with_visited(
+                                        body, source_local, param_count, self_param, visited) {
+                                        return Some(param);
+                                    }
+                                }
+                            },
+                            rustc_middle::mir::Rvalue::Ref(_, _, source_place) => {
+                                let source_local = source_place.local.as_usize();
+                                
+                                // 类似逻辑检查源变量...
+                                if source_local > 0 && source_local <= param_count {
+                                    if let Some(self_idx) = self_param {
+                                        if source_local != self_idx {
+                                            return Some(source_local);
+                                        }
+                                    } else {
+                                        return Some(source_local);
+                                    }
+                                }
+                                
+                                if let Some(param) = self.find_source_parameter_with_visited(
+                                    body, source_local, param_count, self_param, visited) {
+                                    return Some(param);
+                                }
+                            },
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        
+        None
+    }
+    
+    /// 检查函数调用中的污染参数
+    fn check_function_call_tainted_param(&self, 
+                                      op_detail: &str, 
+                                      body: &rustc_middle::mir::Body<'tcx>, 
+                                      param_count: usize,
+                                      self_param: Option<usize>,
+                                      def_id: DefId) -> Option<usize> {
+        let fn_name = self.get_fn_name(def_id);
+        self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
+        
+        // 特殊处理：检查是否为已知的不安全函数调用
+        let known_unsafe_ops = [
+            "from_utf8_unchecked", "get_unchecked", "read", "write", 
+            "from_raw_parts", "add", "offset", "copy_nonoverlapping"
+        ];
+        
+        let mut is_unsafe_op = false;
+        for unsafe_op in &known_unsafe_ops {
+            if op_detail.contains(unsafe_op) {
+                self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}", op_detail, unsafe_op));
+                is_unsafe_op = true;
+                break;
+            }
+        }
+        
+        // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
+        if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
+            self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
+            is_unsafe_op = true;
+        }
+        
+        // 如果不是不安全操作，直接返回None
+        if !is_unsafe_op {
+            self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
+            return None;
+        }
+        
+        if let Some(start_pos) = op_detail.find('(') {
+            if let Some(end_pos) = op_detail.rfind(')') {
+                if start_pos < end_pos {
+                    let args_str = &op_detail[start_pos+1..end_pos];
+                    self.debug_log(format!("  解析参数字符串: {}", args_str));
+                    
+                    // 分割参数
+                    for arg in args_str.split(',') {
+                        let arg = arg.trim();
+                        self.debug_log(format!("  检查参数: {}", arg));
+                        
+                        if arg.starts_with("_") {
+                            // 尝试提取参数编号
+                            if let Ok(arg_num) = arg[1..].parse::<usize>() {
+                                self.debug_log(format!("  参数编号: {}", arg_num));
+                                
+                                // 检查是否是非self参数或从非self参数复制
+                                if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
+                                    self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
+                                    
+                                    // 检查变量是否经过净化操作
+                                    if !self.is_var_sanitized(body, arg_num, def_id) {
+                                        // 找出源参数
+                                        if let Some(source_param) = self.find_source_parameter(body, arg_num, param_count, self_param) {
+                                            self.debug_log(format!("  变量 {} 未经过净化，来源于参数 {}", arg_num, source_param));
+                                            return Some(source_param);
+                                        }
+                                    } else {
+                                        self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
+                                    }
+                                } else {
+                                    self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.debug_log("  函数调用不匹配污染参数条件");
+        None
+    }
+    
+    /// 执行过程间分析
+    fn perform_interprocedural_analysis(&mut self) {
+        self.debug_log("开始执行过程间分析...");
+        
+        // 查找所有调用模式载体的函数
+        let carrier_def_ids: Vec<DefId> = self.pattern_carriers.keys().cloned().collect();
+        
+        for carrier_def_id in &carrier_def_ids {
+            let carrier = self.pattern_carriers.get(carrier_def_id).unwrap();
+            let carrier_name = self.get_fn_name(*carrier_def_id);
+            
+            self.debug_log(format!("分析模式载体 {} 的调用者", carrier_name));
+            
+            // 使用反向调用图找到所有调用者
+            if let Some(callers) = self.reverse_call_graph.get(carrier_def_id) {
+                for &caller_def_id in callers {
+                    // 检查调用者是否是公共函数
+                    if self.is_public_fn(caller_def_id) {
+                        let caller_name = self.get_fn_name(caller_def_id);
+                        self.debug_log(format!("分析公共调用者: {}", caller_name));
+                        
+                        // 分析调用点
+                        if let Some(body) = self.get_mir_safely(caller_def_id) {
+                            // 查找调用点并映射参数
+                            if let Some(call_arg) = self.find_caller_arg_local(
+                                body, *carrier_def_id, carrier.tainted_param_idx) {
+                                
+                                let param_count = body.arg_count;
+                                let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
+                                let self_param = if is_method { Some(1) } else { None };
+                                
+                                // 检查调用者将什么参数传递给了载体的污染参数
+                                if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
+                                    // 检查参数是否经过净化
+                                    if !self.is_var_sanitized(body, call_arg, caller_def_id) {
+                                        // 找到了过程间模式匹配
+                                        let interprocedural_match = InterproceduralMatch {
+                                            pub_fn_id: caller_def_id,
+                                            call_path: vec![caller_def_id, *carrier_def_id],
+                                            unsafe_ops: carrier.unsafe_ops.clone(),
+                                            base_pattern: carrier.pattern_type,
+                                        };
+                                        
+                                        self.interprocedural_matches.insert(caller_def_id, interprocedural_match);
+                                        self.debug_log(format!(
+                                            "发现过程间匹配: {} -> {} (将参数传递给污染的参数)",
+                                            caller_name, carrier_name));
+                                    } else {
+                                        self.debug_log(format!(
+                                            "调用者 {} 对传递给 {} 的参数进行了净化，跳过",
+                                            caller_name, carrier_name));
+                                    }
+                                } else {
+                                    self.debug_log(format!(
+                                        "调用者 {} 传递给 {} 的不是来自参数的值，跳过",
+                                        caller_name, carrier_name));
+                                }
+                            } else {
+                                self.debug_log(format!(
+                                    "无法在调用者 {} 中找到传递给 {} 的参数映射",
+                                    caller_name, carrier_name));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        self.debug_log(format!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len()));
+    }
+    
+    /// 在调用者中找到对应模式载体污染参数的变量
+    fn find_caller_arg_local(&self, 
+                           body: &rustc_middle::mir::Body<'tcx>,
+                           callee_def_id: DefId,
+                           callee_param_idx: usize) -> Option<usize> {
+        // 遍历所有基本块查找函数调用
+        for block_data in body.basic_blocks.iter() {
+            if let Some(terminator) = &block_data.terminator {
+                if let TerminatorKind::Call { func, args, .. } = &terminator.kind {
+                    // 检查是否调用目标函数
+                    if let Operand::Constant(constant) = func {
+                        if let rustc_middle::ty::TyKind::FnDef(func_def_id, _) = constant.const_.ty().kind() {
+                            if *func_def_id == callee_def_id {
+                                // 找到了调用点，检查参数索引是否有效
+                                let param_idx = callee_param_idx - 1; // 转为0-based索引
+                                if param_idx < args.len() {
+                                    // 获取参数变量
+                                    if let Operand::Copy(place) | Operand::Move(place) = &args[param_idx].node {
+                                        self.debug_log(format!(
+                                            "找到调用点: 参数索引 {} 对应变量 _{}",
+                                            callee_param_idx, place.local.as_usize()));
+                                        return Some(place.local.as_usize());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         None
     }
