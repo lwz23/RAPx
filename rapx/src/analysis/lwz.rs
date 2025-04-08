@@ -528,8 +528,8 @@ impl<'tcx> LwzCheck<'tcx> {
         let body = match self.get_mir_safely(def_id) {
             Some(body) => body,
             None => {
-                self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过调用图构建", 
-                               self.get_fn_name(def_id)));
+                //self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过调用图构建", 
+                               //self.get_fn_name(def_id)));
                 return callees;
             }
         };
@@ -564,7 +564,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Ok(None) => None,
             Err(_) => {
                 // 记录错误并返回None
-                self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
+                //self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
                 None
             }
         }
@@ -578,8 +578,8 @@ impl<'tcx> LwzCheck<'tcx> {
         let body = match self.get_mir_safely(def_id) {
             Some(body) => body,
             None => {
-                self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过不安全操作分析", 
-                               self.get_fn_name(def_id)));
+                //self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过不安全操作分析", 
+                               //self.get_fn_name(def_id)));
                 return operations;
             }
         };
@@ -587,7 +587,7 @@ impl<'tcx> LwzCheck<'tcx> {
         let fn_name = self.get_fn_name(def_id);
         
         // DEBUG输出
-        self.debug_log(format!("开始提取不安全操作 - 函数: {}", fn_name));
+        //self.debug_log(format!("开始提取不安全操作 - 函数: {}", fn_name));
         
         // 遍历所有基本块 
         for block_data in body.basic_blocks.iter() {
@@ -666,7 +666,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     let callee_name = self.get_fn_name(*callee_def_id);
                                     
                                     // DEBUG输出
-                                    self.debug_log(format!("发现unsafe函数调用: {} 在函数 {}", callee_name, fn_name));
+                                    //self.debug_log(format!("发现unsafe函数调用: {} 在函数 {}", callee_name, fn_name));
                                     
                                     // 提取函数参数信息
                                     let mut arg_descriptions = Vec::new();
@@ -678,8 +678,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 arg_descriptions.push(arg_str.clone());
                                                 
                                                 // DEBUG输出
-                                                self.debug_log(format!("参数 #{}: {} (本地变量ID: {})", 
-                                                          i, arg_str, place.local.as_usize()));
+                                                //self.debug_log(format!("参数 #{}: {} (本地变量ID: {})", 
+                                                          //i, arg_str, place.local.as_usize()));
                                             },
                                             Operand::Constant(constant) => {
                                                 // 处理常量参数
@@ -687,7 +687,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 arg_descriptions.push(arg_str.clone());
                                                 
                                                 // DEBUG输出
-                                                self.debug_log(format!("参数 #{}: {} (常量)", i, arg_str));
+                                                //self.debug_log(format!("参数 #{}: {} (常量)", i, arg_str));
                                             },
                                         }
                                     }
@@ -760,9 +760,9 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         // DEBUG输出
-        self.debug_log(format!("函数 {} 中共发现 {} 个不安全操作", fn_name, operations.len()));
+        //(format!("函数 {} 中共发现 {} 个不安全操作", fn_name, operations.len()));
         for (i, op) in operations.iter().enumerate() {
-            self.debug_log(format!("   不安全操作 #{}: {}", i+1, op.operation_detail));
+            //self.debug_log(format!("   不安全操作 #{}: {}", i+1, op.operation_detail));
         }
         
         operations
@@ -884,13 +884,13 @@ impl<'tcx> LwzCheck<'tcx> {
     /// 检测符合pattern1的函数
     /// pattern1: pub函数的参数(非self.<field>)直接传入unsafe操作
     fn detect_pattern1_matches(&mut self) {
-        self.debug_log("开始检测pattern1匹配...");
+        //self.debug_log("开始检测pattern1匹配...");
         
         for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
             if self.is_public_fn(def_id) {
                 let fn_name = self.get_fn_name(def_id);
                 
-                self.debug_log(format!("检查公共函数: {}", fn_name));
+                //self.debug_log(format!("检查公共函数: {}", fn_name));
                 
                 // 处理函数参数的情况
                 let mut pattern1_ops = Vec::new();
@@ -899,7 +899,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 if let Some(body) = self.get_mir_safely(def_id) {
                     let param_count = body.arg_count;
                     
-                    self.debug_log(format!("函数 {} 有 {} 个参数", fn_name, param_count));
+                    //self.debug_log(format!("函数 {} 有 {} 个参数", fn_name, param_count));
                     
                     // 判断是否是结构体impl方法
                     let is_method = param_count > 0 && self.get_impl_self_type(def_id).is_some();
@@ -907,7 +907,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     
                     // 检查所有不安全操作，是否有直接或间接使用参数的情况
                     for op in &internal_unsafe.unsafe_operations {
-                        self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
+                        //self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
                         
                         // 1. 检查解引用参数的情况
                         if op.operation_detail.starts_with("*_") {
@@ -919,22 +919,22 @@ impl<'tcx> LwzCheck<'tcx> {
                                     // 检查变量是否经过净化操作
                                     if !self.is_var_sanitized(body, var_number, def_id) {
                                         pattern1_ops.push(op.clone());
-                                        self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
+                                        //self.debug_log(format!("发现pattern1解引用参数: 变量 {} 在函数 {}", var_number, fn_name));
                                     } else {
-                                        self.debug_log(format!("变量 {} 在函数 {} 中已经过净化，跳过", var_number, fn_name));
+                                       // self.debug_log(format!("变量 {} 在函数 {} 中已经过净化，跳过", var_number, fn_name));
                                     }
                                 } else {
-                                    self.debug_log(format!("变量 {} 不是参数、或是self参数/字段", var_number));
+                                    //self.debug_log(format!("变量 {} 不是参数、或是self参数/字段", var_number));
                                 }
                             }
                         } 
                         // 2. 检查函数调用参数的情况
                         else if op.operation_detail.contains("(") && op.operation_detail.contains(")") {
-                            self.debug_log(format!("分析函数调用: {}", op.operation_detail));
+                            //self.debug_log(format!("分析函数调用: {}", op.operation_detail));
                             
                             if self.check_function_call_non_self_args_with_sanitization(&op.operation_detail, body, param_count, self_param, def_id) {
                                 pattern1_ops.push(op.clone());
-                                self.debug_log(format!("发现pattern1函数调用参数在函数 {}", fn_name));
+                                //self.debug_log(format!("发现pattern1函数调用参数在函数 {}", fn_name));
                             }
                         }
                     }
@@ -943,14 +943,14 @@ impl<'tcx> LwzCheck<'tcx> {
                 // 如果找到pattern1操作，保存结果
                 if !pattern1_ops.is_empty() {
                     self.pattern1_matches.insert(def_id, pattern1_ops.clone());
-                    self.debug_log(format!("函数 {} 匹配pattern1，共 {} 个匹配操作", fn_name, pattern1_ops.len()));
+                    //self.debug_log(format!("函数 {} 匹配pattern1，共 {} 个匹配操作", fn_name, pattern1_ops.len()));
                 } else {
-                    self.debug_log(format!("函数 {} 没有匹配pattern1", fn_name));
+                    //self.debug_log(format!("函数 {} 没有匹配pattern1", fn_name));
                 }
             }
         }
         
-        self.debug_log(format!("pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len()));
+        //self.debug_log(format!("pattern1检测完成，共发现 {} 个匹配函数", self.pattern1_matches.len()));
     }
     
     /// 检查函数调用中是否包含非self参数，并且参数没有经过净化
@@ -961,7 +961,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                           self_param: Option<usize>,
                                           def_id: DefId) -> bool {
         let fn_name = self.get_fn_name(def_id);
-        self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
+        //self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
         
         // 特殊处理：检查是否为已知的不安全函数调用
         let known_unsafe_ops = [
@@ -972,7 +972,7 @@ impl<'tcx> LwzCheck<'tcx> {
         let mut is_unsafe_op = false;
         for unsafe_op in &known_unsafe_ops {
             if op_detail.contains(unsafe_op) {
-                self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}, 不应被过滤", op_detail, unsafe_op));
+                //self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}, 不应被过滤", op_detail, unsafe_op));
                 is_unsafe_op = true;
                 // 对于已知的不安全函数，我们需要继续检查参数
                 break;
@@ -982,13 +982,13 @@ impl<'tcx> LwzCheck<'tcx> {
         // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
         // 例如 from_utf8_unchecked 可能在不同位置包含不同的命名空间
         if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
-            self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
+            //self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
             is_unsafe_op = true;
         }
         
         // 如果不是不安全操作，直接返回false
         if !is_unsafe_op {
-            self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
+            //self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
             return false;
         }
         
@@ -996,32 +996,32 @@ impl<'tcx> LwzCheck<'tcx> {
             if let Some(end_pos) = op_detail.rfind(')') {
                 if start_pos < end_pos {
                     let args_str = &op_detail[start_pos+1..end_pos];
-                    self.debug_log(format!("  解析参数字符串: {}", args_str));
+                    //self.debug_log(format!("  解析参数字符串: {}", args_str));
                     
                     // 分割参数
                     for arg in args_str.split(',') {
                         let arg = arg.trim();
-                        self.debug_log(format!("  检查参数: {}", arg));
+                        //self.debug_log(format!("  检查参数: {}", arg));
                         
                         if arg.starts_with("_") {
                             // 尝试提取参数编号
                             if let Ok(arg_num) = arg[1..].parse::<usize>() {
-                                self.debug_log(format!("  参数编号: {}", arg_num));
+                                //self.debug_log(format!("  参数编号: {}", arg_num));
                                 
                                 // 检查是否是非self参数或从非self参数复制
                                 if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
-                                    self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
+                                    //self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
                                     
                                     // 检查变量是否经过净化操作
                                     if !self.is_var_sanitized(body, arg_num, def_id) {
                                         // 直接传递给不安全操作的参数
-                                        self.debug_log(format!("  变量 {} 未经过净化，匹配pattern1", arg_num));
+                                        //self.debug_log(format!("  变量 {} 未经过净化，匹配pattern1", arg_num));
                                         return true;
                                     } else {
-                                        self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
+                                        //self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
                                     }
                                 } else {
-                                    self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
+                                    //self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
                                 }
                             }
                         }
@@ -1030,7 +1030,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        self.debug_log("  函数调用不匹配pattern1");
+        //self.debug_log("  函数调用不匹配pattern1");
         false
     }
     
@@ -1333,9 +1333,20 @@ impl<'tcx> LwzCheck<'tcx> {
                             let struct_name = self.get_fn_name(struct_def_id);
                             self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
                             
+                            // Debug点1: 输出识别到的pub结构体的pub字段
+                            for (field_idx, field_info) in &struct_info.pub_fields {
+                                self.debug_log(format!("【Debug1】识别到pub结构体 {} 的pub字段: {}.{}", 
+                                              struct_name, struct_name, field_info.name));
+                            }
+                            
                             // 检查函数参数中是否有对该结构体的引用
                             let self_param = self.find_self_param(body);
                             if let Some(self_param) = self_param {
+                                // Debug点2: 输出识别到的unsafe操作
+                                for op in &internal_unsafe.unsafe_operations {
+                                    self.debug_log(format!("【Debug2】识别到unsafe操作: {}", op.operation_detail));
+                                }
+                                
                                 // 分析每个不安全操作
                                 let mut pattern2_ops = Vec::new();
                                 
@@ -1344,9 +1355,13 @@ impl<'tcx> LwzCheck<'tcx> {
                                     let field_accesses = self.find_struct_field_accesses(body, self_param);
                                     
                                     // 检查不安全操作是否使用了结构体的公共字段
-                                    for (field_idx, field_var, _field_path) in &field_accesses {
+                                    for (field_idx, field_var, field_path) in &field_accesses {
                                         // 检查该字段是否是公共字段
                                         if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
+                                            // Debug点3: 输出检查字段是否用于unsafe操作的信息
+                                            self.debug_log(format!("【Debug3】检查字段 {}.{} (变量 _{}) 是否用于unsafe操作 {}", 
+                                                          struct_name, field_info.name, field_var, op.operation_detail));
+                                            
                                             // 检查该字段是否传递给了不安全操作
                                             if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
                                                 // 检查变量是否经过净化操作
@@ -1394,6 +1409,8 @@ impl<'tcx> LwzCheck<'tcx> {
     fn find_struct_field_accesses(&self, body: &rustc_middle::mir::Body<'tcx>, self_param: usize) 
         -> Vec<(usize, usize, String)> {
         let mut field_accesses = Vec::new();
+        // 用于跟踪变量之间的映射关系，记录哪些变量包含了结构体的哪个字段
+        let mut var_to_field_map: HashMap<usize, (usize, String)> = HashMap::new();
         
         // 遍历所有基本块和语句
         for block_data in body.basic_blocks.iter() {
@@ -1411,15 +1428,16 @@ impl<'tcx> LwzCheck<'tcx> {
                                         let dest_var = place.local.as_usize();
                                         let access_path = format!("(self).{}", field_idx);
                                         
-                                        field_accesses.push((field_idx, dest_var, access_path));
-                                        self.debug_log(format!("发现字段访问: 字段 {} 被赋值到变量 {}", field_idx, dest_var));
+                                        field_accesses.push((field_idx, dest_var, access_path.clone()));
+                                        var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
+                                        self.debug_log(format!("发现字段引用访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                     }
                                 }
                             }
                         }
                     }
                     // 检查直接使用字段的情况 (例如通过self.name.as_slice())
-                    if let rustc_middle::mir::Rvalue::Use(operand) = rvalue {
+                    else if let rustc_middle::mir::Rvalue::Use(operand) = rvalue {
                         if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
                             if let Some((base, proj)) = self.get_base_and_projection(source_place) {
                                 if base.as_usize() == self_param {
@@ -1430,11 +1448,106 @@ impl<'tcx> LwzCheck<'tcx> {
                                             let dest_var = place.local.as_usize();
                                             let access_path = format!("(self).{}", field_idx);
                                             
-                                            field_accesses.push((field_idx, dest_var, access_path));
-                                            self.debug_log(format!("发现字段使用: 字段 {} 被赋值到变量 {}", field_idx, dest_var));
+                                            field_accesses.push((field_idx, dest_var, access_path.clone()));
+                                            var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
+                                            self.debug_log(format!("发现字段直接使用: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                         }
                                     }
                                 }
+                            }
+                        }
+                    }
+                    
+                    // 检查语句中的rvalue详细表示，寻找 deref_copy 模式
+                    // 例如 _2 = deref_copy ((*_1).2: *const i32) 这种形式
+                    let rvalue_str = format!("{:?}", rvalue);
+                    if rvalue_str.contains("deref_copy") && rvalue_str.contains(&format!("_{})", self_param)) {
+                        // 尝试提取字段索引
+                        // 通常格式为 deref_copy ((*_1).2: *const i32)，我们需要提取"2"
+                        if let Some(field_start) = rvalue_str.find(").") {
+                            let field_substr = &rvalue_str[field_start+2..];
+                            if let Some(field_end) = field_substr.find(":") {
+                                if let Ok(field_idx) = field_substr[..field_end].trim().parse::<usize>() {
+                                    let dest_var = place.local.as_usize();
+                                    let access_path = format!("(self).{}", field_idx);
+                                    
+                                    field_accesses.push((field_idx, dest_var, access_path.clone()));
+                                    var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
+                                    self.debug_log(format!("发现字段deref_copy访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 跟踪变量间的复制关系，处理变量之间的数据流
+                    let dest_var = place.local.as_usize();
+                    if let rustc_middle::mir::Rvalue::Use(operand) = rvalue {
+                        if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
+                            let source_var = source_place.local.as_usize();
+                            // 先获取字段信息的副本，再插入新条目
+                            let field_info_opt = var_to_field_map.get(&source_var).cloned();
+                            if let Some((field_idx, access_path)) = field_info_opt {
+                                var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
+                                self.debug_log(format!("变量传递: 变量 _{} (字段 {}) 被复制到变量 _{}", 
+                                              source_var, field_idx, dest_var));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 检查终结符中是否有对变量的解引用操作
+            if let Some(terminator) = &block_data.terminator {
+                if let TerminatorKind::Call { destination, .. } = &terminator.kind {
+                    let dest_var = destination.local.as_usize();
+                    let terminator_str = format!("{:?}", terminator);
+                    
+                    // 检查是否有对结构体字段的解引用操作
+                    if terminator_str.contains("deref") && terminator_str.contains(&format!("_{})", self_param)) {
+                        // 类似于前面的代码，提取字段索引
+                        if let Some(field_start) = terminator_str.find(").") {
+                            let field_substr = &terminator_str[field_start+2..];
+                            if let Some(field_end) = field_substr.find(":") {
+                                if let Ok(field_idx) = field_substr[..field_end].trim().parse::<usize>() {
+                                    let access_path = format!("(self).{}", field_idx);
+                                    field_accesses.push((field_idx, dest_var, access_path.clone()));
+                                    var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
+                                    self.debug_log(format!("发现终结符中的字段访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 第二遍扫描，检查是否有对映射变量的解引用操作
+        for block_data in body.basic_blocks.iter() {
+            if let Some(terminator) = &block_data.terminator {
+                // 检查是否存在对已知字段变量的解引用操作
+                let terminator_str = format!("{:?}", terminator);
+                for (&var, &(field_idx, ref _access_path)) in &var_to_field_map {
+                    if terminator_str.contains(&format!("(*_{})", var)) {
+                        self.debug_log(format!("发现终结符中对字段变量的解引用: 变量 _{} (字段 {})", var, field_idx));
+                        // 这里不需要添加新的field_accesses，因为我们已经有了对应的映射
+                    }
+                }
+            }
+            
+            // 检查语句中是否有对映射变量的解引用操作
+            for statement in &block_data.statements {
+                if let rustc_middle::mir::StatementKind::Assign(box (place, rvalue)) = &statement.kind {
+                    let rvalue_str = format!("{:?}", rvalue);
+                    let dest_var = place.local.as_usize();
+                    
+                    // 检查是否存在从字段变量到解引用的直接数据流
+                    if rvalue_str.contains("copy (*_") {
+                        for (&var, &(field_idx, ref access_path)) in &var_to_field_map {
+                            if rvalue_str.contains(&format!("copy (*_{})", var)) {
+                                self.debug_log(format!("发现语句中对字段变量的解引用: 变量 _{} (字段 {}) 被解引用到变量 _{}", 
+                                              var, field_idx, dest_var));
+                                // 在这种情况下，我们也应该考虑将dest_var标记为对应字段的访问
+                                field_accesses.push((field_idx, var, access_path.clone()));
                             }
                         }
                     }
@@ -1535,7 +1648,7 @@ impl<'tcx> LwzCheck<'tcx> {
     /// 净化函数是指函数名中包含"valid"、"check"、"is_"等关键词的函数
     fn is_var_sanitized(&self, body: &rustc_middle::mir::Body<'tcx>, var: usize, def_id: DefId) -> bool {
         let fn_name = self.get_fn_name(def_id);
-        self.debug_log(format!("检查变量 {} 在函数 {} 中是否经过净化", var, fn_name));
+        //self.debug_log(format!("检查变量 {} 在函数 {} 中是否经过净化", var, fn_name));
         
         // 首先检查是否有sanitizer函数调用
         let mut sanitizer_found = false;
@@ -1551,7 +1664,7 @@ impl<'tcx> LwzCheck<'tcx> {
                         if let Operand::Constant(constant) = func {
                             if let rustc_middle::ty::TyKind::FnDef(callee_def_id, _) = constant.const_.ty().kind() {
                                 let callee_fn_name = self.get_fn_name(*callee_def_id);
-                                self.debug_log(format!("  检查函数调用: {} 在基本块 {}", callee_fn_name, block_idx));
+                                //self.debug_log(format!("  检查函数调用: {} 在基本块 {}", callee_fn_name, block_idx));
                                 
                                 // 检查函数名是否含有净化关键词
                                 if self.is_sanitizer_function_name(&callee_fn_name) {
@@ -1559,7 +1672,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     for arg in args.iter() {
                                         if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
                                             if place.local.as_usize() == var {
-                                                self.debug_log(format!("  变量 {} 作为参数传递给净化函数 {}", var, callee_fn_name));
+                                                //self.debug_log(format!("  变量 {} 作为参数传递给净化函数 {}", var, callee_fn_name));
                                                 sanitizer_found = true;
                                             }
                                         }
@@ -1567,7 +1680,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     
                                     // 如果没有直接作为参数，检查函数调用结果是否在条件判断中使用
                                     if !sanitizer_found && self.check_result_used_in_condition(body, block_idx) {
-                                        self.debug_log(format!("  净化函数 {} 的结果用于条件判断", callee_fn_name));
+                                        //self.debug_log(format!("  净化函数 {} 的结果用于条件判断", callee_fn_name));
                                         sanitizer_found = true;
                                     }
                                 }
@@ -1579,20 +1692,20 @@ impl<'tcx> LwzCheck<'tcx> {
                         if let Operand::Copy(place) | Operand::Move(place) = discr {
                             // 直接检查条件变量
                             if place.local.as_usize() == var {
-                                self.debug_log(format!("  变量 {} 直接用于条件判断", var));
+                                //self.debug_log(format!("  变量 {} 直接用于条件判断", var));
                                 sanitizer_found = true;
                             } else {
                                 // 检查条件表达式中是否包含目标变量
                                 let terminator_str = format!("{:?}", terminator);
                                 if terminator_str.contains(&format!("_{}", var)) {
-                                    self.debug_log(format!("  变量 {} 在条件表达式中: {}", var, terminator_str));
+                                    //self.debug_log(format!("  变量 {} 在条件表达式中: {}", var, terminator_str));
                                     sanitizer_found = true;
                                 }
                                 
                                 // 特别处理：检查条件是sanitizer函数调用的结果
                                 let cond_var = place.local.as_usize();
                                 if self.is_var_from_sanitizer_call(body, cond_var, var) {
-                                    self.debug_log(format!("  条件变量 {} 来自验证变量 {} 的sanitizer函数调用", cond_var, var));
+                                    //self.debug_log(format!("  条件变量 {} 来自验证变量 {} 的sanitizer函数调用", cond_var, var));
                                     sanitizer_found = true;
                                 }
                             }
@@ -1609,7 +1722,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     
                     // 检查rvalue中是否包含目标变量和sanitizer关键词
                     if rvalue_str.contains(&format!("_{}", var)) && self.is_sanitizer_function_name(&rvalue_str) {
-                        self.debug_log(format!("  变量 {} 在sanitizer表达式中: {}", var, rvalue_str));
+                        //self.debug_log(format!("  变量 {} 在sanitizer表达式中: {}", var, rvalue_str));
                         sanitizer_found = true;
                     }
                 }
@@ -1617,7 +1730,7 @@ impl<'tcx> LwzCheck<'tcx> {
         }
         
         if sanitizer_found {
-            self.debug_log(format!("  变量 {} 在函数 {} 中已经过净化", var, fn_name));
+            //self.debug_log(format!("  变量 {} 在函数 {} 中已经过净化", var, fn_name));
             return true;
         }
         
@@ -1625,12 +1738,12 @@ impl<'tcx> LwzCheck<'tcx> {
         if self.is_sanitizer_function_name(&fn_name) {
             // 是检查是否是参数，1~arg_count的变量是参数
             if var > 0 && var <= body.arg_count {
-                self.debug_log(format!("  变量 {} 是净化函数 {} 的参数", var, fn_name));
+                //self.debug_log(format!("  变量 {} 是净化函数 {} 的参数", var, fn_name));
                 return true;
             }
         }
         
-        self.debug_log(format!("  变量 {} 在函数 {} 中未检测到净化操作", var, fn_name));
+        //self.debug_log(format!("  变量 {} 在函数 {} 中未检测到净化操作", var, fn_name));
         false
     }
 
@@ -1646,8 +1759,8 @@ impl<'tcx> LwzCheck<'tcx> {
                         // 检查rvalue是否包含目标变量和安全检查关键词
                         if rvalue_str.contains(&format!("_{}", target_var)) && 
                            (rvalue_str.contains("is_ascii") || rvalue_str.contains("from_utf8")) {
-                            self.debug_log(format!("  变量 {} 来自对变量 {} 的安全检查: {}", 
-                                           var, target_var, rvalue_str));
+                            //self.debug_log(format!("  变量 {} 来自对变量 {} 的安全检查: {}", 
+                                           //var, target_var, rvalue_str));
                             return true;
                         }
                     }
@@ -1670,8 +1783,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                     for arg in args.iter() {
                                         if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
                                             if place.local.as_usize() == target_var {
-                                                self.debug_log(format!("  变量 {} 是对变量 {} 的sanitizer函数 {} 调用结果", 
-                                                               var, target_var, callee_fn_name));
+                                                //self.debug_log(format!("  变量 {} 是对变量 {} 的sanitizer函数 {} 调用结果", 
+                                                               //var, target_var, callee_fn_name));
                                                 return true;
                                             }
                                         }
@@ -1732,21 +1845,21 @@ impl<'tcx> LwzCheck<'tcx> {
         // 首先检查是否包含unsafe关键词
         for unsafe_keyword in &unsafe_functions {
             if name_lower.contains(unsafe_keyword) {
-                self.debug_log(format!("函数名 '{}' 包含unsafe关键词 '{}', 不视为sanitizer", name, unsafe_keyword));
+                //self.debug_log(format!("函数名 '{}' 包含unsafe关键词 '{}', 不视为sanitizer", name, unsafe_keyword));
                 return false;
             }
         }
         
         // 特殊处理：将from_utf8视为sanitizer，但from_utf8_unchecked不是
         if name_lower.contains("from_utf8") && !name_lower.contains("unchecked") {
-            self.debug_log(format!("函数名 '{}' 匹配sanitizer函数 'from_utf8'", name));
+            //self.debug_log(format!("函数名 '{}' 匹配sanitizer函数 'from_utf8'", name));
             return true;
         }
         
         // 然后检查是否包含sanitizer关键词
         for keyword in &sanitizer_keywords {
             if name_lower.contains(keyword) {
-                self.debug_log(format!("函数名 '{}' 匹配sanitizer关键词 '{}'", name, keyword));
+                //self.debug_log(format!("函数名 '{}' 匹配sanitizer关键词 '{}'", name, keyword));
                 return true;
             }
         }
@@ -1774,13 +1887,13 @@ impl<'tcx> LwzCheck<'tcx> {
 
     /// 识别所有"模式载体"函数
     fn identify_pattern_carriers(&mut self) {
-        self.debug_log("开始识别模式载体...");
+        //self.debug_log("开始识别模式载体...");
         
         // 遍历所有内部不安全函数，不限于公共函数
         for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
             let fn_name = self.get_fn_name(def_id);
             
-            self.debug_log(format!("检查函数: {}", fn_name));
+            //self.debug_log(format!("检查函数: {}", fn_name));
             
             // 处理函数参数的情况
             let mut pattern1_ops = Vec::new();
@@ -1796,7 +1909,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 
                 // 检查所有不安全操作，是否有直接或间接使用参数的情况
                 for op in &internal_unsafe.unsafe_operations {
-                    self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
+                    //self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
                     
                     // 1. 检查解引用参数的情况
                     if op.operation_detail.starts_with("*_") {
@@ -1811,7 +1924,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     // 查找源参数
                                     if let Some(source_param) = self.find_source_parameter(body, var_number, param_count, self_param) {
                                         tainted_param_idx = source_param;
-                                        self.debug_log(format!("发现从参数 {} 到不安全操作的传播路径", source_param));
+                                        //self.debug_log(format!("发现从参数 {} 到不安全操作的传播路径", source_param));
                                     }
                                 }
                             }
@@ -1823,7 +1936,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             &op.operation_detail, body, param_count, self_param, def_id) {
                             pattern1_ops.push(op.clone());
                             tainted_param_idx = source_param;
-                            self.debug_log(format!("发现从参数 {} 到函数调用的传播路径", source_param));
+                            //self.debug_log(format!("发现从参数 {} 到函数调用的传播路径", source_param));
                         }
                     }
                 }
@@ -1838,11 +1951,11 @@ impl<'tcx> LwzCheck<'tcx> {
                     pattern_type: 1, // Pattern1
                 };
                 self.pattern_carriers.insert(def_id, carrier);
-                self.debug_log(format!("函数 {} 被识别为Pattern1载体，污染参数索引: {}", fn_name, tainted_param_idx));
+                //self.debug_log(format!("函数 {} 被识别为Pattern1载体，污染参数索引: {}", fn_name, tainted_param_idx));
             }
         }
         
-        self.debug_log(format!("模式载体识别完成，共发现 {} 个", self.pattern_carriers.len()));
+        //self.debug_log(format!("模式载体识别完成，共发现 {} 个", self.pattern_carriers.len()));
     }
     
     /// 查找变量的源参数
@@ -1947,7 +2060,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                       self_param: Option<usize>,
                                       def_id: DefId) -> Option<usize> {
         let fn_name = self.get_fn_name(def_id);
-        self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
+        //self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
         
         // 特殊处理：检查是否为已知的不安全函数调用
         let known_unsafe_ops = [
@@ -1958,7 +2071,7 @@ impl<'tcx> LwzCheck<'tcx> {
         let mut is_unsafe_op = false;
         for unsafe_op in &known_unsafe_ops {
             if op_detail.contains(unsafe_op) {
-                self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}", op_detail, unsafe_op));
+                //self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}", op_detail, unsafe_op));
                 is_unsafe_op = true;
                 break;
             }
@@ -1966,13 +2079,13 @@ impl<'tcx> LwzCheck<'tcx> {
         
         // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
         if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
-            self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
+            //self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
             is_unsafe_op = true;
         }
         
         // 如果不是不安全操作，直接返回None
         if !is_unsafe_op {
-            self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
+            //self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
             return None;
         }
         
@@ -1980,34 +2093,34 @@ impl<'tcx> LwzCheck<'tcx> {
             if let Some(end_pos) = op_detail.rfind(')') {
                 if start_pos < end_pos {
                     let args_str = &op_detail[start_pos+1..end_pos];
-                    self.debug_log(format!("  解析参数字符串: {}", args_str));
+                    //self.debug_log(format!("  解析参数字符串: {}", args_str));
                     
                     // 分割参数
                     for arg in args_str.split(',') {
                         let arg = arg.trim();
-                        self.debug_log(format!("  检查参数: {}", arg));
+                        //self.debug_log(format!("  检查参数: {}", arg));
                         
                         if arg.starts_with("_") {
                             // 尝试提取参数编号
                             if let Ok(arg_num) = arg[1..].parse::<usize>() {
-                                self.debug_log(format!("  参数编号: {}", arg_num));
+                                //self.debug_log(format!("  参数编号: {}", arg_num));
                                 
                                 // 检查是否是非self参数或从非self参数复制
                                 if self.is_non_self_param_or_copy(body, arg_num, param_count, self_param) {
-                                    self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
+                                    //self.debug_log(format!("  变量 {} 是非self参数或从非self参数复制", arg_num));
                                     
                                     // 检查变量是否经过净化操作
                                     if !self.is_var_sanitized(body, arg_num, def_id) {
                                         // 找出源参数
                                         if let Some(source_param) = self.find_source_parameter(body, arg_num, param_count, self_param) {
-                                            self.debug_log(format!("  变量 {} 未经过净化，来源于参数 {}", arg_num, source_param));
+                                            //self.debug_log(format!("  变量 {} 未经过净化，来源于参数 {}", arg_num, source_param));
                                             return Some(source_param);
                                         }
                                     } else {
-                                        self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
+                                        //self.debug_log(format!("  变量 {} 在函数调用中已经过净化，跳过", arg_num));
                                     }
                                 } else {
-                                    self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
+                                    //self.debug_log(format!("  变量 {} 不是非self参数或从非self参数复制", arg_num));
                                 }
                             }
                         }
@@ -2016,13 +2129,13 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        self.debug_log("  函数调用不匹配污染参数条件");
+        //self.debug_log("  函数调用不匹配污染参数条件");
         None
     }
     
     /// 执行过程间分析
     fn perform_interprocedural_analysis(&mut self) {
-        self.debug_log("开始执行过程间分析...");
+        //self.debug_log("开始执行过程间分析...");
         
         // 查找所有调用模式载体的函数
         let carrier_def_ids: Vec<DefId> = self.pattern_carriers.keys().cloned().collect();
@@ -2031,7 +2144,7 @@ impl<'tcx> LwzCheck<'tcx> {
             let carrier = self.pattern_carriers.get(carrier_def_id).unwrap();
             let carrier_name = self.get_fn_name(*carrier_def_id);
             
-            self.debug_log(format!("分析模式载体 {} 的调用者", carrier_name));
+            //self.debug_log(format!("分析模式载体 {} 的调用者", carrier_name));
             
             // 使用反向调用图找到所有调用者
             if let Some(callers) = self.reverse_call_graph.get(carrier_def_id) {
@@ -2039,7 +2152,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     // 检查调用者是否是公共函数
                     if self.is_public_fn(caller_def_id) {
                         let caller_name = self.get_fn_name(caller_def_id);
-                        self.debug_log(format!("分析公共调用者: {}", caller_name));
+                        //self.debug_log(format!("分析公共调用者: {}", caller_name));
                         
                         // 分析调用点
                         if let Some(body) = self.get_mir_safely(caller_def_id) {
@@ -2064,23 +2177,23 @@ impl<'tcx> LwzCheck<'tcx> {
                                         };
                                         
                                         self.interprocedural_matches.insert(caller_def_id, interprocedural_match);
-                                        self.debug_log(format!(
-                                            "发现过程间匹配: {} -> {} (将参数传递给污染的参数)",
-                                            caller_name, carrier_name));
+                                        //self.debug_log(format!(
+                                            //现过程间匹配: {} -> {} (将参数传递给污染的参数)",
+                                            //caller_name, carrier_name));
                                     } else {
-                                        self.debug_log(format!(
-                                            "调用者 {} 对传递给 {} 的参数进行了净化，跳过",
-                                            caller_name, carrier_name));
+                                        //self.debug_log(format!(
+                                           // "调用者 {} 对传递给 {} 的参数进行了净化，跳过",
+                                           // caller_name, carrier_name));
                                     }
                                 } else {
-                                    self.debug_log(format!(
-                                        "调用者 {} 传递给 {} 的不是来自参数的值，跳过",
-                                        caller_name, carrier_name));
+                                    //self.debug_log(format!(
+                                        //"调用者 {} 传递给 {} 的不是来自参数的值，跳过",
+                                        //caller_name, carrier_name));
                                 }
                             } else {
-                                self.debug_log(format!(
-                                    "无法在调用者 {} 中找到传递给 {} 的参数映射",
-                                    caller_name, carrier_name));
+                                //self.debug_log(format!(
+                                    //"无法在调用者 {} 中找到传递给 {} 的参数映射",
+                                    //caller_name, carrier_name));
                             }
                         }
                     }
@@ -2088,7 +2201,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        self.debug_log(format!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len()));
+        //self.debug_log(format!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len()));
     }
     
     /// 在调用者中找到对应模式载体污染参数的变量
@@ -2109,9 +2222,9 @@ impl<'tcx> LwzCheck<'tcx> {
                                 if param_idx < args.len() {
                                     // 获取参数变量
                                     if let Operand::Copy(place) | Operand::Move(place) = &args[param_idx].node {
-                                        self.debug_log(format!(
-                                            "找到调用点: 参数索引 {} 对应变量 _{}",
-                                            callee_param_idx, place.local.as_usize()));
+                                        //self.debug_log(format!(
+                                           // "找到调用点: 参数索引 {} 对应变量 _{}",
+                                            //callee_param_idx, place.local.as_usize()));
                                         return Some(place.local.as_usize());
                                     }
                                 }
