@@ -1130,6 +1130,27 @@ impl<'tcx> LwzCheck<'tcx> {
                                     return true;
                                 }
                             },
+                            // 添加对裸指针转换的检测
+                            rustc_middle::mir::Rvalue::RawPtr(_, source_place) => {
+                                let source_local = source_place.local.as_usize();
+                                
+                                // 检查源变量是否是参数
+                                if source_local > 0 && source_local <= param_count {
+                                    // 确保不是self参数
+                                    if let Some(self_idx) = self_param {
+                                        if source_local != self_idx {
+                                            return true; // 是普通参数转换为裸指针
+                                        }
+                                    } else {
+                                        return true; // 没有self参数
+                                    }
+                                }
+                                
+                                // 递归检查
+                                if self.is_non_self_param_or_copy_with_visited(body, source_local, param_count, self_param, visited) {
+                                    return true;
+                                }
+                            },
                             _ => {}
                         }
                     }
@@ -1993,6 +2014,19 @@ impl<'tcx> LwzCheck<'tcx> {
             return None;
         }
         
+        // 检查变量是否是参数
+        if var_num > 0 && var_num <= param_count {
+            if let Some(self_idx) = self_param {
+                if var_num != self_idx {
+                    // 是普通参数
+                    return Some(var_num);
+                }
+            } else {
+                // 没有self参数，所有参数都是普通参数
+                return Some(var_num);
+            }
+        }
+        
         // 检查赋值来源
         for block_data in body.basic_blocks.iter() {
             for statement in &block_data.statements {
@@ -2028,6 +2062,27 @@ impl<'tcx> LwzCheck<'tcx> {
                                 
                                 // 类似逻辑检查源变量...
                                 if source_local > 0 && source_local <= param_count {
+                                    if let Some(self_idx) = self_param {
+                                        if source_local != self_idx {
+                                            return Some(source_local);
+                                        }
+                                    } else {
+                                        return Some(source_local);
+                                    }
+                                }
+                                
+                                if let Some(param) = self.find_source_parameter_with_visited(
+                                    body, source_local, param_count, self_param, visited) {
+                                    return Some(param);
+                                }
+                            },
+                            // 添加对裸指针转换的检测
+                            rustc_middle::mir::Rvalue::RawPtr(_, source_place) => {
+                                let source_local = source_place.local.as_usize();
+                                
+                                // 检查源变量是否是参数
+                                if source_local > 0 && source_local <= param_count {
+                                    // 确保不是self参数
                                     if let Some(self_idx) = self_param {
                                         if source_local != self_idx {
                                             return Some(source_local);
