@@ -2051,17 +2051,18 @@ impl<'tcx> LwzCheck<'tcx> {
                                     }
                                     
                                     // 递归检查源变量
-                                    if let Some(param) = self.find_source_parameter_with_visited(
+                                    if let Some(source_param) = self.find_source_parameter_with_visited(
                                         body, source_local, param_count, self_param, visited) {
-                                        return Some(param);
+                                        return Some(source_param);
                                     }
                                 }
                             },
                             rustc_middle::mir::Rvalue::Ref(_, _, source_place) => {
                                 let source_local = source_place.local.as_usize();
                                 
-                                // 类似逻辑检查源变量...
+                                // 检查源变量是否是参数
                                 if source_local > 0 && source_local <= param_count {
+                                    // 确保不是self参数
                                     if let Some(self_idx) = self_param {
                                         if source_local != self_idx {
                                             return Some(source_local);
@@ -2071,9 +2072,10 @@ impl<'tcx> LwzCheck<'tcx> {
                                     }
                                 }
                                 
-                                if let Some(param) = self.find_source_parameter_with_visited(
+                                // 递归检查
+                                if let Some(source_param) = self.find_source_parameter_with_visited(
                                     body, source_local, param_count, self_param, visited) {
-                                    return Some(param);
+                                    return Some(source_param);
                                 }
                             },
                             // 添加对裸指针转换的检测
@@ -2092,9 +2094,9 @@ impl<'tcx> LwzCheck<'tcx> {
                                     }
                                 }
                                 
-                                if let Some(param) = self.find_source_parameter_with_visited(
+                                if let Some(source_param) = self.find_source_parameter_with_visited(
                                     body, source_local, param_count, self_param, visited) {
-                                    return Some(param);
+                                    return Some(source_param);
                                 }
                             },
                             _ => {}
@@ -2192,63 +2194,82 @@ impl<'tcx> LwzCheck<'tcx> {
     fn perform_interprocedural_analysis(&mut self) {
         //self.debug_log("开始执行过程间分析...");
         
-        // 查找所有调用模式载体的函数
+        // 第一阶段：对所有模式载体进行处理
+        let mut matches_to_add = Vec::new();
+        let mut intermediate_carriers = Vec::new();
+        
+        // 收集模式载体和它们的调用者
+        let mut carrier_callers = Vec::new();
         let carrier_def_ids: Vec<DefId> = self.pattern_carriers.keys().cloned().collect();
         
-        for carrier_def_id in &carrier_def_ids {
-            let carrier = self.pattern_carriers.get(carrier_def_id).unwrap();
-            let carrier_name = self.get_fn_name(*carrier_def_id);
-            
-            //self.debug_log(format!("分析模式载体 {} 的调用者", carrier_name));
+        for carrier_def_id in carrier_def_ids {
+            let carrier = self.pattern_carriers.get(&carrier_def_id).unwrap().clone();
             
             // 使用反向调用图找到所有调用者
-            if let Some(callers) = self.reverse_call_graph.get(carrier_def_id) {
+            if let Some(callers) = self.reverse_call_graph.get(&carrier_def_id) {
                 for &caller_def_id in callers {
-                    // 检查调用者是否是公共函数
-                    if self.is_public_fn(caller_def_id) {
-                        let caller_name = self.get_fn_name(caller_def_id);
-                        //self.debug_log(format!("分析公共调用者: {}", caller_name));
+                    carrier_callers.push((caller_def_id, carrier_def_id, carrier.clone()));
+                }
+            }
+        }
+        
+        // 处理直接的调用关系
+        for (caller_def_id, carrier_def_id, carrier) in carrier_callers {
+            // 检查调用者是否是公共函数
+            if self.is_public_fn(caller_def_id) {
+                // 分析调用点
+                if let Some(body) = self.get_mir_safely(caller_def_id) {
+                    // 查找调用点并映射参数
+                    if let Some(call_arg) = self.find_caller_arg_local(
+                        body, carrier_def_id, carrier.tainted_param_idx) {
                         
-                        // 分析调用点
-                        if let Some(body) = self.get_mir_safely(caller_def_id) {
-                            // 查找调用点并映射参数
-                            if let Some(call_arg) = self.find_caller_arg_local(
-                                body, *carrier_def_id, carrier.tainted_param_idx) {
+                        let param_count = body.arg_count;
+                        let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
+                        let self_param = if is_method { Some(1) } else { None };
+                        
+                        // 检查调用者将什么参数传递给了载体的污染参数
+                        if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
+                            // 检查参数是否经过净化
+                            if !self.is_var_sanitized(body, call_arg, caller_def_id) {
+                                // 找到了过程间模式匹配
+                                let call_path = vec![caller_def_id, carrier_def_id];
+                                let interprocedural_match = InterproceduralMatch {
+                                    pub_fn_id: caller_def_id,
+                                    call_path,
+                                    unsafe_ops: carrier.unsafe_ops.clone(),
+                                    base_pattern: carrier.pattern_type,
+                                };
                                 
-                                let param_count = body.arg_count;
-                                let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
-                                let self_param = if is_method { Some(1) } else { None };
-                                
-                                // 检查调用者将什么参数传递给了载体的污染参数
-                                if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
-                                    // 检查参数是否经过净化
-                                    if !self.is_var_sanitized(body, call_arg, caller_def_id) {
-                                        // 找到了过程间模式匹配
-                                        let interprocedural_match = InterproceduralMatch {
-                                            pub_fn_id: caller_def_id,
-                                            call_path: vec![caller_def_id, *carrier_def_id],
-                                            unsafe_ops: carrier.unsafe_ops.clone(),
-                                            base_pattern: carrier.pattern_type,
-                                        };
-                                        
-                                        self.interprocedural_matches.insert(caller_def_id, interprocedural_match);
-                                        //self.debug_log(format!(
-                                            //现过程间匹配: {} -> {} (将参数传递给污染的参数)",
-                                            //caller_name, carrier_name));
-                                    } else {
-                                        //self.debug_log(format!(
-                                           // "调用者 {} 对传递给 {} 的参数进行了净化，跳过",
-                                           // caller_name, carrier_name));
-                                    }
-                                } else {
-                                    //self.debug_log(format!(
-                                        //"调用者 {} 传递给 {} 的不是来自参数的值，跳过",
-                                        //caller_name, carrier_name));
+                                matches_to_add.push((caller_def_id, interprocedural_match));
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 对于非公共函数的调用者，记录为中间载体
+                if let Some(body) = self.get_mir_safely(caller_def_id) {
+                    if let Some(call_arg) = self.find_caller_arg_local(
+                        body, carrier_def_id, carrier.tainted_param_idx) {
+                        
+                        let param_count = body.arg_count;
+                        let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
+                        let self_param = if is_method { Some(1) } else { None };
+                        
+                        // 检查调用者将什么参数传递给了载体的污染参数
+                        if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
+                            // 检查参数是否经过净化
+                            if !self.is_var_sanitized(body, call_arg, caller_def_id) {
+                                if let Some(source_param) = self.find_source_parameter(body, call_arg, param_count, self_param) {
+                                    // 创建中间载体
+                                    let intermediate_carrier = PatternCarrier {
+                                        def_id: caller_def_id,
+                                        tainted_param_idx: source_param,
+                                        unsafe_ops: carrier.unsafe_ops.clone(),
+                                        pattern_type: carrier.pattern_type,
+                                    };
+                                    // 添加到中间载体列表
+                                    intermediate_carriers.push((caller_def_id, intermediate_carrier));
                                 }
-                            } else {
-                                //self.debug_log(format!(
-                                    //"无法在调用者 {} 中找到传递给 {} 的参数映射",
-                                    //caller_name, carrier_name));
                             }
                         }
                     }
@@ -2256,7 +2277,154 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
+        // 添加第一阶段发现的匹配和中间载体
+        for (def_id, match_info) in matches_to_add {
+            self.interprocedural_matches.insert(def_id, match_info);
+        }
+        
+        for (def_id, carrier) in intermediate_carriers {
+            self.pattern_carriers.insert(def_id, carrier);
+        }
+        
+        // 第二阶段：递归分析中间调用链
+        let mut iteration = 0;
+        let max_iterations = 10; // 防止无限循环
+        let mut found_new_match = true;
+        
+        while found_new_match && iteration < max_iterations {
+            found_new_match = false;
+            iteration += 1;
+            
+            // 收集当前所有模式载体和已匹配结果
+            let current_carriers = self.pattern_carriers.clone();
+            let current_matches = self.interprocedural_matches.clone();
+            let mut new_matches = Vec::new();
+            let mut new_carriers = Vec::new();
+            
+            // 创建一个包含所有已处理函数的集合，用于跳过检查
+            let mut processed_fns = HashSet::new();
+            
+            // 添加已经匹配或作为载体的函数
+            for &def_id in current_matches.keys() {
+                processed_fns.insert(def_id);
+            }
+            
+            for &def_id in current_carriers.keys() {
+                processed_fns.insert(def_id);
+            }
+            
+            for (carrier_def_id, carrier) in current_carriers {
+                // 跳过已经作为匹配结果的载体
+                if current_matches.contains_key(&carrier_def_id) {
+                    continue;
+                }
+                
+                // 使用反向调用图找到所有调用者
+                if let Some(callers) = self.reverse_call_graph.get(&carrier_def_id) {
+                    for &caller_def_id in callers {
+                        // 跳过已经分析过的函数
+                        if processed_fns.contains(&caller_def_id) {
+                            continue;
+                        }
+                        
+                        // 标记当前函数为已处理
+                        processed_fns.insert(caller_def_id);
+                        
+                        // 检查调用者
+                        if let Some(body) = self.get_mir_safely(caller_def_id) {
+                            if let Some(call_arg) = self.find_caller_arg_local(
+                                body, carrier_def_id, carrier.tainted_param_idx) {
+                                
+                                let param_count = body.arg_count;
+                                let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
+                                let self_param = if is_method { Some(1) } else { None };
+                                
+                                if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
+                                    if !self.is_var_sanitized(body, call_arg, caller_def_id) {
+                                        // 检查是否是公共函数
+                                        if self.is_public_fn(caller_def_id) {
+                                            // 构建完整的调用链
+                                            let mut call_path = Vec::new();
+                                            call_path.push(caller_def_id);
+                                            
+                                            // 添加从载体到最终不安全操作的调用链
+                                            self.build_call_path(carrier_def_id, &mut call_path);
+                                            
+                                            let interprocedural_match = InterproceduralMatch {
+                                                pub_fn_id: caller_def_id,
+                                                call_path,
+                                                unsafe_ops: carrier.unsafe_ops.clone(),
+                                                base_pattern: carrier.pattern_type,
+                                            };
+                                            
+                                            new_matches.push((caller_def_id, interprocedural_match));
+                                            found_new_match = true;
+                                        } else if let Some(source_param) = self.find_source_parameter(body, call_arg, param_count, self_param) {
+                                            // 创建新的中间载体
+                                            let new_carrier = PatternCarrier {
+                                                def_id: caller_def_id,
+                                                tainted_param_idx: source_param,
+                                                unsafe_ops: carrier.unsafe_ops.clone(),
+                                                pattern_type: carrier.pattern_type,
+                                            };
+                                            
+                                            new_carriers.push((caller_def_id, new_carrier));
+                                            found_new_match = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 添加新发现的匹配和中间载体
+            for (def_id, match_info) in new_matches {
+                self.interprocedural_matches.insert(def_id, match_info);
+            }
+            
+            for (def_id, carrier) in new_carriers {
+                self.pattern_carriers.insert(def_id, carrier);
+            }
+        }
+        
         //self.debug_log(format!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len()));
+    }
+    
+    /// 构建完整的调用路径
+    fn build_call_path(&self, start_def_id: DefId, call_path: &mut Vec<DefId>) {
+        // 首先添加起始函数
+        call_path.push(start_def_id);
+        
+        // 如果当前函数是模式载体，并且它调用了其他模式载体，继续递归构建路径
+        if let Some(carrier) = self.pattern_carriers.get(&start_def_id) {
+            // 查找此载体的调用对象
+            let carriers: Vec<DefId> = self.pattern_carriers.keys().cloned().collect();
+            for target_def_id in carriers {
+                // 跳过自己
+                if target_def_id == start_def_id {
+                    continue;
+                }
+                
+                // 检查是否有调用关系
+                if let Some(callees) = self.call_graph.get(&start_def_id) {
+                    if callees.contains(&target_def_id) {
+                        // 检查参数传递
+                        if let Some(body) = self.get_mir_safely(start_def_id) {
+                            if let Some(target_carrier) = self.pattern_carriers.get(&target_def_id) {
+                                if let Some(_) = self.find_caller_arg_local(
+                                    body, target_def_id, target_carrier.tainted_param_idx) {
+                                    // 递归构建路径
+                                    self.build_call_path(target_def_id, call_path);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     /// 在调用者中找到对应模式载体污染参数的变量
