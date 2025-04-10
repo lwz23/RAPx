@@ -963,34 +963,9 @@ impl<'tcx> LwzCheck<'tcx> {
         let fn_name = self.get_fn_name(def_id);
         //self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
         
-        // 特殊处理：检查是否为已知的不安全函数调用
-        let known_unsafe_ops = [
-            "from_utf8_unchecked", "get_unchecked", "read", "write", 
-            "from_raw_parts", "add", "offset", "copy_nonoverlapping"
-        ];
-        
-        let mut is_unsafe_op = false;
-        for unsafe_op in &known_unsafe_ops {
-            if op_detail.contains(unsafe_op) {
-                //self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}, 不应被过滤", op_detail, unsafe_op));
-                is_unsafe_op = true;
-                // 对于已知的不安全函数，我们需要继续检查参数
-                break;
-            }
-        }
-        
-        // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
-        // 例如 from_utf8_unchecked 可能在不同位置包含不同的命名空间
-        if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
-            //self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
-            is_unsafe_op = true;
-        }
-        
-        // 如果不是不安全操作，直接返回false
-        if !is_unsafe_op {
-            //self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
-            return false;
-        }
+        // 不再基于函数名称匹配判断是否为不安全函数
+        // 所有出现在extract_unsafe_operations中的操作都应该被视为不安全的
+        let is_unsafe_op = true;
         
         if let Some(start_pos) = op_detail.find('(') {
             if let Some(end_pos) = op_detail.rfind(')') {
@@ -2116,35 +2091,11 @@ impl<'tcx> LwzCheck<'tcx> {
                                       param_count: usize,
                                       self_param: Option<usize>,
                                       def_id: DefId) -> Option<usize> {
-        let fn_name = self.get_fn_name(def_id);
-        //self.debug_log(format!("检查函数调用参数: {} (函数: {})", op_detail, fn_name));
+        //self.debug_log(format!("检查函数调用中的污染参数: {} (函数ID: {:?})", op_detail, def_id));
         
-        // 特殊处理：检查是否为已知的不安全函数调用
-        let known_unsafe_ops = [
-            "from_utf8_unchecked", "get_unchecked", "read", "write", 
-            "from_raw_parts", "add", "offset", "copy_nonoverlapping"
-        ];
-        
-        let mut is_unsafe_op = false;
-        for unsafe_op in &known_unsafe_ops {
-            if op_detail.contains(unsafe_op) {
-                //self.debug_log(format!("  函数调用 {} 包含已知不安全操作 {}", op_detail, unsafe_op));
-                is_unsafe_op = true;
-                break;
-            }
-        }
-        
-        // 如果操作名称不在已知的不安全操作中，再检查操作名称是否表明这是一个不安全的操作
-        if !is_unsafe_op && (op_detail.contains("unchecked") || op_detail.contains("unsafe")) {
-            //self.debug_log(format!("  函数调用 {} 可能是不安全操作，包含'unchecked'或'unsafe'关键词", op_detail));
-            is_unsafe_op = true;
-        }
-        
-        // 如果不是不安全操作，直接返回None
-        if !is_unsafe_op {
-            //self.debug_log(format!("  函数调用 {} 不是已知的不安全操作，跳过", op_detail));
-            return None;
-        }
+        // 不再基于函数名称判断是否为不安全操作
+        // 所有在extract_unsafe_operations中提取出的操作都应被视为不安全的
+        let is_unsafe_op = true;
         
         if let Some(start_pos) = op_detail.find('(') {
             if let Some(end_pos) = op_detail.rfind(')') {
@@ -2193,6 +2144,10 @@ impl<'tcx> LwzCheck<'tcx> {
     /// 执行过程间分析
     fn perform_interprocedural_analysis(&mut self) {
         //self.debug_log("开始执行过程间分析...");
+        
+        // 首先清空pattern_carriers，确保它包含最新的carrier
+        self.pattern_carriers.clear();
+        self.identify_pattern_carriers();
         
         // 第一阶段：对所有模式载体进行处理
         let mut matches_to_add = Vec::new();
