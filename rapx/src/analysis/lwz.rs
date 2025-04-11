@@ -2186,16 +2186,22 @@ impl<'tcx> LwzCheck<'tcx> {
                         if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
                             // 检查参数是否经过净化
                             if !self.is_var_sanitized(body, call_arg, caller_def_id) {
-                                // 找到了过程间模式匹配
-                                let call_path = vec![caller_def_id, carrier_def_id];
-                                let interprocedural_match = InterproceduralMatch {
-                                    pub_fn_id: caller_def_id,
-                                    call_path,
-                                    unsafe_ops: carrier.unsafe_ops.clone(),
-                                    base_pattern: carrier.pattern_type,
-                                };
+                                // 构建调用路径并检查是否有效
+                                let mut call_path = vec![caller_def_id];
+                                let path_valid = self.build_call_path(carrier_def_id, &mut call_path);
                                 
-                                matches_to_add.push((caller_def_id, interprocedural_match));
+                                // 只有当路径有效时，才添加匹配
+                                if path_valid {
+                                    // 找到了过程间模式匹配
+                                    let interprocedural_match = InterproceduralMatch {
+                                        pub_fn_id: caller_def_id,
+                                        call_path,
+                                        unsafe_ops: carrier.unsafe_ops.clone(),
+                                        base_pattern: carrier.pattern_type,
+                                    };
+                                    
+                                    matches_to_add.push((caller_def_id, interprocedural_match));
+                                }
                             }
                         }
                     }
@@ -2298,22 +2304,22 @@ impl<'tcx> LwzCheck<'tcx> {
                                     if !self.is_var_sanitized(body, call_arg, caller_def_id) {
                                         // 检查是否是公共函数
                                         if self.is_public_fn(caller_def_id) {
-                                            // 构建完整的调用链
-                                            let mut call_path = Vec::new();
-                                            call_path.push(caller_def_id);
+                                            // 构建完整的调用链并检查是否有效
+                                            let mut call_path = vec![caller_def_id];
+                                            let path_valid = self.build_call_path(carrier_def_id, &mut call_path);
                                             
-                                            // 添加从载体到最终不安全操作的调用链
-                                            self.build_call_path(carrier_def_id, &mut call_path);
-                                            
-                                            let interprocedural_match = InterproceduralMatch {
-                                                pub_fn_id: caller_def_id,
-                                                call_path,
-                                                unsafe_ops: carrier.unsafe_ops.clone(),
-                                                base_pattern: carrier.pattern_type,
-                                            };
-                                            
-                                            new_matches.push((caller_def_id, interprocedural_match));
-                                            found_new_match = true;
+                                            // 只有当路径有效时，才添加匹配
+                                            if path_valid {
+                                                let interprocedural_match = InterproceduralMatch {
+                                                    pub_fn_id: caller_def_id,
+                                                    call_path,
+                                                    unsafe_ops: carrier.unsafe_ops.clone(),
+                                                    base_pattern: carrier.pattern_type,
+                                                };
+                                                
+                                                new_matches.push((caller_def_id, interprocedural_match));
+                                                found_new_match = true;
+                                            }
                                         } else if let Some(source_param) = self.find_source_parameter(body, call_arg, param_count, self_param) {
                                             // 创建新的中间载体
                                             let new_carrier = PatternCarrier {
@@ -2347,10 +2353,14 @@ impl<'tcx> LwzCheck<'tcx> {
         //self.debug_log(format!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len()));
     }
     
-    /// 构建完整的调用路径
-    fn build_call_path(&self, start_def_id: DefId, call_path: &mut Vec<DefId>) {
+    /// 构建完整的调用路径，并检查路径中是否有除起始节点外的其他公共函数
+    /// 返回 true 表示路径有效（不包含其他公共函数），false 表示路径无效（包含其他公共函数）
+    fn build_call_path(&self, start_def_id: DefId, call_path: &mut Vec<DefId>) -> bool {
         // 首先添加起始函数
         call_path.push(start_def_id);
+        
+        // 检查当前函数是否是公共函数
+        let is_pub = self.is_public_fn(start_def_id);
         
         // 如果当前函数是模式载体，并且它调用了其他模式载体，继续递归构建路径
         if let Some(carrier) = self.pattern_carriers.get(&start_def_id) {
@@ -2370,8 +2380,11 @@ impl<'tcx> LwzCheck<'tcx> {
                             if let Some(target_carrier) = self.pattern_carriers.get(&target_def_id) {
                                 if let Some(_) = self.find_caller_arg_local(
                                     body, target_def_id, target_carrier.tainted_param_idx) {
-                                    // 递归构建路径
-                                    self.build_call_path(target_def_id, call_path);
+                                    // 递归构建路径，如果子路径无效，则整个路径无效
+                                    let sub_path_valid = self.build_call_path(target_def_id, call_path);
+                                    if !sub_path_valid {
+                                        return false;
+                                    }
                                     break;
                                 }
                             }
@@ -2380,6 +2393,14 @@ impl<'tcx> LwzCheck<'tcx> {
                 }
             }
         }
+        
+        // 如果当前函数不是起始节点，并且是公共函数，则路径无效
+        if start_def_id != call_path[0] && is_pub {
+            return false;
+        }
+        
+        // 路径有效
+        true
     }
     
     /// 在调用者中找到对应模式载体污染参数的变量
