@@ -1212,65 +1212,71 @@ impl<'tcx> LwzCheck<'tcx> {
                 continue;
             }
             
-            // 检查结构体是否是公共的
-            let is_public = self.tcx.visibility(def_id).is_public();
-            let is_in_pub_mod = self.is_in_public_module(def_id);
-            
-            if is_public {
-                let mut pub_struct_info = PubStructInfo {
-                    def_id,
-                    is_in_pub_mod,
-                    pub_fields: HashMap::new(),
-                };
+            // 使用catch_unwind来避免整个函数因为处理一个结构体而崩溃
+            let collect_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                // 检查结构体是否是公共的
+                let is_public = self.tcx.visibility(def_id).is_public();
+                let is_in_pub_mod = self.is_in_public_module(def_id);
                 
-                // 安全地获取结构体的类型信息
-                let adt_def = self.tcx.adt_def(def_id);
-                
-                // 遍历结构体字段
-                let variant_idx = VariantIdx::from_usize(0);
-                if let Some(variant) = adt_def.variants().get(variant_idx) {
-                    for (idx, field) in variant.fields.iter().enumerate() {
-                        let field_def_id = field.did;
-                        let field_vis = self.tcx.visibility(field_def_id);
-                        let field_name = field.ident(self.tcx).to_string();
-                        
-                        // 使用安全的方法获取字段类型
-                        if let Some(field_ty) = self.get_field_type_safely(field) {
-                            // 检查字段类型是否可能导致问题
-                            let is_problematic_type = match field_ty.kind() {
-                                rustc_middle::ty::TyKind::Array(_, _) => true,
-                                // 可能需要添加其他可能导致问题的类型
-                                _ => false,
-                            };
+                if is_public {
+                    let mut pub_struct_info = PubStructInfo {
+                        def_id,
+                        is_in_pub_mod,
+                        pub_fields: HashMap::new(),
+                    };
+                    
+                    // 安全地获取结构体的类型信息
+                    let adt_def = self.tcx.adt_def(def_id);
+                    let struct_name = self.get_fn_name(def_id);
+                    
+                    // 遍历结构体字段
+                    let variant_idx = VariantIdx::from_usize(0);
+                    if let Some(variant) = adt_def.variants().get(variant_idx) {
+                        for (idx, field) in variant.fields.iter().enumerate() {
+                            // 使用另一个catch_unwind来单独处理每个字段
+                            let field_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                let field_def_id = field.did;
+                                let field_vis = self.tcx.visibility(field_def_id);
+                                let field_name = field.ident(self.tcx).to_string();
+                                
+                                // 只记录公共字段
+                                if field_vis.is_public() {
+                                    // 我们不再尝试获取字段类型，因为这可能导致泛型结构体的panic
+                                    pub_struct_info.pub_fields.insert(idx, FieldInfo {
+                                        index: idx,
+                                        name: field_name.clone(),
+                                        is_public: true,
+                                    });
+                                    return Some(field_name);
+                                }
+                                None
+                            }));
                             
-                            if is_problematic_type {
-                                self.debug_log(format!("跳过可能导致编译器崩溃的字段类型: {:?} (字段: {})", 
-                                               field_ty, field_name));
-                                continue;
+                            // 如果处理字段时发生panic，记录日志并继续处理下一个字段
+                            if field_result.is_err() {
+                                self.debug_log(format!("处理结构体 {} 的字段 {} 时发生panic", struct_name, idx));
                             }
-                        } else {
-                            // 如果无法安全获取字段类型，跳过该字段
-                            self.debug_log(format!("无法安全获取字段 {} 的类型，已跳过", field_name));
-                            continue;
-                        }
-                        
-                        // 记录公共字段
-                        if field_vis.is_public() {
-                            pub_struct_info.pub_fields.insert(idx, FieldInfo {
-                                index: idx,
-                                name: field_name,
-                                is_public: true,
-                            });
                         }
                     }
+                    
+                    // 只保存有公共字段的公共结构体
+                    if !pub_struct_info.pub_fields.is_empty() {
+                        self.debug_log(format!("发现公共结构体: {} 有 {} 个公共字段", 
+                                          struct_name, pub_struct_info.pub_fields.len()));
+                        return Some((def_id, pub_struct_info));
+                    }
                 }
-                
-                // 只保存有公共字段的公共结构体
-                if !pub_struct_info.pub_fields.is_empty() {
-                    let struct_name = self.get_fn_name(def_id);
-                    self.debug_log(format!("发现公共结构体: {} 有 {} 个公共字段", 
-                                       struct_name, pub_struct_info.pub_fields.len()));
+                None
+            }));
+            
+            // 如果处理结构体时发生panic，记录日志并继续处理下一个结构体
+            match collect_result {
+                Ok(Some((def_id, pub_struct_info))) => {
                     self.pub_structs.insert(def_id, pub_struct_info);
+                },
+                Ok(None) => {}, // 不是我们关心的结构体，继续处理下一个
+                Err(_) => {
+                    self.debug_log(format!("处理DefId({:?})结构体时发生panic，已跳过", def_id));
                 }
             }
         }
@@ -1283,11 +1289,11 @@ impl<'tcx> LwzCheck<'tcx> {
         use std::panic::{self, AssertUnwindSafe};
         
         // 使用空的泛型参数列表
-        let substsref = rustc_middle::ty::List::empty();
+        let empty_substs = rustc_middle::ty::List::empty();
         
         // 使用catch_unwind捕获可能的panic
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
-            field.ty(self.tcx, substsref)
+            field.ty(self.tcx, empty_substs)
         }));
         
         match result {
