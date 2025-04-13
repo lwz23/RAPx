@@ -554,9 +554,41 @@ impl<'tcx> LwzCheck<'tcx> {
     fn get_mir_safely(&self, def_id: DefId) -> Option<&rustc_middle::mir::Body<'tcx>> {
         use std::panic::{self, AssertUnwindSafe};
         
-        // 使用catch_unwind捕获可能的panic
+        // 检查是否是常量、常量字段或常量表达式
+        let is_const = self.tcx.is_const_fn_raw(def_id) || 
+                      self.tcx.is_const_fn(def_id) || 
+                      matches!(self.tcx.def_kind(def_id), 
+                          rustc_hir::def::DefKind::Const | 
+                          rustc_hir::def::DefKind::AssocConst | 
+                          rustc_hir::def::DefKind::Static { safety: _, mutability: _, nested: _ });
+                          
+        // 检查def_id是否包含常量表达式的特殊标记
+        let def_path = self.tcx.def_path_str(def_id);
+        let is_const_expr = def_path.contains("::{constant#") || 
+                           def_path.contains("::promoted[") ||
+                           def_path.contains("]::") || 
+                           def_path.ends_with("}");
+        
+        // 对于常量或常量表达式，使用mir_for_ctfe而不是optimized_mir
+        if is_const || is_const_expr {
+            let def_kind = self.tcx.def_kind(def_id);
+            if matches!(def_kind, rustc_hir::def::DefKind::Const | rustc_hir::def::DefKind::Static { safety: _, mutability: _, nested: _ }) {
+                // 对于常量和静态变量，使用mir_for_ctfe
+                return Some(self.tcx.mir_for_ctfe(def_id));
+            } else {
+                // 对于其他类型的常量表达式，可能无法安全获取MIR
+                self.debug_log(format!("跳过常量表达式的MIR获取: {:?}", def_id));
+                return None;
+            }
+        }
+        
+        // 对于非常量，使用try_catch_unwind避免面向panic编程
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
-            self.tcx.is_mir_available(def_id).then(|| self.tcx.optimized_mir(def_id))
+            if self.tcx.is_mir_available(def_id) {
+                Some(self.tcx.optimized_mir(def_id))
+            } else {
+                None
+            }
         }));
         
         match result {
@@ -564,7 +596,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Ok(None) => None,
             Err(_) => {
                 // 记录错误并返回None
-                //self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
+                self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
                 None
             }
         }
