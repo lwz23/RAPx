@@ -1158,7 +1158,70 @@ impl<'tcx> LwzCheck<'tcx> {
                                     return true;
                                 }
                             },
+                            // 增加对结构体构造(Aggregate)的支持
+                            rustc_middle::mir::Rvalue::Aggregate(_, operands) => {
+                                // 检查每个操作数是否含有非self参数
+                                for operand in operands.iter() {
+                                    match operand {
+                                        Operand::Copy(source_place) | Operand::Move(source_place) => {
+                                            let source_local = source_place.local.as_usize();
+                                            
+                                            // 检查源变量是否是参数
+                                            if source_local > 0 && source_local <= param_count {
+                                                // 确保不是self参数
+                                                if let Some(self_idx) = self_param {
+                                                    if source_local != self_idx {
+                                                        return true; // 是通过结构体传递的普通参数
+                                                    }
+                                                } else {
+                                                    return true; // 没有self参数
+                                                }
+                                            }
+                                            
+                                            // 递归检查
+                                            if self.is_non_self_param_or_copy_with_visited(body, source_local, param_count, self_param, visited) {
+                                                return true;
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                            },
                             _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 检查函数调用中的参数
+        for block_data in body.basic_blocks.iter() {
+            if let Some(terminator) = &block_data.terminator {
+                if let rustc_middle::mir::TerminatorKind::Call { destination, args, .. } = &terminator.kind {
+                    // 检查结果是否赋值给当前变量
+                    if destination.local.as_usize() == var_num {
+                        // 检查参数中是否有非self参数
+                        for arg in args {
+                            if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                                let source_local = place.local.as_usize();
+                                
+                                // 检查源变量是否是参数
+                                if source_local > 0 && source_local <= param_count {
+                                    // 确保不是self参数
+                                    if let Some(self_idx) = self_param {
+                                        if source_local != self_idx {
+                                            return true; // 是通过函数调用传递的普通参数
+                                        }
+                                    } else {
+                                        return true; // 没有self参数
+                                    }
+                                }
+                                
+                                // 递归检查
+                                if self.is_non_self_param_or_copy_with_visited(body, source_local, param_count, self_param, visited) {
+                                    return true;
+                                }
+                            }
                         }
                     }
                 }
