@@ -1711,8 +1711,108 @@ impl<'tcx> LwzCheck<'tcx> {
                             if source_place.local.as_usize() == var {
                                 // 取该变量的引用
                                 let dest_var = place.local.as_usize();
+                                
+                                // 特殊处理：在不安全操作中检查数组引用
+                                // 例如 &self.sysname 变成 &_5，然后传递给 from_utf8_unchecked
+                                // 在操作描述中会看到 from_utf8_unchecked(_3)，但实际上_3是&_5
+                                let ref_var_pattern = format!("_{}", dest_var);
+                                
+                                // 1. 首先检查目标变量是否直接用于不安全操作
                                 if self.check_var_flows_to_unsafe_op(body, dest_var, op_detail, visited) {
                                     return true;
+                                }
+                                
+                                // 2. 检查操作中是否有形如(_3)的模式，其中_3可能是&_5的引用
+                                for (i, _) in op_detail.match_indices("(") {
+                                    if i + 1 < op_detail.len() {
+                                        let end_idx = op_detail[i..].find(")").map(|pos| i + pos).unwrap_or(op_detail.len());
+                                        let arg_str = &op_detail[i+1..end_idx];
+                                        
+                                        // 检查参数中是否有目标变量的引用
+                                        if arg_str.contains(&ref_var_pattern) {
+                                            self.debug_log(format!("变量 {} 的引用 {} 被用作参数传递给不安全操作: {}", 
+                                                          var, dest_var, op_detail));
+                                            return true;
+                                        }
+                                    }
+                                }
+                                
+                                // 3. 检查参数变量和操作是否有关联
+                                // 寻找函数调用
+                                for other_block in body.basic_blocks.iter() {
+                                    if let Some(terminator) = &other_block.terminator {
+                                        if let TerminatorKind::Call { func: _, args, destination, .. } = &terminator.kind {
+                                            // 检查任何参数是否引用了该变量
+                                            for arg in args {
+                                                if let Operand::Copy(place) | Operand::Move(place) = &arg.node {
+                                                    let place_str = format!("{:?}", place);
+                                                    if place_str.contains(&ref_var_pattern) {
+                                                        // 如果该参数被传递给不安全函数调用，特别是如果这个调用是目标不安全操作
+                                                        let term_str = format!("{:?}", terminator);
+                                                        if term_str.contains(op_detail) {
+                                                            self.debug_log(format!("字段引用 {} 作为参数传递给调用: {}", 
+                                                                      ref_var_pattern, term_str));
+                                                            return true;
+                                                        }
+                                                        
+                                                        // 如果不是同一个调用，检查结果是否流向不安全操作
+                                                        let result_var = destination.local.as_usize();
+                                                        if self.check_var_flows_to_unsafe_op(body, result_var, op_detail, visited) {
+                                                            return true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 4. 对于Utsname::name这样的特殊情况，直接检查类型和操作
+                                // 如果操作是 from_utf8_unchecked 且变量是数组引用
+                                if op_detail.contains("from_utf8_unchecked") {
+                                    // 检查变量类型是否是数组引用
+                                    if let Some(ty) = body.local_decls.get(rustc_middle::mir::Local::from_usize(var)) {
+                                        let ty_str = format!("{:?}", ty.ty);
+                                        if ty_str.contains("[u8;") || ty_str.contains("&[u8") {
+                                            self.debug_log(format!("数组引用变量 {} (类型 {}) 流向 from_utf8_unchecked", var, ty_str));
+                                            return true;
+                                        }
+                                    }
+                                    
+                                    // 检查字段的引用是否被传递给另一个变量
+                                    for other_stmt in &block_data.statements {
+                                        if let rustc_middle::mir::StatementKind::Assign(box (other_place, other_rvalue)) = &other_stmt.kind {
+                                            let other_rvalue_str = format!("{:?}", other_rvalue);
+                                            if other_rvalue_str.contains(&ref_var_pattern) {
+                                                // 字段引用被传递给其他变量
+                                                let next_var = other_place.local.as_usize();
+                                                if self.check_var_flows_to_unsafe_op(body, next_var, op_detail, visited) {
+                                                    return true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // 5. 继续跟踪传递关系
+                                // 查找所有将引用转换为值的地方
+                                for other_block in body.basic_blocks.iter() {
+                                    for other_stmt in &other_block.statements {
+                                        if let rustc_middle::mir::StatementKind::Assign(box (other_place, other_rvalue)) = &other_stmt.kind {
+                                            // 检查是否是从引用加载值
+                                            if let rustc_middle::mir::Rvalue::Use(Operand::Copy(ref_place) | Operand::Move(ref_place)) = other_rvalue {
+                                                // 检查加载的是否是我们跟踪的变量
+                                                let ref_place_str = format!("{:?}", ref_place);
+                                                if ref_place_str.contains(&ref_var_pattern) {
+                                                    // 被加载到的新变量
+                                                    let new_var = other_place.local.as_usize();
+                                                    if self.check_var_flows_to_unsafe_op(body, new_var, op_detail, visited) {
+                                                        return true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -1733,6 +1833,20 @@ impl<'tcx> LwzCheck<'tcx> {
                                 return true;
                             }
                         }
+                    }
+                    
+                    // 检查是否有引用被传递给函数调用
+                    let term_str = format!("{:?}", terminator);
+                    let var_ref_pattern = format!("&_{}", var);
+                    if term_str.contains(&var_ref_pattern) {
+                        self.debug_log(format!("变量 {} 的引用被传递给函数调用: {}", var, term_str));
+                        return true;
+                    }
+                    
+                    // 特殊处理from_utf8_unchecked调用
+                    if term_str.contains("from_utf8_unchecked") && term_str.contains(&format!("_{}", var)) {
+                        self.debug_log(format!("变量 {} 被传递给 from_utf8_unchecked 调用: {}", var, term_str));
+                        return true;
                     }
                 }
             }
@@ -1969,6 +2083,9 @@ impl<'tcx> LwzCheck<'tcx> {
         match ty.kind() {
             rustc_middle::ty::TyKind::Adt(adt_def, _) if adt_def.is_struct() => Some(adt_def.did()),
             rustc_middle::ty::TyKind::Ref(_, inner_ty, _) => self.extract_struct_from_type(*inner_ty),
+            // 新增对数组类型的支持
+            rustc_middle::ty::TyKind::Array(elem_ty, _) => self.extract_struct_from_type(*elem_ty),
+            rustc_middle::ty::TyKind::Slice(elem_ty) => self.extract_struct_from_type(*elem_ty),
             _ => None,
         }
     }
