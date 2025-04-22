@@ -2101,13 +2101,13 @@ impl<'tcx> LwzCheck<'tcx> {
 
     /// 识别所有"模式载体"函数
     fn identify_pattern_carriers(&mut self) {
-        rap_info!("开始识别模式载体...");
+        //self.debug_log("开始识别模式载体...");
         
         // 遍历所有内部不安全函数，不限于公共函数
         for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
             let fn_name = self.get_fn_name(def_id);
             
-            rap_info!("检查函数: {}", fn_name);
+            //self.debug_log(format!("检查函数: {}", fn_name));
             
             // 处理函数参数的情况
             let mut pattern1_ops = Vec::new();
@@ -2123,7 +2123,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 
                 // 检查所有不安全操作，是否有直接或间接使用参数的情况
                 for op in &internal_unsafe.unsafe_operations {
-                    rap_info!("检查不安全操作: {}", op.operation_detail);
+                    //self.debug_log(format!("检查不安全操作: {}", op.operation_detail));
                     
                     // 1. 检查解引用参数的情况
                     if op.operation_detail.starts_with("*_") {
@@ -2138,7 +2138,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     // 查找源参数
                                     if let Some(source_param) = self.find_source_parameter(body, var_number, param_count, self_param) {
                                         tainted_param_idx = source_param;
-                                        rap_info!("发现从参数 {} 到不安全操作的传播路径", source_param);
+                                        //self.debug_log(format!("发现从参数 {} 到不安全操作的传播路径", source_param));
                                     }
                                 }
                             }
@@ -2150,7 +2150,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             &op.operation_detail, body, param_count, self_param, def_id) {
                             pattern1_ops.push(op.clone());
                             tainted_param_idx = source_param;
-                            rap_info!("发现从参数 {} 到函数调用的传播路径", source_param);
+                            //self.debug_log(format!("发现从参数 {} 到函数调用的传播路径", source_param));
                         }
                     }
                 }
@@ -2164,7 +2164,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             if let rustc_middle::mir::Rvalue::Cast(_, ref operand, cast_ty) = rvalue {
                                 if let rustc_middle::ty::TyKind::RawPtr(_, _) = cast_ty.kind() {
                                     // 这是将某个值转换为裸指针的操作
-                                    rap_info!("发现在块 {} 语句 {} 中有裸指针转换", block_idx, stmt_idx);
+                                    //rap_info!("发现在块 {} 语句 {} 中有裸指针转换", block_idx, stmt_idx);
                                     
                                     // 检查操作数是否来自参数
                                     if let Operand::Copy(source_place) | Operand::Move(source_place) = operand {
@@ -2185,7 +2185,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                                     };
                                                     pattern1_ops.push(deref_op);
                                                     tainted_param_idx = source_param;
-                                                    rap_info!("发现裸指针转换 - 参数 {} 被转换为裸指针并可能被解引用", source_param);
+                                                    //rap_info!("发现裸指针转换 - 参数 {} 被转换为裸指针并可能被解引用", source_param);
                                                     break 'block_loop;  // 找到一个模式就足够了
                                                 }
                                             }
@@ -2207,11 +2207,11 @@ impl<'tcx> LwzCheck<'tcx> {
                     pattern_type: 1, // Pattern1
                 };
                 self.pattern_carriers.insert(def_id, carrier);
-                rap_info!("函数 {} 被识别为Pattern1载体，污染参数索引: {}", fn_name, tainted_param_idx);
+                //self.debug_log(format!("函数 {} 被识别为Pattern1载体，污染参数索引: {}", fn_name, tainted_param_idx));
             }
         }
         
-        rap_info!("模式载体识别完成，共发现 {} 个", self.pattern_carriers.len());
+        //self.debug_log(format!("模式载体识别完成，共发现 {} 个", self.pattern_carriers.len()));
     }
     
     /// 查找变量的源参数
@@ -2403,7 +2403,7 @@ impl<'tcx> LwzCheck<'tcx> {
     
     /// 执行过程间分析
     fn perform_interprocedural_analysis(&mut self) {
-        rap_info!("开始执行过程间分析...");
+        //self.debug_log("开始执行过程间分析...");
         
         // 首先清空pattern_carriers，确保它包含最新的carrier
         self.pattern_carriers.clear();
@@ -2417,37 +2417,37 @@ impl<'tcx> LwzCheck<'tcx> {
         let mut carrier_callers = Vec::new();
         let carrier_def_ids: Vec<DefId> = self.pattern_carriers.keys().cloned().collect();
         
-        rap_info!("发现载体函数数量: {}", carrier_def_ids.len());
-        for carrier_def_id in &carrier_def_ids {
-            let carrier_name = self.get_fn_name(*carrier_def_id);
-            rap_info!("载体函数: {}", carrier_name);
-        }
+        //rap_info!("发现载体函数数量: {}", carrier_def_ids.len());
+        //for carrier_def_id in &carrier_def_ids {
+        //    let carrier_name = self.get_fn_name(*carrier_def_id);
+        //    rap_info!("载体函数: {}", carrier_name);
+        //}
         
         for carrier_def_id in carrier_def_ids {
             let carrier = self.pattern_carriers.get(&carrier_def_id).unwrap().clone();
-            let carrier_name = self.get_fn_name(carrier_def_id);
+            //let carrier_name = self.get_fn_name(carrier_def_id);
             
             // 使用反向调用图找到所有调用者
             if let Some(callers) = self.reverse_call_graph.get(&carrier_def_id) {
-                rap_info!("载体函数 {} 有 {} 个调用者", carrier_name, callers.len());
+                //rap_info!("载体函数 {} 有 {} 个调用者", carrier_name, callers.len());
                 for &caller_def_id in callers {
-                    let caller_name = self.get_fn_name(caller_def_id);
-                    rap_info!("调用者: {}", caller_name);
+                    //let caller_name = self.get_fn_name(caller_def_id);
+                    //rap_info!("调用者: {}", caller_name);
                     carrier_callers.push((caller_def_id, carrier_def_id, carrier.clone()));
                 }
-            } else {
-                rap_info!("载体函数 {} 没有调用者", carrier_name);
-            }
+            } //else {
+              //  rap_info!("载体函数 {} 没有调用者", carrier_name);
+            //}
         }
         
         // 处理直接的调用关系
         for (caller_def_id, carrier_def_id, carrier) in carrier_callers {
-            let caller_name = self.get_fn_name(caller_def_id);
-            let carrier_name = self.get_fn_name(carrier_def_id);
+            //let caller_name = self.get_fn_name(caller_def_id);
+            //let carrier_name = self.get_fn_name(carrier_def_id);
             
             // 检查调用者是否是公共函数
             if self.is_public_fn(caller_def_id) {
-                rap_info!("公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
+                //rap_info!("公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
                 
                 // 分析调用点
                 if let Some(body) = self.get_mir_safely(caller_def_id) {
@@ -2455,8 +2455,8 @@ impl<'tcx> LwzCheck<'tcx> {
                     if let Some(call_arg) = self.find_caller_arg_local(
                         body, carrier_def_id, carrier.tainted_param_idx) {
                         
-                        rap_info!("找到调用参数映射: 载体函数的参数 {} 对应调用者的变量 {}", 
-                               carrier.tainted_param_idx, call_arg);
+                        //rap_info!("找到调用参数映射: 载体函数的参数 {} 对应调用者的变量 {}", 
+                        //       carrier.tainted_param_idx, call_arg);
                         
                         let param_count = body.arg_count;
                         let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
@@ -2464,11 +2464,11 @@ impl<'tcx> LwzCheck<'tcx> {
                         
                         // 检查调用者将什么参数传递给了载体的污染参数
                         if self.is_non_self_param_or_copy(body, call_arg, param_count, self_param) {
-                            rap_info!("调用者 {} 的变量 {} 来自非self参数", caller_name, call_arg);
+                            //rap_info!("调用者 {} 的变量 {} 来自非self参数", caller_name, call_arg);
                             
                             // 检查参数是否经过净化
                             if !self.is_var_sanitized(body, call_arg, caller_def_id) {
-                                rap_info!("调用者 {} 的变量 {} 未经过净化", caller_name, call_arg);
+                                //rap_info!("调用者 {} 的变量 {} 未经过净化", caller_name, call_arg);
                                 
                                 // 构建调用路径并检查是否有效
                                 let mut call_path = vec![caller_def_id];
@@ -2476,7 +2476,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                 
                                 // 只有当路径有效时，才添加匹配
                                 if path_valid {
-                                    rap_info!("发现过程间污点传播: {} -> {}", caller_name, carrier_name);
+                                    //rap_info!("发现过程间污点传播: {} -> {}", caller_name, carrier_name);
                                     
                                     // 找到了过程间模式匹配
                                     let interprocedural_match = InterproceduralMatch {
@@ -2487,21 +2487,21 @@ impl<'tcx> LwzCheck<'tcx> {
                                     };
                                     
                                     matches_to_add.push((caller_def_id, interprocedural_match));
-                                } else {
-                                    rap_info!("路径无效: {} -> {}", caller_name, carrier_name);
-                                }
-                            } else {
-                                rap_info!("调用者 {} 的变量 {} 已经过净化，跳过", caller_name, call_arg);
-                            }
-                        } else {
-                            rap_info!("调用者 {} 的变量 {} 不是来自非self参数", caller_name, call_arg);
-                        }
-                    } else {
-                        rap_info!("未找到调用参数映射: {} -> {}", caller_name, carrier_name);
-                    }
+                                } //else {
+                                  //  rap_info!("路径无效: {} -> {}", caller_name, carrier_name);
+                                //}
+                            } //else {
+                              //  rap_info!("调用者 {} 的变量 {} 已经过净化，跳过", caller_name, call_arg);
+                            //}
+                        } //else {
+                          //  rap_info!("调用者 {} 的变量 {} 不是来自非self参数", caller_name, call_arg);
+                        //}
+                    } //else {
+                      //  rap_info!("未找到调用参数映射: {} -> {}", caller_name, carrier_name);
+                    //}
                 }
             } else {
-                rap_info!("非公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
+                //rap_info!("非公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
                 
                 // 对于非公共函数的调用者，记录为中间载体
                 if let Some(body) = self.get_mir_safely(caller_def_id) {
@@ -2517,7 +2517,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             // 检查参数是否经过净化
                             if !self.is_var_sanitized(body, call_arg, caller_def_id) {
                                 if let Some(source_param) = self.find_source_parameter(body, call_arg, param_count, self_param) {
-                                    rap_info!("中间函数 {} 的污染源参数为 {}", caller_name, source_param);
+                                    //rap_info!("中间函数 {} 的污染源参数为 {}", caller_name, source_param);
                                     
                                     // 创建中间载体
                                     let intermediate_carrier = PatternCarrier {
@@ -2554,7 +2554,7 @@ impl<'tcx> LwzCheck<'tcx> {
             found_new_match = false;
             iteration += 1;
             
-            rap_info!("过程间分析第 {} 次迭代", iteration);
+            //rap_info!("过程间分析第 {} 次迭代", iteration);
             
             // 收集当前所有模式载体和已匹配结果
             let current_carriers = self.pattern_carriers.clone();
@@ -2575,7 +2575,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
             
             for (carrier_def_id, carrier) in current_carriers {
-                let carrier_name = self.get_fn_name(carrier_def_id);
+                //let carrier_name = self.get_fn_name(carrier_def_id);
                 
                 // 跳过已经作为匹配结果的载体
                 if current_matches.contains_key(&carrier_def_id) {
@@ -2585,7 +2585,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 // 使用反向调用图找到所有调用者
                 if let Some(callers) = self.reverse_call_graph.get(&carrier_def_id) {
                     for &caller_def_id in callers {
-                        let caller_name = self.get_fn_name(caller_def_id);
+                        //let caller_name = self.get_fn_name(caller_def_id);
                         
                         // 跳过已经分析过的函数
                         if processed_fns.contains(&caller_def_id) {
@@ -2595,15 +2595,15 @@ impl<'tcx> LwzCheck<'tcx> {
                         // 标记当前函数为已处理
                         processed_fns.insert(caller_def_id);
                         
-                        rap_info!("迭代 {} 中分析: {} -> {}", iteration, caller_name, carrier_name);
+                        //rap_info!("迭代 {} 中分析: {} -> {}", iteration, caller_name, carrier_name);
                         
                         // 检查调用者
                         if let Some(body) = self.get_mir_safely(caller_def_id) {
                             if let Some(call_arg) = self.find_caller_arg_local(
                                 body, carrier_def_id, carrier.tainted_param_idx) {
                                 
-                                rap_info!("找到调用参数映射: 载体函数的参数 {} 对应调用者的变量 {}", 
-                                       carrier.tainted_param_idx, call_arg);
+                                //rap_info!("找到调用参数映射: 载体函数的参数 {} 对应调用者的变量 {}", 
+                                //       carrier.tainted_param_idx, call_arg);
                                 
                                 let param_count = body.arg_count;
                                 let is_method = param_count > 0 && self.get_impl_self_type(caller_def_id).is_some();
@@ -2613,7 +2613,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     if !self.is_var_sanitized(body, call_arg, caller_def_id) {
                                         // 检查是否是公共函数
                                         if self.is_public_fn(caller_def_id) {
-                                            rap_info!("公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
+                                            //rap_info!("公共函数 {} 调用了载体函数 {}", caller_name, carrier_name);
                                             
                                             // 构建完整的调用链并检查是否有效
                                             let mut call_path = vec![caller_def_id];
@@ -2621,8 +2621,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                             
                                             // 只有当路径有效时，才添加匹配
                                             if path_valid {
-                                                rap_info!("迭代 {} 发现过程间污点传播: {} -> {}", 
-                                                       iteration, caller_name, carrier_name);
+                                                //rap_info!("迭代 {} 发现过程间污点传播: {} -> {}", 
+                                                //       iteration, caller_name, carrier_name);
                                                 
                                                 let interprocedural_match = InterproceduralMatch {
                                                     pub_fn_id: caller_def_id,
@@ -2633,12 +2633,12 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 
                                                 new_matches.push((caller_def_id, interprocedural_match));
                                                 found_new_match = true;
-                                            } else {
-                                                rap_info!("路径无效: {} -> {}", caller_name, carrier_name);
-                                            }
+                                            } //else {
+                                              //  rap_info!("路径无效: {} -> {}", caller_name, carrier_name);
+                                            //}
                                         } else if let Some(source_param) = self.find_source_parameter(body, call_arg, param_count, self_param) {
-                                            rap_info!("迭代 {} 中创建中间载体: {} (参数 {})", 
-                                                   iteration, caller_name, source_param);
+                                            //rap_info!("迭代 {} 中创建中间载体: {} (参数 {})", 
+                                            //       iteration, caller_name, source_param);
                                             
                                             // 创建新的中间载体
                                             let new_carrier = PatternCarrier {
@@ -2669,7 +2669,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        rap_info!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len());
+        //rap_info!("过程间分析完成，共发现 {} 个匹配", self.interprocedural_matches.len());
     }
     
     /// 构建完整的调用路径，并检查路径中是否有除起始节点外的其他公共函数
@@ -2727,8 +2727,8 @@ impl<'tcx> LwzCheck<'tcx> {
                            body: &rustc_middle::mir::Body<'tcx>,
                            callee_def_id: DefId,
                            callee_param_idx: usize) -> Option<usize> {
-        rap_info!("寻找调用点参数映射 - 被调用函数: {}, 参数索引: {}", 
-               self.get_fn_name(callee_def_id), callee_param_idx);
+        //self.debug_log(format!("寻找调用点参数映射 - 被调用函数: {}, 参数索引: {}", 
+        //       self.get_fn_name(callee_def_id), callee_param_idx));
         
         // 遍历所有基本块查找函数调用
         for (block_idx, block_data) in body.basic_blocks.iter().enumerate() {
@@ -2738,7 +2738,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     if let Operand::Constant(constant) = func {
                         if let rustc_middle::ty::TyKind::FnDef(func_def_id, _) = constant.const_.ty().kind() {
                             if *func_def_id == callee_def_id {
-                                rap_info!("在块 {} 中找到调用点", block_idx);
+                                //self.debug_log(format!("在块 {} 中找到调用点", block_idx));
                                 
                                 // 找到了调用点，检查参数索引是否有效
                                 let param_idx = callee_param_idx - 1; // 转为0-based索引
@@ -2746,15 +2746,15 @@ impl<'tcx> LwzCheck<'tcx> {
                                     // 获取参数变量
                                     if let Operand::Copy(place) | Operand::Move(place) = &args[param_idx].node {
                                         let var_num = place.local.as_usize();
-                                        rap_info!("找到调用点: 参数索引 {} 对应变量 _{}", callee_param_idx, var_num);
+                                        //self.debug_log(format!("找到调用点: 参数索引 {} 对应变量 _{}", callee_param_idx, var_num));
                                         return Some(var_num);
-                                    } else {
-                                        rap_info!("参数 {} 不是Copy或Move操作数", callee_param_idx);
-                                    }
-                                } else {
-                                    rap_info!("参数索引 {} 超出范围，调用只有 {} 个参数", 
-                                           callee_param_idx, args.len());
-                                }
+                                    } //else {
+                                      //  self.debug_log(format!("参数 {} 不是Copy或Move操作数", callee_param_idx));
+                                    //}
+                                } //else {
+                                  //  self.debug_log(format!("参数索引 {} 超出范围，调用只有 {} 个参数", 
+                                  //         callee_param_idx, args.len()));
+                                //}
                             }
                         }
                     }
@@ -2764,7 +2764,7 @@ impl<'tcx> LwzCheck<'tcx> {
                     if let Some(callees) = self.call_graph.get(&body.source.def_id()) {
                         if callees.contains(&callee_def_id) {
                             // 当前函数确实调用了目标函数，但可能是间接调用
-                            rap_info!("检测到可能的间接调用");
+                            //self.debug_log(format!("检测到可能的间接调用"));
                             
                             // 如果参数数量匹配，我们尝试猜测参数映射
                             if args.len() >= callee_param_idx {
@@ -2773,8 +2773,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                 // 获取参数变量
                                 if let Operand::Copy(place) | Operand::Move(place) = &args[param_idx].node {
                                     let var_num = place.local.as_usize();
-                                    rap_info!("从间接调用中推断参数映射: 参数 {} 对应变量 _{}", 
-                                           callee_param_idx, var_num);
+                                    //self.debug_log(format!("从间接调用中推断参数映射: 参数 {} 对应变量 _{}", 
+                                    //       callee_param_idx, var_num));
                                     return Some(var_num);
                                 }
                             }
@@ -2784,7 +2784,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        rap_info!("未找到调用点参数映射");
+        //self.debug_log(format!("未找到调用点参数映射"));
         None
     }
 }
