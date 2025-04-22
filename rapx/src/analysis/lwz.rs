@@ -170,7 +170,7 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     pub fn start(&mut self) {
-        rap_info!("Starting LWZ analysis to detect internal unsafe functions...");
+        // rap_info!("Starting LWZ analysis to detect internal unsafe functions...");
         
         self.collect_functions();
         self.build_call_graphs();
@@ -254,8 +254,8 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        rap_info!("Found {} internal unsafe functions and {} public functions in public modules",
-            self.internal_unsafe_fns.len(), self.pub_fns_in_pub_mods.len());
+        // rap_info!("Found {} internal unsafe functions and {} public functions in public modules",
+        //     self.internal_unsafe_fns.len(), self.pub_fns_in_pub_mods.len());
     }
 
     fn build_call_graphs(&mut self) {
@@ -347,70 +347,70 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     fn report_findings(&self) {
-        rap_info!("===== Internal Unsafe Functions Report =====");
+        // rap_info!("===== Internal Unsafe Functions Report =====");
         
-        if self.shortest_paths.is_empty() {
-            rap_info!("No paths from public functions to internal unsafe functions were found.");
-            return;
-        }
+        // if self.shortest_paths.is_empty() {
+        //     rap_info!("No paths from public functions to internal unsafe functions were found.");
+        //     return;
+        // }
         
-        let mut count = 0;
+        // let mut count = 0;
         
-        // First, report internal unsafe functions that are directly pub functions in pub modules
-        for (&internal_fn, internal_unsafe) in &self.internal_unsafe_fns {
-            if self.pub_fns_in_pub_mods.contains(&internal_fn) {
-                count += 1;
-                rap_info!("{}: Internal unsafe function is directly a public function in a public module: {}", 
-                         count, self.get_fn_name(internal_fn));
+        // // First, report internal unsafe functions that are directly pub functions in pub modules
+        // for (&internal_fn, internal_unsafe) in &self.internal_unsafe_fns {
+        //     if self.pub_fns_in_pub_mods.contains(&internal_fn) {
+        //         count += 1;
+        //         rap_info!("{}: Internal unsafe function is directly a public function in a public module: {}", 
+        //                  count, self.get_fn_name(internal_fn));
                 
-                // 显示不安全操作
-                if !internal_unsafe.unsafe_operations.is_empty() {
-                    rap_info!("unsafe operations: ");
-                    for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
-                        rap_info!("({}) {}, ", i+1, op.operation_detail);
-                    }
-                    rap_info!("\n");
-                }
-            }
-        }
+        //         // 显示不安全操作
+        //         if !internal_unsafe.unsafe_operations.is_empty() {
+        //             rap_info!("unsafe operations: ");
+        //             for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
+        //                 rap_info!("({}) {}, ", i+1, op.operation_detail);
+        //             }
+        //             rap_info!("\n");
+        //         }
+        //     }
+        // }
         
-        // Then report paths from pub functions to internal unsafe functions
-        for (&internal_fn, path) in &self.shortest_paths {
-            // 只跳过那些"本身就是公共函数且在公共模块中"的内部不安全函数
-            // 注意：我们需要保留"公共模块中的私有内部不安全函数"的路径
-            let internal_unsafe = self.internal_unsafe_fns.get(&internal_fn);
-            if let Some(internal_unsafe) = internal_unsafe {
-                // 只有当函数既在公共模块中，又是公共函数时，才跳过
-                if internal_unsafe.is_public && internal_unsafe.is_in_pub_mod {
-                    continue;
-                }
-            }
+        // // Then report paths from pub functions to internal unsafe functions
+        // for (&internal_fn, path) in &self.shortest_paths {
+        //     // 只跳过那些"本身就是公共函数且在公共模块中"的内部不安全函数
+        //     // 注意：我们需要保留"公共模块中的私有内部不安全函数"的路径
+        //     let internal_unsafe = self.internal_unsafe_fns.get(&internal_fn);
+        //     if let Some(internal_unsafe) = internal_unsafe {
+        //         // 只有当函数既在公共模块中，又是公共函数时，才跳过
+        //         if internal_unsafe.is_public && internal_unsafe.is_in_pub_mod {
+        //             continue;
+        //         }
+        //     }
             
-            count += 1;
+        //     count += 1;
             
-            if path.len() > 1 {
-                let path_str = path.iter()
-                    .map(|&def_id| self.get_fn_name(def_id))
-                    .collect::<Vec<_>>()
-                    .join(" -> ");
+        //     if path.len() > 1 {
+        //         let path_str = path.iter()
+        //             .map(|&def_id| self.get_fn_name(def_id))
+        //             .collect::<Vec<_>>()
+        //             .join(" -> ");
                 
-                rap_info!("{}: Path from public function to internal unsafe function: {}", 
-                         count, path_str);
+        //         rap_info!("{}: Path from public function to internal unsafe function: {}", 
+        //                  count, path_str);
                 
-                // 显示不安全操作
-                if let Some(internal_unsafe) = internal_unsafe {
-                    if !internal_unsafe.unsafe_operations.is_empty() {
-                        rap_info!("unsafe operations: ");
-                        for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
-                            rap_info!("({}) {}, ", i+1, op.operation_detail);
-                        }
-                        rap_info!("\n");
-                    }
-                }
-            }
-        }
+        //         // 显示不安全操作
+        //         if let Some(internal_unsafe) = internal_unsafe {
+        //             if !internal_unsafe.unsafe_operations.is_empty() {
+        //                 rap_info!("unsafe operations: ");
+        //                 for (i, op) in internal_unsafe.unsafe_operations.iter().enumerate() {
+        //                     rap_info!("({}) {}, ", i+1, op.operation_detail);
+        //                 }
+        //                 rap_info!("\n");
+        //             }
+        //         }
+        //     }
+        // }
         
-        rap_info!("Total paths reported: {}", count);
+        // rap_info!("Total paths reported: {}", count);
         
         // 输出pattern1匹配结果
         if !self.pattern1_matches.is_empty() {
@@ -529,7 +529,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Some(body) => body,
             None => {
                 //self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过调用图构建", 
-                               //self.get_fn_name(def_id)));
+                //               self.get_fn_name(def_id)));
                 return callees;
             }
         };
@@ -577,7 +577,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 return Some(self.tcx.mir_for_ctfe(def_id));
             } else {
                 // 对于其他类型的常量表达式，可能无法安全获取MIR
-                self.debug_log(format!("跳过常量表达式的MIR获取: {:?}", def_id));
+                //self.debug_log(format!("跳过常量表达式的MIR获取: {:?}", def_id));
                 return None;
             }
         }
@@ -596,7 +596,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Ok(None) => None,
             Err(_) => {
                 // 记录错误并返回None
-                self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
+                //self.debug_log(format!("获取def_id {:?}的MIR时发生panic，已跳过", def_id));
                 None
             }
         }
@@ -611,7 +611,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Some(body) => body,
             None => {
                 //self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过不安全操作分析", 
-                               //self.get_fn_name(def_id)));
+                //               self.get_fn_name(def_id)));
                 return operations;
             }
         };
@@ -1295,7 +1295,7 @@ impl<'tcx> LwzCheck<'tcx> {
 
     /// 收集所有公共结构体及其公共字段的信息
     fn collect_pub_structs(&mut self) {
-        self.debug_log("开始收集公共结构体信息...");
+        //self.debug_log("开始收集公共结构体信息...");
         
         // 遍历所有本地定义
         for local_def_id in self.tcx.iter_local_def_id() {
@@ -1349,15 +1349,15 @@ impl<'tcx> LwzCheck<'tcx> {
                             
                             // 如果处理字段时发生panic，记录日志并继续处理下一个字段
                             if field_result.is_err() {
-                                self.debug_log(format!("处理结构体 {} 的字段 {} 时发生panic", struct_name, idx));
+                                //self.debug_log(format!("处理结构体 {} 的字段 {} 时发生panic", struct_name, idx));
                             }
                         }
                     }
                     
                     // 只保存有公共字段的公共结构体
                     if !pub_struct_info.pub_fields.is_empty() {
-                        self.debug_log(format!("发现公共结构体: {} 有 {} 个公共字段", 
-                                          struct_name, pub_struct_info.pub_fields.len()));
+                        //self.debug_log(format!("发现公共结构体: {} 有 {} 个公共字段", 
+                                          //struct_name, pub_struct_info.pub_fields.len()));
                         return Some((def_id, pub_struct_info));
                     }
                 }
@@ -1371,12 +1371,12 @@ impl<'tcx> LwzCheck<'tcx> {
                 },
                 Ok(None) => {}, // 不是我们关心的结构体，继续处理下一个
                 Err(_) => {
-                    self.debug_log(format!("处理DefId({:?})结构体时发生panic，已跳过", def_id));
+                    //self.debug_log(format!("处理DefId({:?})结构体时发生panic，已跳过", def_id));
                 }
             }
         }
         
-        self.debug_log(format!("公共结构体收集完成，共 {} 个", self.pub_structs.len()));
+        //self.debug_log(format!("公共结构体收集完成，共 {} 个", self.pub_structs.len()));
     }
     
     /// 安全地获取字段类型，避免编译器内部panic
@@ -1395,7 +1395,7 @@ impl<'tcx> LwzCheck<'tcx> {
             Ok(ty) => Some(ty),
             Err(_) => {
                 // 记录错误并返回None
-                self.debug_log(format!("获取字段 {:?} 的类型时发生panic，已跳过", field.did));
+                //self.debug_log(format!("获取字段 {:?} 的类型时发生panic，已跳过", field.did));
                 None
             }
         }
@@ -1403,20 +1403,20 @@ impl<'tcx> LwzCheck<'tcx> {
     
     /// 检测符合pattern2的函数：pub结构体的pub字段传入impl的pub函数的unsafe操作
     fn detect_pattern2_matches(&mut self) {
-        self.debug_log("开始检测pattern2匹配...");
+        //self.debug_log("开始检测pattern2匹配...");
         
         // 遍历所有内部不安全函数
         for (&def_id, internal_unsafe) in &self.internal_unsafe_fns {
             // 只检查公共函数
             if self.is_public_fn(def_id) {
                 let fn_name = self.get_fn_name(def_id);
-                self.debug_log(format!("检查公共函数: {}", fn_name));
+                //self.debug_log(format!("检查公共函数: {}", fn_name));
                 
                 // 安全地获取MIR
                 let body = match self.get_mir_safely(def_id) {
                     Some(body) => body,
                     None => {
-                        self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过pattern2检测", fn_name));
+                        //self.debug_log(format!("无法安全获取函数 {} 的MIR，跳过pattern2检测", fn_name));
                         continue;
                     }
                 };
@@ -1428,12 +1428,12 @@ impl<'tcx> LwzCheck<'tcx> {
                         // 检查是否是我们记录的公共结构体
                         if let Some(struct_info) = self.pub_structs.get(&struct_def_id) {
                             let struct_name = self.get_fn_name(struct_def_id);
-                            self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
+                            //self.debug_log(format!("函数 {} 是结构体 {} 的方法", fn_name, struct_name));
                             
                             // Debug点1: 输出识别到的pub结构体的pub字段
                             for (field_idx, field_info) in &struct_info.pub_fields {
-                                self.debug_log(format!("【Debug1】识别到pub结构体 {} 的pub字段: {}.{}", 
-                                              struct_name, struct_name, field_info.name));
+                                //self.debug_log(format!("【Debug1】识别到pub结构体 {} 的pub字段: {}.{}", 
+                                //              struct_name, struct_name, field_info.name));
                             }
                             
                             // 检查函数参数中是否有对该结构体的引用
@@ -1441,7 +1441,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             if let Some(self_param) = self_param {
                                 // Debug点2: 输出识别到的unsafe操作
                                 for op in &internal_unsafe.unsafe_operations {
-                                    self.debug_log(format!("【Debug2】识别到unsafe操作: {}", op.operation_detail));
+                                    //self.debug_log(format!("【Debug2】识别到unsafe操作: {}", op.operation_detail));
                                 }
                                 
                                 // 分析每个不安全操作
@@ -1456,8 +1456,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                         // 检查该字段是否是公共字段
                                         if let Some(field_info) = struct_info.pub_fields.get(field_idx) {
                                             // Debug点3: 输出检查字段是否用于unsafe操作的信息
-                                            self.debug_log(format!("【Debug3】检查字段 {}.{} (变量 _{}) 是否用于unsafe操作 {}", 
-                                                          struct_name, field_info.name, field_var, op.operation_detail));
+                                            //self.debug_log(format!("【Debug3】检查字段 {}.{} (变量 _{}) 是否用于unsafe操作 {}", 
+                                            //              struct_name, field_info.name, field_var, op.operation_detail));
                                             
                                             // 检查该字段是否传递给了不安全操作
                                             if self.is_var_used_in_unsafe_op(body, *field_var, &op.operation_detail) {
@@ -1465,13 +1465,13 @@ impl<'tcx> LwzCheck<'tcx> {
                                                 if !self.is_var_sanitized(body, *field_var, def_id) {
                                                     let field_name = &field_info.name;
                                                     pattern2_ops.push((op.clone(), format!("{}.{}", struct_name, field_name)));
-                                                    self.debug_log(format!(
-                                                        "发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
-                                                        struct_name, field_name, op.operation_detail));
+                                                    //self.debug_log(format!(
+                                                        //"发现pattern2：结构体 {} 的公共字段 {} 传递给不安全操作 {}", 
+                                                        //struct_name, field_name, op.operation_detail));
                                                 } else {
-                                                    self.debug_log(format!(
-                                                        "结构体 {} 的字段 {} 经过净化，跳过", 
-                                                        struct_name, field_info.name));
+                                                    //self.debug_log(format!(
+                                                        //"结构体 {} 的字段 {} 经过净化，跳过", 
+                                                        //struct_name, field_info.name));
                                                 }
                                             }
                                         }
@@ -1489,7 +1489,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         }
         
-        self.debug_log(format!("pattern2检测完成，共发现 {} 个匹配函数", self.pattern2_matches.len()));
+        //self.debug_log(format!("pattern2检测完成，共发现 {} 个匹配函数", self.pattern2_matches.len()));
     }
     
     /// 查找函数中的self参数
@@ -1527,7 +1527,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                         
                                         field_accesses.push((field_idx, dest_var, access_path.clone()));
                                         var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
-                                        self.debug_log(format!("发现字段引用访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                        //self.debug_log(format!("发现字段引用访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                     }
                                 }
                             }
@@ -1547,7 +1547,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                             
                                             field_accesses.push((field_idx, dest_var, access_path.clone()));
                                             var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
-                                            self.debug_log(format!("发现字段直接使用: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                            //self.debug_log(format!("发现字段直接使用: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                         }
                                     }
                                 }
@@ -1570,7 +1570,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     
                                     field_accesses.push((field_idx, dest_var, access_path.clone()));
                                     var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
-                                    self.debug_log(format!("发现字段deref_copy访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                    //self.debug_log(format!("发现字段deref_copy访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                 }
                             }
                         }
@@ -1585,8 +1585,8 @@ impl<'tcx> LwzCheck<'tcx> {
                             let field_info_opt = var_to_field_map.get(&source_var).cloned();
                             if let Some((field_idx, access_path)) = field_info_opt {
                                 var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
-                                self.debug_log(format!("变量传递: 变量 _{} (字段 {}) 被复制到变量 _{}", 
-                                              source_var, field_idx, dest_var));
+                                //self.debug_log(format!("变量传递: 变量 _{} (字段 {}) 被复制到变量 _{}", 
+                                              //source_var, field_idx, dest_var));
                             }
                         }
                     }
@@ -1609,7 +1609,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     let access_path = format!("(self).{}", field_idx);
                                     field_accesses.push((field_idx, dest_var, access_path.clone()));
                                     var_to_field_map.insert(dest_var, (field_idx, access_path.clone()));
-                                    self.debug_log(format!("发现终结符中的字段访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
+                                    //self.debug_log(format!("发现终结符中的字段访问: 字段 {} 被赋值到变量 _{}", field_idx, dest_var));
                                 }
                             }
                         }
@@ -1625,7 +1625,7 @@ impl<'tcx> LwzCheck<'tcx> {
                 let terminator_str = format!("{:?}", terminator);
                 for (&var, &(field_idx, ref _access_path)) in &var_to_field_map {
                     if terminator_str.contains(&format!("(*_{})", var)) {
-                        self.debug_log(format!("发现终结符中对字段变量的解引用: 变量 _{} (字段 {})", var, field_idx));
+                        //self.debug_log(format!("发现终结符中对字段变量的解引用: 变量 _{} (字段 {})", var, field_idx));
                         // 这里不需要添加新的field_accesses，因为我们已经有了对应的映射
                     }
                 }
@@ -1641,8 +1641,8 @@ impl<'tcx> LwzCheck<'tcx> {
                     if rvalue_str.contains("copy (*_") {
                         for (&var, &(field_idx, ref access_path)) in &var_to_field_map {
                             if rvalue_str.contains(&format!("copy (*_{})", var)) {
-                                self.debug_log(format!("发现语句中对字段变量的解引用: 变量 _{} (字段 {}) 被解引用到变量 _{}", 
-                                              var, field_idx, dest_var));
+                                //self.debug_log(format!("发现语句中对字段变量的解引用: 变量 _{} (字段 {}) 被解引用到变量 _{}", 
+                                              //var, field_idx, dest_var));
                                 // 在这种情况下，我们也应该考虑将dest_var标记为对应字段的访问
                                 field_accesses.push((field_idx, var, access_path.clone()));
                             }
@@ -1730,8 +1730,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                         
                                         // 检查参数中是否有目标变量的引用
                                         if arg_str.contains(&ref_var_pattern) {
-                                            self.debug_log(format!("变量 {} 的引用 {} 被用作参数传递给不安全操作: {}", 
-                                                          var, dest_var, op_detail));
+                                            //self.debug_log(format!("变量 {} 的引用 {} 被用作参数传递给不安全操作: {}", 
+                                                          //var, dest_var, op_detail));
                                             return true;
                                         }
                                     }
@@ -1750,8 +1750,8 @@ impl<'tcx> LwzCheck<'tcx> {
                                                         // 如果该参数被传递给不安全函数调用，特别是如果这个调用是目标不安全操作
                                                         let term_str = format!("{:?}", terminator);
                                                         if term_str.contains(op_detail) {
-                                                            self.debug_log(format!("字段引用 {} 作为参数传递给调用: {}", 
-                                                                      ref_var_pattern, term_str));
+                                                            //self.debug_log(format!("字段引用 {} 作为参数传递给调用: {}", 
+                                                                      //ref_var_pattern, term_str));
                                                             return true;
                                                         }
                                                         
@@ -1774,7 +1774,7 @@ impl<'tcx> LwzCheck<'tcx> {
                                     if let Some(ty) = body.local_decls.get(rustc_middle::mir::Local::from_usize(var)) {
                                         let ty_str = format!("{:?}", ty.ty);
                                         if ty_str.contains("[u8;") || ty_str.contains("&[u8") {
-                                            self.debug_log(format!("数组引用变量 {} (类型 {}) 流向 from_utf8_unchecked", var, ty_str));
+                                            //self.debug_log(format!("数组引用变量 {} (类型 {}) 流向 from_utf8_unchecked", var, ty_str));
                                             return true;
                                         }
                                     }
@@ -1829,7 +1829,7 @@ impl<'tcx> LwzCheck<'tcx> {
                             if place.local.as_usize() == var {
                                 // 如果变量作为参数传递给函数，就认为它可能流入不安全操作
                                 // 简化处理，不再尝试追踪destination
-                                self.debug_log(format!("变量 {} 作为参数传递给函数，可能流入不安全操作", var));
+                                //self.debug_log(format!("变量 {} 作为参数传递给函数，可能流入不安全操作", var));
                                 return true;
                             }
                         }
@@ -1839,13 +1839,13 @@ impl<'tcx> LwzCheck<'tcx> {
                     let term_str = format!("{:?}", terminator);
                     let var_ref_pattern = format!("&_{}", var);
                     if term_str.contains(&var_ref_pattern) {
-                        self.debug_log(format!("变量 {} 的引用被传递给函数调用: {}", var, term_str));
+                        //self.debug_log(format!("变量 {} 的引用被传递给函数调用: {}", var, term_str));
                         return true;
                     }
                     
                     // 特殊处理from_utf8_unchecked调用
                     if term_str.contains("from_utf8_unchecked") && term_str.contains(&format!("_{}", var)) {
-                        self.debug_log(format!("变量 {} 被传递给 from_utf8_unchecked 调用: {}", var, term_str));
+                        //self.debug_log(format!("变量 {} 被传递给 from_utf8_unchecked 调用: {}", var, term_str));
                         return true;
                     }
                 }
