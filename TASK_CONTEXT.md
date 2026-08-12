@@ -34,6 +34,11 @@
 - The six RED cases are five unexpected P1 candidates (`call_guard_in_middle_negative`, `call_guard_in_sink_negative`, `cfg_diamond_all_paths_guard_negative`, `guard_bounds_assert_negative`, and `guard_bounds_lt_negative`) plus one missing P1 candidate (`call_local_out_positive`). The RED receipt does not infer fixes from these mismatches.
 - Direct and mutual recursion, wrapper depths 0/1/3/5, unresolved opaque boundaries, stable macro/include spans, the loop cases, and the remaining frozen guard spellings already matched their challenge oracles at the RED baseline.
 - After the challenge RED run, the original frozen 27-fixture suite passed again with aggregate `3/2/2/2/1/2`; its normalized SHA-256 remained `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
+- The finite CFG lattice was committed at `4bc887e08ec7ee8410b9ac15fd21e779f20ddf34`. It represents reachability explicitly, joins may facts by union and must validations by intersection, uses finite static reaching-write tokens, and refines normal CFG edges without an iteration cap.
+- The two-phase MIR CFG implementation was committed at `1578affbd4bc750d33a1f22bdd60f4c66118916e`. MIR is normalized once into owned operation/edge descriptors; the solver uses program-point states rather than MIR basic-block enumeration order.
+- Task 5's final exact-nightly isolated Rust gate passed 70 tests. The five frozen CFG challenges all matched their oracles (`P1=3`, P2–P6 zero), and the original frozen 27 fixtures remained 27/27 with aggregate `3/2/2/2/1/2` and normalized SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
+- Task 5 now preserves strict copy/reborrow semantic identities separately from may-alias provenance, carries length-definition/version correlation with sticky invalidation, scopes call writes to normal edges, and treats only pointer unsizing as an identity-preserving cast. Two independent read-only reviews returned PASS.
+- Robustness Task 6 is in progress: export and compose finite validation contracts so guards established inside a middle/callee function can discharge only their structurally matching sink obligations.
 
 ## Decisions
 
@@ -56,6 +61,9 @@
 - Real-project results use pre-registered samples, labels, and stop lines. Standard-library findings become development data after any result-informed change and cannot then serve as an unseen precision holdout.
 - `core`, `alloc`, and `std` are evaluated separately because crate-local analysis intentionally does not propagate across their boundaries.
 - The challenge RED was collected with one independent `--case` runner invocation per frozen case so fail-fast oracle validation could not hide later mismatches; every invocation still performed exactly one fresh control check and one fresh static scan.
+- Semantic value identity and storage invalidation are intentionally separate. Only Copy/Move, a structurally exact `&*` reborrow, stable projections, and pointer `Unsize` preserve an identity; dynamic index/subslice, ordinary casts, and derived slice/pointer operations fail closed or receive a fresh destination identity.
+- Length facts are keyed by collection and static definition, capture reaching-write versions, carry a join-sticky invalidation tombstone, and retain relation uncertainty independently of the scalar result identity. This avoids both stale-length false negatives and write-after-recompute false positives in loops.
+- Range-in-bounds and UTF-8 validation still use their pre-Task-5 local fallback. They must move to program-point correlation before the standard-library pilot; this is assigned to the guard-hardening work package and is not evidence of general Rust soundness.
 
 ## Rejected Alternatives
 
