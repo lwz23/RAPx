@@ -1,0 +1,23 @@
+{
+  "schema_version": "unsoundaudit-pattern-fixture-v1",
+  "case_id": "pattern2_positive",
+  "package_name": "pattern2_positive",
+  "crate_name": "pattern2_positive",
+  "manifest_relative_path": "Cargo.toml",
+  "source_relative_path": "src/lib.rs",
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 1,
+    "pattern3": 0,
+    "pattern4": 0
+  },
+  "expected_findings": [
+    {
+      "pattern": "pattern2",
+      "context_suffix": "::PublicRaw::read_public_field",
+      "context_kind": "Method",
+      "element_contains": ".pointer",
+      "unsafe_operation_contains": "*_"
+    }
+  ]
+}

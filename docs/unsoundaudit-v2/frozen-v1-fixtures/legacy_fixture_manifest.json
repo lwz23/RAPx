@@ -1,0 +1,133 @@
+{
+  "schema_version": "unsoundaudit-v2-frozen-legacy-fixtures-v1",
+  "purpose": "Byte-for-byte handoff snapshot of the ten Ubuntu v1 UnsoundAudit regression fixtures; Cargo.lock is intentionally omitted.",
+  "source_root": "/home/lwz/unsound_scanner/tests/fixtures/unsoundaudit",
+  "frozen_root": "docs/unsoundaudit-v2/frozen-v1-fixtures",
+  "copy_policy": {
+    "included": [
+      "README.md",
+      "*/Cargo.toml",
+      "*/fixture.json",
+      "*/src/lib.rs"
+    ],
+    "excluded": [
+      "*/Cargo.lock"
+    ],
+    "reason_for_excluding_cargo_lock": "The handoff freezes source and handwritten oracles only; each tiny package has no third-party dependency and the Mac test stage must not import Ubuntu build state."
+  },
+  "pattern_migration": [
+    {
+      "legacy_pattern": "pattern1",
+      "v2_pattern": "pattern1",
+      "rule": "old P1 plus old P3 become new P1"
+    },
+    {
+      "legacy_pattern": "pattern3",
+      "v2_pattern": "pattern1",
+      "rule": "old P1 plus old P3 become new P1"
+    },
+    {
+      "legacy_pattern": "pattern2",
+      "v2_pattern": "pattern2",
+      "rule": "old P2 remains new P2"
+    },
+    {
+      "legacy_pattern": "pattern4",
+      "v2_pattern": "pattern3",
+      "rule": "old P4 is renumbered new P3"
+    }
+  ],
+  "case_migration": [
+    {
+      "case_id": "pattern1_negative_local_pointer",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern1_positive",
+      "role": "positive",
+      "legacy_primary_pattern": "pattern1",
+      "v2_primary_pattern": "pattern1",
+      "v2_expected_pattern_counts": {"pattern1": 1, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern2_display_negative",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern2_negative_private_field",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern2_positive",
+      "role": "positive",
+      "legacy_primary_pattern": "pattern2",
+      "v2_primary_pattern": "pattern2",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 1, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern2_write_negative",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern3_negative_private_chain",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern3_positive",
+      "role": "positive",
+      "legacy_primary_pattern": "pattern3",
+      "v2_primary_pattern": "pattern1",
+      "v2_expected_pattern_counts": {"pattern1": 1, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern4_negative_checked_utf8",
+      "role": "negative",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 0, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    },
+    {
+      "case_id": "pattern4_positive",
+      "role": "positive",
+      "legacy_primary_pattern": "pattern4",
+      "v2_primary_pattern": "pattern3",
+      "v2_expected_pattern_counts": {"pattern1": 0, "pattern2": 0, "pattern3": 1, "pattern4": 0, "pattern5": 0, "pattern6": 0}
+    }
+  ],
+  "files": [
+    {"path": "README.md", "size_bytes": 1020, "sha256": "07085714fbb48619718aed44113da20b0808225d47b024061acbb453125dae69"},
+    {"path": "pattern1_negative_local_pointer/Cargo.toml", "size_bytes": 130, "sha256": "17334d7e370651a89fa5dcecc66519c3a504a28085be7fe9cbd4344dbe50a7f4"},
+    {"path": "pattern1_negative_local_pointer/fixture.json", "size_bytes": 431, "sha256": "347cf1c263d8854c901f809c62473287be129e13c492c8ee8e95cf618a1740f4"},
+    {"path": "pattern1_negative_local_pointer/src/lib.rs", "size_bytes": 243, "sha256": "24de19f762f82ecf8f53fb6dd85e91a5cba264fcccb7fbe4d1afad45af8bf399"},
+    {"path": "pattern1_positive/Cargo.toml", "size_bytes": 116, "sha256": "eda67e74a281063f6e19ca0ae6cd25c2e53d7aaa4894ae51d72a76acac58f88a"},
+    {"path": "pattern1_positive/fixture.json", "size_bytes": 549, "sha256": "ecf37eeaaa2965282909825f68af6d43f4b62ec1540f47e571eca83c579237df"},
+    {"path": "pattern1_positive/src/lib.rs", "size_bytes": 184, "sha256": "9a98c0ee4b2a77a939ce6224642e65e6d23c5c45cf753480c51bd60fe9fa7bb0"},
+    {"path": "pattern2_display_negative/Cargo.toml", "size_bytes": 124, "sha256": "03e4e88864f79c694ad5cfa91ec4bee613eb5b3bf283148cbd2e15cbfb7d34c7"},
+    {"path": "pattern2_display_negative/fixture.json", "size_bytes": 413, "sha256": "d3e043b2cdebc8b5f45cf88da052b66c64e19ed6457fa9e4336d070205ebcad0"},
+    {"path": "pattern2_display_negative/src/lib.rs", "size_bytes": 229, "sha256": "d98769232484c5c9a91f483571a0053c7c9679367b6881d3bcb605f0a6981e03"},
+    {"path": "pattern2_negative_private_field/Cargo.toml", "size_bytes": 130, "sha256": "71aef23d134b2e485b41d0ed15406855d92cd2fef76273fd2e9aa04847db6276"},
+    {"path": "pattern2_negative_private_field/fixture.json", "size_bytes": 431, "sha256": "feb480971779a982fe9e41b052fe84f86cff93e12e2a41dc4582996db30a75a5"},
+    {"path": "pattern2_negative_private_field/src/lib.rs", "size_bytes": 357, "sha256": "9dfa78497ac4cd11e1304e16170280e97750dfd9e108cf4c9035f187c9408fd9"},
+    {"path": "pattern2_positive/Cargo.toml", "size_bytes": 116, "sha256": "438d733cedece3caa2144b76f09b7991364f69f8815148143a419e0b2b2b130f"},
+    {"path": "pattern2_positive/fixture.json", "size_bytes": 600, "sha256": "64ca218483cbd1c5149e6ba3ebc55e672aebe825589ebfaef00f9d5b4d2fbb22"},
+    {"path": "pattern2_positive/src/lib.rs", "size_bytes": 294, "sha256": "561ad24d1c1e10ae8a93b779d6d3446f7944dc3e9ef3b0c8eb8cf21141f9837e"},
+    {"path": "pattern2_write_negative/Cargo.toml", "size_bytes": 122, "sha256": "2a429d9171273fd6e067d8e2dc4d2680a3d655ebc0c4eb0b25eb96fbeffec81b"},
+    {"path": "pattern2_write_negative/fixture.json", "size_bytes": 407, "sha256": "631a0abdf6ebec85373bf4b32e464e6520260142f296cc46e8e301337c1b29c4"},
+    {"path": "pattern2_write_negative/src/lib.rs", "size_bytes": 221, "sha256": "4254466a82b76a68651ebb05bd92e2b699894413f97e9c33313b75d68fd404e8"},
+    {"path": "pattern3_negative_private_chain/Cargo.toml", "size_bytes": 130, "sha256": "c30aa0b0f0e88253cd9f8436898f051f1d770f38e5f5432e3ff5fe01d208b262"},
+    {"path": "pattern3_negative_private_chain/fixture.json", "size_bytes": 431, "sha256": "062b2af99664c91e2a462fb6797fe42da0a1cfe8bc74ae39a70b8f6dd79f04e6"},
+    {"path": "pattern3_negative_private_chain/src/lib.rs", "size_bytes": 258, "sha256": "81800225dba60fc583befcd7f8e0f2f58554e5b3ceb20550c7a94eb3b32f5c29"},
+    {"path": "pattern3_positive/Cargo.toml", "size_bytes": 116, "sha256": "77b3fa8256f1e9791c2b3b2b679d322da6b1cf93ae63168c7722374a5958899a"},
+    {"path": "pattern3_positive/fixture.json", "size_bytes": 592, "sha256": "14c55946c9bc6f027082c3278307f08c3249dd85caa354394d2cb9073a7da129"},
+    {"path": "pattern3_positive/src/lib.rs", "size_bytes": 205, "sha256": "b745d7dea39aa0a40267ecd7f5a72bbbb514cf8d133f429291b5ff9074f4f787"},
+    {"path": "pattern4_negative_checked_utf8/Cargo.toml", "size_bytes": 129, "sha256": "821736f367e77b646e9b39b28d48b92829b3dceda28660737a926cb7a39e92b4"},
+    {"path": "pattern4_negative_checked_utf8/fixture.json", "size_bytes": 428, "sha256": "25f4e8c9536e360a67a7fca6a6c60805925df93fd15273a01d7882a6f43cd24a"},
+    {"path": "pattern4_negative_checked_utf8/src/lib.rs", "size_bytes": 283, "sha256": "8d6a580db699b469fe0de8ce4c500e64c6e03321b217df4012b1c949062c8c3c"},
+    {"path": "pattern4_positive/Cargo.toml", "size_bytes": 116, "sha256": "42b7acb2522228d9fc273347c982e997aac06ccf3d180be20dcd7fed96cc22f3"},
+    {"path": "pattern4_positive/fixture.json", "size_bytes": 556, "sha256": "5c653dd3cb563afc7d0b0ae851c9b9b76f9338953ac66bf60204e4af9f1591b6"},
+    {"path": "pattern4_positive/src/lib.rs", "size_bytes": 260, "sha256": "c20becbf1fdb4c034a59e21b3c13917ca286b9db0a33aba3a2fc34bcbf2deef4"}
+  ]
+}

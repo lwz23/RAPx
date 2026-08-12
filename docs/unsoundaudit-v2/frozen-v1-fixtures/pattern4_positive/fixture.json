@@ -1,0 +1,23 @@
+{
+  "schema_version": "unsoundaudit-pattern-fixture-v1",
+  "case_id": "pattern4_positive",
+  "package_name": "pattern4_positive",
+  "crate_name": "pattern4_positive",
+  "manifest_relative_path": "Cargo.toml",
+  "source_relative_path": "src/lib.rs",
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 1
+  },
+  "expected_findings": [
+    {
+      "pattern": "pattern4",
+      "context_suffix": "::extend_local_lifetime",
+      "context_kind": "Function",
+      "element_contains": "high-risk"
+    }
+  ]
+}
+

@@ -1,0 +1,23 @@
+{
+  "schema_version": "unsoundaudit-pattern-fixture-v1",
+  "case_id": "pattern3_positive",
+  "package_name": "pattern3_positive",
+  "crate_name": "pattern3_positive",
+  "manifest_relative_path": "Cargo.toml",
+  "source_relative_path": "src/lib.rs",
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 1,
+    "pattern4": 0
+  },
+  "expected_findings": [
+    {
+      "pattern": "pattern3",
+      "context_suffix": "::public_forward",
+      "context_kind": "Function",
+      "element_contains": "private_read",
+      "unsafe_operation_contains": "*_"
+    }
+  ]
+}

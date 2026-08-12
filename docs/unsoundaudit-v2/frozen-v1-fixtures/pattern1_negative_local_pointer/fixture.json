@@ -1,0 +1,16 @@
+{
+  "schema_version": "unsoundaudit-pattern-fixture-v1",
+  "case_id": "pattern1_negative_local_pointer",
+  "package_name": "pattern1_negative_local_pointer",
+  "crate_name": "pattern1_negative_local_pointer",
+  "manifest_relative_path": "Cargo.toml",
+  "source_relative_path": "src/lib.rs",
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 0
+  },
+  "expected_findings": []
+}
+
