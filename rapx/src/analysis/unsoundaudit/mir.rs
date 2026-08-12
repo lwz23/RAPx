@@ -3,11 +3,11 @@ use super::dataflow::{
 };
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, scc_cycle_token, solve_summaries,
-    AbstractOrigin, AbstractValue, CallBoundary, CallMapping, CanonicalWitness,
+    AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary, CallMapping, CanonicalWitness,
     ContractRequirement, FailureClass, Finding, FunctionKey, FunctionSummary, Obligation,
     Operation, OperationKind, OriginKey, Pattern, PlaceKey, Predicate, ProgramPoint, RuleId,
-    SinkObligation, Source, SourceKind, StablePosition, StableSpan, WitnessStep, WitnessStepKind,
-    WriteEffect,
+    SinkObligation, Source, SourceKind, StablePosition, StableSpan, ValidationFact, WitnessStep,
+    WitnessStepKind, WriteEffect,
 };
 use rustc_hir::{
     def::DefKind,
@@ -381,6 +381,13 @@ struct SelectedRequirement {
     witness: CanonicalWitness,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum ValidationRoute {
+    Satisfied,
+    Conditional(ValidationFact),
+    Hard(ContractRequirement),
+}
+
 struct Engine<'tcx> {
     tcx: TyCtxt<'tcx>,
     project_root: PathBuf,
@@ -464,6 +471,29 @@ impl<'tcx> Engine<'tcx> {
                         .map(|value| value.substitute(&actuals));
                     derived.requirements.insert(requirement);
                 }
+                for validation in &callee_summary.validations {
+                    if validation.requirement.return_exposure && !reaches_return {
+                        continue;
+                    }
+                    let Some(state) = caller.states.get(&(
+                        call.point.point_location().block,
+                        call.point.statement as usize,
+                    )) else {
+                        derived
+                            .requirements
+                            .insert(validation.instantiate_requirement(&actuals));
+                        continue;
+                    };
+                    match compose_validation_route(validation, call, state, caller.arg_count) {
+                        ValidationRoute::Satisfied => {}
+                        ValidationRoute::Conditional(validation) => {
+                            derived.validations.insert(validation);
+                        }
+                        ValidationRoute::Hard(requirement) => {
+                            derived.requirements.insert(requirement);
+                        }
+                    }
+                }
                 if reaches_return {
                     if let Some(returned) = mapped_outputs.get(&call.destination) {
                         derived
@@ -508,7 +538,18 @@ impl<'tcx> Engine<'tcx> {
                 continue;
             };
             let paths = self.shortest_paths(root, &graph, &recursive);
-            for requirement in &summary.requirements {
+            let unresolved = summary
+                .requirements
+                .iter()
+                .cloned()
+                .chain(
+                    summary
+                        .validations
+                        .iter()
+                        .map(|validation| validation.requirement.clone()),
+                )
+                .collect::<BTreeSet<_>>();
+            for requirement in &unresolved {
                 if requirement.return_exposure
                     && summary
                         .return_value
@@ -520,7 +561,7 @@ impl<'tcx> Engine<'tcx> {
                 let Some(source) = self.classify_source(facts, requirement) else {
                     continue;
                 };
-                if self.is_discharged(facts, requirement, &paths) {
+                if self.is_discharged(facts, requirement) {
                     continue;
                 }
                 let witness = self.build_witness(facts, requirement, &paths, &recursive);
@@ -690,6 +731,7 @@ impl<'tcx> Engine<'tcx> {
         facts.states = solved.before.clone();
         self.materialize_program(&program, &solved, &mut facts);
         self.add_local_requirements(body, &mut facts);
+        self.partition_validation_contracts(&mut facts);
         for (block, edge) in program.edges.iter_enumerated() {
             if !matches!(edge, EdgeTerm::Return) {
                 continue;
@@ -706,6 +748,55 @@ impl<'tcx> Engine<'tcx> {
             }
         }
         facts
+    }
+
+    fn partition_validation_contracts(&self, facts: &mut BodyFacts) {
+        let requirements = facts
+            .summary_seed
+            .requirements
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        for requirement in requirements {
+            let Some(predicate) = migrated_validation_predicate(&requirement) else {
+                continue;
+            };
+            let point = requirement.sink.point.point_location();
+            let Some(state) = facts.states.get(&(point.block, point.statement_index)) else {
+                continue;
+            };
+            let Some(binding) = facts.local_bindings.get(&requirement.sink.point) else {
+                continue;
+            };
+            if binding.predicate != predicate {
+                continue;
+            }
+            if state_proves_local_binding(state, Some(binding)) {
+                facts.summary_seed.requirements.remove(&requirement);
+                continue;
+            }
+            let subject = entry_formal_slot(facts.arg_count, state, &binding.subject);
+            let collection = match &binding.collection {
+                Some(place) => {
+                    let Some(slot) = entry_formal_slot(facts.arg_count, state, place) else {
+                        continue;
+                    };
+                    Some(slot)
+                }
+                None => None,
+            };
+            let Some(validation) = ValidationFact::export_entry_contract(
+                requirement.clone(),
+                subject,
+                collection,
+                true,
+                true,
+            ) else {
+                continue;
+            };
+            facts.summary_seed.requirements.remove(&requirement);
+            facts.summary_seed.validations.insert(validation);
+        }
     }
 
     fn materialize_program(
@@ -1269,7 +1360,8 @@ impl<'tcx> Engine<'tcx> {
             direct: raw_def.is_some(),
         });
 
-        let mutable_actuals = if disposition == BoundaryDisposition::OpaqueDirect
+        let mutable_actuals = if disposition == BoundaryDisposition::ResolvedLocal
+            || disposition == BoundaryDisposition::OpaqueDirect
             || disposition == BoundaryDisposition::OpaqueIndirect
         {
             args.iter()
@@ -1764,12 +1856,7 @@ impl<'tcx> Engine<'tcx> {
         None
     }
 
-    fn is_discharged(
-        &self,
-        root: &BodyFacts,
-        requirement: &ContractRequirement,
-        paths: &BTreeMap<FunctionKey, Vec<CallSite>>,
-    ) -> bool {
+    fn is_discharged(&self, root: &BodyFacts, requirement: &ContractRequirement) -> bool {
         if requirement.sink_function == root.function {
             return self.local_validation(
                 root,
@@ -1777,13 +1864,7 @@ impl<'tcx> Engine<'tcx> {
                 requirement.sink.point.point_location(),
             );
         }
-        let Some(path) = paths.get(&requirement.sink_function) else {
-            return false;
-        };
-        let Some(first_call) = path.first() else {
-            return false;
-        };
-        self.local_validation(root, requirement, first_call.point.point_location())
+        false
     }
 
     fn local_validation(
@@ -3210,6 +3291,102 @@ fn state_proves_local_binding(
     binding.is_some_and(|binding| state.has_current_validation(binding, binding.storage_places()))
 }
 
+fn migrated_validation_predicate(requirement: &ContractRequirement) -> Option<Predicate> {
+    let mut predicates = requirement.predicates.iter().copied();
+    let predicate = predicates.next()?;
+    if predicates.next().is_some()
+        || !matches!(
+            predicate,
+            Predicate::InBounds | Predicate::NonEmpty | Predicate::NonNull
+        )
+    {
+        return None;
+    }
+    Some(predicate)
+}
+
+fn entry_formal_slot(
+    arg_count: usize,
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+) -> Option<BoundarySlot> {
+    if canonical_storage(place) != *place {
+        return None;
+    }
+    let index = place.0.strip_prefix('_')?.parse::<u32>().ok()?;
+    if index == 0 || index as usize > arg_count {
+        return None;
+    }
+    if state
+        .versions()
+        .get(place)
+        .is_some_and(|versions| !versions.is_empty())
+        || state_value(state, place).havoced
+        || unique_semantic_value(&semantic_value_at(state, place)).as_ref() != Some(place)
+    {
+        return None;
+    }
+    Some(BoundarySlot::Formal(index))
+}
+
+fn compose_validation_route(
+    validation: &ValidationFact,
+    call: &CallSite,
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    caller_arg_count: usize,
+) -> ValidationRoute {
+    let requirement = validation.instantiate_requirement(
+        &call
+            .arg_values
+            .iter()
+            .map(|value| value.value.clone())
+            .collect::<Vec<_>>(),
+    );
+    let Some(binding) = instantiate_validation_binding(validation, call) else {
+        return ValidationRoute::Hard(requirement);
+    };
+    if state.has_current_validation(&binding, binding.storage_places()) {
+        return ValidationRoute::Satisfied;
+    }
+    let subject = entry_formal_slot(caller_arg_count, state, &binding.subject);
+    let collection = match &binding.collection {
+        Some(place) => match entry_formal_slot(caller_arg_count, state, place) {
+            Some(slot) => Some(slot),
+            None => return ValidationRoute::Hard(requirement),
+        },
+        None => None,
+    };
+    ValidationFact::export_entry_contract(requirement.clone(), subject, collection, true, true)
+        .map_or(
+            ValidationRoute::Hard(requirement),
+            ValidationRoute::Conditional,
+        )
+}
+
+fn instantiate_validation_binding(
+    validation: &ValidationFact,
+    call: &CallSite,
+) -> Option<ValidationBinding> {
+    let predicate = migrated_validation_predicate(&validation.requirement)?;
+    let place_for_slot = |slot: BoundarySlot| match slot {
+        BoundarySlot::Formal(index) if index > 0 => call
+            .arg_values
+            .get(index as usize - 1)
+            .and_then(unique_semantic_value),
+        BoundarySlot::Formal(_) | BoundarySlot::Return | BoundarySlot::Out(_) => None,
+    };
+    let subject = place_for_slot(validation.subject)?;
+    let collection = validation.collection.and_then(place_for_slot);
+    if predicate == Predicate::InBounds && collection.is_none() {
+        return None;
+    }
+    Some(ValidationBinding {
+        predicate,
+        subject,
+        collection,
+    })
+}
+
 fn apply_call_side_effects(
     call: &CallModel,
     point: &ProgramPoint,
@@ -3743,6 +3920,187 @@ mod tests {
         place: &PlaceKey,
     ) {
         state.set_value(place.clone(), exact_value(place));
+    }
+
+    fn task6_contract() -> ValidationFact {
+        let sink = Operation {
+            kind: OperationKind::GetUnchecked,
+            point: point(4, 0),
+        };
+        ValidationFact::export_entry_contract(
+            ContractRequirement {
+                seed_id: "task6-bounds".into(),
+                collection: Some(AbstractValue::new([AbstractOrigin::Formal(1)])),
+                subject: AbstractValue::new([AbstractOrigin::Formal(2)]),
+                source_hint: None,
+                internal_derivation: false,
+                source_span: span(),
+                first_failure: sink.clone(),
+                sink,
+                predicates: BTreeSet::from([Predicate::InBounds]),
+                access_width: None,
+                rule: RuleId::P1GetUnchecked,
+                return_exposure: false,
+                sink_function: FunctionKey::new("crate::sink"),
+            },
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .unwrap()
+    }
+
+    fn task6_call(collection: &PlaceKey, subject: &PlaceKey) -> CallSite {
+        let value = |place: &PlaceKey, formal| ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::Formal(formal)]),
+            exact_roots: BTreeSet::from([place.clone()]),
+            ..ValueFacts::default()
+        };
+        CallSite {
+            callee: Some(FunctionKey::new("crate::sink")),
+            raw_def: None,
+            disposition: BoundaryDisposition::ResolvedLocal,
+            args: vec![
+                CallOperand::Place(collection.clone()),
+                CallOperand::Place(subject.clone()),
+            ],
+            arg_values: vec![value(collection, 1), value(subject, 2)],
+            destination: PlaceKey::new("_0"),
+            point: point(1, 0),
+            destination_is_bool: false,
+            access_width: None,
+        }
+    }
+
+    #[test]
+    fn task6_call_contract_requires_the_exact_subject_collection_pair() {
+        let collection = PlaceKey::new("_1");
+        let subject = PlaceKey::new("_2");
+        let other = PlaceKey::new("_3");
+        let call = task6_call(&collection, &subject);
+        let contract = task6_contract();
+
+        let mut guarded = BlockState::empty();
+        for place in [&collection, &subject, &other] {
+            seed_exact(&mut guarded, place);
+        }
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: subject.clone(),
+            collection: Some(collection.clone()),
+        };
+        guarded.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+        assert_eq!(
+            compose_validation_route(&contract, &call, &guarded, 3),
+            ValidationRoute::Satisfied
+        );
+
+        let mut wrong_collection = BlockState::empty();
+        for place in [&collection, &subject, &other] {
+            seed_exact(&mut wrong_collection, place);
+        }
+        let wrong = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: subject.clone(),
+            collection: Some(other),
+        };
+        wrong_collection.establish(BoundValidation::new(wrong.clone(), wrong.storage_places()));
+        assert!(matches!(
+            compose_validation_route(&contract, &call, &wrong_collection, 3),
+            ValidationRoute::Conditional(_)
+        ));
+    }
+
+    #[test]
+    fn task6_unmet_routes_union_and_writes_prevent_rebasing() {
+        let collection = PlaceKey::new("_1");
+        let subject = PlaceKey::new("_2");
+        let call = task6_call(&collection, &subject);
+        let contract = task6_contract();
+
+        let mut guarded = BlockState::empty();
+        seed_exact(&mut guarded, &collection);
+        seed_exact(&mut guarded, &subject);
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: subject.clone(),
+            collection: Some(collection.clone()),
+        };
+        guarded.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+
+        let mut unguarded = BlockState::empty();
+        seed_exact(&mut unguarded, &collection);
+        seed_exact(&mut unguarded, &subject);
+        let routes = [
+            compose_validation_route(&contract, &call, &guarded, 2),
+            compose_validation_route(&contract, &call, &unguarded, 2),
+        ];
+        assert!(routes.contains(&ValidationRoute::Satisfied));
+        assert!(routes
+            .iter()
+            .any(|route| matches!(route, ValidationRoute::Conditional(_))));
+
+        unguarded.record_write(subject.clone(), StaticWriteToken::new(1, 1));
+        assert!(matches!(
+            compose_validation_route(&contract, &call, &unguarded, 2),
+            ValidationRoute::Hard(_)
+        ));
+        assert_eq!(entry_formal_slot(2, &unguarded, &subject), None);
+    }
+
+    #[test]
+    fn task6_resolved_local_mutable_actual_havocs_only_on_the_normal_edge() {
+        let referent = PlaceKey::new("_2");
+        let reference = PlaceKey::new("_3");
+        let destination = PlaceKey::new("_4");
+        let mut before = BlockState::empty();
+        seed_exact(&mut before, &referent);
+        before.set_value(
+            reference.clone(),
+            ValueFacts {
+                value_flow: BTreeSet::from([referent.clone()]),
+                exact_roots: BTreeSet::from([referent.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::NonNull,
+            subject: referent.clone(),
+            collection: None,
+        };
+        before.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(FunctionKey::new("crate::mutate")),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand("_3")],
+                destination,
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: vec![reference],
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+
+        let mut normal = before.clone();
+        apply_call_side_effects(&call, &point(1, 0), &mut normal);
+        assert!(state_value(&normal, &referent).havoced);
+        assert!(!normal.has_current_validation(&binding, binding.storage_places()));
+        assert!(before.has_current_validation(&binding, binding.storage_places()));
     }
 
     #[test]

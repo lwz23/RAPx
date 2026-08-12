@@ -222,28 +222,11 @@ impl Obligation {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ValidationFact {
-    pub place: PlaceKey,
-    pub origin: OriginKey,
-    pub predicate: Predicate,
-    pub established_at: ProgramPoint,
-    pub place_version: u32,
-}
-
-impl ValidationFact {
-    pub fn entails(
-        &self,
-        place: &PlaceKey,
-        origin: &OriginKey,
-        predicate: Predicate,
-        current_place_version: u32,
-    ) -> bool {
-        self.place == *place
-            && self.origin == *origin
-            && self.predicate == predicate
-            && self.place_version == current_place_version
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BoundarySlot {
+    Formal(u32),
+    Return,
+    Out(u32),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -418,6 +401,91 @@ pub struct ContractRequirement {
     pub rule: RuleId,
     pub return_exposure: bool,
     pub sink_function: FunctionKey,
+}
+
+/// A finite, conditional validation contract exported at a function boundary.
+///
+/// Task 6 production extraction exports only entry formals. Return and out
+/// slots are reserved for the structural output work package and are rejected
+/// by `export_entry_contract` until those mappings are populated from MIR.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ValidationFact {
+    pub requirement: ContractRequirement,
+    pub subject: BoundarySlot,
+    pub collection: Option<BoundarySlot>,
+}
+
+impl ValidationFact {
+    pub fn export_entry_contract(
+        requirement: ContractRequirement,
+        subject: Option<BoundarySlot>,
+        collection: Option<BoundarySlot>,
+        dominates_sink: bool,
+        current_after_writes: bool,
+    ) -> Option<Self> {
+        if !dominates_sink || !current_after_writes || requirement.predicates.len() != 1 {
+            return None;
+        }
+        let predicate = *requirement.predicates.iter().next()?;
+        if !matches!(
+            predicate,
+            Predicate::InBounds | Predicate::NonEmpty | Predicate::NonNull
+        ) {
+            return None;
+        }
+        let subject = match subject? {
+            BoundarySlot::Formal(index) if index > 0 => BoundarySlot::Formal(index),
+            _ => return None,
+        };
+        let collection = match collection {
+            Some(BoundarySlot::Formal(index)) if index > 0 => Some(BoundarySlot::Formal(index)),
+            Some(_) => return None,
+            None => None,
+        };
+        if predicate == Predicate::InBounds && collection.is_none() {
+            return None;
+        }
+        Some(Self {
+            requirement,
+            subject,
+            collection,
+        })
+    }
+
+    pub fn instantiate_requirement(&self, actuals: &[AbstractValue]) -> ContractRequirement {
+        let mut requirement = self.requirement.clone();
+        requirement.subject = requirement.subject.substitute(actuals);
+        requirement.collection = requirement
+            .collection
+            .as_ref()
+            .map(|collection| collection.substitute(actuals));
+        requirement
+    }
+
+    pub fn matches_instantiated_requirement(
+        &self,
+        requirement: &ContractRequirement,
+        actuals: &[AbstractValue],
+    ) -> bool {
+        let expected = self.instantiate_requirement(actuals);
+        expected.predicates == requirement.predicates
+            && expected.subject == requirement.subject
+            && expected.collection == requirement.collection
+    }
+}
+
+pub fn intersect_validation_paths<'a>(
+    paths: impl IntoIterator<Item = &'a BTreeSet<ValidationFact>>,
+) -> BTreeSet<ValidationFact> {
+    let mut paths = paths.into_iter();
+    let Some(first) = paths.next() else {
+        return BTreeSet::new();
+    };
+    let mut common = first.clone();
+    for path in paths {
+        common.retain(|fact| path.contains(fact));
+    }
+    common
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1099,6 +1167,21 @@ mod tests {
             point: point("crate::entry", ordinal, 0),
         };
         let obligation = Obligation::new([Predicate::ValidForRead], OriginKey::new(tag));
+        let requirement = ContractRequirement {
+            seed_id: tag.to_owned(),
+            collection: None,
+            subject: AbstractValue::new([AbstractOrigin::Formal(ordinal)]),
+            source_hint: Some(SourceKind::PublicParameter),
+            internal_derivation: false,
+            source_span: span(ordinal),
+            first_failure: operation.clone(),
+            sink: operation.clone(),
+            predicates: BTreeSet::from([Predicate::NonNull]),
+            access_width: None,
+            rule: RuleId::P1RawRead,
+            return_exposure: false,
+            sink_function: function.clone(),
+        };
         let mut summary = FunctionSummary::empty(function.clone());
         summary.sources.insert(source.clone());
         summary.flows.insert(FlowFact {
@@ -1119,11 +1202,9 @@ mod tests {
             obligation,
         });
         summary.validations.insert(ValidationFact {
-            place: PlaceKey::new(tag),
-            origin: OriginKey::new(tag),
-            predicate: Predicate::ValidForRead,
-            established_at: operation.point.clone(),
-            place_version: ordinal,
+            requirement: requirement.clone(),
+            subject: BoundarySlot::Formal(ordinal),
+            collection: None,
         });
         summary.writes.insert(WriteEffect {
             place: PlaceKey::new(tag),
@@ -1138,21 +1219,7 @@ mod tests {
             }]),
         });
         summary.cycle_tokens.insert(tag.to_owned());
-        summary.requirements.insert(ContractRequirement {
-            seed_id: tag.to_owned(),
-            collection: None,
-            subject: AbstractValue::new([AbstractOrigin::Formal(ordinal)]),
-            source_hint: Some(SourceKind::PublicParameter),
-            internal_derivation: false,
-            source_span: span(ordinal),
-            first_failure: operation.clone(),
-            sink: operation,
-            predicates: BTreeSet::from([Predicate::ValidForRead]),
-            access_width: None,
-            rule: RuleId::P1RawRead,
-            return_exposure: false,
-            sink_function: function,
-        });
+        summary.requirements.insert(requirement);
         summary
             .return_value
             .origins
@@ -1221,7 +1288,7 @@ mod tests {
         assert_eq!(
             left.validations
                 .iter()
-                .map(|fact| fact.origin.0.as_str())
+                .map(|fact| fact.requirement.seed_id.as_str())
                 .collect::<Vec<_>>(),
             vec!["a", "z"]
         );
@@ -1259,33 +1326,132 @@ mod tests {
         );
     }
 
-    #[test]
-    fn validation_entailment_binds_place_origin_predicate_and_version() {
-        let fact = ValidationFact {
-            place: PlaceKey::new("_2"),
-            origin: OriginKey::new("arg:1"),
-            predicate: Predicate::InBounds,
-            established_at: point("crate::entry", 1, 0),
-            place_version: 3,
+    fn bounds_requirement(tag: &str) -> ContractRequirement {
+        let sink = Operation {
+            kind: OperationKind::GetUnchecked,
+            point: point("crate::sink", 4, 0),
         };
-        assert!(fact.entails(
-            &PlaceKey::new("_2"),
-            &OriginKey::new("arg:1"),
-            Predicate::InBounds,
-            3
-        ));
-        assert!(!fact.entails(
-            &PlaceKey::new("_3"),
-            &OriginKey::new("arg:1"),
-            Predicate::InBounds,
-            3
-        ));
-        assert!(!fact.entails(
-            &PlaceKey::new("_2"),
-            &OriginKey::new("arg:1"),
-            Predicate::InBounds,
-            4
-        ));
+        ContractRequirement {
+            seed_id: tag.to_owned(),
+            collection: Some(AbstractValue::new([AbstractOrigin::Formal(1)])),
+            subject: AbstractValue::new([AbstractOrigin::Formal(2)]),
+            source_hint: None,
+            internal_derivation: false,
+            source_span: span(1),
+            first_failure: sink.clone(),
+            sink,
+            predicates: BTreeSet::from([Predicate::InBounds]),
+            access_width: None,
+            rule: RuleId::P1GetUnchecked,
+            return_exposure: false,
+            sink_function: FunctionKey::new("crate::sink"),
+        }
+    }
+
+    #[test]
+    fn entry_validation_contract_requires_formals_dominance_and_current_versions() {
+        let requirement = bounds_requirement("bounds");
+        let exported = ValidationFact::export_entry_contract(
+            requirement.clone(),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        );
+        assert!(exported.is_some());
+        assert!(ValidationFact::export_entry_contract(
+            requirement.clone(),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            false,
+            true,
+        )
+        .is_none());
+        assert!(ValidationFact::export_entry_contract(
+            requirement.clone(),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            false,
+        )
+        .is_none());
+        assert!(ValidationFact::export_entry_contract(
+            requirement.clone(),
+            Some(BoundarySlot::Return),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .is_none());
+        assert!(ValidationFact::export_entry_contract(
+            requirement,
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Out(1)),
+            true,
+            true,
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn validation_contract_substitutes_actuals_and_requires_same_value_pair() {
+        let contract = ValidationFact::export_entry_contract(
+            bounds_requirement("bounds"),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .unwrap();
+        let actuals = vec![
+            AbstractValue::new([AbstractOrigin::Formal(7)]),
+            AbstractValue::new([AbstractOrigin::Formal(8)]),
+        ];
+        let instantiated = contract.instantiate_requirement(&actuals);
+        assert_eq!(
+            instantiated.collection,
+            Some(AbstractValue::new([AbstractOrigin::Formal(7)]))
+        );
+        assert_eq!(
+            instantiated.subject,
+            AbstractValue::new([AbstractOrigin::Formal(8)])
+        );
+        assert!(contract.matches_instantiated_requirement(&instantiated, &actuals));
+
+        let mut wrong_collection = instantiated.clone();
+        wrong_collection.collection = Some(AbstractValue::new([AbstractOrigin::Formal(9)]));
+        assert!(!contract.matches_instantiated_requirement(&wrong_collection, &actuals));
+
+        let mut wrong_subject = instantiated.clone();
+        wrong_subject.subject = AbstractValue::new([AbstractOrigin::Formal(9)]);
+        assert!(!contract.matches_instantiated_requirement(&wrong_subject, &actuals));
+    }
+
+    #[test]
+    fn validation_contracts_intersect_across_all_feasible_paths() {
+        let common = ValidationFact::export_entry_contract(
+            bounds_requirement("common"),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .unwrap();
+        let only_left = ValidationFact::export_entry_contract(
+            bounds_requirement("left"),
+            Some(BoundarySlot::Formal(3)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .unwrap();
+        let left = BTreeSet::from([common.clone(), only_left]);
+        let right = BTreeSet::from([common.clone()]);
+        assert_eq!(
+            intersect_validation_paths([&left, &right]),
+            BTreeSet::from([common])
+        );
+        assert!(intersect_validation_paths([&left, &BTreeSet::new()]).is_empty());
     }
 
     #[test]
