@@ -1,0 +1,921 @@
+{
+  "aggregate_expected_pattern_counts": {
+    "pattern1": 13,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "cases": [
+    {
+      "case_id": "call_constant_return_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/call_constant_return_negative/Cargo.lock",
+          "sha256": "e5537d58e28645098a0ef5bd17718a73bb491a50fdf8b1370ff5f4687740d37b"
+        },
+        "manifest": {
+          "path": "challenges/call_constant_return_negative/Cargo.toml",
+          "sha256": "f8a76053333075caca79739b7ff2adec3a491e15618935ab71fcedf3dd9e899b"
+        },
+        "oracle": {
+          "path": "challenges/call_constant_return_negative/fixture.json",
+          "sha256": "5823614644a04f1ba061a71db9dbd8713d85f102837fdd56f26879d6164e11c4"
+        },
+        "source": {
+          "path": "challenges/call_constant_return_negative/src/lib.rs",
+          "sha256": "8bc0a6cc558973a047bbc408eea5aa44f8ea3da738f1df6bfe56fac5705e24ec"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_constant_return_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "call_guard_in_middle_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/call_guard_in_middle_negative/Cargo.lock",
+          "sha256": "c8820e8f22c7eaaf32d1771897edaab24c7e803ba0e158ae77fcc36f9abbbe6d"
+        },
+        "manifest": {
+          "path": "challenges/call_guard_in_middle_negative/Cargo.toml",
+          "sha256": "446546a2ffa689ea28952c66d3f046be7d387fe62b83aabaf958a6a5ab130ea7"
+        },
+        "oracle": {
+          "path": "challenges/call_guard_in_middle_negative/fixture.json",
+          "sha256": "c7fc9a0c4154d56a5836f40600a0079384c2ec0b8b33037a30fc20119efc6e77"
+        },
+        "source": {
+          "path": "challenges/call_guard_in_middle_negative/src/lib.rs",
+          "sha256": "a0cf9830967495c453638053e79c8bbb5447775df26ac02fa69f25f079dec1fb"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_guard_in_middle_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "call_guard_in_sink_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/call_guard_in_sink_negative/Cargo.lock",
+          "sha256": "d2cc53630e1c819d1003131143060e7286deac5f1208e87062b56ab65200ff4f"
+        },
+        "manifest": {
+          "path": "challenges/call_guard_in_sink_negative/Cargo.toml",
+          "sha256": "346be321078652623733ff44bdba8a1c79777fb711240e3e16a5309984adfde8"
+        },
+        "oracle": {
+          "path": "challenges/call_guard_in_sink_negative/fixture.json",
+          "sha256": "e782cf8f7f3d9bd37dfed1a2b83790b142b62ca4e31246fe730a28b592d4a576"
+        },
+        "source": {
+          "path": "challenges/call_guard_in_sink_negative/src/lib.rs",
+          "sha256": "429bcd264f860d21ae5caf1ff2c534955073372e6f16c835cbc546b42c6dde8e"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_guard_in_sink_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "call_local_out_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_local_out_positive/Cargo.lock",
+          "sha256": "13a453043c624af6b4f963463fdb0e4c0950c70a527e92053be6afb391d6eb46"
+        },
+        "manifest": {
+          "path": "challenges/call_local_out_positive/Cargo.toml",
+          "sha256": "b1eda809c547e92c67a83bd2643751191afb252563b47287281f60265674495b"
+        },
+        "oracle": {
+          "path": "challenges/call_local_out_positive/fixture.json",
+          "sha256": "7a394367dea075c357db567ec18eb68be7f53a309f24901d75fe5a99fadc9d50"
+        },
+        "source": {
+          "path": "challenges/call_local_out_positive/src/lib.rs",
+          "sha256": "3ca2042a810466f4a2cbdece19a814f2708e08eda0e2f10a9b95fb0965df0ff7"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_local_out_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "call_wrappers_0_hop_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_wrappers_0_hop_positive/Cargo.lock",
+          "sha256": "f1978803cf6d424a079f6eccf9a57e041ed71093fdbfef5eca165fb65e9c01a9"
+        },
+        "manifest": {
+          "path": "challenges/call_wrappers_0_hop_positive/Cargo.toml",
+          "sha256": "42eb6b6234d2135e927bc2316fd9613ca01a2f9846c95ecb96b903324264fefc"
+        },
+        "oracle": {
+          "path": "challenges/call_wrappers_0_hop_positive/fixture.json",
+          "sha256": "af4ed0a52a0fb41d56de8bc3fd56483d46f0af201e83cdfec1cf051090e711db"
+        },
+        "source": {
+          "path": "challenges/call_wrappers_0_hop_positive/src/lib.rs",
+          "sha256": "12dcb7d3308df5dada9b40449431f4deb7e0fdf0f478c35f62587d363ebcd557"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_0_hop_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "call_wrappers_1_hop_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_wrappers_1_hop_positive/Cargo.lock",
+          "sha256": "b5de1243507eca24dced4e213dfa3c11eeae01abf291d4046708110a0a1af743"
+        },
+        "manifest": {
+          "path": "challenges/call_wrappers_1_hop_positive/Cargo.toml",
+          "sha256": "7c09d34f247b3aba43d316fdc2c033c5bedebb15e41d34a1fc7e124113c8febc"
+        },
+        "oracle": {
+          "path": "challenges/call_wrappers_1_hop_positive/fixture.json",
+          "sha256": "464435a6530934e036f2454af737a01cacb1b6f066396aac9ecb89e2c99027ea"
+        },
+        "source": {
+          "path": "challenges/call_wrappers_1_hop_positive/src/lib.rs",
+          "sha256": "92b87f619831de6794cbe50e2db665c0a471507869237db6484c37337d5db510"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_1_hop_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "call_wrappers_3_hop_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_wrappers_3_hop_positive/Cargo.lock",
+          "sha256": "624231d38d547b50fd81a65a1c57cc19ca12a6dc3468ec8f86f90cd47b9226b5"
+        },
+        "manifest": {
+          "path": "challenges/call_wrappers_3_hop_positive/Cargo.toml",
+          "sha256": "e2a4595ad14bb28db22dc853dcb96671e3eb2e3b0eb937aa61d254f4139950fc"
+        },
+        "oracle": {
+          "path": "challenges/call_wrappers_3_hop_positive/fixture.json",
+          "sha256": "4db3f61402f126222813d1846fdf0da35591c76756d82a7853c640f843098d81"
+        },
+        "source": {
+          "path": "challenges/call_wrappers_3_hop_positive/src/lib.rs",
+          "sha256": "9ac1dc8d6d8b60b2c32c3f5a7d2dc700d2f02a7993e9eb83cb16a61150277804"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_3_hop_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "call_wrappers_5_hop_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_wrappers_5_hop_positive/Cargo.lock",
+          "sha256": "e8cacd7f44e74f2c8d48c42fff4025917c7b709174b538789a6c8d1200324a93"
+        },
+        "manifest": {
+          "path": "challenges/call_wrappers_5_hop_positive/Cargo.toml",
+          "sha256": "196659ed3d6c7998ea73f66511414ee71417466416901d895be67b7a0d98c08f"
+        },
+        "oracle": {
+          "path": "challenges/call_wrappers_5_hop_positive/fixture.json",
+          "sha256": "5f1dc6f346cfd6a0072c15608b5a48e390b878f7f52d15cb72eb382cce66556a"
+        },
+        "source": {
+          "path": "challenges/call_wrappers_5_hop_positive/src/lib.rs",
+          "sha256": "11a0afb7a6beac461752e9f53187b602d21d93964720b801dc975ed0dcf8e536"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_5_hop_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "call_wrong_value_guard_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/call_wrong_value_guard_positive/Cargo.lock",
+          "sha256": "62ff32cd26ae842107b14a9287f3876ac035288e0efafa2b4fa6267d0c2ec00f"
+        },
+        "manifest": {
+          "path": "challenges/call_wrong_value_guard_positive/Cargo.toml",
+          "sha256": "01c7bc1e38a715fc12d77b98ad5cab4a154e9501be09bb96a01613bfb8f3179a"
+        },
+        "oracle": {
+          "path": "challenges/call_wrong_value_guard_positive/fixture.json",
+          "sha256": "b7ae97bd2a285e9d42dd00c70e052aaf373ace45034f4c73c649079df7c899ae"
+        },
+        "source": {
+          "path": "challenges/call_wrong_value_guard_positive/src/lib.rs",
+          "sha256": "75713a063a5815356eb61816f9133239b66ccb2b79d416e95a23dfe7dacdf975"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_call_wrong_value_guard_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "cfg_diamond_all_paths_guard_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/cfg_diamond_all_paths_guard_negative/Cargo.lock",
+          "sha256": "706db170acfbcdd9486d88cf95185c5ff96f0b33b57a66aa1135a91c6fe6697e"
+        },
+        "manifest": {
+          "path": "challenges/cfg_diamond_all_paths_guard_negative/Cargo.toml",
+          "sha256": "00786a86f613f7deacb6b4bbe4f9733967f8b95399c7aeb2dac01dd5eeaf8f00"
+        },
+        "oracle": {
+          "path": "challenges/cfg_diamond_all_paths_guard_negative/fixture.json",
+          "sha256": "98cae04ae63cfcb0d656fd6edb31101428a1c0f179b84c777d5c144cee9e0828"
+        },
+        "source": {
+          "path": "challenges/cfg_diamond_all_paths_guard_negative/src/lib.rs",
+          "sha256": "4fd5a5f85f90930c9bae2e4d3ad27646e9513120401adf5aab28193860f5c102"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_cfg_diamond_all_paths_guard_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "cfg_diamond_one_branch_guard_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/cfg_diamond_one_branch_guard_positive/Cargo.lock",
+          "sha256": "c1dc874c340380997fb8c69a6a64770646d8bc57e31b949d8f9a25e3c1e2d158"
+        },
+        "manifest": {
+          "path": "challenges/cfg_diamond_one_branch_guard_positive/Cargo.toml",
+          "sha256": "80c780772f2fe42d342c0252d17bf9e37d95a63209b91bdfaae6eeef74a3ddbf"
+        },
+        "oracle": {
+          "path": "challenges/cfg_diamond_one_branch_guard_positive/fixture.json",
+          "sha256": "b391fe2b0bb37ab8b2f3705df20a2208993f0e08d101c7652d1274fe5c996a38"
+        },
+        "source": {
+          "path": "challenges/cfg_diamond_one_branch_guard_positive/src/lib.rs",
+          "sha256": "ccc9299fb557f269e56de6f8cc57f16ac3eb18d4c024d3a71a5b4446c289e1a2"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_cfg_diamond_one_branch_guard_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "cfg_guard_then_one_path_write_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/cfg_guard_then_one_path_write_positive/Cargo.lock",
+          "sha256": "2a2a383e5bce187bd53efcf3a7f06cc0ec8e3c2231932b5de27b3bcc13234643"
+        },
+        "manifest": {
+          "path": "challenges/cfg_guard_then_one_path_write_positive/Cargo.toml",
+          "sha256": "8e1b01c4a86d8cf8335c656033677ea935b7a17ff2779474e18f0689d3e220b7"
+        },
+        "oracle": {
+          "path": "challenges/cfg_guard_then_one_path_write_positive/fixture.json",
+          "sha256": "332cc64e262ad84a486b9fe7dbbadaa61d0e39c5682590fdf8b206cb77e41004"
+        },
+        "source": {
+          "path": "challenges/cfg_guard_then_one_path_write_positive/src/lib.rs",
+          "sha256": "f56116067b3b570179ef5ab808e268adbc06c2fbabe50a3e6afc11e48a6ce85d"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_cfg_guard_then_one_path_write_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "cfg_loop_invariant_guard_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/cfg_loop_invariant_guard_negative/Cargo.lock",
+          "sha256": "25a70dc9f8664e1bdf190e4c25f029dbc4a1dd2a70e2347f5500d2c5197d1ac2"
+        },
+        "manifest": {
+          "path": "challenges/cfg_loop_invariant_guard_negative/Cargo.toml",
+          "sha256": "f2e6ba0e38063c9db522afb4936e2368afa2ed5d42c6b0707af632a4a979d203"
+        },
+        "oracle": {
+          "path": "challenges/cfg_loop_invariant_guard_negative/fixture.json",
+          "sha256": "07b45e679fbbb98b8418faba1faddbe5704ed71f5cce2968d0388d194e484e04"
+        },
+        "source": {
+          "path": "challenges/cfg_loop_invariant_guard_negative/src/lib.rs",
+          "sha256": "d0ac8c6066e25d9313a3883db59a9bf23fb16c93eca6c0a1bca8c7f86715d71c"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_cfg_loop_invariant_guard_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "cfg_loop_reassignment_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/cfg_loop_reassignment_positive/Cargo.lock",
+          "sha256": "b675a5c136236ad0f0087a786dc87ba12dca346726eaadd73a99d5066585acd7"
+        },
+        "manifest": {
+          "path": "challenges/cfg_loop_reassignment_positive/Cargo.toml",
+          "sha256": "c636cd022041dd90cd24514f69986adb38c6eb5835080ea08bbd320c3b4bcde5"
+        },
+        "oracle": {
+          "path": "challenges/cfg_loop_reassignment_positive/fixture.json",
+          "sha256": "ee97d3d8f5477efdeda6eb891b590c1f3e793d8c23b8de1821db04c9d3a5d635"
+        },
+        "source": {
+          "path": "challenges/cfg_loop_reassignment_positive/src/lib.rs",
+          "sha256": "7985da9c9de555a17c16f1aa52f5b795722b97b7e01c943b95ce14b6e5e9e785"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_cfg_loop_reassignment_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "guard_bounds_assert_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/guard_bounds_assert_negative/Cargo.lock",
+          "sha256": "ff228191bab6588c5cfd1c88ac132b103d221d232682c1cc5601643008e7f2de"
+        },
+        "manifest": {
+          "path": "challenges/guard_bounds_assert_negative/Cargo.toml",
+          "sha256": "7fddeadcb133b3773c634f5916b436a607425f945bcb0cdd841bfba705a3b030"
+        },
+        "oracle": {
+          "path": "challenges/guard_bounds_assert_negative/fixture.json",
+          "sha256": "7fcd900430b3ff264216447babd794175138292c8143f4c692ec504f6bb74a5b"
+        },
+        "source": {
+          "path": "challenges/guard_bounds_assert_negative/src/lib.rs",
+          "sha256": "14a6ac42e7f0a18e19c99048f8de12d9e63f877fb57ebe508ce55dcbf224a628"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_guard_bounds_assert_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "guard_bounds_lt_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/guard_bounds_lt_negative/Cargo.lock",
+          "sha256": "ccc4da349e7294ecd019c026b3cbe87fe70443756a93b30f15e293ca3ed384b7"
+        },
+        "manifest": {
+          "path": "challenges/guard_bounds_lt_negative/Cargo.toml",
+          "sha256": "55e641b95aeb660ab44d6b0b6d1b38c374dd750531737ac20f19d8a4110df0a5"
+        },
+        "oracle": {
+          "path": "challenges/guard_bounds_lt_negative/fixture.json",
+          "sha256": "ec3ab82f712d1de8fecd6a18078cc78e166e336480b50edf28507c531ef7b18b"
+        },
+        "source": {
+          "path": "challenges/guard_bounds_lt_negative/src/lib.rs",
+          "sha256": "77f99f5e1d57e9f978076d770c4268b4480bfa600a9742dce603e6d3e8c75a3f"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_guard_bounds_lt_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "guard_nonempty_len_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/guard_nonempty_len_negative/Cargo.lock",
+          "sha256": "b50daa26b264d652f42cfe55222835340ecd71803ffd5e22572f26692e09926c"
+        },
+        "manifest": {
+          "path": "challenges/guard_nonempty_len_negative/Cargo.toml",
+          "sha256": "850ce2063f7a55229682c7507c3f22f8f895be802285724b7e024a1a6bd56ebb"
+        },
+        "oracle": {
+          "path": "challenges/guard_nonempty_len_negative/fixture.json",
+          "sha256": "34a29ad5a141b7c53a4b25a4a9b295fcf5f0d058606d00f49d8e8d7c441754b9"
+        },
+        "source": {
+          "path": "challenges/guard_nonempty_len_negative/src/lib.rs",
+          "sha256": "f0d0b8fb0f05fc1ab4c1c91fa9d56110c2f65b8060ffc97d1008b9c4b1934f83"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_guard_nonempty_len_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "guard_nonnull_match_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/guard_nonnull_match_negative/Cargo.lock",
+          "sha256": "0c353ff2abdd190a08bf53d531a45bdb35012edf4aef3ebd06ac9cf7ccd3393d"
+        },
+        "manifest": {
+          "path": "challenges/guard_nonnull_match_negative/Cargo.toml",
+          "sha256": "0bfc8480eb392952b1bf1e3094f28d547d04c36652ebfda37c809e3f75d08a8b"
+        },
+        "oracle": {
+          "path": "challenges/guard_nonnull_match_negative/fixture.json",
+          "sha256": "b97ac151ceb8ea8a826f85b3373617b22a74752882a06378548f39fe73505b0e"
+        },
+        "source": {
+          "path": "challenges/guard_nonnull_match_negative/src/lib.rs",
+          "sha256": "b5fdd21777cbbdb1c91fd57aa6ec8d1f0520a3b02cb4f0f1c78409a8c4a934ab"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_guard_nonnull_match_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "guard_range_checked_add_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/guard_range_checked_add_negative/Cargo.lock",
+          "sha256": "30c9149953e6b1bc8186667b5013ac9a19396cc15acda6c95ce8e8f934c8aa74"
+        },
+        "manifest": {
+          "path": "challenges/guard_range_checked_add_negative/Cargo.toml",
+          "sha256": "9d9bc6f2b7a34b833962369d33efb81de026b1f26abea6c957553cfa24f4f74c"
+        },
+        "oracle": {
+          "path": "challenges/guard_range_checked_add_negative/fixture.json",
+          "sha256": "1aabe7433f2f3e615648a531f3443e7bdeecbe0cfbba9c80908faff5078099e2"
+        },
+        "source": {
+          "path": "challenges/guard_range_checked_add_negative/src/lib.rs",
+          "sha256": "73ebd37303cd84cfb9bf9d37d2ab7830b5d48919bbf752c95b55e5372423327b"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_guard_range_checked_add_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "opaque_closure_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/opaque_closure_negative/Cargo.lock",
+          "sha256": "9d48e4c789aac23fa70951d5327412645c4fe207e0dba1e37e0eb2288b8422a8"
+        },
+        "manifest": {
+          "path": "challenges/opaque_closure_negative/Cargo.toml",
+          "sha256": "67adcaf76b699e6ade223974faa3a28a02171dcf964126c4e40f34a207ca6e73"
+        },
+        "oracle": {
+          "path": "challenges/opaque_closure_negative/fixture.json",
+          "sha256": "f907552b4922def0b7e9b9a4b8a77c1b93e14a35e8424a41e46bbf88f0c0a171"
+        },
+        "source": {
+          "path": "challenges/opaque_closure_negative/src/lib.rs",
+          "sha256": "3b0e8c8dfe3fd625aa519ec9897da82bfbffd6840ed4741f136396014abe952e"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_opaque_closure_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "opaque_dyn_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/opaque_dyn_negative/Cargo.lock",
+          "sha256": "14b75480b5581454b24c29508735412bec56d884af05e1254513cac16e50561c"
+        },
+        "manifest": {
+          "path": "challenges/opaque_dyn_negative/Cargo.toml",
+          "sha256": "d031e681871239b695caeba288abc669fed22ba6b61b672dd67a246bfb95d9a9"
+        },
+        "oracle": {
+          "path": "challenges/opaque_dyn_negative/fixture.json",
+          "sha256": "d59337cd18ef608c8dd13bc4590a5be4c8edf4f0dac0043598e1267da61b340f"
+        },
+        "source": {
+          "path": "challenges/opaque_dyn_negative/src/lib.rs",
+          "sha256": "bf2d327052d6e75289fc91b8aba1be5ee85bae06f43ff83e241c8ed64917234d"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_opaque_dyn_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "opaque_external_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/opaque_external_negative/Cargo.lock",
+          "sha256": "e643b037de74eb1b9f26707d3b6a186c04559ac747e9c2c4cd9b6ad21e9fb875"
+        },
+        "manifest": {
+          "path": "challenges/opaque_external_negative/Cargo.toml",
+          "sha256": "288eef51c9842ca4ea4ad694a246a0e3ff90cb5cb2188421b2f53ceef8a41433"
+        },
+        "oracle": {
+          "path": "challenges/opaque_external_negative/fixture.json",
+          "sha256": "37e4b0ceaf85f39da75c086977e708022cf6b8fecb8bf7fae3ab3b3fac25c9fe"
+        },
+        "source": {
+          "path": "challenges/opaque_external_negative/src/lib.rs",
+          "sha256": "3bfe9f1e7f63af2aafb189aa448ec4576306f8b02b30328897d1b0a9c90cfc2e"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_opaque_external_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "opaque_fn_pointer_negative",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "files": {
+        "lock": {
+          "path": "challenges/opaque_fn_pointer_negative/Cargo.lock",
+          "sha256": "d18077e2aaffd650c440e389eeb34319248a73d80e06efa4df05c7128c42083f"
+        },
+        "manifest": {
+          "path": "challenges/opaque_fn_pointer_negative/Cargo.toml",
+          "sha256": "c4be14467588c7f091b58f9981b21a9a16eb778f3354f2c4f1d9701bf384e521"
+        },
+        "oracle": {
+          "path": "challenges/opaque_fn_pointer_negative/fixture.json",
+          "sha256": "d72cd86a597690a68216439b02b67fe32c919fda2d137a63840ec97f776253e2"
+        },
+        "source": {
+          "path": "challenges/opaque_fn_pointer_negative/src/lib.rs",
+          "sha256": "a54231cd8250bb8defd98781e5616f708d6d0ee70853107a3563ffcc89563b9d"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_opaque_fn_pointer_negative",
+      "role": "negative"
+    },
+    {
+      "case_id": "recursion_direct_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/recursion_direct_positive/Cargo.lock",
+          "sha256": "35feda7cf436b80e956bfc3319dd8c2c7c03bf2b6fcda0334f4343bdae227317"
+        },
+        "manifest": {
+          "path": "challenges/recursion_direct_positive/Cargo.toml",
+          "sha256": "73ac4ca9a3202a6587be83348f05c2be6f58ac918a69aef4020336ed72df98a0"
+        },
+        "oracle": {
+          "path": "challenges/recursion_direct_positive/fixture.json",
+          "sha256": "b39b6ac4de704a7bc852e4568490ffee2edb81bdc05a78307dc5a70c7eb0881e"
+        },
+        "source": {
+          "path": "challenges/recursion_direct_positive/src/lib.rs",
+          "sha256": "d1250fa025daa5853c880ba1fa17b310585694031262c69140914e8f6fbcd3c4"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_recursion_direct_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "recursion_mutual_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "files": {
+        "lock": {
+          "path": "challenges/recursion_mutual_positive/Cargo.lock",
+          "sha256": "7ac6d1d76150d4870b7e559e83f8d4f012b24a8cc3cea150bcdf374d6d18807a"
+        },
+        "manifest": {
+          "path": "challenges/recursion_mutual_positive/Cargo.toml",
+          "sha256": "a73d93580f8520923b7c6e0eb6ab733fb9d5dfe29880e3ecc70235f4d777ddd4"
+        },
+        "oracle": {
+          "path": "challenges/recursion_mutual_positive/fixture.json",
+          "sha256": "6676dfbd30d568f796f60f6d94c88d8b45559d8d63e3976d8bb8f447a2fb37df"
+        },
+        "source": {
+          "path": "challenges/recursion_mutual_positive/src/lib.rs",
+          "sha256": "80de4a36a976175b64fbe7ef032588e3ebb2e9a2cd68fc79d11cfd25d0fa59ce"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_recursion_mutual_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "span_include_stable_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "extra_files": [
+        {
+          "path": "challenges/span_include_stable_positive/src/included_sink.rs",
+          "sha256": "5f08b2986333695abd22c99d0b828fb93af506bbe32e92128acb414faf000347"
+        }
+      ],
+      "files": {
+        "lock": {
+          "path": "challenges/span_include_stable_positive/Cargo.lock",
+          "sha256": "a32a91ab2fce12193e3982c88f3b68a8a8d2184fe0de9f388219a67a8128c2b2"
+        },
+        "manifest": {
+          "path": "challenges/span_include_stable_positive/Cargo.toml",
+          "sha256": "30c29e09c062742f07703899b0b0773f8fe990cbaa162bab1d7b5911a7f762b9"
+        },
+        "oracle": {
+          "path": "challenges/span_include_stable_positive/fixture.json",
+          "sha256": "3dc16e977f6fd1a2d3eeb7f98fb96f143dbc1f2ab731ee447be2413ddfea4f70"
+        },
+        "source": {
+          "path": "challenges/span_include_stable_positive/src/lib.rs",
+          "sha256": "1e94acd57653dad5d3d23921e47ca0db088c4e22aaf9ab356127b48151811b4d"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_span_include_stable_positive",
+      "role": "positive"
+    },
+    {
+      "case_id": "span_macro_stable_positive",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "extra_files": [
+        {
+          "path": "challenges/span_macro_stable_positive/src/generated_macro.rs",
+          "sha256": "f7f67a553c03c1c73974e0264151cd0acf116845d5e1497f27806ba378335bf1"
+        }
+      ],
+      "files": {
+        "lock": {
+          "path": "challenges/span_macro_stable_positive/Cargo.lock",
+          "sha256": "708f1b61bba289978032dba39eced55c26b09b40c4a7ce840a182ec2877d852e"
+        },
+        "manifest": {
+          "path": "challenges/span_macro_stable_positive/Cargo.toml",
+          "sha256": "7296dbe6c504a433d66625d5ddee827fa82d357a3a0140a4628bcf24a2cafcce"
+        },
+        "oracle": {
+          "path": "challenges/span_macro_stable_positive/fixture.json",
+          "sha256": "e1187d8b15d99638ff733d0ebbc941af90a729aee9ebffe10995b991168635f5"
+        },
+        "source": {
+          "path": "challenges/span_macro_stable_positive/src/lib.rs",
+          "sha256": "ccaa0624877be66651ebf615c689c0064f0c755cb0b46cfb1127b8c893ee144e"
+        }
+      },
+      "package_name": "unsoundaudit_v2_challenge_span_macro_stable_positive",
+      "role": "positive"
+    }
+  ],
+  "fixture_count": 27,
+  "role_counts": {
+    "negative": 14,
+    "positive": 13
+  },
+  "schema_version": "unsoundaudit-v2-challenge-manifest-v1"
+}

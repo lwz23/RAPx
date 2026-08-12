@@ -1,0 +1,34 @@
+{
+  "case_id": "recursion_direct_positive",
+  "expected_finding_count": 1,
+  "expected_finding_spans": [],
+  "expected_pattern_counts": {
+    "pattern1": 1,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "expected_primary_pattern": "pattern1",
+  "expected_rule_id": "P1.get_unchecked",
+  "family_support": null,
+  "fix_fact": null,
+  "forbidden_extra_patterns": [
+    "pattern2",
+    "pattern3",
+    "pattern4",
+    "pattern5",
+    "pattern6"
+  ],
+  "limitations": "adversarial fixture-closed heuristic candidate generator contract",
+  "manifest_relative_path": "Cargo.toml",
+  "obligation": "in_bounds",
+  "package_name": "unsoundaudit_v2_challenge_recursion_direct_positive",
+  "propagation_depth": "recursive",
+  "role": "positive",
+  "schema_version": "unsoundaudit-v2-challenge-v1",
+  "sink": "get_unchecked",
+  "source": "public_parameter",
+  "source_relative_path": "src/lib.rs"
+}

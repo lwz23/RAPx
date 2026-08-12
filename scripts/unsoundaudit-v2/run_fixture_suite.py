@@ -463,7 +463,7 @@ def verify_case_contract(
             "expected_pattern_counts",
             "files",
         }
-        optional_row_fields = {"legacy_frozen_case", "paired_with"}
+        optional_row_fields = {"legacy_frozen_case", "paired_with", "extra_files"}
         if not expected_row_fields <= set(row) or not set(row) <= expected_row_fields | optional_row_fields:
             fail(f"{case_id}: case manifest row keys drifted")
         for key in ("role", "package_name", "expected_primary_pattern", "expected_rule_id", "expected_pattern_counts"):
@@ -501,6 +501,66 @@ def verify_case_contract(
                 or sha256(path) != file_row["sha256"]
             ):
                 fail(f"{case_id}: {role} path or SHA-256 differs from case manifest")
+
+        extra_rows = row.get("extra_files", [])
+        if not isinstance(extra_rows, list):
+            fail(f"{case_id}: extra_files must be a list")
+        declared_extra_paths: set[str] = set()
+        forbidden_paths = {
+            path.relative_to(case_root.parent).as_posix() for path in expected_paths.values()
+        }
+        forbidden_paths.add((fixture / "build.rs").relative_to(case_root.parent).as_posix())
+        fixture_relative = fixture.relative_to(case_root.parent)
+        for index, extra_row in enumerate(extra_rows):
+            location = f"{case_id}: extra_files[{index}]"
+            if not isinstance(extra_row, dict) or set(extra_row) != {"path", "sha256"}:
+                fail(f"{location} keys drifted")
+            relative = normalized_relative_path(extra_row["path"], f"{location}.path")
+            relative_text = relative.as_posix()
+            if relative_text in declared_extra_paths:
+                fail(f"{case_id}: duplicate extra file path: {relative_text}")
+            declared_extra_paths.add(relative_text)
+            if relative_text in forbidden_paths:
+                fail(f"{case_id}: required files and build.rs cannot be listed as extra files")
+            if relative.parts[: len(fixture_relative.parts)] != fixture_relative.parts or len(relative.parts) <= len(
+                fixture_relative.parts
+            ):
+                fail(f"{case_id}: extra file is outside its fixture: {relative_text}")
+            candidate = case_root.parent.joinpath(*relative.parts)
+            cursor = case_root.parent
+            for part in relative.parts:
+                cursor /= part
+                if cursor.is_symlink():
+                    fail(f"{case_id}: extra file path contains a symbolic link: {relative_text}")
+            if not candidate.is_file():
+                fail(f"{case_id}: extra file is not a regular file: {relative_text}")
+            try:
+                candidate.resolve(strict=True).relative_to(resolved_fixture)
+            except (OSError, ValueError) as error:
+                fail(f"{case_id}: extra file escapes its fixture: {relative_text}: {error}")
+            digest = extra_row["sha256"]
+            if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest) or sha256(candidate) != digest:
+                fail(f"{case_id}: extra file SHA-256 differs: {relative_text}")
+            if not git_tracked(repo_root, candidate):
+                fail(f"{case_id}: extra file is not tracked by Git: {relative_text}")
+
+        actual_extra_paths: set[str] = set()
+        required_files = set(expected_paths.values())
+        for candidate in fixture.rglob("*"):
+            if candidate.is_symlink():
+                fail(f"{case_id}: fixture contains a symbolic link: {candidate.relative_to(fixture)}")
+            if candidate.is_dir():
+                continue
+            if not candidate.is_file():
+                fail(f"{case_id}: fixture contains a non-regular entry: {candidate.relative_to(fixture)}")
+            if candidate not in required_files:
+                actual_extra_paths.add(candidate.relative_to(case_root.parent).as_posix())
+        if actual_extra_paths != declared_extra_paths:
+            fail(
+                f"{case_id}: extra file set differs: "
+                f"missing={sorted(declared_extra_paths - actual_extra_paths)}, "
+                f"unlisted={sorted(actual_extra_paths - declared_extra_paths)}"
+            )
     if set(manifest_role_counts) != set(role_counts) or manifest_role_counts != role_counts:
         fail("case manifest role totals drifted")
     if aggregate != expected_counts:

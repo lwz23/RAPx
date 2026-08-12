@@ -441,6 +441,20 @@ class GenericCaseContractTests(unittest.TestCase):
             **options,
         )
 
+    def add_extra_file(
+        self,
+        case_root: Path,
+        manifest: dict,
+        relative: str = "challenges/a/src/included.rs",
+    ) -> Path:
+        path = case_root.parent / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("pub fn included() {}\n", encoding="utf-8")
+        manifest["cases"][0]["extra_files"] = [
+            {"path": relative, "sha256": runner.sha256(path)}
+        ]
+        return path
+
     def test_generic_contract_is_closed_and_tamper_resistant(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             repo, case_root, manifest = self.create_case_contract(Path(directory))
@@ -609,6 +623,70 @@ class GenericCaseContractTests(unittest.TestCase):
             manifest["cases"][0]["files"]["source"]["sha256"] = runner.sha256(source)
             with mock.patch.object(runner, "git_tracked", return_value=True), self.assertRaises(ContractError):
                 self.verify_generic(repo, case_root, manifest)
+
+    def test_extra_files_close_the_regular_file_set(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repo, case_root, manifest = self.create_case_contract(Path(directory))
+            extra = self.add_extra_file(case_root, manifest)
+            with mock.patch.object(runner, "git_tracked", return_value=True) as tracked:
+                self.assertEqual(self.verify_generic(repo, case_root, manifest), ["a", "b"])
+                self.assertIn(extra, [call.args[1] for call in tracked.call_args_list])
+
+            manifest["cases"][0].pop("extra_files")
+            with mock.patch.object(runner, "git_tracked", return_value=True), self.assertRaises(ContractError):
+                self.verify_generic(repo, case_root, manifest)
+
+    def test_extra_file_rows_reject_invalid_paths_and_metadata(self) -> None:
+        invalid_paths = (
+            "challenges/a/Cargo.toml",
+            "challenges/a/Cargo.lock",
+            "challenges/a/src/lib.rs",
+            "challenges/a/fixture.json",
+            "challenges/a/build.rs",
+            "challenges/a/../outside.rs",
+            "/absolute.rs",
+            "C:/outside.rs",
+            "challenges\\a\\outside.rs",
+            "challenges/a/bad\0name.rs",
+        )
+        for invalid in invalid_paths:
+            with self.subTest(path=repr(invalid)), tempfile.TemporaryDirectory() as directory:
+                repo, case_root, manifest = self.create_case_contract(Path(directory))
+                manifest["cases"][0]["extra_files"] = [{"path": invalid, "sha256": "0" * 64}]
+                with mock.patch.object(runner, "git_tracked", return_value=True), self.assertRaises(ContractError):
+                    self.verify_generic(repo, case_root, manifest)
+
+        with tempfile.TemporaryDirectory() as directory:
+            repo, case_root, manifest = self.create_case_contract(Path(directory))
+            self.add_extra_file(case_root, manifest)
+            manifest["cases"][0]["extra_files"] *= 2
+            with mock.patch.object(runner, "git_tracked", return_value=True), self.assertRaises(ContractError):
+                self.verify_generic(repo, case_root, manifest)
+
+        for mutation in ("wrong_hash", "untracked", "symlink", "hidden_file"):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                repo, case_root, manifest = self.create_case_contract(root)
+                extra = self.add_extra_file(case_root, manifest)
+                tracked = mock.patch.object(runner, "git_tracked", return_value=True)
+                if mutation == "wrong_hash":
+                    manifest["cases"][0]["extra_files"][0]["sha256"] = "0" * 64
+                elif mutation == "untracked":
+                    tracked = mock.patch.object(
+                        runner,
+                        "git_tracked",
+                        side_effect=lambda _repo, path: path != extra,
+                    )
+                elif mutation == "symlink":
+                    target = root / "outside.rs"
+                    target.write_text("pub fn outside() {}\n", encoding="utf-8")
+                    extra.unlink()
+                    extra.symlink_to(target)
+                    manifest["cases"][0]["extra_files"][0]["sha256"] = runner.sha256(extra)
+                else:
+                    (case_root / "a/.unfrozen.rs").write_text("pub fn hidden() {}\n", encoding="utf-8")
+                with tracked, self.assertRaises(ContractError):
+                    self.verify_generic(repo, case_root, manifest)
 
     def test_frozen_contract_still_rejects_a_twenty_eighth_case(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

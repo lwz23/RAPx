@@ -1,0 +1,8 @@
+[package]
+name = "unsoundaudit_v2_challenge_guard_bounds_lt_negative"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"

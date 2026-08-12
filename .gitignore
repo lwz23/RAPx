@@ -3,4 +3,5 @@
 target/
 Cargo.lock
 !tests/unsoundaudit-v2/fixtures/**/Cargo.lock
+!tests/unsoundaudit-v2/challenges/**/Cargo.lock
 rapx.txt
