@@ -1,8 +1,7 @@
-use rustc_hir::Node::*;
 use rustc_middle::ty::TyCtxt;
 use rustc_span::def_id::DefId;
 use rustc_span::symbol::Symbol;
-use rustc_span::{FileName, FileNameDisplayPreference};
+use rustc_span::FileName;
 
 extern crate rustc_hir;
 extern crate rustc_middle;
@@ -14,50 +13,25 @@ pub fn get_fn_name(tcx: TyCtxt<'_>, def_id: DefId) -> Option<String> {
 }
 
 pub fn get_name(tcx: TyCtxt<'_>, def_id: DefId) -> Option<Symbol> {
-    if def_id.is_local() {
-        if let Some(node) = tcx.hir().get_if_local(def_id) {
-            match node {
-                Item(item) => {
-                    return Some(item.ident.name);
-                }
-                ImplItem(item) => {
-                    return Some(item.ident.name);
-                }
-                ForeignItem(item) => {
-                    return Some(item.ident.name);
-                }
-                TraitItem(item) => {
-                    return Some(item.ident.name);
-                }
-                _ => {
-                    return None;
-                }
-            }
-        }
-    }
-    None
+    tcx.opt_item_name(def_id)
 }
 
 pub fn get_filename(tcx: TyCtxt<'_>, def_id: DefId) -> Option<String> {
-    // Get the HIR node corresponding to the DefId
-    if let Some(local_id) = def_id.as_local() {
-        let hir_id = tcx.local_def_id_to_hir_id(local_id);
-        let span = tcx.hir().span(hir_id);
-        let source_map = tcx.sess.source_map();
-
-        // Retrieve the file name
-        if let Some(filename) = source_map.span_to_filename(span).into() {
-            return Some(convert_filename(filename));
-        }
-    }
-    None
+    Some(convert_filename(
+        tcx.sess.source_map().span_to_filename(tcx.def_span(def_id)),
+    ))
 }
 
 fn convert_filename(filename: FileName) -> String {
-    match filename {
-        FileName::Real(path) => path
-            .to_string_lossy(FileNameDisplayPreference::Local)
-            .into_owned(),
-        _ => "<unknown>".to_string(),
-    }
+    format_local_filename(&filename)
+}
+
+#[rustversion::before(1.96)]
+fn format_local_filename(filename: &FileName) -> String {
+    filename.prefer_local().to_string()
+}
+
+#[rustversion::since(1.96)]
+fn format_local_filename(filename: &FileName) -> String {
+    filename.prefer_local_unconditionally().to_string()
 }

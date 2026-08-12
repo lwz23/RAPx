@@ -16,24 +16,41 @@ extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;
+extern crate rustc_abi;
 
+#[cfg(feature = "full_analyses")]
 use analysis::api_dep::ApiDep;
+#[cfg(feature = "full_analyses")]
 use analysis::core::alias::mop::MopAlias;
+#[cfg(feature = "full_analyses")]
 use analysis::core::call_graph::CallGraph;
+#[cfg(feature = "full_analyses")]
 use analysis::core::dataflow::DataFlow;
+#[cfg(feature = "full_analyses")]
 use analysis::opt::Opt;
+#[cfg(feature = "full_analyses")]
 use analysis::rcanary::rCanary;
+#[cfg(feature = "full_analyses")]
 use analysis::safedrop::SafeDrop;
+#[cfg(feature = "full_analyses")]
 use analysis::senryx::SenryxCheck;
+#[cfg(feature = "full_analyses")]
 use analysis::unsafety_isolation::{UigInstruction, UnsafetyIsolationCheck};
+#[cfg(feature = "full_analyses")]
 use analysis::utils::show_mir::ShowMir;
-use rustc_data_structures::sync::Lrc;
 use rustc_driver::{Callbacks, Compilation};
 use rustc_interface::interface::Compiler;
-use rustc_interface::{Config, Queries};
+use rustc_interface::Config;
+#[rustversion::before(1.96)]
+use rustc_data_structures::sync::Lrc;
+#[rustversion::before(1.96)]
+use rustc_interface::Queries;
 use rustc_middle::ty::TyCtxt;
+#[rustversion::before(1.96)]
 use rustc_middle::util::Providers;
+#[rustversion::before(1.96)]
 use rustc_session::search_paths::PathKind;
+#[rustversion::before(1.96)]
 use std::path::PathBuf;
 
 // Insert rustc arguments at the beginning of the argument list that RAP wants to be
@@ -54,7 +71,7 @@ pub struct RapCallback {
     show_mir: bool,
     dataflow: usize,
     opt: bool,
-    lwz: bool,
+    unsoundaudit: bool,
 }
 
 impl Default for RapCallback {
@@ -70,27 +87,17 @@ impl Default for RapCallback {
             show_mir: false,
             dataflow: 0,
             opt: false,
-            lwz: false,
+            unsoundaudit: false,
         }
     }
 }
 
 impl Callbacks for RapCallback {
     fn config(&mut self, config: &mut Config) {
-        config.override_queries = Some(|_, providers| {
-            providers.extern_queries.used_crate_source = |tcx, cnum| {
-                let mut providers = Providers::default();
-                rustc_metadata::provide(&mut providers);
-                let mut crate_source = (providers.extern_queries.used_crate_source)(tcx, cnum);
-                // HACK: rustc will emit "crate ... required to be available in rlib format, but
-                // was not found in this form" errors once we use `tcx.dependency_formats()` if
-                // there's no rlib provided, so setting a dummy path here to workaround those errors.
-                Lrc::make_mut(&mut crate_source).rlib = Some((PathBuf::new(), PathKind::All));
-                crate_source
-            };
-        });
+        configure_override_queries(config);
     }
 
+    #[rustversion::before(1.96)]
     fn after_analysis<'tcx>(
         &mut self,
         _compiler: &Compiler,
@@ -104,7 +111,38 @@ impl Callbacks for RapCallback {
         rap_trace!("analysis done");
         Compilation::Continue
     }
+
+    #[rustversion::since(1.96)]
+    fn after_analysis<'tcx>(
+        &mut self,
+        _compiler: &Compiler,
+        tcx: TyCtxt<'tcx>,
+    ) -> Compilation {
+        rap_trace!("Execute after_analysis() of compiler callbacks");
+        start_analyzer(tcx, *self);
+        rap_trace!("analysis done");
+        Compilation::Continue
+    }
 }
+
+#[rustversion::before(1.96)]
+fn configure_override_queries(config: &mut Config) {
+    config.override_queries = Some(|_, providers| {
+        providers.extern_queries.used_crate_source = |tcx, cnum| {
+            let mut providers = Providers::default();
+            rustc_metadata::provide(&mut providers);
+            let mut crate_source = (providers.extern_queries.used_crate_source)(tcx, cnum);
+            // HACK: rustc will emit "crate ... required to be available in rlib format, but
+            // was not found in this form" errors once we use `tcx.dependency_formats()` if
+            // there's no rlib provided, so setting a dummy path here to workaround those errors.
+            Lrc::make_mut(&mut crate_source).rlib = Some((PathBuf::new(), PathKind::All));
+            crate_source
+        };
+    });
+}
+
+#[rustversion::since(1.96)]
+fn configure_override_queries(_config: &mut Config) {}
 
 impl RapCallback {
     pub fn enable_rcanary(&mut self) {
@@ -187,12 +225,12 @@ impl RapCallback {
         self.opt
     }
 
-    pub fn enable_lwz(&mut self) {
-        self.lwz = true;
+    pub fn enable_unsoundaudit(&mut self) {
+        self.unsoundaudit = true;
     }
 
     pub fn is_lwz_enabled(self) -> bool {
-        self.lwz
+        self.unsoundaudit
     }
 }
 
@@ -213,6 +251,9 @@ pub fn compile_time_sysroot() -> Option<String> {
         // We can rely on the sysroot computation in rustc.
         return None;
     }
+    if let Some(sysroot) = option_env!("RUST_SYSROOT") {
+        return Some(sysroot.to_string());
+    }
     // For builds outside rustc, we need to ensure that we got a sysroot
     // that gets used as a default.  The sysroot computation in librustc_session would
     // end up somewhere in the build dir (see `get_or_default_sysroot`).
@@ -229,7 +270,27 @@ pub fn compile_time_sysroot() -> Option<String> {
     Some(env)
 }
 
+#[rustversion::before(1.83)]
+fn install_source_map_compat(tcx: TyCtxt<'_>) {
+    crate::utils::log::install_source_map(tcx.sess.parse_sess.clone_source_map());
+}
+
+#[rustversion::since(1.83)]
+fn install_source_map_compat(_tcx: TyCtxt<'_>) {}
+
 pub fn start_analyzer(tcx: TyCtxt, callback: RapCallback) {
+    install_source_map_compat(tcx);
+
+    run_optional_analyses(tcx, callback);
+
+    if callback.is_lwz_enabled() {
+        println!("UnsoundAudit is enabled");
+        analysis::unsoundaudit::LwzCheck::new(tcx).start();
+    }
+}
+
+#[cfg(feature = "full_analyses")]
+fn run_optional_analyses(tcx: TyCtxt, callback: RapCallback) {
     let _rcanary: Option<rCanary> = if callback.is_rcanary_enabled() {
         let mut rcx = rCanary::new(tcx);
         rcx.start();
@@ -280,9 +341,7 @@ pub fn start_analyzer(tcx: TyCtxt, callback: RapCallback) {
     if callback.is_opt_enabled() {
         Opt::new(tcx).start();
     }
-
-    if callback.is_lwz_enabled() {
-        println!("LWZ is enabled");
-        analysis::lwz::LwzCheck::new(tcx).start();
-    }
 }
+
+#[cfg(not(feature = "full_analyses"))]
+fn run_optional_analyses(_tcx: TyCtxt, _callback: RapCallback) {}

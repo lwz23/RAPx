@@ -1,7 +1,10 @@
+use rapx::utils::unit_output::{
+    route_rustc_unit, IdentityEnvironment, UnitRoute,
+};
+use once_cell::sync::Lazy as LazyLock;
 use std::{
     env,
     path::{Path, PathBuf},
-    sync::LazyLock,
 };
 
 struct Arguments {
@@ -65,20 +68,6 @@ impl Arguments {
         }
     }
 
-    // In rustc phase:
-    // Determines if we are being invoked to build crate for local crate.
-    // Cargo passes the file name as a relative address when building the local crate,
-    fn is_current_compile_crate(&self) -> bool {
-        let mut args = self.args_group1.iter();
-        let entry_path = match args.find(|s| s.ends_with(".rs")) {
-            Some(path) => Path::new(path),
-            None => return false,
-        };
-        entry_path.is_relative()
-            || entry_path.ends_with("lib/rustlib/src/rust/library/std/src/lib.rs")
-            || entry_path.ends_with("lib/rustlib/src/rust/library/core/src/lib.rs")
-            || entry_path.ends_with("lib/rustlib/src/rust/library/alloc/src/lib.rs")
-    }
 }
 
 pub fn rap_clean() -> bool {
@@ -106,24 +95,12 @@ pub fn rap_and_cargo_args() -> [&'static [String]; 2] {
     [&ARGS.args_group1, &ARGS.args_group2]
 }
 
-/// If a crate being compiled is local in rustc phase.
-pub fn is_current_compile_crate() -> bool {
-    ARGS.is_current_compile_crate()
-}
-
-/// Returns true for crate types to be checked;
-/// returns false for some special crate types that can't be handled by rapx.
-/// For example, checking proc-macro crates or build.rs can cause linking errors in rapx.
-pub fn filter_crate_type() -> bool {
-    if let Some(s) = get_arg_flag_value("--crate-type") {
-        return match s {
-            "proc-macro" => false,
-            "bin" if get_arg_flag_value("--crate-name") == Some("build_script_build") => false,
-            _ => true,
-        };
-    }
-    // NOTE: tests don't have --crate-type, they are handled with --test by rustc.
-    true
+pub fn unit_route() -> Result<UnitRoute, String> {
+    let rustc_args = ARGS
+        .args
+        .get(1..)
+        .ok_or_else(|| "missing Cargo-supplied rustc invocation".to_string())?;
+    route_rustc_unit(rustc_args, &IdentityEnvironment::from_process())
 }
 
 pub fn get_arg(pos: usize) -> Option<&'static str> {
@@ -132,6 +109,10 @@ pub fn get_arg(pos: usize) -> Option<&'static str> {
 
 pub fn skip2() -> &'static [String] {
     ARGS.args.get(2..).unwrap_or(&[])
+}
+
+pub fn all_args() -> &'static [String] {
+    &ARGS.args
 }
 
 pub fn current_exe_path() -> &'static Path {

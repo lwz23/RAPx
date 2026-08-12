@@ -31,7 +31,7 @@ Dataflow tracing
     -dataflow        generate dataflow graphs
 
 Internal unsafe function analysis.
-    -lwz             command: "cargo rapx -lwz"
+    -unsoundaudit   command: "cargo rapx -unsoundaudit"
 
 Automatic optimization
     -O or -opt       automatically detect code optimization chances

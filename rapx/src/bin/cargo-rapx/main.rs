@@ -8,6 +8,10 @@
 extern crate rapx;
 
 use rapx::utils::log::{init_log, rap_error_and_exit};
+use rapx::utils::unit_output::{
+    dispatch_phase_from_argv, nested_workspace_wrapper_reason, DispatchPhase, UnitRoute,
+};
+use std::env;
 
 mod args;
 mod help;
@@ -43,15 +47,27 @@ fn phase_cargo_rap() {
 fn phase_rustc_wrapper() {
     rap_trace!("Launch cargo-rapx again triggered by cargo check.");
 
-    let is_direct = args::is_current_compile_crate();
-    // rapx only checks local crates
-    if is_direct && args::filter_crate_type() {
-        run_rap();
-        return;
+    match args::unit_route().unwrap_or_else(|err| rap_error_and_exit(err)) {
+        UnitRoute::PassThrough => run_rustc(),
+        UnitRoute::Analyze(identity) => {
+            let nested_wrapper = env::var_os("RUSTC_WORKSPACE_WRAPPER");
+            let nested_wrapper_reason = nested_wrapper.as_ref().and_then(|value| {
+                (!value.is_empty())
+                    .then(|| nested_workspace_wrapper_reason(Some("configured")))
+                    .flatten()
+            });
+            if let Some(reason) = nested_wrapper_reason {
+                rap_error_and_exit(format!(
+                    "{{\"reason\":\"{reason}\",\"scope\":\"local_analysis_unit\"}}"
+                ));
+            }
+            run_rap(identity);
+        }
+        UnitRoute::Skip { identity, reason } => {
+            write_skip_receipt(&identity, reason);
+            run_rustc();
+        }
     }
-
-    // for dependencies and some special crate types, run rustc as usual
-    run_rustc();
 }
 
 fn main() {
@@ -65,11 +81,9 @@ fn main() {
     // Init the log_system
     init_log().expect("Failed to init log.");
 
-    match args::get_arg(1).unwrap() {
-        s if s.ends_with("rapx") => phase_cargo_rap(),
-        s if s.ends_with("rustc") => phase_rustc_wrapper(),
-        _ => rap_error_and_exit(
-            "rapx must be called with either `rap` or `rustc` as first argument.",
-        ),
+    match dispatch_phase_from_argv(args::all_args()) {
+        Ok(DispatchPhase::CargoRapx) => phase_cargo_rap(),
+        Ok(DispatchPhase::RustcWrapper) => phase_rustc_wrapper(),
+        Err(err) => rap_error_and_exit(err),
     }
 }

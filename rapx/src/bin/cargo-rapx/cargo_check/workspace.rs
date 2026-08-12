@@ -45,9 +45,10 @@ fn get_member_folders(meta: &Metadata) -> Vec<&Utf8Path> {
 type Workspaces = BTreeMap<Utf8PathBuf, Metadata>;
 
 fn workspace(cargo_toml: &Utf8Path) -> Metadata {
-    let exec = cargo_metadata::MetadataCommand::new()
-        .manifest_path(cargo_toml)
-        .exec();
+    let mut command = cargo_metadata::MetadataCommand::new();
+    command.cargo_path(super::exact_cargo_path());
+    command.manifest_path(cargo_toml);
+    let exec = command.exec();
     let metadata = match exec {
         Ok(metadata) => metadata,
         Err(err) => {

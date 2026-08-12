@@ -2,9 +2,44 @@ use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
 use fern::{self, Dispatch};
 use log::LevelFilter;
+#[rustversion::since(1.83)]
 use rustc_span::source_map::get_source_map;
-use rustc_span::{FileNameDisplayPreference, Pos, Span};
+#[rustversion::before(1.83)]
+use rustc_span::source_map::SourceMap;
+#[rustversion::before(1.83)]
+use rustc_data_structures::sync::Lrc;
+use rustc_span::{FileName, Pos, Span};
+#[rustversion::before(1.83)]
+use std::cell::RefCell;
 use std::ops::Range;
+
+#[rustversion::before(1.83)]
+thread_local! {
+    static RAP_SOURCE_MAP: RefCell<Option<Lrc<SourceMap>>> = RefCell::new(None);
+}
+
+#[rustversion::before(1.83)]
+pub fn install_source_map(source_map: Lrc<SourceMap>) {
+    RAP_SOURCE_MAP.with(|slot| *slot.borrow_mut() = Some(source_map));
+}
+
+#[rustversion::before(1.83)]
+fn with_source_map<R>(callback: impl FnOnce(&SourceMap) -> R) -> R {
+    RAP_SOURCE_MAP.with(|slot| {
+        let source_map = slot.borrow();
+        callback(
+            source_map
+                .as_deref()
+                .expect("RAP source map must be installed before analysis"),
+        )
+    })
+}
+
+#[rustversion::since(1.83)]
+fn with_source_map<R>(callback: impl FnOnce(&rustc_span::source_map::SourceMap) -> R) -> R {
+    let source_map = get_source_map().expect("rustc source map is unavailable during analysis");
+    callback(&source_map)
+}
 
 fn log_level() -> LevelFilter {
     if let Ok(s) = std::env::var("RAP_LOG") {
@@ -96,40 +131,45 @@ pub fn rap_error_and_exit(msg: impl AsRef<str>) -> ! {
 
 #[inline]
 pub fn span_to_source_code(span: Span) -> String {
-    get_source_map().unwrap().span_to_snippet(span).unwrap()
+    with_source_map(|source_map| source_map.span_to_snippet(span).unwrap())
 }
 
 #[inline]
 pub fn span_to_first_line(span: Span) -> Span {
     // extend the span to an entrie line or extract the first line if it has multiple lines
-    get_source_map()
-        .unwrap()
-        .span_extend_to_line(span.shrink_to_lo())
+    with_source_map(|source_map| source_map.span_extend_to_line(span.shrink_to_lo()))
 }
 
 #[inline]
 pub fn span_to_trimmed_span(span: Span) -> Span {
     // trim out the first few whitespace
-    span.trim_start(
-        get_source_map()
+    with_source_map(|source_map| {
+        span.trim_start(source_map.span_take_while(span, |c| c.is_whitespace()))
             .unwrap()
-            .span_take_while(span, |c| c.is_whitespace()),
-    )
-    .unwrap()
+    })
+}
+
+#[inline]
+#[rustversion::before(1.96)]
+fn format_local_filename(filename: &FileName) -> String {
+    filename.prefer_local().to_string()
+}
+
+#[inline]
+#[rustversion::since(1.96)]
+fn format_local_filename(filename: &FileName) -> String {
+    filename.prefer_local_unconditionally().to_string()
 }
 
 #[inline]
 pub fn span_to_filename(span: Span) -> String {
-    get_source_map()
-        .unwrap()
-        .span_to_filename(span)
-        .display(FileNameDisplayPreference::Local)
-        .to_string()
+    let filename = with_source_map(|source_map| source_map.span_to_filename(span));
+    format_local_filename(&filename)
 }
 
 #[inline]
 pub fn span_to_line_number(span: Span) -> usize {
-    get_source_map().unwrap().lookup_char_pos(span.lo()).line
+    with_source_map(|source_map| source_map.lookup_char_pos(span.lo()).line)
 }
 
 #[inline]
@@ -146,7 +186,9 @@ pub fn relative_pos_range(span: Span, sub_span: Span) -> Range<usize> {
 }
 
 pub fn are_spans_in_same_file(span1: Span, span2: Span) -> bool {
-    let file1 = get_source_map().unwrap().lookup_source_file(span1.lo());
-    let file2 = get_source_map().unwrap().lookup_source_file(span2.lo());
-    file1.name == file2.name
+    with_source_map(|source_map| {
+        let file1 = source_map.lookup_source_file(span1.lo());
+        let file2 = source_map.lookup_source_file(span2.lo());
+        file1.name == file2.name
+    })
 }
