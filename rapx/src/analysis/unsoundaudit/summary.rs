@@ -310,6 +310,116 @@ pub struct SinkObligation {
     pub obligation: Obligation,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AbstractOrigin {
+    Formal(u32),
+    PublicField {
+        def_path: String,
+        span: StableSpan,
+    },
+    PrivateField {
+        def_path: String,
+        span: StableSpan,
+    },
+    InternalLocal {
+        function: FunctionKey,
+        place: PlaceKey,
+    },
+    GenericCapability {
+        token: String,
+        span: StableSpan,
+    },
+    FfiOutput {
+        token: String,
+        span: StableSpan,
+    },
+    OpenBehaviorOutput {
+        token: String,
+        span: StableSpan,
+    },
+    Constant(u64),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AbstractValue {
+    pub origins: BTreeSet<AbstractOrigin>,
+}
+
+impl AbstractValue {
+    pub fn new(origins: impl IntoIterator<Item = AbstractOrigin>) -> Self {
+        Self {
+            origins: origins.into_iter().collect(),
+        }
+    }
+
+    pub fn substitute(&self, actuals: &[AbstractValue]) -> Self {
+        let mut origins = BTreeSet::new();
+        for origin in &self.origins {
+            if let AbstractOrigin::Formal(index) = origin {
+                if *index > 0 {
+                    if let Some(actual) = actuals.get(*index as usize - 1) {
+                        origins.extend(actual.origins.iter().cloned());
+                        continue;
+                    }
+                }
+            }
+            origins.insert(origin.clone());
+        }
+        Self { origins }
+    }
+}
+
+pub fn map_call_outputs(
+    mappings: &BTreeSet<CallMapping>,
+    return_value: &AbstractValue,
+    out_values: &BTreeMap<u32, AbstractValue>,
+    actuals: &[AbstractValue],
+) -> BTreeMap<PlaceKey, AbstractValue> {
+    let mut mapped = BTreeMap::<PlaceKey, AbstractValue>::new();
+    for mapping in mappings {
+        let (destination, value) = match mapping {
+            CallMapping::ActualToFormal { .. } => continue,
+            CallMapping::ReturnToDestination { destination } => {
+                (destination, return_value.substitute(actuals))
+            }
+            CallMapping::OutToCaller {
+                formal_index,
+                caller_place,
+            } => {
+                let Some(value) = out_values.get(formal_index) else {
+                    continue;
+                };
+                (caller_place, value.substitute(actuals))
+            }
+        };
+        if !value.origins.is_empty() {
+            mapped
+                .entry(destination.clone())
+                .or_default()
+                .origins
+                .extend(value.origins);
+        }
+    }
+    mapped
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ContractRequirement {
+    pub seed_id: String,
+    pub collection: Option<AbstractValue>,
+    pub subject: AbstractValue,
+    pub source_hint: Option<SourceKind>,
+    pub internal_derivation: bool,
+    pub source_span: StableSpan,
+    pub first_failure: Operation,
+    pub sink: Operation,
+    pub predicates: BTreeSet<Predicate>,
+    pub access_width: Option<u64>,
+    pub rule: RuleId,
+    pub return_exposure: bool,
+    pub sink_function: FunctionKey,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FunctionSummary {
     pub function: FunctionKey,
@@ -322,6 +432,8 @@ pub struct FunctionSummary {
     pub writes: BTreeSet<WriteEffect>,
     pub calls: BTreeSet<CallBoundary>,
     pub cycle_tokens: BTreeSet<String>,
+    pub requirements: BTreeSet<ContractRequirement>,
+    pub return_value: AbstractValue,
 }
 
 impl FunctionSummary {
@@ -337,6 +449,8 @@ impl FunctionSummary {
             writes: BTreeSet::new(),
             calls: BTreeSet::new(),
             cycle_tokens: BTreeSet::new(),
+            requirements: BTreeSet::new(),
+            return_value: AbstractValue::default(),
         }
     }
 
@@ -358,6 +472,10 @@ impl FunctionSummary {
         self.writes.extend(other.writes.iter().cloned());
         self.calls.extend(other.calls.iter().cloned());
         self.cycle_tokens.extend(other.cycle_tokens.iter().cloned());
+        self.requirements.extend(other.requirements.iter().cloned());
+        self.return_value
+            .origins
+            .extend(other.return_value.origins.iter().cloned());
         *self != before
     }
 }
@@ -403,6 +521,19 @@ pub fn classify_primary(failure: FailureClass, source: SourceKind) -> Pattern {
         SourceKind::InternalDerived => Pattern::P4,
         SourceKind::InternalUnsafeOrigin => Pattern::P3,
     }
+}
+
+pub fn classify_primary_with_secondary(
+    failure: FailureClass,
+    selected_source: SourceKind,
+    all_sources: impl IntoIterator<Item = SourceKind>,
+) -> (Pattern, BTreeSet<SourceKind>) {
+    let mut secondary_sources = all_sources.into_iter().collect::<BTreeSet<_>>();
+    secondary_sources.remove(&selected_source);
+    (
+        classify_primary(failure, selected_source),
+        secondary_sources,
+    )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -596,10 +727,43 @@ impl CausalKey {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Finding {
     pub causal_key: CausalKey,
+    pub public_root_span: StableSpan,
+    pub sink_obligation: SinkObligation,
     pub primary: Pattern,
     pub rule: RuleId,
     pub witness: CanonicalWitness,
     pub secondary_sources: BTreeSet<SourceKind>,
+}
+
+impl Finding {
+    pub fn new(
+        crate_key: impl Into<String>,
+        public_root: FunctionKey,
+        public_root_span: StableSpan,
+        sink_obligation: SinkObligation,
+        primary: Pattern,
+        rule: RuleId,
+        witness: CanonicalWitness,
+        secondary_sources: BTreeSet<SourceKind>,
+    ) -> Self {
+        let causal_key = CausalKey::from_parts(
+            crate_key,
+            public_root,
+            &sink_obligation.source,
+            &sink_obligation.first_failure,
+            &sink_obligation.sink,
+            &sink_obligation.obligation,
+        );
+        Self {
+            causal_key,
+            public_root_span,
+            sink_obligation,
+            primary,
+            rule,
+            witness,
+            secondary_sources,
+        }
+    }
 }
 
 pub fn deduplicate_findings(findings: impl IntoIterator<Item = Finding>) -> Vec<Finding> {
@@ -923,21 +1087,175 @@ mod tests {
         }
     }
 
+    fn populated_summary(tag: &str, ordinal: u32) -> FunctionSummary {
+        let function = FunctionKey::new("crate::entry");
+        let source = Source {
+            kind: SourceKind::PublicParameter,
+            origin: OriginKey::new(tag),
+            span: span(ordinal),
+        };
+        let operation = Operation {
+            kind: OperationKind::RawRead,
+            point: point("crate::entry", ordinal, 0),
+        };
+        let obligation = Obligation::new([Predicate::ValidForRead], OriginKey::new(tag));
+        let mut summary = FunctionSummary::empty(function.clone());
+        summary.sources.insert(source.clone());
+        summary.flows.insert(FlowFact {
+            from: PlaceKey::new(tag),
+            to: PlaceKey::new("_0"),
+            kind: FlowKind::Copy,
+            point: operation.point.clone(),
+        });
+        summary.return_origins.insert(OriginKey::new(tag));
+        summary.out_dependencies.insert(OutDependency {
+            formal_index: ordinal,
+            origin: OriginKey::new(tag),
+        });
+        summary.sink_obligations.insert(SinkObligation {
+            source,
+            first_failure: operation.clone(),
+            sink: operation.clone(),
+            obligation,
+        });
+        summary.validations.insert(ValidationFact {
+            place: PlaceKey::new(tag),
+            origin: OriginKey::new(tag),
+            predicate: Predicate::ValidForRead,
+            established_at: operation.point.clone(),
+            place_version: ordinal,
+        });
+        summary.writes.insert(WriteEffect {
+            place: PlaceKey::new(tag),
+            point: operation.point.clone(),
+        });
+        summary.calls.insert(CallBoundary {
+            caller: function.clone(),
+            callee: FunctionKey::new(tag),
+            point: operation.point.clone(),
+            mapping: BTreeSet::from([CallMapping::ReturnToDestination {
+                destination: PlaceKey::new(tag),
+            }]),
+        });
+        summary.cycle_tokens.insert(tag.to_owned());
+        summary.requirements.insert(ContractRequirement {
+            seed_id: tag.to_owned(),
+            collection: None,
+            subject: AbstractValue::new([AbstractOrigin::Formal(ordinal)]),
+            source_hint: Some(SourceKind::PublicParameter),
+            internal_derivation: false,
+            source_span: span(ordinal),
+            first_failure: operation.clone(),
+            sink: operation,
+            predicates: BTreeSet::from([Predicate::ValidForRead]),
+            access_width: None,
+            rule: RuleId::P1RawRead,
+            return_exposure: false,
+            sink_function: function,
+        });
+        summary
+            .return_value
+            .origins
+            .insert(AbstractOrigin::Constant(ordinal as u64));
+        summary
+    }
+
     #[test]
     fn summary_join_is_monotone_idempotent_and_stably_sorted() {
-        let key = FunctionKey::new("crate::entry");
-        let mut left = FunctionSummary::empty(key.clone());
-        left.return_origins.insert(OriginKey::new("z"));
-        let mut right = FunctionSummary::empty(key);
-        right.return_origins.insert(OriginKey::new("a"));
+        let mut left = populated_summary("z", 2);
+        let right = populated_summary("a", 1);
+        let before = left.clone();
         assert!(left.join(&right));
+        assert!(before.sources.is_subset(&left.sources));
+        assert!(before.flows.is_subset(&left.flows));
+        assert!(before.return_origins.is_subset(&left.return_origins));
+        assert!(before.out_dependencies.is_subset(&left.out_dependencies));
+        assert!(before.sink_obligations.is_subset(&left.sink_obligations));
+        assert!(before.validations.is_subset(&left.validations));
+        assert!(before.writes.is_subset(&left.writes));
+        assert!(before.calls.is_subset(&left.calls));
+        assert!(before.cycle_tokens.is_subset(&left.cycle_tokens));
+        assert!(before.requirements.is_subset(&left.requirements));
+        assert!(before
+            .return_value
+            .origins
+            .is_subset(&left.return_value.origins));
+        let joined = left.clone();
         assert!(!left.join(&right));
+        assert_eq!(left, joined);
+        assert_eq!(
+            left.sources
+                .iter()
+                .map(|fact| fact.origin.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.flows
+                .iter()
+                .map(|fact| fact.from.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
         assert_eq!(
             left.return_origins
                 .iter()
                 .map(|origin| origin.0.as_str())
                 .collect::<Vec<_>>(),
             vec!["a", "z"]
+        );
+        assert_eq!(
+            left.out_dependencies
+                .iter()
+                .map(|fact| fact.origin.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.sink_obligations
+                .iter()
+                .map(|fact| fact.source.origin.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.validations
+                .iter()
+                .map(|fact| fact.origin.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.writes
+                .iter()
+                .map(|fact| fact.place.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.calls
+                .iter()
+                .map(|fact| fact.callee.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.cycle_tokens
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.requirements
+                .iter()
+                .map(|fact| fact.seed_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
+            left.return_value.origins.iter().collect::<Vec<_>>(),
+            vec![&AbstractOrigin::Constant(1), &AbstractOrigin::Constant(2)]
         );
     }
 
@@ -971,7 +1289,25 @@ mod tests {
     }
 
     #[test]
-    fn call_mapping_distinguishes_actual_return_and_out_state() {
+    fn call_mapping_substitutes_formals_into_return_and_projected_out_places() {
+        let public_field = AbstractOrigin::PublicField {
+            def_path: "crate::Config::pointer".into(),
+            span: span(2),
+        };
+        let ffi_output = AbstractOrigin::FfiOutput {
+            token: "ffi-out:fixture".into(),
+            span: span(3),
+        };
+        let actuals = vec![
+            AbstractValue::new([public_field.clone()]),
+            AbstractValue::new([AbstractOrigin::Constant(7)]),
+        ];
+        let return_value =
+            AbstractValue::new([AbstractOrigin::Formal(2), AbstractOrigin::Constant(9)]);
+        let out_values = BTreeMap::from([(
+            0,
+            AbstractValue::new([AbstractOrigin::Formal(1), ffi_output.clone()]),
+        )]);
         let mappings = BTreeSet::from([
             CallMapping::ActualToFormal {
                 actual: PlaceKey::new("_2"),
@@ -985,7 +1321,17 @@ mod tests {
                 caller_place: PlaceKey::new("_4.*"),
             },
         ]);
-        assert_eq!(mappings.len(), 3);
+        let mapped = map_call_outputs(&mappings, &return_value, &out_values, &actuals);
+        assert_eq!(mapped.len(), 2);
+        assert_eq!(
+            mapped[&PlaceKey::new("_3")],
+            AbstractValue::new([AbstractOrigin::Constant(7), AbstractOrigin::Constant(9)])
+        );
+        assert_eq!(
+            mapped[&PlaceKey::new("_4.*")],
+            AbstractValue::new([public_field, ffi_output])
+        );
+        assert!(!mapped.contains_key(&PlaceKey::new("_2")));
     }
 
     #[test]
@@ -1029,6 +1375,25 @@ mod tests {
     }
 
     #[test]
+    fn primary_selection_preserves_all_other_sources_as_stable_secondary_metadata() {
+        let (primary, secondary) = classify_primary_with_secondary(
+            FailureClass::SinkPrecondition,
+            SourceKind::LiteralPublicField,
+            [
+                SourceKind::InternalDerived,
+                SourceKind::LiteralPublicField,
+                SourceKind::PublicParameter,
+                SourceKind::PublicParameter,
+            ],
+        );
+        assert_eq!(primary, Pattern::P2);
+        assert_eq!(
+            secondary.into_iter().collect::<Vec<_>>(),
+            vec![SourceKind::PublicParameter, SourceKind::InternalDerived]
+        );
+    }
+
+    #[test]
     fn causal_dedup_chooses_shortest_then_lexical_witness() {
         let source = Source {
             kind: SourceKind::PublicParameter,
@@ -1039,24 +1404,33 @@ mod tests {
             kind: OperationKind::GetUnchecked,
             point: point("crate::sink", 3, 0),
         };
+        let sink_obligation = SinkObligation {
+            source: source.clone(),
+            first_failure: sink.clone(),
+            sink: sink.clone(),
+            obligation: Obligation::new([Predicate::InBounds], OriginKey::new("arg:1")),
+        };
         let key = CausalKey::from_parts(
             "crate",
             FunctionKey::new("crate::entry"),
             &source,
             &sink,
             &sink,
-            &Obligation::new([Predicate::InBounds], OriginKey::new("arg:1")),
+            &sink_obligation.obligation,
         );
         let step = |kind, function, line| WitnessStep {
             kind,
             function: FunctionKey::new(function),
             span: span(line),
         };
-        let longer = Finding {
-            causal_key: key.clone(),
-            primary: Pattern::P1,
-            rule: RuleId::P1GetUnchecked,
-            witness: CanonicalWitness::new(
+        let longer = Finding::new(
+            "crate",
+            FunctionKey::new("crate::entry"),
+            span(1),
+            sink_obligation.clone(),
+            Pattern::P1,
+            RuleId::P1GetUnchecked,
+            CanonicalWitness::new(
                 vec![
                     step(WitnessStepKind::Entry, "crate::entry", 1),
                     step(WitnessStepKind::LocalCall, "crate::middle", 2),
@@ -1064,21 +1438,26 @@ mod tests {
                 ],
                 vec![FunctionKey::new("crate::middle")],
             ),
-            secondary_sources: BTreeSet::new(),
-        };
-        let shorter = Finding {
-            causal_key: key,
-            primary: Pattern::P1,
-            rule: RuleId::P1GetUnchecked,
-            witness: CanonicalWitness::new(
+            BTreeSet::new(),
+        );
+        let shorter = Finding::new(
+            "crate",
+            FunctionKey::new("crate::entry"),
+            span(1),
+            sink_obligation,
+            Pattern::P1,
+            RuleId::P1GetUnchecked,
+            CanonicalWitness::new(
                 vec![
                     step(WitnessStepKind::Entry, "crate::entry", 1),
                     step(WitnessStepKind::Sink, "crate::sink", 3),
                 ],
                 vec![],
             ),
-            secondary_sources: BTreeSet::from([SourceKind::InternalDerived]),
-        };
+            BTreeSet::from([SourceKind::InternalDerived]),
+        );
+        assert_eq!(longer.causal_key, key);
+        assert_eq!(shorter.causal_key, key);
         let findings = deduplicate_findings([longer, shorter]);
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].witness.steps.len(), 2);
