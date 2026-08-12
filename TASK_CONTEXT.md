@@ -29,6 +29,11 @@
 - A read-only audit found that the current evidence does not establish real-project precision. High-risk gaps include block-order-dependent intraprocedural facts, incomplete callee-side validation propagation, no end-to-end MIR recursion case, and no production local out-parameter propagation.
 - The user approved the written robustness protocol in `docs/superpowers/specs/2026-08-12-unsoundaudit-v2-real-project-robustness-pilot-design.md`.
 - The TDD execution plans are `docs/superpowers/plans/2026-08-12-unsoundaudit-v2-robustness-implementation.md` for the synthetic correctness package and `docs/superpowers/plans/2026-08-12-unsoundaudit-v2-stdlib-pilot.md` for the gated real-project pilot. Execution begins with an independent challenge contract and RED receipt; standard-library scanning cannot start until the synthetic suite is deterministic and green.
+- The independent 27-case challenge contract is frozen at commit `6780ecb5a07db1ecbc74195ff14afcbb6880cd7e` with manifest SHA-256 `5fa4ece56bde89258919fc64e35a6cec1f081ffc7efa9e396d5edea83f491f1a`.
+- The exact-nightly challenge RED gate completed all 27 control checks and static scans with fresh targets: 21 cases matched their oracle and 6 did not. The observed aggregate was P1=17 and P2–P6=0 versus the frozen expected P1=13 and P2–P6=0.
+- The six RED cases are five unexpected P1 candidates (`call_guard_in_middle_negative`, `call_guard_in_sink_negative`, `cfg_diamond_all_paths_guard_negative`, `guard_bounds_assert_negative`, and `guard_bounds_lt_negative`) plus one missing P1 candidate (`call_local_out_positive`). The RED receipt does not infer fixes from these mismatches.
+- Direct and mutual recursion, wrapper depths 0/1/3/5, unresolved opaque boundaries, stable macro/include spans, the loop cases, and the remaining frozen guard spellings already matched their challenge oracles at the RED baseline.
+- After the challenge RED run, the original frozen 27-fixture suite passed again with aggregate `3/2/2/2/1/2`; its normalized SHA-256 remained `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
 
 ## Decisions
 
@@ -50,6 +55,7 @@
 - Raw final logs remain local and uncommitted; only their SHA-256 digests and the normalized deterministic result are tracked.
 - Real-project results use pre-registered samples, labels, and stop lines. Standard-library findings become development data after any result-informed change and cannot then serve as an unseen precision holdout.
 - `core`, `alloc`, and `std` are evaluated separately because crate-local analysis intentionally does not propagate across their boundaries.
+- The challenge RED was collected with one independent `--case` runner invocation per frozen case so fail-fast oracle validation could not hide later mismatches; every invocation still performed exactly one fresh control check and one fresh static scan.
 
 ## Rejected Alternatives
 

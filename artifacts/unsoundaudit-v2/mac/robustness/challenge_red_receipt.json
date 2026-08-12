@@ -1,0 +1,204 @@
+{
+  "baseline_preservation": {
+    "aggregate_pattern_counts": {
+      "pattern1": 3,
+      "pattern2": 2,
+      "pattern3": 2,
+      "pattern4": 2,
+      "pattern5": 1,
+      "pattern6": 2
+    },
+    "fixture_count": 27,
+    "normalized_receipt_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "runner_exit_code": 0,
+    "status": "pass"
+  },
+  "build": {
+    "cargo_jobs": 1,
+    "command": "<exact-cargo> build --manifest-path rapx/Cargo.toml --locked --bins --jobs 1",
+    "exit_code": 0,
+    "fresh_target": true,
+    "outputs_present": [
+      "cargo-rapx",
+      "rapx"
+    ]
+  },
+  "challenge": {
+    "aggregate_expected_pattern_counts": {
+      "pattern1": 13,
+      "pattern2": 0,
+      "pattern3": 0,
+      "pattern4": 0,
+      "pattern5": 0,
+      "pattern6": 0
+    },
+    "aggregate_observed_pattern_counts": {
+      "pattern1": 17,
+      "pattern2": 0,
+      "pattern3": 0,
+      "pattern4": 0,
+      "pattern5": 0,
+      "pattern6": 0
+    },
+    "case_count": 27,
+    "control_checks_passed": 27,
+    "failed_case_count": 6,
+    "failed_cases": [
+      {
+        "case_id": "call_guard_in_middle_negative",
+        "mismatch": "expected zero findings; observed one P1.get_unchecked candidate",
+        "observed_finding_count": 1,
+        "observed_pattern_counts": {
+          "pattern1": 1,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      },
+      {
+        "case_id": "call_guard_in_sink_negative",
+        "mismatch": "expected zero findings; observed one P1.get_unchecked candidate",
+        "observed_finding_count": 1,
+        "observed_pattern_counts": {
+          "pattern1": 1,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      },
+      {
+        "case_id": "call_local_out_positive",
+        "mismatch": "expected one P1 finding; observed zero findings",
+        "observed_finding_count": 0,
+        "observed_pattern_counts": {
+          "pattern1": 0,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      },
+      {
+        "case_id": "cfg_diamond_all_paths_guard_negative",
+        "mismatch": "expected zero findings; observed one P1.get_unchecked candidate",
+        "observed_finding_count": 1,
+        "observed_pattern_counts": {
+          "pattern1": 1,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      },
+      {
+        "case_id": "guard_bounds_assert_negative",
+        "mismatch": "expected zero findings; observed one P1.get_unchecked candidate",
+        "observed_finding_count": 1,
+        "observed_pattern_counts": {
+          "pattern1": 1,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      },
+      {
+        "case_id": "guard_bounds_lt_negative",
+        "mismatch": "expected zero findings; observed one P1.get_unchecked candidate",
+        "observed_finding_count": 1,
+        "observed_pattern_counts": {
+          "pattern1": 1,
+          "pattern2": 0,
+          "pattern3": 0,
+          "pattern4": 0,
+          "pattern5": 0,
+          "pattern6": 0
+        },
+        "runner_exit_code": 1
+      }
+    ],
+    "manifest_sha256": "5fa4ece56bde89258919fc64e35a6cec1f081ffc7efa9e396d5edea83f491f1a",
+    "oracle_pass_case_count": 21,
+    "oracle_pass_case_ids": [
+      "call_constant_return_negative",
+      "call_wrappers_0_hop_positive",
+      "call_wrappers_1_hop_positive",
+      "call_wrappers_3_hop_positive",
+      "call_wrappers_5_hop_positive",
+      "call_wrong_value_guard_positive",
+      "cfg_diamond_one_branch_guard_positive",
+      "cfg_guard_then_one_path_write_positive",
+      "cfg_loop_invariant_guard_negative",
+      "cfg_loop_reassignment_positive",
+      "guard_nonempty_len_negative",
+      "guard_nonnull_match_negative",
+      "guard_range_checked_add_negative",
+      "opaque_closure_negative",
+      "opaque_dyn_negative",
+      "opaque_external_negative",
+      "opaque_fn_pointer_negative",
+      "recursion_direct_positive",
+      "recursion_mutual_positive",
+      "span_include_stable_positive",
+      "span_macro_stable_positive"
+    ],
+    "receipt_schema_sha256": "e3cb0cce0b9c47fcb13004b05bb88195bd9f9e9b0c9d26e56a0618787776f200",
+    "runner_execution": {
+      "mode": "one independent --case invocation for each frozen challenge case",
+      "per_case_exit_code_counts": {
+        "0": 21,
+        "1": 6
+      },
+      "reason": "collect all observed results despite fail-fast oracle validation"
+    },
+    "static_scans_completed": 27,
+    "valid_unit_receipts": 27
+  },
+  "environment": {
+    "architecture": "arm64",
+    "cargo_encoded_rustflags_unset": true,
+    "cargo_home": "isolated_task_local_temporary_cache",
+    "fresh_control_target_per_case": true,
+    "fresh_scan_target_per_case": true,
+    "rustflags_role": "z3_native_library_search_only"
+  },
+  "local_raw_evidence": {
+    "build_log_sha256": "a1e9805192a1ee5de649ea29ebe555d78206863c4a211407fe15a95d0a839150",
+    "challenge_control_log_count": 27,
+    "challenge_control_log_set_sha256": "f06f44d6adc1820055a0ee5fb10c16022349879f7f62138b576349c4e5f11f90",
+    "challenge_receipt_count": 27,
+    "challenge_receipt_set_sha256": "70f53bd70a2e28812f484c7bbd52a0fe358e3b269b32ce8c4db0902a0c2bb952",
+    "challenge_runner_log_count": 27,
+    "challenge_runner_log_set_sha256": "21ae994ee5ceac3641a9fac1093f46dc89639ee7e74e765e68adaeadf6033402",
+    "challenge_scan_log_count": 27,
+    "challenge_scan_log_set_sha256": "d318d75890fa6c6cb1daf142dbf2a3d67f2c60da76ef871d815f11670deb32f5",
+    "committed": false,
+    "set_digest_algorithm": "sha256(concat(sorted(relative_path + NUL + sha256(file) + LF)))",
+    "status_table_sha256": "de4141af237f6fba49c5f481a36703f2dab39c18856bcbf30d8369a16665de40"
+  },
+  "notes": [
+    "An initial invocation used a nonexistent schema argument and was rejected before any control build or static scan; it is excluded from these results.",
+    "The receipt records oracle mismatches only and does not infer implementation fixes.",
+    "No fixture target function, Miri job, benchmark, real project, Linux campaign, or historical ledger was executed or modified."
+  ],
+  "schema_version": "rap-unsoundaudit-v2-challenge-red-v1",
+  "status": "red",
+  "tested_commit": "6780ecb5a07db1ecbc74195ff14afcbb6880cd7e",
+  "toolchain": {
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "channel": "nightly-2024-10-12",
+    "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  }
+}
