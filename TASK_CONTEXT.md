@@ -38,7 +38,10 @@
 - The two-phase MIR CFG implementation was committed at `1578affbd4bc750d33a1f22bdd60f4c66118916e`. MIR is normalized once into owned operation/edge descriptors; the solver uses program-point states rather than MIR basic-block enumeration order.
 - Task 5's final exact-nightly isolated Rust gate passed 70 tests. The five frozen CFG challenges all matched their oracles (`P1=3`, P2–P6 zero), and the original frozen 27 fixtures remained 27/27 with aggregate `3/2/2/2/1/2` and normalized SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
 - Task 5 now preserves strict copy/reborrow semantic identities separately from may-alias provenance, carries length-definition/version correlation with sticky invalidation, scopes call writes to normal edges, and treats only pointer unsizing as an identity-preserving cast. Two independent read-only reviews returned PASS.
-- Robustness Task 6 is in progress: export and compose finite validation contracts so guards established inside a middle/callee function can discharge only their structurally matching sink obligations.
+- Robustness Task 6 was committed at `fbbde3ad0632e8e5a467eff80e2c6b8b30e5f2f7`. It exports only finite `InBounds`/`NonEmpty`/`NonNull` conditional unmet contracts over entry formals, composes them at exact local call points, and keeps every unvalidated route as a hard or conditional requirement.
+- Task 6's exact-nightly isolated Rust gate passed 75 tests. Its 12-case interprocedural/CFG/recursion subset passed with aggregate P1=9 and P2–P6 zero; the original frozen 27 remained 27/27 with aggregate `3/2/2/2/1/2` and normalized SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
+- Two independent read-only Task 6 reviews returned PASS. Finding validity no longer depends on a lexical shortest path; however, a multi-route finding can still receive a witness from a shorter validated route rather than the unresolved route. This is an explicit Task 8 blocker before the standard-library pilot.
+- Robustness Task 7 is in progress: populate structural local return and mutable/raw out mappings without treating unrelated actuals or opaque calls as output provenance.
 
 ## Decisions
 
@@ -64,6 +67,8 @@
 - Semantic value identity and storage invalidation are intentionally separate. Only Copy/Move, a structurally exact `&*` reborrow, stable projections, and pointer `Unsize` preserve an identity; dynamic index/subslice, ordinary casts, and derived slice/pointer operations fail closed or receive a fresh destination identity.
 - Length facts are keyed by collection and static definition, capture reaching-write versions, carry a join-sticky invalidation tombstone, and retain relation uncertainty independently of the scalar result identity. This avoids both stale-length false negatives and write-after-recompute false positives in loops.
 - Range-in-bounds and UTF-8 validation still use their pre-Task-5 local fallback. They must move to program-point correlation before the standard-library pilot; this is assigned to the guard-hardening work package and is not evidence of general Rust soundness.
+- Validation contracts are represented as may-unmet routes. A locally proven route disappears; an unproven route is either a caller-checkable entry-formal contract or an unconditional hard requirement. Both sets join by finite union, so one unchecked callsite or graph route always preserves the candidate.
+- Resolved-local mutable/raw actuals conservatively invalidate matching caller validations on the normal edge. This prevents a caller guard from surviving a local mutator; Task 7 may add precise output provenance but must not erase that write/havoc evidence.
 
 ## Rejected Alternatives
 
