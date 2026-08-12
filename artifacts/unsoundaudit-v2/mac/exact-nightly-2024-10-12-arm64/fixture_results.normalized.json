@@ -1,0 +1,2261 @@
+{
+  "aggregate_pattern_counts": {
+    "pattern1": 3,
+    "pattern2": 2,
+    "pattern3": 2,
+    "pattern4": 2,
+    "pattern5": 1,
+    "pattern6": 2
+  },
+  "cases": [
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "all_patterns_checked_noise",
+      "crate_name": "all_patterns_checked_noise",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "all_patterns_checked_noise",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p1_local_pointer_negative",
+      "crate_name": "pattern1_negative_local_pointer",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern1_negative_local_pointer",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p1_param_direct_positive",
+      "crate_name": "pattern1_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "valid_for_read:arg:1",
+            "crate": "pattern1_positive",
+            "first_contract_failure": "raw_read@src/lib.rs:5:14-5:22",
+            "public_root": "read_from_raw",
+            "sink_or_exposure": "raw_read@src/lib.rs:5:14-5:22",
+            "source_origin": "public_parameter:arg:1@src/lib.rs:3:1-3:47"
+          },
+          "finding_id": "38a0a494be425f50407eb0a849f5dcfe1ba11441d6b145a5840798aab0d9bffe",
+          "first_contract_failure": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 22,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "valid_for_read"
+            ],
+            "subject": "arg:1"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read_from_raw",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 47,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "read_from_raw",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 22,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 14,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read_from_raw",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P1.raw_read",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 22,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:1",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "pattern1_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p1_param_helper_positive",
+      "crate_name": "pattern3_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "valid_for_read:arg:1",
+            "crate": "pattern3_positive",
+            "first_contract_failure": "raw_read@src/lib.rs:5:14-5:22",
+            "public_root": "public_forward",
+            "sink_or_exposure": "raw_read@src/lib.rs:5:14-5:22",
+            "source_origin": "public_parameter:arg:1@src/lib.rs:9:1-9:48"
+          },
+          "finding_id": "1e20a215f726c3412ea81acaa7269a26818b587cda6694e460513b0620f5ccb9",
+          "first_contract_failure": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 22,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "valid_for_read"
+            ],
+            "subject": "arg:1"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "private_read"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 1,
+            "witness": [
+              {
+                "function": "public_forward",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 48,
+                    "line": 9
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 9
+                  }
+                }
+              },
+              {
+                "function": "private_read",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 26,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 10
+                  }
+                }
+              },
+              {
+                "function": "private_read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 22,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 14,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "public_forward",
+            "span": {
+              "end": {
+                "column": 48,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 9
+              }
+            }
+          },
+          "rule_id": "P1.raw_read",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 22,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:1",
+            "span": {
+              "end": {
+                "column": 48,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 9
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "pattern3_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p1_private_chain_negative",
+      "crate_name": "pattern3_negative_private_chain",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern3_negative_private_chain",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p2_display_negative",
+      "crate_name": "pattern2_display_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern2_display_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p2_private_field_negative",
+      "crate_name": "pattern2_negative_private_field",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern2_negative_private_field",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p2_public_field_positive",
+      "crate_name": "pattern2_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "valid_for_read:field:PublicRaw::pointer",
+            "crate": "pattern2_positive",
+            "first_contract_failure": "raw_read@src/lib.rs:11:18-11:26",
+            "public_root": "PublicRaw::read_public_field",
+            "sink_or_exposure": "raw_read@src/lib.rs:11:18-11:26",
+            "source_origin": "literal_public_field:field:PublicRaw::pointer@src/lib.rs:9:23-9:35"
+          },
+          "finding_id": "2e6fa262c2718eed10a0cd0189a0a7e68768d242897db1974551c683dfc500f4",
+          "first_contract_failure": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 26,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 18,
+                "line": 11
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "valid_for_read"
+            ],
+            "subject": "field:PublicRaw::pointer"
+          },
+          "primary_pattern": "pattern2",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "PublicRaw::read_public_field",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 42,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "PublicRaw::read_public_field",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 26,
+                    "line": 11
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 18,
+                    "line": 11
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "PublicRaw::read_public_field",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 8
+              }
+            }
+          },
+          "rule_id": "P2.raw_read",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "raw_read",
+            "span": {
+              "end": {
+                "column": 26,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 18,
+                "line": 11
+              }
+            }
+          },
+          "source": {
+            "kind": "literal_public_field",
+            "origin_key": "field:PublicRaw::pointer",
+            "span": {
+              "end": {
+                "column": 35,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 23,
+                "line": 9
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "pattern2_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 1,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p2_write_negative",
+      "crate_name": "pattern2_write_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern2_write_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p3_checked_utf8_negative",
+      "crate_name": "pattern4_negative_checked_utf8",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "pattern4_negative_checked_utf8",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "legacy_p3_invalid_output_positive",
+      "crate_name": "pattern4_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "referent_outlives_reference:internal:extend_local_lifetime:_0",
+            "crate": "pattern4_positive",
+            "first_contract_failure": "lifetime_transmute@src/lib.rs:6:14-6:72",
+            "public_root": "extend_local_lifetime",
+            "sink_or_exposure": "invalid_value_exposure@src/lib.rs:6:14-6:72",
+            "source_origin": "internal_unsafe_origin:internal:extend_local_lifetime:_0@src/lib.rs:6:14-6:72"
+          },
+          "finding_id": "1b91e48e6aac0680d967c3ee3f3b53a5f47a957f925d07766091e47661ef108d",
+          "first_contract_failure": {
+            "kind": "lifetime_transmute",
+            "span": {
+              "end": {
+                "column": 72,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 6
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "referent_outlives_reference"
+            ],
+            "subject": "internal:extend_local_lifetime:_0"
+          },
+          "primary_pattern": "pattern3",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "extend_local_lifetime",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 47,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "extend_local_lifetime",
+                "kind": "exposure",
+                "span": {
+                  "end": {
+                    "column": 72,
+                    "line": 6
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 14,
+                    "line": 6
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "extend_local_lifetime",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P3.lifetime_transmute",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "invalid_value_exposure",
+            "span": {
+              "end": {
+                "column": 72,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 6
+              }
+            }
+          },
+          "source": {
+            "kind": "internal_unsafe_origin",
+            "origin_key": "internal:extend_local_lifetime:_0",
+            "span": {
+              "end": {
+                "column": 72,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 6
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "pattern4_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 1,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p1_two_hop_checked_negative",
+      "crate_name": "p1_two_hop_checked_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p1_two_hop_checked_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p1_two_hop_positive",
+      "crate_name": "p1_two_hop_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "p1_two_hop_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "public_root": "entry",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:13:1-13:47"
+          },
+          "finding_id": "49f69e5245ea95e7efc009eab034c7b03805fa728b741bd4554205c42ab8b006",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "forward",
+              "sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 2,
+            "witness": [
+              {
+                "function": "entry",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 47,
+                    "line": 13
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 13
+                  }
+                }
+              },
+              {
+                "function": "forward",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 26,
+                    "line": 14
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 14
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 23,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 10
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "entry",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 13
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 13
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 13
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 13
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p1_two_hop_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p2_helper_checked_negative",
+      "crate_name": "p2_helper_checked_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p2_helper_checked_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p2_helper_positive",
+      "crate_name": "p2_helper_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:field:PublicIndex::index",
+            "crate": "p2_helper_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:10:15-10:40",
+            "public_root": "PublicIndex::read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:10:15-10:40",
+            "source_origin": "literal_public_field:field:PublicIndex::index@src/lib.rs:19:26-19:36"
+          },
+          "finding_id": "08ece536b6cf730193351d20ce32976f9698c0f378e58920fcd0903a405835d1",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 40,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "field:PublicIndex::index"
+          },
+          "primary_pattern": "pattern2",
+          "propagation": {
+            "boundaries": [
+              "read"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 1,
+            "witness": [
+              {
+                "function": "PublicIndex::read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 29,
+                    "line": 18
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 18
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 37,
+                    "line": 19
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 9,
+                    "line": 19
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 40,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 10
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "PublicIndex::read",
+            "span": {
+              "end": {
+                "column": 29,
+                "line": 18
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 18
+              }
+            }
+          },
+          "rule_id": "P2.get_unchecked",
+          "secondary_source_kinds": [
+            "internal_derived"
+          ],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 40,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "source": {
+            "kind": "literal_public_field",
+            "origin_key": "field:PublicIndex::index",
+            "span": {
+              "end": {
+                "column": 36,
+                "line": 19
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 26,
+                "line": 19
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p2_helper_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 1,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p3_helper_return_initialized_negative",
+      "crate_name": "p3_helper_return_initialized_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p3_helper_return_initialized_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p3_helper_return_positive",
+      "crate_name": "p3_helper_return_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "initialized+valid_bool:internal:produce:_0",
+            "crate": "p3_helper_return_positive",
+            "first_contract_failure": "assume_init@src/lib.rs:7:14-7:57",
+            "public_root": "expose",
+            "sink_or_exposure": "invalid_value_exposure@src/lib.rs:7:14-7:57",
+            "source_origin": "internal_unsafe_origin:internal:produce:_0@src/lib.rs:7:14-7:57"
+          },
+          "finding_id": "77d2bcfc23aa2f37b3d51321d4144b4312b727152b77c9e4c507d0ff0cec811d",
+          "first_contract_failure": {
+            "kind": "assume_init",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 7
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 7
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "initialized",
+              "valid_bool"
+            ],
+            "subject": "internal:produce:_0"
+          },
+          "primary_pattern": "pattern3",
+          "propagation": {
+            "boundaries": [
+              "forward",
+              "produce"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 2,
+            "witness": [
+              {
+                "function": "expose",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 24,
+                    "line": 15
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 15
+                  }
+                }
+              },
+              {
+                "function": "forward",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 14,
+                    "line": 16
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 16
+                  }
+                }
+              },
+              {
+                "function": "produce",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 14,
+                    "line": 12
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 12
+                  }
+                }
+              },
+              {
+                "function": "produce",
+                "kind": "exposure",
+                "span": {
+                  "end": {
+                    "column": 57,
+                    "line": 7
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 14,
+                    "line": 7
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "expose",
+            "span": {
+              "end": {
+                "column": 24,
+                "line": 15
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 15
+              }
+            }
+          },
+          "rule_id": "P3.assume_init_bool",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "invalid_value_exposure",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 7
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 7
+              }
+            }
+          },
+          "source": {
+            "kind": "internal_unsafe_origin",
+            "origin_key": "internal:produce:_0",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 7
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 14,
+                "line": 7
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p3_helper_return_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 1,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p4_internal_bounds_checked_negative",
+      "crate_name": "p4_internal_bounds_checked_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p4_internal_bounds_checked_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p4_internal_bounds_positive",
+      "crate_name": "p4_internal_bounds_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:private-field:Arena::len",
+            "crate": "p4_internal_bounds_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:10:15-10:41",
+            "public_root": "Arena::last_prefix_byte",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:10:15-10:41",
+            "source_origin": "internal_derived:private-field:Arena::len@src/lib.rs:22:29-22:37"
+          },
+          "finding_id": "7d51942a3529539826e5fe3c89ade0b0adafdb3aca28bf45b6f3a73ff1e11be2",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "private-field:Arena::len"
+          },
+          "primary_pattern": "pattern4",
+          "propagation": {
+            "boundaries": [
+              "read"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 1,
+            "witness": [
+              {
+                "function": "Arena::last_prefix_byte",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 21
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 21
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 39,
+                    "line": 24
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 9,
+                    "line": 24
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 10
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "Arena::last_prefix_byte",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 21
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 21
+              }
+            }
+          },
+          "rule_id": "P4.bounds",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "source": {
+            "kind": "internal_derived",
+            "origin_key": "private-field:Arena::len",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 22
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 29,
+                "line": 22
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p4_internal_bounds_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 1,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p4_internal_offset_checked_negative",
+      "crate_name": "p4_internal_offset_checked_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p4_internal_offset_checked_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p4_internal_offset_positive",
+      "crate_name": "p4_internal_offset_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "range_in_bounds:private-field:Packet::bytes",
+            "crate": "p4_internal_offset_positive",
+            "first_contract_failure": "read_unaligned@src/lib.rs:19:18-19:42",
+            "public_root": "Packet::trailing_word",
+            "sink_or_exposure": "read_unaligned@src/lib.rs:19:18-19:42",
+            "source_origin": "internal_derived:private-field:Packet::bytes@src/lib.rs:18:23-18:33"
+          },
+          "finding_id": "ee66a0f937e1e786f0d05cc22823bc0fd5f30588940e6dd30e05ba76f0b0eb87",
+          "first_contract_failure": {
+            "kind": "read_unaligned",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 19
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 18,
+                "line": 19
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "range_in_bounds"
+            ],
+            "subject": "private-field:Packet::bytes"
+          },
+          "primary_pattern": "pattern4",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "Packet::trailing_word",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 39,
+                    "line": 16
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 16
+                  }
+                }
+              },
+              {
+                "function": "Packet::trailing_word",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 42,
+                    "line": 19
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 18,
+                    "line": 19
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "Packet::trailing_word",
+            "span": {
+              "end": {
+                "column": 39,
+                "line": 16
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 16
+              }
+            }
+          },
+          "rule_id": "P4.offset",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "read_unaligned",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 19
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 18,
+                "line": 19
+              }
+            }
+          },
+          "source": {
+            "kind": "internal_derived",
+            "origin_key": "private-field:Packet::bytes",
+            "span": {
+              "end": {
+                "column": 33,
+                "line": 18
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 23,
+                "line": 18
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p4_internal_offset_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 1,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p5_associated_slice_nonempty_negative",
+      "crate_name": "p5_associated_slice_nonempty_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p5_associated_slice_nonempty_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p5_associated_slice_nonempty_positive",
+      "crate_name": "p5_associated_slice_nonempty_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "non_empty:associated-slice:std::convert::AsRef::as_ref",
+            "crate": "p5_associated_slice_nonempty_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:9:15-9:48",
+            "public_root": "first_result",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:9:15-9:48",
+            "source_origin": "generic_nonempty_capability:associated-slice:std::convert::AsRef::as_ref@src/lib.rs:9:15-9:31"
+          },
+          "family_support": "partial",
+          "finding_id": "34b87295051eb2455a793181b8a2ffb2de7bbbb309be1551109b57ff95e983f1",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 48,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 9
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "non_empty"
+            ],
+            "subject": "associated-slice:std::convert::AsRef::as_ref"
+          },
+          "primary_pattern": "pattern5",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "first_result",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 42,
+                    "line": 7
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 7
+                  }
+                }
+              },
+              {
+                "function": "first_result",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 48,
+                    "line": 9
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 9
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "first_result",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 7
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 7
+              }
+            }
+          },
+          "rule_id": "P5.1.nonempty",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 48,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 9
+              }
+            }
+          },
+          "source": {
+            "kind": "generic_nonempty_capability",
+            "origin_key": "associated-slice:std::convert::AsRef::as_ref",
+            "span": {
+              "end": {
+                "column": 31,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 9
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p5_associated_slice_nonempty_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 1,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p6_ffi_out_param_nonnull_negative",
+      "crate_name": "p6_ffi_out_param_nonnull_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p6_ffi_out_param_nonnull_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p6_ffi_out_param_positive",
+      "crate_name": "p6_ffi_out_param_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "nonnull:ffi-out:src/lib.rs:11:27-11:44",
+            "crate": "p6_ffi_out_param_positive",
+            "first_contract_failure": "nonnull_new_unchecked@src/lib.rs:15:19-15:46",
+            "public_root": "acquire_pointer",
+            "sink_or_exposure": "nonnull_new_unchecked@src/lib.rs:15:19-15:46",
+            "source_origin": "ffi_output:ffi-out:src/lib.rs:11:27-11:44@src/lib.rs:11:27-11:44"
+          },
+          "finding_id": "aa53accc05778281ce9866a47de0ba81a990d4445cc9ccad5a42fad6e19a0309",
+          "first_contract_failure": {
+            "kind": "nonnull_new_unchecked",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 15
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 15
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "nonnull"
+            ],
+            "subject": "ffi-out:src/lib.rs:11:27-11:44"
+          },
+          "primary_pattern": "pattern6",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "acquire_pointer",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 48,
+                    "line": 9
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 9
+                  }
+                }
+              },
+              {
+                "function": "acquire_pointer",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 15
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 19,
+                    "line": 15
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "acquire_pointer",
+            "span": {
+              "end": {
+                "column": 48,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 9
+              }
+            }
+          },
+          "rule_id": "P6.ffi_out_param",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "nonnull_new_unchecked",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 15
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 15
+              }
+            }
+          },
+          "source": {
+            "kind": "ffi_output",
+            "origin_key": "ffi-out:src/lib.rs:11:27-11:44",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 27,
+                "line": 11
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p6_ffi_out_param_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 1
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p6_open_trait_result_checked_negative",
+      "crate_name": "p6_open_trait_result_checked_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "p6_open_trait_result_checked_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "p6_open_trait_result_positive",
+      "crate_name": "p6_open_trait_result_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:trait-return:IndexSource::index",
+            "crate": "p6_open_trait_result_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:9:15-9:40",
+            "public_root": "read_with",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:9:15-9:40",
+            "source_origin": "open_behavior_output:trait-return:IndexSource::index@src/lib.rs:8:17-8:31"
+          },
+          "finding_id": "a262bba303c8627275f45fa8ba26d348454c633d1c341e746d8e84f6f1fb736c",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 40,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 9
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "trait-return:IndexSource::index"
+          },
+          "primary_pattern": "pattern6",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read_with",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 64,
+                    "line": 7
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 7
+                  }
+                }
+              },
+              {
+                "function": "read_with",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 40,
+                    "line": 9
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 9
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read_with",
+            "span": {
+              "end": {
+                "column": 64,
+                "line": 7
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 7
+              }
+            }
+          },
+          "rule_id": "P6.open_trait_index",
+          "secondary_source_kinds": [
+            "public_parameter"
+          ],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 40,
+                "line": 9
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 9
+              }
+            }
+          },
+          "source": {
+            "kind": "open_behavior_output",
+            "origin_key": "trait-return:IndexSource::index",
+            "span": {
+              "end": {
+                "column": 31,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 17,
+                "line": 8
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "p6_open_trait_result_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 1
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    }
+  ],
+  "fixture_count": 27,
+  "schema_version": "rap-fixture-suite-v2"
+}

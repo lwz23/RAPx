@@ -1,0 +1,139 @@
+{
+  "schema_version": "unsoundaudit-v2-mac-sha256-manifest-v1",
+  "status": "pass",
+  "algorithm": "sha256",
+  "tested_source_commit": "f5988cb156f6f3d8cda59b03ac085607156e6acc",
+  "branch": "feature/unsoundaudit-v2-p1-p6",
+  "rapx_source_tree_sha256": "607544d36ba88f92507125b958ae64e3e280103e7467f985b7e5c185cce4deec",
+  "canonical_fixture_contract": {
+    "path": "tests/unsoundaudit-v2/fixture_manifest.json",
+    "sha256": "54acd5f02141583a6a239cc3f82f632686a93b1e851d877da059a3fb8f8abd63",
+    "fixture_count": 27,
+    "covered_fixture_files": 108,
+    "legacy_provenance_verified_files": 31
+  },
+  "determinism_gate": {
+    "run_count": 2,
+    "full_suite": true,
+    "serial": true,
+    "fresh_control_and_scan_targets_per_case": true,
+    "cargo_jobs": 1,
+    "fixture_count": 27,
+    "run_1_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "run_2_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "committed_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "byte_identical": true
+  },
+  "entries": [
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/baseline_receipt.json",
+      "role": "baseline_gate",
+      "size": 1221,
+      "sha256": "5ddd49c123f1491d224c315bc856d2e1aa6a40a083abb9062622fea40532345e"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/environment_receipt.json",
+      "role": "mac_preflight",
+      "size": 1462,
+      "sha256": "c7dffef5704d7299687c11a0b622cf9ea466f6e91b3e4cbcfa317df9518ae71c"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/fixture_contract_receipt.json",
+      "role": "frozen_red_contract",
+      "size": 2147,
+      "sha256": "91ea4a55f41b8611ea5dbd55c6742a02ebfad2d98312579081109a5beff251b1"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/fixture_results.normalized.json",
+      "role": "deterministic_fixture_results",
+      "size": 66927,
+      "sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/unit_test_summary.json",
+      "role": "mac_validation_summary",
+      "size": 4658,
+      "sha256": "79a9626dbd2cbd4a4168d4eb961b5a221779e37f59a07259b51d8ebb655829c9"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/MAC_HANDOFF.md",
+      "role": "mac_gate_contract",
+      "size": 31059,
+      "sha256": "d19c97b8b494b74c42f5003e96743955773c944abfbade232caf9cf941281f4e"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/baseline_manifest_v1.json",
+      "role": "baseline_manifest",
+      "size": 1596,
+      "sha256": "6779e5a471a8dc26b48feb1f942d31a7cc1857c20d7ca0c81ebb21a4cd881c5f"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/design.md",
+      "role": "approved_design",
+      "size": 28068,
+      "sha256": "6109dfc1a1487f77acd4964be7c1d6f782354435c18af9b2d15e69b90d2da95a"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/fixture_matrix.md",
+      "role": "fixture_oracle_design",
+      "size": 9294,
+      "sha256": "b3e51e4ec265bc7835cb763d9d07cc7f9e9bd77b7b26f63a499e00de4a2dc130"
+    },
+    {
+      "path": "rapx/src/analysis/unsoundaudit.rs",
+      "role": "v2_entry_and_receipt",
+      "size": 17306,
+      "sha256": "761cd9b4e42e9cab0fb6866b27de0e99c766b0e7eb534cf9f239cb12cd216a47"
+    },
+    {
+      "path": "rapx/src/analysis/unsoundaudit/mir.rs",
+      "role": "mir_summary_engine",
+      "size": 109085,
+      "sha256": "5bd2a9b15b3bdeb764680521711756addc6044b50b7146fe91ded78e2177d6b0"
+    },
+    {
+      "path": "rapx/src/analysis/unsoundaudit/summary.rs",
+      "role": "summary_ir_and_fixed_point",
+      "size": 50184,
+      "sha256": "85c0b8d6468453f5aa37a14a9de83debb857451f70184ace1f7c6339511b9261"
+    },
+    {
+      "path": "scripts/unsoundaudit-v2/normalize_receipts.py",
+      "role": "receipt_normalizer",
+      "size": 3645,
+      "sha256": "f25109941cc5eeafb23caa12402aa694a17334cdf1da3e4de16ff882595a41fa"
+    },
+    {
+      "path": "scripts/unsoundaudit-v2/run_fixture_suite.py",
+      "role": "serial_fixture_runner",
+      "size": 22863,
+      "sha256": "ecc49bb9d931bb0aa744500ce6b2322a6260f49653a1505c67820e560d18c675"
+    },
+    {
+      "path": "scripts/unsoundaudit-v2/test_contract_hardening.py",
+      "role": "contract_hardening_tests",
+      "size": 16073,
+      "sha256": "40331e3b5bc545935f9c785770b5fa5ba330430ccb829d4e8fc9566e13358ea8"
+    },
+    {
+      "path": "scripts/unsoundaudit-v2/validate_receipt.py",
+      "role": "fail_closed_validator",
+      "size": 25169,
+      "sha256": "acb402024425c24eca0ec0442920ec61907297ba59dbb291daead4042bf876fb"
+    },
+    {
+      "path": "tests/unsoundaudit-v2/fixture_manifest.json",
+      "role": "canonical_fixture_manifest",
+      "size": 34119,
+      "sha256": "54acd5f02141583a6a239cc3f82f632686a93b1e851d877da059a3fb8f8abd63"
+    },
+    {
+      "path": "tests/unsoundaudit-v2/rap-unit-v2.schema.json",
+      "role": "closed_receipt_schema",
+      "size": 16829,
+      "sha256": "e3cb0cce0b9c47fcb13004b05bb88195bd9f9e9b0c9d26e56a0618787776f200"
+    }
+  ],
+  "fixture_file_hashes_transitively_covered_by": "tests/unsoundaudit-v2/fixture_manifest.json",
+  "self_excluded": true
+}

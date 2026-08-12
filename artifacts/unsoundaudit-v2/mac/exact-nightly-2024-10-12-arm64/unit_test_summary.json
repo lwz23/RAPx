@@ -1,0 +1,120 @@
+{
+  "schema_version": "unsoundaudit-v2-mac-validation-summary-v1",
+  "status": "pass",
+  "tested_source_commit": "f5988cb156f6f3d8cda59b03ac085607156e6acc",
+  "branch": "feature/unsoundaudit-v2-p1-p6",
+  "toolchain": {
+    "channel": "nightly-2024-10-12",
+    "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4"
+  },
+  "execution_controls": {
+    "cargo_jobs": 1,
+    "project_concurrency": 1,
+    "isolated_cargo_home": true,
+    "fresh_unit_target": true,
+    "fresh_binary_target": true,
+    "fresh_fixture_control_and_scan_targets_per_case": true,
+    "fixture_target_functions_executed": false,
+    "miri_run": false,
+    "benchmarks_run": false,
+    "real_projects_scanned": false,
+    "linux_campaign_touched": false
+  },
+  "binary_build": {
+    "command": "<exact-cargo> build --manifest-path rapx/Cargo.toml --locked --bins --jobs 1",
+    "exit_code": 0,
+    "outputs_present": [
+      "cargo-rapx",
+      "rapx"
+    ]
+  },
+  "rust_unit_tests": {
+    "command": "<exact-cargo> test --manifest-path rapx/Cargo.toml --lib --locked --jobs 1",
+    "exit_code": 0,
+    "passed": 26,
+    "failed": 0,
+    "ignored": 0,
+    "required_area_tests": {
+      "origin_and_place_mapping": [
+        "actual_to_formal_substitution_is_structural",
+        "exact_binding_helper_accepts_overlap_and_rejects_wrong_places"
+      ],
+      "return_and_out_mapping": [
+        "call_mapping_substitutes_formals_into_return_and_projected_out_places"
+      ],
+      "scc_and_fixed_point": [
+        "tarjan_and_fixed_point_handle_self_and_mutual_recursion_without_a_round_cap",
+        "recursive_witness_saturates_to_one_cycle_token",
+        "recursive_witness_uses_the_stable_scc_token_as_its_function"
+      ],
+      "summary_join": [
+        "summary_join_is_monotone_idempotent_and_stably_sorted"
+      ],
+      "predicate_binding_and_entailment": [
+        "validation_entailment_binds_place_origin_predicate_and_version",
+        "validation_value_binding_rejects_a_different_origin",
+        "p5_subject_and_source_bind_to_collection_capability_not_constant_zero"
+      ],
+      "cfg_and_write_invalidation": [
+        "validation_success_requires_binding_dominance_and_order",
+        "diamond_reachability_invalidates_only_writes_on_a_success_to_sink_path",
+        "write_between_validation_and_branch_invalidates_the_fact",
+        "write_effect_kinds_keep_assignment_call_and_boundary_mutations_distinct"
+      ],
+      "primary_and_secondary_classification": [
+        "primary_mapping_is_mutually_exclusive",
+        "primary_precedence_uses_failure_then_source_provenance",
+        "primary_selection_preserves_all_other_sources_as_stable_secondary_metadata",
+        "secondary_sources_are_stable_and_do_not_replace_the_selected_primary",
+        "secondary_extraction_excludes_self_and_classifies_internal_by_failure",
+        "internal_derived_requires_internal_only_provenance_and_real_self"
+      ],
+      "causal_dedup_and_witness": [
+        "canonical_key_is_stable_and_sha256_backed",
+        "causal_dedup_chooses_shortest_then_lexical_witness"
+      ],
+      "opaque_and_p6_boundaries": [
+        "boundary_precedence_is_closed_and_opaque_calls_do_not_carry_p6_origins"
+      ],
+      "closed_json_contract": [
+        "top_level_and_pattern_count_keys_are_exact",
+        "finding_keys_and_p5_family_support_are_exact"
+      ]
+    }
+  },
+  "contract_hardening_tests": {
+    "command": "python3 scripts/unsoundaudit-v2/test_contract_hardening.py",
+    "exit_code": 0,
+    "passed": 14,
+    "failed": 0
+  },
+  "fixture_suite": {
+    "command": "python3 scripts/unsoundaudit-v2/run_fixture_suite.py <exact pinned arguments>",
+    "run_count": 2,
+    "fixture_count": 27,
+    "positive_count": 12,
+    "zero_finding_count": 15,
+    "aggregate_pattern_counts": {
+      "pattern1": 3,
+      "pattern2": 2,
+      "pattern3": 2,
+      "pattern4": 2,
+      "pattern5": 1,
+      "pattern6": 2
+    },
+    "normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "byte_identical": true
+  },
+  "independent_read_only_review": {
+    "verdict": "ship",
+    "blocking_findings": 0
+  },
+  "local_raw_logs": {
+    "committed": false,
+    "unit_test_log_sha256": "21aed816b6f44f131037b3e78fb0b76dac2baf34f0e12e2622ccdc499eef30ce",
+    "binary_build_log_sha256": "fea96ffc711c83d65a7251d465e818989dcee1fa0fbea73958ce5380408d658d",
+    "contract_test_log_sha256": "c37a5fc048855cd916089ca76ea05875144880e895f9cea2001726499d5ec704",
+    "fixture_log_digest_manifest_sha256": "148fed68975cb9ece401ddaab78eb52846c1fa6f9608b0f2fb70045c2a371069"
+  }
+}
