@@ -1,3 +1,6 @@
+use super::dataflow::{
+    solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin, StaticWriteToken,
+};
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, scc_cycle_token, solve_summaries,
     AbstractOrigin, AbstractValue, CallBoundary, CallMapping, CanonicalWitness,
@@ -11,6 +14,7 @@ use rustc_hir::{
     def_id::{DefId, LocalDefId, LOCAL_CRATE},
     LangItem, Mutability, Safety,
 };
+use rustc_index::IndexVec;
 use rustc_middle::{
     middle::privacy::Level,
     mir::{
@@ -25,19 +29,227 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::{Path, PathBuf};
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct LengthAtom {
+    collection: PlaceKey,
+    definition: StaticWriteToken,
+    captured_versions: BTreeSet<StaticWriteToken>,
+    invalidated: bool,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct ValueFacts {
     value: AbstractValue,
     dependencies: BTreeSet<PlaceKey>,
     value_flow: BTreeSet<PlaceKey>,
-    len_of: Option<PlaceKey>,
-    range_end: Option<PlaceKey>,
-    pointer_base: Option<PlaceKey>,
-    pointer_offset: Option<PlaceKey>,
-    maybe_uninit_initialized: Option<bool>,
+    exact_roots: BTreeSet<PlaceKey>,
+    semantic_unknown: bool,
+    len_of: BTreeSet<PlaceKey>,
+    length_atoms: BTreeSet<LengthAtom>,
+    length_relation_unknown: bool,
+    may_be_non_length: bool,
+    range_end: BTreeSet<PlaceKey>,
+    pointer_base: BTreeSet<PlaceKey>,
+    pointer_offset: BTreeSet<PlaceKey>,
+    maybe_uninit_initialized: BTreeSet<bool>,
     generic_capability: bool,
     ffi_output: bool,
     open_behavior: bool,
+    havoced: bool,
+}
+
+impl MayJoin for ValueFacts {
+    fn join_may(&mut self, other: &Self) -> bool {
+        let before = self.clone();
+        self.value
+            .origins
+            .extend(other.value.origins.iter().cloned());
+        self.dependencies.extend(other.dependencies.iter().cloned());
+        self.value_flow.extend(other.value_flow.iter().cloned());
+        self.exact_roots.extend(other.exact_roots.iter().cloned());
+        self.semantic_unknown |= other.semantic_unknown;
+        self.len_of.extend(other.len_of.iter().cloned());
+        for atom in &other.length_atoms {
+            if let Some(current) = self
+                .length_atoms
+                .iter()
+                .find(|current| {
+                    current.collection == atom.collection && current.definition == atom.definition
+                })
+                .cloned()
+            {
+                self.length_atoms.remove(&current);
+                let mut merged = current;
+                merged
+                    .captured_versions
+                    .extend(atom.captured_versions.iter().copied());
+                merged.invalidated |= atom.invalidated;
+                self.length_atoms.insert(merged);
+            } else {
+                self.length_atoms.insert(atom.clone());
+            }
+        }
+        self.length_relation_unknown |= other.length_relation_unknown;
+        self.may_be_non_length |= other.may_be_non_length;
+        self.range_end.extend(other.range_end.iter().cloned());
+        self.pointer_base.extend(other.pointer_base.iter().cloned());
+        self.pointer_offset
+            .extend(other.pointer_offset.iter().cloned());
+        self.maybe_uninit_initialized
+            .extend(other.maybe_uninit_initialized.iter().copied());
+        self.generic_capability |= other.generic_capability;
+        self.ffi_output |= other.ffi_output;
+        self.open_behavior |= other.open_behavior;
+        self.havoced |= other.havoced;
+        *self != before
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct ValidationBinding {
+    predicate: Predicate,
+    subject: PlaceKey,
+    collection: Option<PlaceKey>,
+}
+
+impl ValidationBinding {
+    fn storage_places(&self) -> Vec<PlaceKey> {
+        let mut places = vec![canonical_storage(&self.subject)];
+        places.extend(self.collection.iter().map(canonical_storage));
+        places.sort();
+        places.dedup();
+        places
+    }
+}
+
+#[derive(Clone, Debug)]
+struct BodyProgram {
+    operations: IndexVec<BasicBlock, Vec<ProgramOp>>,
+    edges: IndexVec<BasicBlock, EdgeTerm>,
+    successors: IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+}
+
+#[derive(Clone, Debug)]
+struct ProgramOp {
+    point: ProgramPoint,
+    kind: ProgramOpKind,
+}
+
+#[derive(Clone, Debug)]
+enum ProgramOpKind {
+    Assign(AssignmentModel),
+    Call(CallModel),
+    Nop,
+}
+
+#[derive(Clone, Debug)]
+struct AssignmentModel {
+    destination: PlaceKey,
+    value: ValueModel,
+    field_origin: Option<AbstractOrigin>,
+    raw_read_source: Option<OperandModel>,
+    legacy_write: bool,
+}
+
+#[derive(Clone, Debug)]
+struct OperandModel {
+    operand: CallOperand,
+    field_origin: Option<AbstractOrigin>,
+    pure_deref_base: Option<PlaceKey>,
+    exact_projection: Option<PlaceKey>,
+    projection_unknown: bool,
+}
+
+#[derive(Clone, Debug)]
+enum ValueModel {
+    Operand(OperandModel),
+    RefOrRaw(OperandModel),
+    Length(OperandModel),
+    Compare {
+        op: BinOp,
+        left: OperandModel,
+        right: OperandModel,
+    },
+    Aggregate {
+        operands: Vec<OperandModel>,
+        range_end: Option<PlaceKey>,
+    },
+    Unknown,
+}
+
+#[derive(Clone, Debug)]
+struct CallModel {
+    descriptor: CallDescriptor,
+    value: RegistryValueModel,
+    predicate: Option<PredicateModel>,
+    mutable_actuals: Vec<PlaceKey>,
+    ffi_out_actuals: Vec<PlaceKey>,
+    destination_is_bool: bool,
+    access_width: Option<u64>,
+    legacy_write: bool,
+}
+
+#[derive(Clone, Debug)]
+struct CallDescriptor {
+    callee: Option<FunctionKey>,
+    raw_def: Option<DefId>,
+    disposition: BoundaryDisposition,
+    args: Vec<OperandModel>,
+    destination: PlaceKey,
+}
+
+#[derive(Clone, Debug)]
+enum RegistryValueModel {
+    Empty,
+    MaybeUninit(bool),
+    Length(OperandModel),
+    SelectedOpenBehavior {
+        token: String,
+    },
+    GenericCapability {
+        token: String,
+    },
+    SaturatingSub(Vec<OperandModel>),
+    Constant(u64),
+    SlicePrefix {
+        base: OperandModel,
+        range: PlaceKey,
+    },
+    SliceAsPtr(OperandModel),
+    WrappingAdd {
+        base: OperandModel,
+        offset: OperandModel,
+    },
+    PointerCast(OperandModel),
+}
+
+#[derive(Clone, Debug)]
+enum PredicateModel {
+    Utf8Result { bytes: PlaceKey },
+    IsErr { checked: PlaceKey },
+    IsEmpty { slice: PlaceKey },
+    IsNull { pointer: PlaceKey },
+}
+
+#[derive(Clone, Debug)]
+enum EdgeTerm {
+    CallNormal {
+        normal_target: Option<BasicBlock>,
+        point: ProgramPoint,
+        call: CallModel,
+    },
+    Switch {
+        condition: PlaceKey,
+        false_target: BasicBlock,
+        true_target: BasicBlock,
+    },
+    AssertPlumbingOnly {
+        condition: PlaceKey,
+        expected: bool,
+        target: BasicBlock,
+    },
+    Return,
+    None,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -53,8 +265,11 @@ struct CallSite {
     raw_def: Option<DefId>,
     disposition: BoundaryDisposition,
     args: Vec<CallOperand>,
+    arg_values: Vec<ValueFacts>,
     destination: PlaceKey,
     point: ProgramPoint,
+    destination_is_bool: bool,
+    access_width: Option<u64>,
 }
 
 #[derive(Clone, Debug)]
@@ -106,6 +321,7 @@ struct WriteFact {
     place: PlaceKey,
     point: ProgramPoint,
     kind: WriteKind,
+    normal_successor: Option<BasicBlock>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -148,6 +364,8 @@ struct BodyFacts {
     predicates: Vec<PredicateFact>,
     branches: Vec<BranchFact>,
     writes: Vec<WriteFact>,
+    states: BTreeMap<(BasicBlock, usize), BlockState<PlaceKey, ValueFacts, ValidationBinding>>,
+    local_bindings: BTreeMap<ProgramPoint, ValidationBinding>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -215,9 +433,9 @@ impl<'tcx> Engine<'tcx> {
                     continue;
                 };
                 let actuals = call
-                    .args
+                    .arg_values
                     .iter()
-                    .map(|operand| self.operand_value(caller, operand))
+                    .map(|facts| facts.value.clone())
                     .collect::<Vec<_>>();
                 let mapping = caller
                     .summary_seed
@@ -437,6 +655,8 @@ impl<'tcx> Engine<'tcx> {
             predicates: Vec::new(),
             branches: Vec::new(),
             writes: Vec::new(),
+            states: BTreeMap::new(),
+            local_bindings: BTreeMap::new(),
         };
         for arg in body.args_iter() {
             facts.values.insert(
@@ -445,144 +665,541 @@ impl<'tcx> Engine<'tcx> {
                     value: AbstractValue::new([AbstractOrigin::Formal(arg.index() as u32)]),
                     dependencies: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
                     value_flow: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
+                    exact_roots: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
+                    may_be_non_length: true,
                     ..ValueFacts::default()
                 },
             );
         }
 
-        for (bb, data) in body.basic_blocks.iter_enumerated() {
-            for (statement_index, statement) in data.statements.iter().enumerate() {
-                let location = Location {
-                    block: bb,
-                    statement_index,
+        let program = self.normalize_body(did, body, &function);
+        let operation_counts = program.operations.iter().map(Vec::len).collect();
+        let mut entry = BlockState::empty();
+        for (place, value) in &facts.values {
+            entry.set_value(place.clone(), value.clone());
+        }
+        let solved = solve_cfg(
+            &program.successors,
+            &operation_counts,
+            entry,
+            |block, index, state| {
+                apply_program_op(&program.operations[block][index], block, index, state)
+            },
+            |block, target, state| apply_program_edge(&program.edges[block], target, state),
+        );
+        facts.states = solved.before.clone();
+        self.materialize_program(&program, &solved, &mut facts);
+        self.add_local_requirements(body, &mut facts);
+        for (block, edge) in program.edges.iter_enumerated() {
+            if !matches!(edge, EdgeTerm::Return) {
+                continue;
+            }
+            if let Some(returned) = solved.exit[block]
+                .as_ref()
+                .and_then(|state| state.may_values().get(&PlaceKey::new("_0")))
+            {
+                facts
+                    .summary_seed
+                    .return_value
+                    .origins
+                    .extend(returned.value.origins.iter().cloned());
+            }
+        }
+        facts
+    }
+
+    fn materialize_program(
+        &self,
+        program: &BodyProgram,
+        solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+        facts: &mut BodyFacts,
+    ) {
+        for (block, operations) in program.operations.iter_enumerated() {
+            for (index, operation) in operations.iter().enumerate() {
+                let Some(state) = solved.before.get(&(block, index)) else {
+                    continue;
                 };
-                let point = self.point(&function, location, statement.source_info.span);
-                if let StatementKind::Assign(box (destination, rvalue)) = &statement.kind {
-                    self.extract_assignment(body, *destination, rvalue, point, &mut facts);
+                for (place, value) in state.may_values() {
+                    facts
+                        .values
+                        .entry(place.clone())
+                        .or_default()
+                        .join_may(value);
+                }
+                match &operation.kind {
+                    ProgramOpKind::Assign(assignment) => {
+                        let destination = assignment.destination.clone();
+                        match &assignment.value {
+                            ValueModel::Length(collection) => {
+                                if let Some(collection) =
+                                    unique_semantic_value(&eval_operand(state, collection))
+                                {
+                                    facts.lengths.insert(LengthFact {
+                                        result: destination.clone(),
+                                        collection,
+                                    });
+                                }
+                            }
+                            ValueModel::Compare { op, left, right } => {
+                                facts.compares.push(CompareFact {
+                                    result: destination.clone(),
+                                    op: *op,
+                                    left: left.operand.clone(),
+                                    right: right.operand.clone(),
+                                    point: operation.point.clone(),
+                                });
+                            }
+                            _ => {}
+                        }
+                        if assignment.legacy_write {
+                            record_write(
+                                facts,
+                                destination,
+                                operation.point.clone(),
+                                WriteKind::Assignment,
+                            );
+                        }
+                        if let Some(source) = &assignment.raw_read_source {
+                            let subject = eval_operand(state, source).value;
+                            facts.summary_seed.requirements.insert(ContractRequirement {
+                                seed_id: format!("P1.raw:{}", operation.point.span.token()),
+                                collection: None,
+                                subject,
+                                source_hint: None,
+                                internal_derivation: false,
+                                source_span: operation.point.span.clone(),
+                                first_failure: Operation {
+                                    kind: OperationKind::RawRead,
+                                    point: operation.point.clone(),
+                                },
+                                sink: Operation {
+                                    kind: OperationKind::RawRead,
+                                    point: operation.point.clone(),
+                                },
+                                predicates: BTreeSet::from([Predicate::ValidForRead]),
+                                access_width: None,
+                                rule: RuleId::P1RawRead,
+                                return_exposure: false,
+                                sink_function: facts.function.clone(),
+                            });
+                        }
+                    }
+                    ProgramOpKind::Call(call) => {
+                        let descriptor = &call.descriptor;
+                        let normal_successor = match &program.edges[block] {
+                            EdgeTerm::CallNormal {
+                                normal_target: Some(target),
+                                ..
+                            } if solved.edge.contains_key(&(block, *target)) => Some(*target),
+                            _ => None,
+                        };
+                        let normal_edge_state =
+                            normal_successor.and_then(|target| solved.edge.get(&(block, target)));
+                        let arg_values = descriptor
+                            .args
+                            .iter()
+                            .map(|operand| eval_operand(state, operand))
+                            .collect::<Vec<_>>();
+                        let args = descriptor
+                            .args
+                            .iter()
+                            .map(|operand| operand.operand.clone())
+                            .collect::<Vec<_>>();
+                        facts.calls.push(CallSite {
+                            callee: descriptor.callee.clone(),
+                            raw_def: descriptor.raw_def,
+                            disposition: descriptor.disposition,
+                            args: args.clone(),
+                            arg_values,
+                            destination: descriptor.destination.clone(),
+                            point: operation.point.clone(),
+                            destination_is_bool: call.destination_is_bool,
+                            access_width: call.access_width,
+                        });
+                        if let Some(callee) = &descriptor.callee {
+                            let mut mapping = BTreeSet::new();
+                            for (index, operand) in args.iter().enumerate() {
+                                if let CallOperand::Place(actual) = operand {
+                                    mapping.insert(CallMapping::ActualToFormal {
+                                        actual: actual.clone(),
+                                        formal_index: index as u32 + 1,
+                                    });
+                                }
+                            }
+                            mapping.insert(CallMapping::ReturnToDestination {
+                                destination: descriptor.destination.clone(),
+                            });
+                            facts.summary_seed.calls.insert(CallBoundary {
+                                caller: facts.function.clone(),
+                                callee: callee.clone(),
+                                point: operation.point.clone(),
+                                mapping,
+                            });
+                        }
+                        if call.legacy_write && normal_edge_state.is_some() {
+                            record_edge_write(
+                                facts,
+                                descriptor.destination.clone(),
+                                operation.point.clone(),
+                                WriteKind::CallReturn,
+                                normal_successor,
+                            );
+                        }
+                        if normal_edge_state.is_some() {
+                            for target in call
+                                .mutable_actuals
+                                .iter()
+                                .flat_map(|actual| state_alias_closure(state, actual).into_iter())
+                            {
+                                record_edge_write(
+                                    facts,
+                                    target,
+                                    operation.point.clone(),
+                                    WriteKind::OpaqueMutable,
+                                    normal_successor,
+                                );
+                            }
+                            for target in call
+                                .ffi_out_actuals
+                                .iter()
+                                .flat_map(|actual| state_alias_closure(state, actual).into_iter())
+                            {
+                                record_edge_write(
+                                    facts,
+                                    target,
+                                    operation.point.clone(),
+                                    WriteKind::ForeignOut,
+                                    normal_successor,
+                                );
+                            }
+                        }
+                        if normal_edge_state.is_some() {
+                            if let RegistryValueModel::Length(collection) = &call.value {
+                                if let Some(collection) =
+                                    unique_semantic_value(&eval_operand(state, collection))
+                                {
+                                    facts.lengths.insert(LengthFact {
+                                        result: descriptor.destination.clone(),
+                                        collection,
+                                    });
+                                }
+                            }
+                        }
+                        if normal_edge_state.is_some() {
+                            if let Some(predicate) = &call.predicate {
+                                facts.predicates.push(match predicate {
+                                    PredicateModel::Utf8Result { bytes } => {
+                                        PredicateFact::Utf8Result {
+                                            result: descriptor.destination.clone(),
+                                            bytes: bytes.clone(),
+                                        }
+                                    }
+                                    PredicateModel::IsErr { checked } => PredicateFact::IsErr {
+                                        result: descriptor.destination.clone(),
+                                        checked: checked.clone(),
+                                    },
+                                    PredicateModel::IsEmpty { slice } => PredicateFact::IsEmpty {
+                                        result: descriptor.destination.clone(),
+                                        slice: slice.clone(),
+                                    },
+                                    PredicateModel::IsNull { pointer } => PredicateFact::IsNull {
+                                        result: descriptor.destination.clone(),
+                                        pointer: pointer.clone(),
+                                    },
+                                });
+                            }
+                        }
+                    }
+                    ProgramOpKind::Nop => {}
                 }
             }
-            let location = Location {
-                block: bb,
-                statement_index: data.statements.len(),
-            };
+            if let EdgeTerm::Switch {
+                condition,
+                false_target,
+                ..
+            } = &program.edges[block]
+            {
+                let point = operations
+                    .last()
+                    .expect("each MIR block has a terminator operation")
+                    .point
+                    .clone();
+                facts.branches.push(BranchFact {
+                    result: condition.clone(),
+                    success: *false_target,
+                    point,
+                });
+            }
+        }
+        for state in solved.exit.iter().flatten() {
+            for (place, value) in state.may_values() {
+                facts
+                    .values
+                    .entry(place.clone())
+                    .or_default()
+                    .join_may(value);
+            }
+        }
+    }
+
+    fn normalize_body(
+        &self,
+        caller: DefId,
+        body: &Body<'tcx>,
+        function: &FunctionKey,
+    ) -> BodyProgram {
+        let mut operations = IndexVec::new();
+        let mut edges = IndexVec::new();
+        let mut successors = IndexVec::new();
+        let mut definition_counts = BTreeMap::<PlaceKey, usize>::new();
+        for data in body.basic_blocks.iter() {
+            for statement in &data.statements {
+                if let StatementKind::Assign(box (destination, _)) = &statement.kind {
+                    *definition_counts
+                        .entry(place_key(*destination))
+                        .or_default() += 1;
+                }
+            }
+            if let TerminatorKind::Call { destination, .. } = &data.terminator().kind {
+                *definition_counts
+                    .entry(place_key(*destination))
+                    .or_default() += 1;
+            }
+        }
+        for (block, data) in body.basic_blocks.iter_enumerated() {
+            let mut block_ops = Vec::with_capacity(data.statements.len() + 1);
+            for (statement_index, statement) in data.statements.iter().enumerate() {
+                let point = self.point(
+                    function,
+                    Location {
+                        block,
+                        statement_index,
+                    },
+                    statement.source_info.span,
+                );
+                let kind = match &statement.kind {
+                    StatementKind::Assign(box (destination, rvalue)) => {
+                        let destination_key = place_key(*destination);
+                        let legacy_write = !destination.projection.is_empty()
+                            || definition_counts
+                                .get(&destination_key)
+                                .copied()
+                                .unwrap_or(0)
+                                > 1;
+                        ProgramOpKind::Assign(self.normalize_assignment(
+                            body,
+                            *destination,
+                            rvalue,
+                            &point,
+                            legacy_write,
+                        ))
+                    }
+                    _ => ProgramOpKind::Nop,
+                };
+                block_ops.push(ProgramOp { point, kind });
+            }
+            let statement_index = data.statements.len();
             let terminator = data.terminator();
-            let point = self.point(&function, location, terminator.source_info.span);
-            match &terminator.kind {
+            let point = self.point(
+                function,
+                Location {
+                    block,
+                    statement_index,
+                },
+                terminator.source_info.span,
+            );
+            let kind = match &terminator.kind {
                 TerminatorKind::Call {
                     func,
                     args,
                     destination,
                     ..
-                } => self.extract_call(did, body, func, args, *destination, point, &mut facts),
-                TerminatorKind::SwitchInt { discr, targets } => {
-                    if let Some(place) = discr.place() {
-                        facts.branches.push(BranchFact {
-                            result: place_key(place),
-                            success: targets.target_for_value(0),
-                            point,
-                        });
-                    }
+                } => {
+                    let destination_key = place_key(*destination);
+                    let legacy_write = !destination.projection.is_empty()
+                        || definition_counts
+                            .get(&destination_key)
+                            .copied()
+                            .unwrap_or(0)
+                            > 1;
+                    ProgramOpKind::Call(self.normalize_call(
+                        caller,
+                        body,
+                        func,
+                        args,
+                        *destination,
+                        &point,
+                        legacy_write,
+                    ))
                 }
-                _ => {}
-            }
+                _ => ProgramOpKind::Nop,
+            };
+            block_ops.push(ProgramOp {
+                point: point.clone(),
+                kind: kind.clone(),
+            });
+            operations.push(block_ops);
+            successors.push(terminator.successors().collect());
+            edges.push(match &terminator.kind {
+                TerminatorKind::Call { target, .. } => match kind {
+                    ProgramOpKind::Call(call) => EdgeTerm::CallNormal {
+                        normal_target: *target,
+                        point,
+                        call,
+                    },
+                    _ => unreachable!("a normalized Call has a CallModel"),
+                },
+                TerminatorKind::SwitchInt { discr, targets } => {
+                    discr
+                        .place()
+                        .map_or(EdgeTerm::None, |place| EdgeTerm::Switch {
+                            condition: place_key(place),
+                            false_target: targets.target_for_value(0),
+                            true_target: targets.target_for_value(1),
+                        })
+                }
+                TerminatorKind::Assert {
+                    cond,
+                    expected,
+                    target,
+                    ..
+                } => cond
+                    .place()
+                    .map_or(EdgeTerm::None, |place| EdgeTerm::AssertPlumbingOnly {
+                        condition: place_key(place),
+                        expected: *expected,
+                        target: *target,
+                    }),
+                TerminatorKind::Return => EdgeTerm::Return,
+                _ => EdgeTerm::None,
+            });
         }
-
-        self.add_local_requirements(body, &mut facts);
-        if let Some(returned) = facts.values.get(&PlaceKey::new("_0")) {
-            facts
-                .summary_seed
-                .return_value
-                .origins
-                .extend(returned.value.origins.iter().cloned());
+        BodyProgram {
+            operations,
+            edges,
+            successors,
         }
-        facts
     }
 
-    fn extract_assignment(
+    fn normalize_assignment(
         &self,
         body: &Body<'tcx>,
         destination: Place<'tcx>,
         rvalue: &Rvalue<'tcx>,
-        point: ProgramPoint,
-        facts: &mut BodyFacts,
-    ) {
+        point: &ProgramPoint,
+        legacy_write: bool,
+    ) -> AssignmentModel {
         let destination_key = place_key(destination);
-        let assignment_write = destination_write_invalidates(
-            !destination.projection.is_empty(),
-            facts.values.contains_key(&destination_key),
-        );
-        let mut value = match rvalue {
-            Rvalue::Use(operand) => self.operand_facts(body, facts, operand, &point.span),
+        let value = match rvalue {
+            Rvalue::Use(operand) => {
+                ValueModel::Operand(self.normalize_operand(body, operand, point))
+            }
+            Rvalue::Cast(
+                CastKind::PointerCoercion(ty::adjustment::PointerCoercion::Unsize, _),
+                operand,
+                _,
+            ) => ValueModel::Operand(self.normalize_operand(body, operand, point)),
+            Rvalue::Cast(_, _, _) => ValueModel::Unknown,
             Rvalue::Ref(_, _, place) | Rvalue::RawPtr(_, place) => {
-                let mut result = self.place_facts(body, facts, *place, point.span.clone());
-                result.dependencies.insert(place_key(*place));
-                result
-            }
-            Rvalue::Cast(_, operand, _) => self.operand_facts(body, facts, operand, &point.span),
-            Rvalue::UnaryOp(UnOp::PtrMetadata, operand) => {
-                let mut result = self.operand_facts(body, facts, operand, &point.span);
-                if let Some(place) = operand.place() {
-                    let collection = place_key(place);
-                    result.len_of = Some(collection.clone());
-                    facts.lengths.insert(LengthFact {
-                        result: destination_key.clone(),
-                        collection,
-                    });
+                let mut operand = self.normalize_place(body, *place, point);
+                if matches!(place.projection.as_ref(), [ProjectionElem::Deref]) {
+                    operand.pure_deref_base = Some(place_key(Place::from(place.local)));
+                    operand.exact_projection = None;
+                    operand.projection_unknown = false;
                 }
-                result.value_flow.clear();
-                result
+                ValueModel::RefOrRaw(operand)
             }
-            Rvalue::Len(place) => {
-                let collection = place_key(*place);
-                let mut result = self.place_facts(body, facts, *place, point.span.clone());
-                result.len_of = Some(collection.clone());
-                result.value_flow.clear();
-                facts.lengths.insert(LengthFact {
-                    result: destination_key.clone(),
-                    collection,
-                });
-                result
-            }
-            Rvalue::BinaryOp(op, operands) => {
-                let left = self.call_operand(body, &operands.0);
-                let right = self.call_operand(body, &operands.1);
-                facts.compares.push(CompareFact {
-                    result: destination_key.clone(),
-                    op: *op,
-                    left: left.clone(),
-                    right: right.clone(),
-                    point: point.clone(),
-                });
-                let mut result = self.join_fact_values([
-                    self.call_operand_facts(facts, &left),
-                    self.call_operand_facts(facts, &right),
-                ]);
-                result.value_flow.clear();
-                result
-            }
-            Rvalue::Aggregate(kind, operands) => {
-                let mut result = self.join_fact_values(
+            Rvalue::Len(place) => ValueModel::Length(self.normalize_place(body, *place, point)),
+            Rvalue::UnaryOp(UnOp::PtrMetadata, operand) => operand
+                .place()
+                .map(|place| ValueModel::Length(self.normalize_place(body, place, point)))
+                .unwrap_or(ValueModel::Unknown),
+            Rvalue::BinaryOp(op, operands) => ValueModel::Compare {
+                op: *op,
+                left: self.normalize_operand(body, &operands.0, point),
+                right: self.normalize_operand(body, &operands.1, point),
+            },
+            Rvalue::Aggregate(kind, operands) => ValueModel::Aggregate {
+                operands: operands
+                    .iter()
+                    .map(|operand| self.normalize_operand(body, operand, point))
+                    .collect(),
+                range_end: matches!(&**kind, AggregateKind::Adt(did, ..)
+                    if self.tcx.item_name(*did).as_str() == "RangeTo")
+                .then(|| {
                     operands
                         .iter()
-                        .map(|operand| self.operand_facts(body, facts, operand, &point.span)),
-                );
-                if matches!(&**kind, AggregateKind::Adt(did, ..) if self.tcx.item_name(*did).as_str() == "RangeTo")
-                {
-                    if let Some(end) = operands.iter().next().and_then(|operand| operand.place()) {
-                        value_range_end(&mut result, place_key(end));
+                        .next()
+                        .and_then(|operand| operand.place())
+                        .map(place_key)
+                })
+                .flatten(),
+            },
+            _ => ValueModel::Unknown,
+        };
+        let field_origin = self
+            .field_info(body, destination)
+            .map(|(public, def_path)| {
+                if public {
+                    AbstractOrigin::PublicField {
+                        def_path,
+                        span: point.span.clone(),
+                    }
+                } else {
+                    AbstractOrigin::PrivateField {
+                        def_path,
+                        span: point.span.clone(),
                     }
                 }
-                result
-            }
-            _ => ValueFacts::default(),
+            });
+        let raw_read_source = match rvalue {
+            Rvalue::Use(operand) => operand
+                .place()
+                .filter(|place| {
+                    place
+                        .projection
+                        .iter()
+                        .any(|element| matches!(element, ProjectionElem::Deref))
+                        && matches!(body.local_decls[place.local].ty.kind(), ty::RawPtr(..))
+                })
+                .map(|place| self.normalize_place(body, Place::from(place.local), point)),
+            _ => None,
         };
+        AssignmentModel {
+            destination: destination_key,
+            value,
+            field_origin,
+            raw_read_source,
+            legacy_write,
+        }
+    }
 
-        if let Some((public, def_path)) = self.field_info(body, destination) {
-            value
-                .value
-                .origins
-                .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
-            value.value.origins.insert(if public {
+    fn normalize_operand(
+        &self,
+        body: &Body<'tcx>,
+        operand: &Operand<'tcx>,
+        point: &ProgramPoint,
+    ) -> OperandModel {
+        operand.place().map_or_else(
+            || OperandModel {
+                operand: self.call_operand(body, operand),
+                field_origin: None,
+                pure_deref_base: None,
+                exact_projection: None,
+                projection_unknown: false,
+            },
+            |place| self.normalize_place(body, place, point),
+        )
+    }
+
+    fn normalize_place(
+        &self,
+        body: &Body<'tcx>,
+        place: Place<'tcx>,
+        point: &ProgramPoint,
+    ) -> OperandModel {
+        let field_origin = self.field_info(body, place).map(|(public, def_path)| {
+            if public {
                 AbstractOrigin::PublicField {
                     def_path,
                     span: point.span.clone(),
@@ -592,33 +1209,46 @@ impl<'tcx> Engine<'tcx> {
                     def_path,
                     span: point.span.clone(),
                 }
-            });
-        }
-        facts.values.insert(destination_key.clone(), value);
-        if assignment_write {
-            record_write(facts, destination_key, point, WriteKind::Assignment);
+            }
+        });
+        let exact = place_key(place);
+        let pure_deref_base = None;
+        let projection_unknown = place.projection.iter().any(|element| {
+            matches!(
+                element,
+                ProjectionElem::Index(_) | ProjectionElem::Subslice { .. }
+            )
+        });
+        let exact_projection =
+            (!place.projection.is_empty() && !projection_unknown).then_some(exact.clone());
+        OperandModel {
+            operand: CallOperand::Place(exact.clone()),
+            field_origin,
+            pure_deref_base,
+            exact_projection,
+            projection_unknown,
         }
     }
 
-    fn extract_call(
+    fn normalize_call(
         &self,
         caller: DefId,
         body: &Body<'tcx>,
         func: &Operand<'tcx>,
         args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
         destination: Place<'tcx>,
-        point: ProgramPoint,
-        facts: &mut BodyFacts,
-    ) {
+        point: &ProgramPoint,
+        legacy_write: bool,
+    ) -> CallModel {
         let raw = func.const_fn_def();
         let raw_def = raw.map(|(did, _)| did);
         let callee =
             raw.and_then(|(did, generic_args)| self.resolve_local(caller, did, generic_args));
-        let destination_key = place_key(destination);
         let operands = args
             .iter()
-            .map(|argument| self.call_operand(body, &argument.node))
+            .map(|argument| self.normalize_operand(body, &argument.node, point))
             .collect::<Vec<_>>();
+        let destination_key = place_key(destination);
         let exact_ffi_out = raw_def.is_some_and(|did| {
             self.is_exact_foreign_c(did)
                 && args.iter().any(|argument| {
@@ -638,217 +1268,129 @@ impl<'tcx> Engine<'tcx> {
             modeled_registry,
             direct: raw_def.is_some(),
         });
-        facts.calls.push(CallSite {
-            callee: callee.clone(),
-            raw_def,
-            disposition,
-            args: operands.clone(),
-            destination: destination_key.clone(),
-            point: point.clone(),
-        });
-        if let Some(ref callee) = callee {
-            let mut mapping = BTreeSet::new();
-            for (index, operand) in operands.iter().enumerate() {
-                if let CallOperand::Place(actual) = operand {
-                    mapping.insert(CallMapping::ActualToFormal {
-                        actual: actual.clone(),
-                        formal_index: index as u32 + 1,
-                    });
-                }
-            }
-            mapping.insert(CallMapping::ReturnToDestination {
-                destination: destination_key.clone(),
-            });
-            facts.summary_seed.calls.insert(CallBoundary {
-                caller: facts.function.clone(),
-                callee: callee.clone(),
-                point: point.clone(),
-                mapping,
-            });
-        }
 
-        if destination_write_invalidates(
-            !destination.projection.is_empty(),
-            facts.values.contains_key(&destination_key),
-        ) {
-            record_write(
-                facts,
-                destination_key.clone(),
-                point.clone(),
-                WriteKind::CallReturn,
-            );
-        }
-
-        if boundary_mutation_write_kind(disposition) == Some(WriteKind::OpaqueMutable) {
-            self.record_opaque_mutable_writes(body, args, &operands, &point, facts);
-        }
-
-        let Some((did, generic_args)) = raw else {
-            facts.values.insert(destination_key, ValueFacts::default());
-            return;
+        let mutable_actuals = if disposition == BoundaryDisposition::OpaqueDirect
+            || disposition == BoundaryDisposition::OpaqueIndirect
+        {
+            args.iter()
+                .zip(&operands)
+                .filter(|(argument, _)| {
+                    is_mutable_call_actual(argument.node.ty(&body.local_decls, self.tcx))
+                })
+                .filter_map(|(_, operand)| operand.operand.place().cloned())
+                .collect()
+        } else {
+            Vec::new()
         };
-        // A local callee's return provenance is supplied by its solved summary.
-        // Starting from the actual arguments would merge unrelated values.
-        let mut result = ValueFacts::default();
+        let ffi_out_actuals = if disposition == BoundaryDisposition::ExactFfiOut {
+            args.iter()
+                .zip(&operands)
+                .filter(|(argument, _)| {
+                    is_exact_ffi_out_ty(argument.node.ty(&body.local_decls, self.tcx))
+                })
+                .filter_map(|(_, operand)| operand.operand.place().cloned())
+                .collect()
+        } else {
+            Vec::new()
+        };
 
-        if self.is_maybe_uninit_constructor(did, "uninit") {
-            result.maybe_uninit_initialized = Some(false);
-        } else if self.is_maybe_uninit_constructor(did, "new") {
-            result.maybe_uninit_initialized = Some(true);
-        } else if self.is_slice_len(did) && !operands.is_empty() {
-            if let CallOperand::Place(collection) = &operands[0] {
-                result = self.call_operand_facts(facts, &operands[0]);
-                result.len_of = Some(collection.clone());
-                result.value_flow.clear();
-                facts.lengths.insert(LengthFact {
-                    result: destination_key.clone(),
-                    collection: collection.clone(),
-                });
-            }
-        } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
-            result.open_behavior = true;
-            result.value = AbstractValue::new([AbstractOrigin::OpenBehaviorOutput {
-                token: format!("trait-return:{}", self.tcx.def_path_str(did)),
-                span: point.span.clone(),
-            }]);
-        } else if self.is_associated_slice_as_ref(did, body, args, destination) {
-            result.generic_capability = true;
-            result
-                .value
-                .origins
-                .insert(AbstractOrigin::GenericCapability {
+        let mut value = RegistryValueModel::Empty;
+        let mut predicate = None;
+        if let Some((did, generic_args)) = raw {
+            if self.is_maybe_uninit_constructor(did, "uninit") {
+                value = RegistryValueModel::MaybeUninit(false);
+            } else if self.is_maybe_uninit_constructor(did, "new") {
+                value = RegistryValueModel::MaybeUninit(true);
+            } else if self.is_slice_len(did) && !operands.is_empty() {
+                value = RegistryValueModel::Length(operands[0].clone());
+            } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
+                value = RegistryValueModel::SelectedOpenBehavior {
+                    token: format!("trait-return:{}", self.tcx.def_path_str(did)),
+                };
+            } else if self.is_associated_slice_as_ref(did, body, args, destination) {
+                value = RegistryValueModel::GenericCapability {
                     token: format!("associated-slice:{}", self.tcx.def_path_str(did)),
-                    span: point.span.clone(),
-                });
-        } else if disposition == BoundaryDisposition::ExactFfiOut {
-            for (index, operand) in operands.iter().enumerate() {
-                let CallOperand::Place(actual) = operand else {
-                    continue;
                 };
-                let Some(argument) = args.get(index) else {
-                    continue;
+            }
+
+            if self.is_saturating_sub(did) && operands.len() >= 2 {
+                value = RegistryValueModel::SaturatingSub(operands.clone());
+            } else if self.tcx.is_diagnostic_item(sym::mem_size_of, did) {
+                if let Ok(layout) = self
+                    .tcx
+                    .layout_of(self.tcx.param_env(caller).and(generic_args.type_at(0)))
+                {
+                    value = RegistryValueModel::Constant(layout.size.bytes());
+                }
+            } else if self.is_slice_prefix_index(did) && operands.len() >= 2 {
+                if let Some(range) = operands[1].operand.place().cloned() {
+                    value = RegistryValueModel::SlicePrefix {
+                        base: operands[0].clone(),
+                        range,
+                    };
+                }
+            } else if self.is_slice_as_ptr(did) && !operands.is_empty() {
+                value = RegistryValueModel::SliceAsPtr(operands[0].clone());
+            } else if self.is_wrapping_add(did) && operands.len() >= 2 {
+                value = RegistryValueModel::WrappingAdd {
+                    base: operands[0].clone(),
+                    offset: operands[1].clone(),
                 };
-                let argument_ty = argument.node.ty(&body.local_decls, self.tcx);
-                if !is_exact_ffi_out_ty(argument_ty) {
-                    continue;
-                }
-                let targets = self.alias_closure(facts, actual);
-                for target in targets {
-                    {
-                        let entry = facts.values.entry(target.clone()).or_default();
-                        entry.ffi_output = true;
-                        entry.value.origins.insert(AbstractOrigin::FfiOutput {
-                            token: format!("ffi-out:{}", point.span.token()),
-                            span: point.span.clone(),
-                        });
-                    }
-                    record_write(
-                        facts,
-                        target,
-                        point.clone(),
-                        boundary_mutation_write_kind(disposition)
-                            .expect("exact FFI out boundary has a frozen write kind"),
-                    );
-                }
+            } else if self.is_pointer_cast(did) && !operands.is_empty() {
+                value = RegistryValueModel::PointerCast(operands[0].clone());
             }
+
+            predicate =
+                if self.tcx.is_diagnostic_item(sym::str_from_utf8, did) && !operands.is_empty() {
+                    operands[0]
+                        .operand
+                        .place()
+                        .cloned()
+                        .map(|bytes| PredicateModel::Utf8Result { bytes })
+                } else if self.is_result_is_err(did) && !operands.is_empty() {
+                    operands[0]
+                        .operand
+                        .place()
+                        .cloned()
+                        .map(|checked| PredicateModel::IsErr { checked })
+                } else if self.is_slice_is_empty(did) && !operands.is_empty() {
+                    operands[0]
+                        .operand
+                        .place()
+                        .cloned()
+                        .map(|slice| PredicateModel::IsEmpty { slice })
+                } else if self.is_pointer_is_null(did) && !operands.is_empty() {
+                    operands[0]
+                        .operand
+                        .place()
+                        .cloned()
+                        .map(|pointer| PredicateModel::IsNull { pointer })
+                } else {
+                    None
+                };
         }
 
-        if self.is_saturating_sub(did) && operands.len() >= 2 {
-            result = self.join_fact_values(
-                operands
-                    .iter()
-                    .map(|operand| self.call_operand_facts(facts, operand)),
-            );
-            result.value_flow.clear();
-        } else if self.tcx.is_diagnostic_item(sym::mem_size_of, did) {
-            if let Ok(layout) = self
-                .tcx
-                .layout_of(self.tcx.param_env(caller).and(generic_args.type_at(0)))
-            {
-                let width = layout.size.bytes();
-                result.value.origins.insert(AbstractOrigin::Constant(width));
-            }
-        } else if self.is_slice_prefix_index(did) && operands.len() >= 2 {
-            result = self.call_operand_facts(facts, &operands[0]);
-            if let CallOperand::Place(range) = &operands[1] {
-                result.range_end = self
-                    .resolve_value(facts, range)
-                    .range_end
-                    .clone()
-                    .or_else(|| Some(range.clone()));
-            }
-        } else if self.is_slice_as_ptr(did) && !operands.is_empty() {
-            result = self.call_operand_facts(facts, &operands[0]);
-            result.pointer_base = operands[0].place().cloned();
-        } else if self.is_wrapping_add(did) && operands.len() >= 2 {
-            result = self.call_operand_facts(facts, &operands[0]);
-            result.pointer_base = result
-                .pointer_base
-                .clone()
-                .or_else(|| operands[0].place().cloned());
-            result.pointer_offset = operands[1].place().cloned();
-            result
-                .value
-                .origins
-                .extend(self.operand_value(facts, &operands[1]).origins);
-        } else if self.is_pointer_cast(did) && !operands.is_empty() {
-            result = self.call_operand_facts(facts, &operands[0]);
-        }
-
-        if self.tcx.is_diagnostic_item(sym::str_from_utf8, did) && !operands.is_empty() {
-            if let CallOperand::Place(bytes) = &operands[0] {
-                facts.predicates.push(PredicateFact::Utf8Result {
-                    result: destination_key.clone(),
-                    bytes: bytes.clone(),
-                });
-            }
-        } else if self.is_result_is_err(did) && !operands.is_empty() {
-            if let CallOperand::Place(checked) = &operands[0] {
-                facts.predicates.push(PredicateFact::IsErr {
-                    result: destination_key.clone(),
-                    checked: checked.clone(),
-                });
-            }
-        } else if self.is_slice_is_empty(did) && !operands.is_empty() {
-            if let CallOperand::Place(slice) = &operands[0] {
-                facts.predicates.push(PredicateFact::IsEmpty {
-                    result: destination_key.clone(),
-                    slice: slice.clone(),
-                });
-            }
-        } else if self.is_pointer_is_null(did) && !operands.is_empty() {
-            if let CallOperand::Place(pointer) = &operands[0] {
-                facts.predicates.push(PredicateFact::IsNull {
-                    result: destination_key.clone(),
-                    pointer: pointer.clone(),
-                });
-            }
-        }
-
-        facts.values.insert(destination_key, result);
-    }
-
-    fn record_opaque_mutable_writes(
-        &self,
-        body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
-        operands: &[CallOperand],
-        point: &ProgramPoint,
-        facts: &mut BodyFacts,
-    ) {
-        for (argument, operand) in args.iter().zip(operands) {
-            if !is_mutable_call_actual(argument.node.ty(&body.local_decls, self.tcx)) {
-                continue;
-            }
-            let CallOperand::Place(place) = operand else {
-                continue;
-            };
-            record_write(
-                facts,
-                place.clone(),
-                point.clone(),
-                WriteKind::OpaqueMutable,
-            );
+        let destination_ty = destination.ty(&body.local_decls, self.tcx).ty;
+        let access_width = self
+            .tcx
+            .layout_of(self.tcx.param_env(caller).and(destination_ty))
+            .ok()
+            .map(|layout| layout.size.bytes());
+        CallModel {
+            descriptor: CallDescriptor {
+                callee,
+                raw_def,
+                disposition,
+                args: operands,
+                destination: destination_key,
+            },
+            value,
+            predicate,
+            mutable_actuals,
+            ffi_out_actuals,
+            destination_is_bool: destination_ty.is_bool(),
+            access_width,
+            legacy_write,
         }
     }
 
@@ -884,8 +1426,8 @@ impl<'tcx> Engine<'tcx> {
                 continue;
             };
             if self.is_get_unchecked(did) && call.args.len() >= 2 {
-                let collection = self.operand_value(facts, &call.args[0]);
-                let index_subject = self.operand_value(facts, &call.args[1]);
+                let collection = call.arg_values[0].value.clone();
+                let index_subject = call.arg_values[1].value.clone();
                 let constant_zero = matches!(call.args[1], CallOperand::Constant(0));
                 let p5_subject = generic_nonempty_subject(&collection, constant_zero);
                 let source_hint = if p5_subject.is_some() {
@@ -914,8 +1456,32 @@ impl<'tcx> Engine<'tcx> {
                     Some(SourceKind::OpenBehaviorOutput) => RuleId::P6OpenTraitIndex,
                     _ => RuleId::P1GetUnchecked,
                 };
+                let seed_id = format!("{}:{}", rule.as_str(), call.point.span.token());
+                let binding = match (&call.args[0], &call.args[1], constant_zero) {
+                    (CallOperand::Place(_), CallOperand::Place(_), false) => {
+                        unique_semantic_value(&call.arg_values[1]).and_then(|subject| {
+                            unique_semantic_value(&call.arg_values[0]).map(|collection| {
+                                ValidationBinding {
+                                    predicate: Predicate::InBounds,
+                                    subject,
+                                    collection: Some(collection),
+                                }
+                            })
+                        })
+                    }
+                    (CallOperand::Place(_), _, true) => unique_semantic_value(&call.arg_values[0])
+                        .map(|collection| ValidationBinding {
+                            predicate: Predicate::NonEmpty,
+                            subject: collection,
+                            collection: None,
+                        }),
+                    _ => None,
+                };
+                if let Some(binding) = binding {
+                    facts.local_bindings.insert(call.point.clone(), binding);
+                }
                 facts.summary_seed.requirements.insert(ContractRequirement {
-                    seed_id: format!("{}:{}", rule.as_str(), call.point.span.token()),
+                    seed_id,
                     collection: Some(collection),
                     subject,
                     source_hint,
@@ -940,13 +1506,9 @@ impl<'tcx> Engine<'tcx> {
                     sink_function: facts.function.clone(),
                 });
             } else if self.tcx.is_diagnostic_item(sym::assume_init, did) && !call.args.is_empty() {
-                let receiver = call.args[0].place().cloned();
-                let initialization = receiver
-                    .as_ref()
-                    .and_then(|place| self.resolve_value(facts, place).maybe_uninit_initialized);
-                let destination_ty = self.place_ty(body, &call.destination);
-                if initialization == Some(false)
-                    && destination_ty.is_some_and(|ty| ty.is_bool())
+                let initialization = &call.arg_values[0].maybe_uninit_initialized;
+                if initialization == &BTreeSet::from([false])
+                    && call.destination_is_bool
                     && self.place_reaches_return(facts, &call.destination)
                 {
                     let origin = AbstractOrigin::InternalLocal {
@@ -1012,14 +1574,27 @@ impl<'tcx> Engine<'tcx> {
                     }
                 }
             } else if self.is_nonnull_new_unchecked(did) && !call.args.is_empty() {
-                let subject = self.operand_value(facts, &call.args[0]);
+                let subject = call.arg_values[0].value.clone();
                 if subject
                     .origins
                     .iter()
                     .any(|origin| matches!(origin, AbstractOrigin::FfiOutput { .. }))
                 {
+                    let seed_id = format!("P6.ffi:{}", call.point.span.token());
+                    if matches!(&call.args[0], CallOperand::Place(_)) {
+                        if let Some(subject) = unique_semantic_value(&call.arg_values[0]) {
+                            facts.local_bindings.insert(
+                                call.point.clone(),
+                                ValidationBinding {
+                                    predicate: Predicate::NonNull,
+                                    subject,
+                                    collection: None,
+                                },
+                            );
+                        }
+                    }
                     facts.summary_seed.requirements.insert(ContractRequirement {
-                        seed_id: format!("P6.ffi:{}", call.point.span.token()),
+                        seed_id,
                         collection: None,
                         subject,
                         source_hint: Some(SourceKind::FfiOutput),
@@ -1041,7 +1616,7 @@ impl<'tcx> Engine<'tcx> {
                     });
                 }
             } else if self.is_read_unaligned(did) && !call.args.is_empty() {
-                let pointer = self.operand_value(facts, &call.args[0]);
+                let pointer = call.arg_values[0].value.clone();
                 if internal_only_origins(&pointer, facts.has_self) {
                     facts.summary_seed.requirements.insert(ContractRequirement {
                         seed_id: format!("P4.offset:{}", call.point.span.token()),
@@ -1059,68 +1634,12 @@ impl<'tcx> Engine<'tcx> {
                             point: call.point.clone(),
                         },
                         predicates: BTreeSet::from([Predicate::RangeInBounds]),
-                        access_width: self
-                            .place_ty(body, &call.destination)
-                            .and_then(|ty| {
-                                self.tcx
-                                    .layout_of(self.tcx.param_env(facts.def_id).and(ty))
-                                    .ok()
-                            })
-                            .map(|layout| layout.size.bytes()),
+                        access_width: call.access_width,
                         rule: RuleId::P4Offset,
                         return_exposure: false,
                         sink_function: facts.function.clone(),
                     });
                 }
-            }
-        }
-
-        for (bb, data) in body.basic_blocks.iter_enumerated() {
-            for (statement_index, statement) in data.statements.iter().enumerate() {
-                let StatementKind::Assign(box (_, Rvalue::Use(operand))) = &statement.kind else {
-                    continue;
-                };
-                let Some(place) = operand.place() else {
-                    continue;
-                };
-                if !place
-                    .projection
-                    .iter()
-                    .any(|element| matches!(element, ProjectionElem::Deref))
-                    || !matches!(body.local_decls[place.local].ty.kind(), ty::RawPtr(..))
-                {
-                    continue;
-                }
-                let source_place = PlaceKey::new(format!("_{}", place.local.index()));
-                let point = self.point(
-                    &facts.function,
-                    Location {
-                        block: bb,
-                        statement_index,
-                    },
-                    statement.source_info.span,
-                );
-                facts.summary_seed.requirements.insert(ContractRequirement {
-                    seed_id: format!("P1.raw:{}", point.span.token()),
-                    collection: None,
-                    subject: self.resolve_value(facts, &source_place).value.clone(),
-                    source_hint: None,
-                    internal_derivation: false,
-                    source_span: point.span.clone(),
-                    first_failure: Operation {
-                        kind: OperationKind::RawRead,
-                        point: point.clone(),
-                    },
-                    sink: Operation {
-                        kind: OperationKind::RawRead,
-                        point,
-                    },
-                    predicates: BTreeSet::from([Predicate::ValidForRead]),
-                    access_width: None,
-                    rule: RuleId::P1RawRead,
-                    return_exposure: false,
-                    sink_function: facts.function.clone(),
-                });
             }
         }
     }
@@ -1228,11 +1747,8 @@ impl<'tcx> Engine<'tcx> {
                 span: origin_span(origin).unwrap_or_else(|| requirement.source_span.clone()),
             });
         }
-        if let Some(AbstractOrigin::Formal(index)) = requirement
-            .subject
-            .origins
-            .iter()
-            .find(|origin| {
+        if let Some(AbstractOrigin::Formal(index)) =
+            requirement.subject.origins.iter().find(|origin| {
                 matches!(origin, AbstractOrigin::Formal(index)
                     if *index > 0
                         && (*index as usize) <= root.arg_count
@@ -1276,8 +1792,20 @@ impl<'tcx> Engine<'tcx> {
         requirement: &ContractRequirement,
         sink: Location,
     ) -> bool {
-        let body = self.tcx.optimized_mir(facts.def_id.to_def_id());
         let predicate = requirement.predicates.iter().next().copied();
+        if matches!(
+            predicate,
+            Some(Predicate::InBounds | Predicate::NonEmpty | Predicate::NonNull)
+        ) && requirement.sink_function == facts.function
+        {
+            if let Some(state) = facts.states.get(&(sink.block, sink.statement_index)) {
+                return state_proves_local_binding(
+                    state,
+                    facts.local_bindings.get(&requirement.sink.point),
+                );
+            }
+        }
+        let body = self.tcx.optimized_mir(facts.def_id.to_def_id());
         let subject_places = self.places_for_value(facts, &requirement.subject);
         let collection_places = requirement
             .collection
@@ -1415,7 +1943,12 @@ impl<'tcx> Engine<'tcx> {
         };
         let offsets = pointer_places
             .iter()
-            .filter_map(|place| self.resolve_value(facts, place).pointer_offset.clone())
+            .flat_map(|place| {
+                self.resolve_value(facts, place)
+                    .pointer_offset
+                    .iter()
+                    .cloned()
+            })
             .flat_map(|place| self.alias_closure(facts, &place))
             .collect::<BTreeSet<_>>();
         if offsets.is_empty() {
@@ -1430,14 +1963,16 @@ impl<'tcx> Engine<'tcx> {
             let right_places = self.operand_places(facts, &compare.right);
             let right_matches = right_places.iter().any(|place| {
                 let value = self.resolve_value(facts, place);
-                value.dependencies.iter().any(|dependency| {
-                    matches!(self.resolve_value(facts, dependency).len_of, Some(_))
-                }) && value.dependencies.iter().any(|dependency| {
-                    self.resolve_value(facts, dependency)
-                        .value
-                        .origins
-                        .contains(&AbstractOrigin::Constant(width))
-                })
+                value
+                    .dependencies
+                    .iter()
+                    .any(|dependency| !self.resolve_value(facts, dependency).len_of.is_empty())
+                    && value.dependencies.iter().any(|dependency| {
+                        self.resolve_value(facts, dependency)
+                            .value
+                            .origins
+                            .contains(&AbstractOrigin::Constant(width))
+                    })
             });
             if right_matches {
                 if let Some(region) = self.validation_branch(
@@ -1539,8 +2074,11 @@ impl<'tcx> Engine<'tcx> {
     ) -> bool {
         let successors = cfg_successors(body);
         facts.writes.iter().any(|write| {
-            related_to_watched(facts, candidates, &write.place)
-                && (write_is_between_points(
+            if !related_to_watched(facts, candidates, &write.place) {
+                return false;
+            }
+            let before_branch =
+                write_is_between_points(
                     &successors,
                     CfgPoint {
                         block: established.block.index() as u32,
@@ -1551,15 +2089,17 @@ impl<'tcx> Engine<'tcx> {
                         block: region.branch.block.index() as u32,
                         statement: region.branch.statement_index as u32,
                     },
-                ) || write_is_between(
-                    &successors,
-                    region.success.index() as u32,
-                    cfg_point(&write.point),
-                    CfgPoint {
-                        block: sink.block.index() as u32,
-                        statement: sink.statement_index as u32,
-                    },
-                ))
+                ) && write_normal_edge_reaches(&successors, write, region.branch.block);
+            let before_sink = write_is_between(
+                &successors,
+                region.success.index() as u32,
+                cfg_point(&write.point),
+                CfgPoint {
+                    block: sink.block.index() as u32,
+                    statement: sink.statement_index as u32,
+                },
+            ) && write_normal_edge_reaches(&successors, write, sink.block);
+            before_branch || before_sink
         })
     }
 
@@ -1688,64 +2228,11 @@ impl<'tcx> Engine<'tcx> {
             .collect()
     }
 
-    fn operand_facts(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        operand: &Operand<'tcx>,
-        span: &StableSpan,
-    ) -> ValueFacts {
-        if let Some(place) = operand.place() {
-            return self.place_facts(body, facts, place, span.clone());
-        }
-        self.usize_constant(body, operand)
-            .map(|value| ValueFacts {
-                value: AbstractValue::new([AbstractOrigin::Constant(value)]),
-                ..ValueFacts::default()
-            })
-            .unwrap_or_default()
-    }
-
-    fn place_facts(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        place: Place<'tcx>,
-        span: StableSpan,
-    ) -> ValueFacts {
-        let key = place_key(place);
-        let mut result = facts.values.get(&key).cloned().unwrap_or_else(|| {
-            facts
-                .values
-                .get(&PlaceKey::new(format!("_{}", place.local.index())))
-                .cloned()
-                .unwrap_or_default()
-        });
-        result.dependencies.insert(key);
-        result.value_flow.insert(place_key(place));
-        if let Some((public, def_path)) = self.field_info(body, place) {
-            result.value.origins.insert(if public {
-                AbstractOrigin::PublicField { def_path, span }
-            } else {
-                AbstractOrigin::PrivateField { def_path, span }
-            });
-        }
-        result
-    }
-
     fn resolve_value<'a>(&self, facts: &'a BodyFacts, place: &PlaceKey) -> &'a ValueFacts {
         facts.values.get(place).unwrap_or_else(|| {
             static EMPTY: std::sync::OnceLock<ValueFacts> = std::sync::OnceLock::new();
             EMPTY.get_or_init(ValueFacts::default)
         })
-    }
-
-    fn operand_value(&self, facts: &BodyFacts, operand: &CallOperand) -> AbstractValue {
-        match operand {
-            CallOperand::Place(place) => self.resolve_value(facts, place).value.clone(),
-            CallOperand::Constant(value) => AbstractValue::new([AbstractOrigin::Constant(*value)]),
-            CallOperand::Unknown => AbstractValue::default(),
-        }
     }
 
     fn operand_places(&self, facts: &BodyFacts, operand: &CallOperand) -> BTreeSet<PlaceKey> {
@@ -1801,48 +2288,6 @@ impl<'tcx> Engine<'tcx> {
                 .contains(&PlaceKey::new("_0"))
     }
 
-    fn call_operand_facts(&self, facts: &BodyFacts, operand: &CallOperand) -> ValueFacts {
-        match operand {
-            CallOperand::Place(place) => {
-                let mut result = self.resolve_value(facts, place).clone();
-                result.dependencies.insert(place.clone());
-                result.value_flow.insert(place.clone());
-                result
-            }
-            CallOperand::Constant(value) => ValueFacts {
-                value: AbstractValue::new([AbstractOrigin::Constant(*value)]),
-                ..ValueFacts::default()
-            },
-            CallOperand::Unknown => ValueFacts::default(),
-        }
-    }
-
-    fn join_fact_values(&self, values: impl IntoIterator<Item = ValueFacts>) -> ValueFacts {
-        let mut result = ValueFacts::default();
-        for value in values {
-            result.value.origins.extend(value.value.origins);
-            result.dependencies.extend(value.dependencies);
-            result.value_flow.extend(value.value_flow);
-            result.len_of = result.len_of.or(value.len_of);
-            result.range_end = result.range_end.or(value.range_end);
-            result.pointer_base = result.pointer_base.or(value.pointer_base);
-            result.pointer_offset = result.pointer_offset.or(value.pointer_offset);
-            result.maybe_uninit_initialized = match (
-                result.maybe_uninit_initialized,
-                value.maybe_uninit_initialized,
-            ) {
-                (None, other) => other,
-                (some, None) => some,
-                (Some(left), Some(right)) if left == right => Some(left),
-                _ => None,
-            };
-            result.generic_capability |= value.generic_capability;
-            result.ffi_output |= value.ffi_output;
-            result.open_behavior |= value.open_behavior;
-        }
-        result
-    }
-
     fn call_operand(&self, body: &Body<'tcx>, operand: &Operand<'tcx>) -> CallOperand {
         operand
             .place()
@@ -1892,13 +2337,6 @@ impl<'tcx> Engine<'tcx> {
             place_ty = place_ty.projection_ty(self.tcx, element);
         }
         None
-    }
-
-    fn place_ty(&self, body: &Body<'tcx>, place: &PlaceKey) -> Option<ty::Ty<'tcx>> {
-        let local = parse_local(place)?;
-        body.local_decls
-            .get(rustc_middle::mir::Local::from_usize(local))
-            .map(|decl| decl.ty)
     }
 
     fn resolve_local(
@@ -2233,18 +2671,623 @@ fn place_key(place: Place<'_>) -> PlaceKey {
     PlaceKey::new(format!("{place:?}"))
 }
 
-fn parse_local(place: &PlaceKey) -> Option<usize> {
-    place
-        .0
-        .strip_prefix('_')?
-        .split(|character: char| !character.is_ascii_digit())
-        .next()?
-        .parse()
-        .ok()
+fn canonical_storage(place: &PlaceKey) -> PlaceKey {
+    let start = place.0.find('_').map(|index| index + 1);
+    let Some(start) = start else {
+        return place.clone();
+    };
+    let digits = place.0[start..]
+        .chars()
+        .take_while(|character| character.is_ascii_digit())
+        .collect::<String>();
+    if digits.is_empty() {
+        place.clone()
+    } else {
+        PlaceKey::new(format!("_{digits}"))
+    }
 }
 
-fn value_range_end(value: &mut ValueFacts, range_end: PlaceKey) {
-    value.range_end = Some(range_end);
+fn state_value(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+) -> ValueFacts {
+    let mut value = state.may_values().get(place).cloned().unwrap_or_default();
+    let storage = canonical_storage(place);
+    if storage != *place {
+        if let Some(storage_value) = state.may_values().get(&storage) {
+            value.join_may(storage_value);
+        }
+    }
+    value
+}
+
+fn exact_semantics(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+) -> (BTreeSet<PlaceKey>, bool) {
+    state
+        .may_values()
+        .get(place)
+        .map(|facts| (facts.exact_roots.clone(), facts.semantic_unknown))
+        .unwrap_or_default()
+}
+
+fn semantic_value_at(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+) -> ValueFacts {
+    let (exact_roots, semantic_unknown) = exact_semantics(state, place);
+    ValueFacts {
+        exact_roots,
+        semantic_unknown,
+        ..ValueFacts::default()
+    }
+}
+
+fn current_storage_versions(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+) -> BTreeSet<StaticWriteToken> {
+    state
+        .versions()
+        .get(&canonical_storage(place))
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn semantic_place_candidates(value: &ValueFacts) -> BTreeSet<PlaceKey> {
+    value.exact_roots.clone()
+}
+
+fn unique_semantic_value(value: &ValueFacts) -> Option<PlaceKey> {
+    if value.semantic_unknown {
+        return None;
+    }
+    let mut roots = semantic_place_candidates(value).into_iter();
+    match (roots.next(), roots.next()) {
+        (Some(root), None) => Some(root),
+        _ => None,
+    }
+}
+
+fn length_relation_is_current(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    value: &ValueFacts,
+    collection: &PlaceKey,
+) -> bool {
+    let mut atoms = value.length_atoms.iter();
+    let Some(atom) = atoms.next() else {
+        return false;
+    };
+    atoms.next().is_none()
+        && atom.collection == *collection
+        && !atom.invalidated
+        && atom.captured_versions == current_storage_versions(state, collection)
+}
+
+fn eval_operand(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    operand: &OperandModel,
+) -> ValueFacts {
+    let mut result = match &operand.operand {
+        CallOperand::Place(place) => {
+            let mut value = state_value(state, place);
+            let (exact_roots, semantic_unknown) = operand
+                .pure_deref_base
+                .as_ref()
+                .map(|base| exact_semantics(state, base))
+                .unwrap_or_else(|| exact_semantics(state, place));
+            value.exact_roots = exact_roots;
+            value.semantic_unknown = semantic_unknown;
+            value.exact_roots.extend(operand.exact_projection.clone());
+            value.semantic_unknown |= operand.projection_unknown;
+            value.dependencies.insert(place.clone());
+            value.value_flow.insert(place.clone());
+            value
+        }
+        CallOperand::Constant(value) => ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::Constant(*value)]),
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        CallOperand::Unknown => ValueFacts {
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+    };
+    if let Some(origin) = &operand.field_origin {
+        result
+            .value
+            .origins
+            .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
+        result.value.origins.insert(origin.clone());
+    }
+    result
+}
+
+fn join_value_facts(values: impl IntoIterator<Item = ValueFacts>) -> ValueFacts {
+    let mut result = ValueFacts::default();
+    for value in values {
+        result.join_may(&value);
+    }
+    result
+}
+
+fn eval_value_model(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    model: &ValueModel,
+    definition: StaticWriteToken,
+) -> ValueFacts {
+    match model {
+        ValueModel::Operand(operand) => eval_operand(state, operand),
+        ValueModel::RefOrRaw(place) => eval_operand(state, place),
+        ValueModel::Length(collection) => {
+            let mut result = eval_operand(state, collection);
+            let candidates = semantic_place_candidates(&result);
+            result.length_relation_unknown = result.semantic_unknown;
+            result.len_of.clear();
+            result.length_atoms.clear();
+            for collection in candidates {
+                result.len_of.insert(collection.clone());
+                result.length_atoms.insert(LengthAtom {
+                    collection: collection.clone(),
+                    definition,
+                    captured_versions: current_storage_versions(state, &collection),
+                    invalidated: false,
+                });
+            }
+            result.exact_roots.clear();
+            result.value_flow.clear();
+            result.may_be_non_length = false;
+            result.havoced = false;
+            result
+        }
+        ValueModel::Compare { left, right, .. } => {
+            let mut result =
+                join_value_facts([eval_operand(state, left), eval_operand(state, right)]);
+            result.value_flow.clear();
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result.len_of.clear();
+            result.length_atoms.clear();
+            result.may_be_non_length = true;
+            result
+        }
+        ValueModel::Aggregate {
+            operands,
+            range_end,
+        } => {
+            let mut result =
+                join_value_facts(operands.iter().map(|operand| eval_operand(state, operand)));
+            if let Some(range_end) = range_end {
+                result.range_end.insert(range_end.clone());
+            }
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
+        ValueModel::Unknown => ValueFacts {
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+    }
+}
+
+fn eval_registry_value(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    model: &RegistryValueModel,
+    point: &ProgramPoint,
+) -> ValueFacts {
+    let definition = StaticWriteToken::new(point.block, point.statement);
+    match model {
+        RegistryValueModel::Empty => ValueFacts {
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        RegistryValueModel::MaybeUninit(initialized) => ValueFacts {
+            maybe_uninit_initialized: BTreeSet::from([*initialized]),
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        RegistryValueModel::Length(collection) => {
+            let mut result = eval_operand(state, collection);
+            let candidates = semantic_place_candidates(&result);
+            result.length_relation_unknown = result.semantic_unknown;
+            result.len_of.clear();
+            result.length_atoms.clear();
+            for collection in candidates {
+                result.len_of.insert(collection.clone());
+                result.length_atoms.insert(LengthAtom {
+                    collection: collection.clone(),
+                    definition,
+                    captured_versions: current_storage_versions(state, &collection),
+                    invalidated: false,
+                });
+            }
+            result.exact_roots.clear();
+            result.value_flow.clear();
+            result.may_be_non_length = false;
+            result.havoced = false;
+            result
+        }
+        RegistryValueModel::SelectedOpenBehavior { token } => ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::OpenBehaviorOutput {
+                token: token.clone(),
+                span: point.span.clone(),
+            }]),
+            open_behavior: true,
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        RegistryValueModel::GenericCapability { token } => ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::GenericCapability {
+                token: token.clone(),
+                span: point.span.clone(),
+            }]),
+            generic_capability: true,
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        RegistryValueModel::SaturatingSub(operands) => {
+            let mut result =
+                join_value_facts(operands.iter().map(|operand| eval_operand(state, operand)));
+            result.value_flow.clear();
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result.len_of.clear();
+            result.length_atoms.clear();
+            result.may_be_non_length = true;
+            result
+        }
+        RegistryValueModel::Constant(value) => ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::Constant(*value)]),
+            may_be_non_length: true,
+            semantic_unknown: true,
+            ..ValueFacts::default()
+        },
+        RegistryValueModel::SlicePrefix { base, range } => {
+            let mut result = eval_operand(state, base);
+            result.range_end.extend(state_value(state, range).range_end);
+            result.range_end.insert(range.clone());
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
+        RegistryValueModel::SliceAsPtr(base) => {
+            let mut result = eval_operand(state, base);
+            result.pointer_base.extend(base.operand.place().cloned());
+            result
+        }
+        RegistryValueModel::WrappingAdd { base, offset } => {
+            let mut result = eval_operand(state, base);
+            result.pointer_base.extend(base.operand.place().cloned());
+            result
+                .pointer_offset
+                .extend(offset.operand.place().cloned());
+            result
+                .value
+                .origins
+                .extend(eval_operand(state, offset).value.origins);
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
+        RegistryValueModel::PointerCast(base) => {
+            let mut result = eval_operand(state, base);
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
+    }
+}
+
+fn state_alias_closure(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    seed: &PlaceKey,
+) -> BTreeSet<PlaceKey> {
+    let mut aliases = BTreeSet::from([seed.clone(), canonical_storage(seed)]);
+    loop {
+        let before = aliases.len();
+        for (place, value) in state.may_values() {
+            if aliases.contains(place) || !value.value_flow.is_disjoint(&aliases) {
+                aliases.insert(place.clone());
+                aliases.extend(value.value_flow.iter().cloned());
+            }
+        }
+        if aliases.len() == before {
+            break;
+        }
+    }
+    aliases
+        .into_iter()
+        .map(|place| canonical_storage(&place))
+        .collect()
+}
+
+fn invalidate_length_evidence(
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    written_storage: &PlaceKey,
+) {
+    let updates = state
+        .may_values()
+        .iter()
+        .filter_map(|(place, value)| {
+            let mut updated = value.clone();
+            let mut changed = false;
+            let atoms = updated.length_atoms.iter().cloned().collect::<Vec<_>>();
+            for atom in atoms {
+                if canonical_storage(&atom.collection) != *written_storage || atom.invalidated {
+                    continue;
+                }
+                updated.length_atoms.remove(&atom);
+                let mut invalidated = atom;
+                invalidated.invalidated = true;
+                updated.length_atoms.insert(invalidated);
+                changed = true;
+            }
+            changed.then(|| (place.clone(), updated))
+        })
+        .collect::<Vec<_>>();
+    for (place, value) in updates {
+        state.set_value(place, value);
+    }
+}
+
+fn apply_program_op(
+    operation: &ProgramOp,
+    block: BasicBlock,
+    index: usize,
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+) {
+    let token = StaticWriteToken::new(block.index() as u32, index as u32);
+    match &operation.kind {
+        ProgramOpKind::Assign(assignment) => {
+            let copied_pending = match &assignment.value {
+                ValueModel::Operand(operand) => operand.operand.place().map(|source| {
+                    state
+                        .pending_must()
+                        .get(source)
+                        .into_iter()
+                        .flat_map(|facts| facts.keys())
+                        .filter(|(binding, polarity)| {
+                            state.pending_is_current(source, binding, *polarity)
+                        })
+                        .map(|(binding, polarity)| {
+                            (binding.clone(), *polarity, binding.storage_places())
+                        })
+                        .collect::<Vec<_>>()
+                }),
+                _ => None,
+            };
+            let mut value = eval_value_model(state, &assignment.value, token);
+            let pending = match &assignment.value {
+                ValueModel::Compare {
+                    op: BinOp::Ge,
+                    left,
+                    right,
+                } => {
+                    let right_value = eval_operand(state, right);
+                    let left_value = eval_operand(state, left);
+                    match (
+                        unique_semantic_value(&left_value),
+                        right_value.len_of.iter().next(),
+                    ) {
+                        (Some(subject), Some(collection))
+                            if right_value.len_of.len() == 1
+                                && !right_value.may_be_non_length
+                                && !right_value.length_relation_unknown
+                                && length_relation_is_current(state, &right_value, collection) =>
+                        {
+                            if left_value.havoced || right_value.havoced {
+                                Vec::new()
+                            } else {
+                                let binding = ValidationBinding {
+                                    predicate: Predicate::InBounds,
+                                    subject,
+                                    collection: Some(collection.clone()),
+                                };
+                                vec![(binding.clone(), false, binding.storage_places())]
+                            }
+                        }
+                        _ => Vec::new(),
+                    }
+                }
+                _ => copied_pending.unwrap_or_default(),
+            };
+            if let Some(origin) = &assignment.field_origin {
+                value
+                    .value
+                    .origins
+                    .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
+                value.value.origins.insert(origin.clone());
+            }
+            let defines_fresh_identity = matches!(
+                &assignment.value,
+                ValueModel::Operand(OperandModel {
+                    operand: CallOperand::Constant(_),
+                    ..
+                }) | ValueModel::Length(_)
+                    | ValueModel::Compare { .. }
+                    | ValueModel::Aggregate { .. }
+            );
+            if defines_fresh_identity {
+                value.exact_roots.clear();
+                value.exact_roots.insert(assignment.destination.clone());
+                value.semantic_unknown = false;
+            }
+            let storage = canonical_storage(&assignment.destination);
+            state.record_write(storage.clone(), token);
+            invalidate_length_evidence(state, &storage);
+            state.set_value(assignment.destination.clone(), value);
+
+            if !pending.is_empty() {
+                state.set_pending(assignment.destination.clone(), pending);
+            }
+        }
+        // Call effects belong to the normal edge, never the unwind edge.
+        ProgramOpKind::Call(_) => {}
+        ProgramOpKind::Nop => {}
+    }
+}
+
+fn apply_program_edge(
+    edge: &EdgeTerm,
+    target: BasicBlock,
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+) {
+    if let EdgeTerm::CallNormal {
+        normal_target,
+        point,
+        call,
+    } = edge
+    {
+        if *normal_target != Some(target) {
+            return;
+        }
+        let return_value = eval_registry_value(state, &call.value, point);
+        apply_call_side_effects(call, point, state);
+        apply_call_return(call, point, return_value, state);
+        return;
+    }
+    if let EdgeTerm::AssertPlumbingOnly {
+        condition,
+        expected,
+        target: success,
+    } = edge
+    {
+        let _ = (condition, expected, success, target);
+        // Task 9 owns Assert equivalence; Task 5 intentionally establishes nothing.
+        return;
+    }
+    let EdgeTerm::Switch {
+        condition,
+        false_target,
+        true_target,
+    } = edge
+    else {
+        // Task 9 owns Lt equivalence.
+        return;
+    };
+    let truth = if target == *true_target && target != *false_target {
+        Some(true)
+    } else if target == *false_target && target != *true_target {
+        Some(false)
+    } else {
+        None
+    };
+    let Some(truth) = truth else {
+        return;
+    };
+    let bindings = state
+        .pending_must()
+        .get(condition)
+        .into_iter()
+        .flat_map(|facts| facts.keys())
+        .filter(|(binding, polarity)| {
+            *polarity == truth && state.pending_is_current(condition, binding, *polarity)
+        })
+        .map(|(binding, _)| binding.clone())
+        .collect::<Vec<_>>();
+    for binding in bindings {
+        state.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+    }
+}
+
+fn state_proves_local_binding(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    binding: Option<&ValidationBinding>,
+) -> bool {
+    binding.is_some_and(|binding| state.has_current_validation(binding, binding.storage_places()))
+}
+
+fn apply_call_side_effects(
+    call: &CallModel,
+    point: &ProgramPoint,
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+) {
+    let token = StaticWriteToken::new(point.block, point.statement);
+    for actual in &call.mutable_actuals {
+        for target in state_alias_closure(state, actual) {
+            let mut havoced = state_value(state, &target);
+            havoced.havoced = true;
+            state.record_may_write(target.clone(), token);
+            state.set_value(target.clone(), havoced);
+            invalidate_length_evidence(state, &target);
+        }
+    }
+    for actual in &call.ffi_out_actuals {
+        for target in state_alias_closure(state, actual) {
+            let mut output = state_value(state, &target);
+            output.exact_roots.insert(target.clone());
+            output.ffi_output = true;
+            output.value.origins.insert(AbstractOrigin::FfiOutput {
+                token: format!("ffi-out:{}", point.span.token()),
+                span: point.span.clone(),
+            });
+            state.record_may_write(target.clone(), token);
+            state.set_value(target.clone(), output);
+            invalidate_length_evidence(state, &target);
+        }
+    }
+}
+
+fn apply_call_return(
+    call: &CallModel,
+    point: &ProgramPoint,
+    mut value: ValueFacts,
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+) {
+    let token = StaticWriteToken::new(point.block, point.statement);
+    let destination = call.descriptor.destination.clone();
+    value.exact_roots.clear();
+    value.exact_roots.insert(destination.clone());
+    value.semantic_unknown = false;
+    let storage = canonical_storage(&destination);
+    state.record_write(storage.clone(), token);
+    invalidate_length_evidence(state, &storage);
+    state.set_value(destination.clone(), value);
+    let pending = match &call.predicate {
+        Some(PredicateModel::IsEmpty { slice })
+            if !state_value(state, slice).havoced
+                && unique_semantic_value(&semantic_value_at(state, slice)).is_some() =>
+        {
+            let slice = unique_semantic_value(&semantic_value_at(state, slice))
+                .expect("the match guard established one semantic place");
+            let binding = ValidationBinding {
+                predicate: Predicate::NonEmpty,
+                subject: slice,
+                collection: None,
+            };
+            vec![(binding.clone(), false, binding.storage_places())]
+        }
+        Some(PredicateModel::IsNull { pointer })
+            if !state_value(state, pointer).havoced
+                && unique_semantic_value(&semantic_value_at(state, pointer)).is_some() =>
+        {
+            let pointer = unique_semantic_value(&semantic_value_at(state, pointer))
+                .expect("the match guard established one semantic place");
+            let binding = ValidationBinding {
+                predicate: Predicate::NonNull,
+                subject: pointer,
+                collection: None,
+            };
+            vec![(binding.clone(), false, binding.storage_places())]
+        }
+        _ => Vec::new(),
+    };
+    if !pending.is_empty() {
+        state.set_pending(destination, pending);
+    }
 }
 
 fn predicate_result(predicate: &PredicateFact) -> &PlaceKey {
@@ -2295,11 +3338,26 @@ fn is_mutable_call_actual(ty: ty::Ty<'_>) -> bool {
 }
 
 fn record_write(facts: &mut BodyFacts, place: PlaceKey, point: ProgramPoint, kind: WriteKind) {
+    record_edge_write(facts, place, point, kind, None);
+}
+
+fn record_edge_write(
+    facts: &mut BodyFacts,
+    place: PlaceKey,
+    point: ProgramPoint,
+    kind: WriteKind,
+    normal_successor: Option<BasicBlock>,
+) {
     facts.summary_seed.writes.insert(WriteEffect {
         place: place.clone(),
         point: point.clone(),
     });
-    facts.writes.push(WriteFact { place, point, kind });
+    facts.writes.push(WriteFact {
+        place,
+        point,
+        kind,
+        normal_successor,
+    });
 }
 
 fn destination_write_invalidates(projected_destination: bool, already_defined: bool) -> bool {
@@ -2369,6 +3427,16 @@ fn block_reachable(successors: &BTreeMap<u32, BTreeSet<u32>>, start: u32, target
         pending.extend(successors.get(&block).into_iter().flatten().copied());
     }
     false
+}
+
+fn write_normal_edge_reaches(
+    successors: &BTreeMap<u32, BTreeSet<u32>>,
+    write: &WriteFact,
+    target: BasicBlock,
+) -> bool {
+    write.normal_successor.is_none_or(|normal| {
+        block_reachable(successors, normal.index() as u32, target.index() as u32)
+    })
 }
 
 fn write_is_between(
@@ -2642,6 +3710,1380 @@ mod tests {
             StablePosition::new(1, 1),
             StablePosition::new(1, 2),
         )
+    }
+
+    fn point(block: u32, statement: u32) -> ProgramPoint {
+        ProgramPoint {
+            function: FunctionKey::new("crate::f"),
+            block,
+            statement,
+            span: span(),
+        }
+    }
+
+    fn place_operand(name: &str) -> OperandModel {
+        OperandModel {
+            operand: CallOperand::Place(PlaceKey::new(name)),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_unknown: false,
+        }
+    }
+
+    fn exact_value(place: &PlaceKey) -> ValueFacts {
+        ValueFacts {
+            exact_roots: BTreeSet::from([place.clone()]),
+            ..ValueFacts::default()
+        }
+    }
+
+    fn seed_exact(
+        state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+        place: &PlaceKey,
+    ) {
+        state.set_value(place.clone(), exact_value(place));
+    }
+
+    #[test]
+    fn length_joined_with_other_does_not_create_a_pending_bound() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_4");
+        let mut state = BlockState::empty();
+        state.set_value(
+            length.clone(),
+            ValueFacts {
+                len_of: BTreeSet::from([collection]),
+                may_be_non_length: true,
+                ..ValueFacts::default()
+            },
+        );
+        let operation = ProgramOp {
+            point: point(0, 0),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: condition.clone(),
+                value: ValueModel::Compare {
+                    op: BinOp::Ge,
+                    left: place_operand(&index.0),
+                    right: place_operand(&length.0),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        apply_program_op(&operation, BasicBlock::from_usize(0), 0, &mut state);
+        assert!(state.pending_must().get(&condition).is_none());
+    }
+
+    #[test]
+    fn stale_length_after_collection_write_cannot_establish_in_bounds() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let length_op = ProgramOp {
+            point: point(0, 0),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: length.clone(),
+                value: ValueModel::Length(place_operand(&collection.0)),
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        let compare = |destination: PlaceKey| ProgramOp {
+            point: point(0, 2),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination,
+                value: ValueModel::Compare {
+                    op: BinOp::Ge,
+                    left: place_operand(&index.0),
+                    right: place_operand(&length.0),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        let mut fresh = BlockState::empty();
+        seed_exact(&mut fresh, &collection);
+        seed_exact(&mut fresh, &index);
+        apply_program_op(&length_op, BasicBlock::from_usize(0), 0, &mut fresh);
+        let fresh_condition = PlaceKey::new("_4");
+        apply_program_op(
+            &compare(fresh_condition.clone()),
+            BasicBlock::from_usize(0),
+            2,
+            &mut fresh,
+        );
+        assert!(fresh.pending_must().contains_key(&fresh_condition));
+
+        let mut stale = BlockState::empty();
+        seed_exact(&mut stale, &collection);
+        seed_exact(&mut stale, &index);
+        apply_program_op(&length_op, BasicBlock::from_usize(0), 0, &mut stale);
+        stale.record_may_write(canonical_storage(&collection), StaticWriteToken::new(0, 1));
+        let stale_condition = PlaceKey::new("_5");
+        apply_program_op(
+            &compare(stale_condition.clone()),
+            BasicBlock::from_usize(0),
+            2,
+            &mut stale,
+        );
+        assert!(!stale.pending_must().contains_key(&stale_condition));
+
+        let first = StaticWriteToken::new(1, 0);
+        let second = StaticWriteToken::new(2, 0);
+        let mut merged_length = ValueFacts {
+            len_of: BTreeSet::from([collection.clone()]),
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: collection.clone(),
+                definition: StaticWriteToken::new(0, 0),
+                captured_versions: BTreeSet::from([first]),
+                invalidated: false,
+            }]),
+            ..ValueFacts::default()
+        };
+        merged_length.join_may(&ValueFacts {
+            len_of: BTreeSet::from([collection.clone()]),
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: collection.clone(),
+                definition: StaticWriteToken::new(0, 9),
+                captured_versions: BTreeSet::from([second]),
+                invalidated: false,
+            }]),
+            ..ValueFacts::default()
+        });
+        let mut conflated = BlockState::empty();
+        conflated.record_may_write(canonical_storage(&collection), first);
+        conflated.record_may_write(canonical_storage(&collection), second);
+        conflated.set_value(length.clone(), merged_length);
+        let conflated_condition = PlaceKey::new("_6");
+        apply_program_op(
+            &compare(conflated_condition.clone()),
+            BasicBlock::from_usize(0),
+            2,
+            &mut conflated,
+        );
+        assert!(!conflated.pending_must().contains_key(&conflated_condition));
+    }
+
+    #[test]
+    fn length_transfer_is_monotone_for_one_static_definition() {
+        let collection = PlaceKey::new("_1");
+        let definition = StaticWriteToken::new(0, 2);
+        let first = StaticWriteToken::new(1, 0);
+        let second = StaticWriteToken::new(2, 0);
+        let mut small = BlockState::empty();
+        seed_exact(&mut small, &collection);
+        small.record_may_write(canonical_storage(&collection), first);
+        let mut expanded = small.clone();
+        expanded.record_may_write(canonical_storage(&collection), second);
+        let model = ValueModel::Length(place_operand(&collection.0));
+        let small_output = eval_value_model(&small, &model, definition);
+        let expanded_output = eval_value_model(&expanded, &model, definition);
+        let mut joined = small_output;
+        joined.join_may(&expanded_output);
+        assert_eq!(joined, expanded_output);
+    }
+
+    #[test]
+    fn loop_reused_write_token_leaves_a_joinable_length_tombstone() {
+        let collection = PlaceKey::new("_1");
+        let length = PlaceKey::new("_3");
+        let definition = StaticWriteToken::new(0, 0);
+        let write = StaticWriteToken::new(1, 0);
+        let mut entry = BlockState::empty();
+        seed_exact(&mut entry, &collection);
+        entry.record_may_write(canonical_storage(&collection), write);
+        entry.set_value(
+            length.clone(),
+            eval_value_model(
+                &entry,
+                &ValueModel::Length(place_operand(&collection.0)),
+                definition,
+            ),
+        );
+        let unchanged = entry.clone();
+        let mut written = entry.clone();
+        written.record_may_write(canonical_storage(&collection), write);
+        invalidate_length_evidence(&mut written, &canonical_storage(&collection));
+        assert!(written.may_values()[&length]
+            .length_atoms
+            .iter()
+            .all(|atom| atom.invalidated));
+        let joined = BlockState::join_predecessors([&unchanged, &written]).unwrap();
+        let joined_length = &joined.may_values()[&length];
+        assert!(joined_length
+            .length_atoms
+            .iter()
+            .all(|atom| atom.invalidated));
+        assert!(!length_relation_is_current(
+            &joined,
+            joined_length,
+            &collection
+        ));
+    }
+
+    #[test]
+    fn recomputing_length_after_havoc_restores_only_the_fresh_observation() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_4");
+        let mut state = BlockState::empty();
+        state.record_may_write(canonical_storage(&collection), StaticWriteToken::new(0, 0));
+        state.set_value(
+            collection.clone(),
+            ValueFacts {
+                havoced: true,
+                exact_roots: BTreeSet::from([collection.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        seed_exact(&mut state, &index);
+        let length_op = ProgramOp {
+            point: point(0, 1),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: length.clone(),
+                value: ValueModel::Length(place_operand(&collection.0)),
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        apply_program_op(&length_op, BasicBlock::from_usize(0), 1, &mut state);
+        assert!(!state.may_values()[&length].havoced);
+        let compare = ProgramOp {
+            point: point(0, 2),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: condition.clone(),
+                value: ValueModel::Compare {
+                    op: BinOp::Ge,
+                    left: place_operand(&index.0),
+                    right: place_operand(&length.0),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        apply_program_op(&compare, BasicBlock::from_usize(0), 2, &mut state);
+        assert!(state.pending_must().contains_key(&condition));
+        state.record_may_write(canonical_storage(&collection), StaticWriteToken::new(0, 3));
+        invalidate_length_evidence(&mut state, &canonical_storage(&collection));
+        let stale_condition = PlaceKey::new("_5");
+        let mut stale_compare = compare;
+        if let ProgramOpKind::Assign(assignment) = &mut stale_compare.kind {
+            assignment.destination = stale_condition.clone();
+        }
+        apply_program_op(&stale_compare, BasicBlock::from_usize(0), 4, &mut state);
+        assert!(!state.pending_must().contains_key(&stale_condition));
+    }
+
+    #[test]
+    fn length_atom_join_is_commutative_associative_idempotent_and_keyed_by_definition() {
+        let collection = PlaceKey::new("_1");
+        let facts = |definition, version| ValueFacts {
+            len_of: BTreeSet::from([collection.clone()]),
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: collection.clone(),
+                definition,
+                captured_versions: BTreeSet::from([version]),
+                invalidated: false,
+            }]),
+            ..ValueFacts::default()
+        };
+        let first = facts(StaticWriteToken::new(0, 0), StaticWriteToken::new(1, 0));
+        let second = facts(StaticWriteToken::new(0, 0), StaticWriteToken::new(2, 0));
+        let third = facts(StaticWriteToken::new(0, 9), StaticWriteToken::new(3, 0));
+        let join = |values: &[ValueFacts]| {
+            let mut result = ValueFacts::default();
+            for value in values {
+                result.join_may(value);
+            }
+            result
+        };
+        assert_eq!(
+            join(&[first.clone(), second.clone()]),
+            join(&[second.clone(), first.clone()])
+        );
+        assert_eq!(
+            join(&[join(&[first.clone(), second.clone()]), third.clone()]),
+            join(&[first.clone(), join(&[second.clone(), third.clone()])])
+        );
+        assert_eq!(join(&[first.clone(), first.clone()]), first);
+        assert_eq!(join(&[second, third]).length_atoms.len(), 2);
+    }
+
+    #[test]
+    fn copied_condition_preserves_current_pending_and_write_kills_it() {
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: PlaceKey::new("_2"),
+            collection: Some(PlaceKey::new("_1")),
+        };
+        let source = PlaceKey::new("_3");
+        let copied = PlaceKey::new("_4");
+        let mut state = BlockState::empty();
+        state.set_pending(
+            source.clone(),
+            [(binding.clone(), false, binding.storage_places())],
+        );
+        let operation = ProgramOp {
+            point: point(0, 1),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: copied.clone(),
+                value: ValueModel::Operand(place_operand(&source.0)),
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+        apply_program_op(&operation, BasicBlock::from_usize(0), 1, &mut state);
+        assert!(state.pending_is_current(&copied, &binding, false));
+        state.record_write(PlaceKey::new("_2"), StaticWriteToken::new(0, 2));
+        assert!(!state.pending_is_current(&copied, &binding, false));
+    }
+
+    #[test]
+    fn value_models_preserve_operand_ref_cast_length_and_field_origin() {
+        let source = PlaceKey::new("_1");
+        let mut state = BlockState::empty();
+        state.set_value(
+            source.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                value_flow: BTreeSet::from([source.clone()]),
+                exact_roots: BTreeSet::from([source.clone()]),
+                may_be_non_length: true,
+                ..ValueFacts::default()
+            },
+        );
+        let field = OperandModel {
+            operand: CallOperand::Place(source.clone()),
+            field_origin: Some(AbstractOrigin::PublicField {
+                def_path: "crate::S::field".into(),
+                span: span(),
+            }),
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_unknown: false,
+        };
+        let definition = StaticWriteToken::new(0, 0);
+        let copied = eval_value_model(&state, &ValueModel::Operand(field.clone()), definition);
+        let referenced = eval_value_model(&state, &ValueModel::RefOrRaw(field.clone()), definition);
+        assert_eq!(copied.value, referenced.value);
+        assert!(copied
+            .value
+            .origins
+            .iter()
+            .any(|origin| matches!(origin, AbstractOrigin::PublicField { .. })));
+        let length = eval_value_model(&state, &ValueModel::Length(field), definition);
+        assert_eq!(length.len_of, BTreeSet::from([source]));
+        assert!(!length.may_be_non_length);
+    }
+
+    #[test]
+    fn copied_guard_paths_and_sink_share_only_one_semantic_storage_binding() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let expected = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: index.clone(),
+            collection: Some(collection.clone()),
+        };
+        let guarded_path =
+            |slice_temp: &str, index_temp: &str, length: &str, condition: &str, block: usize| {
+                let slice_temp = PlaceKey::new(slice_temp);
+                let index_temp = PlaceKey::new(index_temp);
+                let length = PlaceKey::new(length);
+                let condition = PlaceKey::new(condition);
+                let mut state = BlockState::empty();
+                state.set_value(
+                    slice_temp.clone(),
+                    ValueFacts {
+                        value_flow: BTreeSet::from([collection.clone(), PlaceKey::new("(*_1)")]),
+                        exact_roots: BTreeSet::from([collection.clone()]),
+                        ..ValueFacts::default()
+                    },
+                );
+                state.set_value(
+                    index_temp.clone(),
+                    ValueFacts {
+                        value_flow: BTreeSet::from([index.clone()]),
+                        exact_roots: BTreeSet::from([index.clone()]),
+                        ..ValueFacts::default()
+                    },
+                );
+                apply_program_op(
+                    &ProgramOp {
+                        point: point(block as u32, 0),
+                        kind: ProgramOpKind::Assign(AssignmentModel {
+                            destination: length.clone(),
+                            value: ValueModel::Length(place_operand(&slice_temp.0)),
+                            field_origin: None,
+                            raw_read_source: None,
+                            legacy_write: false,
+                        }),
+                    },
+                    BasicBlock::from_usize(block),
+                    0,
+                    &mut state,
+                );
+                apply_program_op(
+                    &ProgramOp {
+                        point: point(block as u32, 1),
+                        kind: ProgramOpKind::Assign(AssignmentModel {
+                            destination: condition.clone(),
+                            value: ValueModel::Compare {
+                                op: BinOp::Ge,
+                                left: place_operand(&index_temp.0),
+                                right: place_operand(&length.0),
+                            },
+                            field_origin: None,
+                            raw_read_source: None,
+                            legacy_write: false,
+                        }),
+                    },
+                    BasicBlock::from_usize(block),
+                    1,
+                    &mut state,
+                );
+                let false_target = BasicBlock::from_usize(9);
+                apply_program_edge(
+                    &EdgeTerm::Switch {
+                        condition,
+                        false_target,
+                        true_target: BasicBlock::from_usize(10),
+                    },
+                    false_target,
+                    &mut state,
+                );
+                assert!(state.has_current_validation(&expected, expected.storage_places()));
+                state
+            };
+
+        let first = guarded_path("_9", "_7", "_8", "_6", 1);
+        let second = guarded_path("_14", "_12", "_13", "_11", 5);
+        let mut sink = BlockState::join_predecessors([&first, &second]).unwrap();
+        sink.set_value(
+            PlaceKey::new("_17"),
+            ValueFacts {
+                value_flow: BTreeSet::from([collection.clone(), PlaceKey::new("(*_1)")]),
+                exact_roots: BTreeSet::from([collection.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        sink.set_value(
+            PlaceKey::new("_18"),
+            ValueFacts {
+                value_flow: BTreeSet::from([index.clone()]),
+                exact_roots: BTreeSet::from([index.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let sink_binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: unique_semantic_value(&semantic_value_at(&sink, &PlaceKey::new("_18")))
+                .unwrap(),
+            collection: Some(
+                unique_semantic_value(&semantic_value_at(&sink, &PlaceKey::new("_17"))).unwrap(),
+            ),
+        };
+        assert_eq!(sink_binding, expected);
+        assert!(state_proves_local_binding(&sink, Some(&sink_binding)));
+
+        sink.set_value(
+            PlaceKey::new("_19"),
+            ValueFacts {
+                value_flow: BTreeSet::from([index, PlaceKey::new("_3")]),
+                exact_roots: BTreeSet::from([PlaceKey::new("_2"), PlaceKey::new("_3")]),
+                ..ValueFacts::default()
+            },
+        );
+        assert!(unique_semantic_value(&semantic_value_at(&sink, &PlaceKey::new("_19"))).is_none());
+    }
+
+    #[test]
+    fn semantic_candidates_are_monotone_and_keep_sibling_projections_distinct() {
+        let local = PlaceKey::new("_3");
+        let first_field = PlaceKey::new("(_1.0: usize)");
+        let second_field = PlaceKey::new("(_1.1: usize)");
+        let mut small = BlockState::empty();
+        small.set_value(
+            local.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([first_field.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let mut expanded = small.clone();
+        expanded.set_value(
+            local.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([first_field.clone(), second_field.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let model = ValueModel::Length(place_operand(&local.0));
+        let small_output = eval_value_model(&small, &model, StaticWriteToken::new(0, 0));
+        let expanded_output = eval_value_model(&expanded, &model, StaticWriteToken::new(0, 0));
+        let mut joined = small_output;
+        joined.join_may(&expanded_output);
+        assert_eq!(joined, expanded_output);
+        assert_eq!(expanded_output.len_of.len(), 2);
+        assert!(unique_semantic_value(&semantic_value_at(&expanded, &local)).is_none());
+
+        let projection = |place: PlaceKey| OperandModel {
+            operand: CallOperand::Place(place.clone()),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: Some(place),
+            projection_unknown: false,
+        };
+        let empty = BlockState::empty();
+        assert_eq!(
+            unique_semantic_value(&eval_operand(&empty, &projection(first_field.clone()))),
+            Some(first_field)
+        );
+        assert_eq!(
+            unique_semantic_value(&eval_operand(&empty, &projection(second_field.clone()))),
+            Some(second_field)
+        );
+        assert!(unique_semantic_value(&semantic_value_at(&empty, &local)).is_none());
+    }
+
+    #[test]
+    fn semantic_unknown_preserves_length_atoms_and_only_reborrow_propagates_root() {
+        let source = PlaceKey::new("_1");
+        let pointer = PlaceKey::new("_4");
+        let deref = PlaceKey::new("(*_4)");
+        let definition = StaticWriteToken::new(0, 0);
+        let mut known = BlockState::empty();
+        known.set_value(source.clone(), exact_value(&source));
+        let known_length = eval_value_model(
+            &known,
+            &ValueModel::Length(place_operand(&source.0)),
+            definition,
+        );
+        let mut expanded = known.clone();
+        expanded.set_value(
+            source.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([source.clone()]),
+                semantic_unknown: true,
+                ..ValueFacts::default()
+            },
+        );
+        let expanded_length = eval_value_model(
+            &expanded,
+            &ValueModel::Length(place_operand(&source.0)),
+            definition,
+        );
+        let mut joined = known_length;
+        joined.join_may(&expanded_length);
+        assert_eq!(joined, expanded_length);
+        assert_eq!(expanded_length.len_of, BTreeSet::from([source.clone()]));
+        assert!(unique_semantic_value(&expanded_length).is_none());
+
+        let mut pointer_state = BlockState::empty();
+        pointer_state.set_value(pointer.clone(), exact_value(&source));
+        let ordinary_load = OperandModel {
+            operand: CallOperand::Place(deref.clone()),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: Some(deref.clone()),
+            projection_unknown: false,
+        };
+        assert_eq!(
+            unique_semantic_value(&eval_operand(&pointer_state, &ordinary_load)),
+            Some(deref)
+        );
+        let reborrow = OperandModel {
+            operand: ordinary_load.operand,
+            field_origin: None,
+            pure_deref_base: Some(pointer),
+            exact_projection: None,
+            projection_unknown: false,
+        };
+        assert_eq!(
+            unique_semantic_value(&eval_operand(&pointer_state, &reborrow)),
+            Some(source)
+        );
+
+        let dynamic_index = OperandModel {
+            operand: CallOperand::Place(PlaceKey::new("_6[_7]")),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_unknown: true,
+        };
+        assert!(unique_semantic_value(&eval_operand(&pointer_state, &dynamic_index)).is_none());
+    }
+
+    #[test]
+    fn cast_and_slice_prefix_are_derived_not_exact_equivalences() {
+        let source = PlaceKey::new("_1");
+        let range = PlaceKey::new("_2");
+        let mut state = BlockState::empty();
+        state.set_value(source.clone(), exact_value(&source));
+        state.set_value(range.clone(), exact_value(&range));
+        let cast = eval_value_model(&state, &ValueModel::Unknown, StaticWriteToken::new(0, 0));
+        assert!(unique_semantic_value(&cast).is_none());
+        let prefix = eval_registry_value(
+            &state,
+            &RegistryValueModel::SlicePrefix {
+                base: place_operand(&source.0),
+                range,
+            },
+            &point(0, 1),
+        );
+        assert!(unique_semantic_value(&prefix).is_none());
+    }
+
+    #[test]
+    fn whitelisted_unsize_temporaries_converge_but_other_casts_remain_unknown() {
+        let field = PlaceKey::new("((*_1).1: [u8; 8])");
+        let first_ref = PlaceKey::new("_6");
+        let first_slice = PlaceKey::new("_5");
+        let second_ref = PlaceKey::new("_10");
+        let second_slice = PlaceKey::new("_9");
+        let mut state = BlockState::empty();
+        state.set_value(field.clone(), exact_value(&field));
+        for (reference, slice) in [
+            (first_ref.clone(), first_slice.clone()),
+            (second_ref.clone(), second_slice.clone()),
+        ] {
+            state.set_value(
+                reference.clone(),
+                eval_value_model(
+                    &state,
+                    &ValueModel::RefOrRaw(place_operand(&field.0)),
+                    StaticWriteToken::new(0, 0),
+                ),
+            );
+            // The production normalizer maps only PointerCoercion::Unsize to
+            // this identity-preserving Operand form.
+            state.set_value(
+                slice,
+                eval_value_model(
+                    &state,
+                    &ValueModel::Operand(place_operand(&reference.0)),
+                    StaticWriteToken::new(0, 1),
+                ),
+            );
+        }
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&state, &first_slice)),
+            Some(field.clone())
+        );
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&state, &second_slice)),
+            Some(field)
+        );
+        assert!(unique_semantic_value(&eval_value_model(
+            &state,
+            &ValueModel::Unknown,
+            StaticWriteToken::new(0, 2),
+        ))
+        .is_none());
+    }
+
+    #[test]
+    fn switch_refines_only_the_matching_edge_and_exact_binding() {
+        let condition = PlaceKey::new("_3");
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: PlaceKey::new("_2"),
+            collection: Some(PlaceKey::new("_1")),
+        };
+        let false_target = BasicBlock::from_usize(1);
+        let true_target = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::Switch {
+            condition: condition.clone(),
+            false_target,
+            true_target,
+        };
+        let mut false_state = BlockState::empty();
+        false_state.set_pending(
+            condition.clone(),
+            [(binding.clone(), false, binding.storage_places())],
+        );
+        apply_program_edge(&edge, false_target, &mut false_state);
+        assert!(false_state.has_current_validation(&binding, binding.storage_places()));
+        let wrong = ValidationBinding {
+            subject: PlaceKey::new("_9"),
+            ..binding.clone()
+        };
+        assert!(!false_state.has_current_validation(&wrong, wrong.storage_places()));
+        let mut true_state = BlockState::empty();
+        true_state.set_pending(
+            condition,
+            [(binding.clone(), false, binding.storage_places())],
+        );
+        apply_program_edge(&edge, true_target, &mut true_state);
+        assert!(!true_state.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    #[test]
+    fn assert_plumbing_does_not_establish_task9_validation() {
+        let condition = PlaceKey::new("_3");
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: PlaceKey::new("_2"),
+            collection: Some(PlaceKey::new("_1")),
+        };
+        let target = BasicBlock::from_usize(1);
+        let edge = EdgeTerm::AssertPlumbingOnly {
+            condition: condition.clone(),
+            expected: true,
+            target,
+        };
+        let mut state = BlockState::empty();
+        state.set_pending(
+            condition,
+            [(binding.clone(), true, binding.storage_places())],
+        );
+        let before = state.clone();
+        apply_program_edge(&edge, target, &mut state);
+        assert_eq!(state, before);
+        assert!(!state.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    #[test]
+    fn call_effects_are_applied_only_on_the_normal_edge() {
+        let normal = BasicBlock::from_usize(1);
+        let unwind = BasicBlock::from_usize(2);
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::OpaqueIndirect,
+                args: Vec::new(),
+                destination: PlaceKey::new("_0"),
+            },
+            value: RegistryValueModel::Constant(7),
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: point(0, 0),
+            call,
+        };
+        let mut unwind_state = BlockState::empty();
+        apply_program_edge(&edge, unwind, &mut unwind_state);
+        assert!(!unwind_state.may_values().contains_key(&PlaceKey::new("_0")));
+        let mut normal_state = BlockState::empty();
+        apply_program_edge(&edge, normal, &mut normal_state);
+        assert!(normal_state.may_values().contains_key(&PlaceKey::new("_0")));
+    }
+
+    #[test]
+    fn resolved_local_empty_return_does_not_copy_actual_provenance() {
+        let actual = PlaceKey::new("_1");
+        let destination = PlaceKey::new("_0");
+        let normal = BasicBlock::from_usize(1);
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(FunctionKey::new("crate::callee")),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand(&actual.0)],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: point(0, 0),
+            call,
+        };
+        let mut state = BlockState::empty();
+        state.set_value(
+            actual.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                ..ValueFacts::default()
+            },
+        );
+        apply_program_edge(&edge, normal, &mut state);
+        assert!(state.may_values()[&destination].value.origins.is_empty());
+        assert!(state.may_values()[&actual]
+            .value
+            .origins
+            .contains(&AbstractOrigin::Formal(1)));
+    }
+
+    #[test]
+    fn modeled_call_result_and_ffi_output_have_fresh_exact_storage_identities() {
+        let result = PlaceKey::new("_3");
+        let normal = BasicBlock::from_usize(1);
+        let modeled = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::SelectedOpenBehavior,
+                args: Vec::new(),
+                destination: result.clone(),
+            },
+            value: RegistryValueModel::SelectedOpenBehavior {
+                token: "trait-return".into(),
+            },
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let mut state = BlockState::empty();
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: modeled,
+            },
+            normal,
+            &mut state,
+        );
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&state, &result)),
+            Some(result.clone())
+        );
+
+        let actual = PlaceKey::new("_5");
+        let output = PlaceKey::new("_1");
+        state.set_value(
+            actual.clone(),
+            ValueFacts {
+                value_flow: BTreeSet::from([output.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let ffi = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ExactFfiOut,
+                args: Vec::new(),
+                destination: PlaceKey::new("_0"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: vec![actual],
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        apply_call_side_effects(&ffi, &point(0, 1), &mut state);
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&state, &output)),
+            Some(output.clone())
+        );
+        let condition = PlaceKey::new("_6");
+        let is_null = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&output.0)],
+                destination: condition.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: Some(PredicateModel::IsNull {
+                pointer: output.clone(),
+            }),
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: true,
+            access_width: None,
+            legacy_write: false,
+        };
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 2),
+                call: is_null,
+            },
+            normal,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::NonNull,
+            subject: output,
+            collection: None,
+        };
+        assert!(state.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn generic_result_identity_allows_is_empty_to_establish_nonempty() {
+        let slice = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_4");
+        let normal = BasicBlock::from_usize(1);
+        let generic = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: Vec::new(),
+                destination: slice.clone(),
+            },
+            value: RegistryValueModel::GenericCapability {
+                token: "associated-slice".into(),
+            },
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let mut state = BlockState::empty();
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: generic,
+            },
+            normal,
+            &mut state,
+        );
+        let is_empty = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&slice.0)],
+                destination: condition.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: Some(PredicateModel::IsEmpty {
+                slice: slice.clone(),
+            }),
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: true,
+            access_width: None,
+            legacy_write: false,
+        };
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 1),
+                call: is_empty,
+            },
+            normal,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::NonEmpty,
+            subject: slice,
+            collection: None,
+        };
+        assert!(state.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn selected_open_index_identity_allows_length_guard_pending() {
+        let data = PlaceKey::new("_1");
+        let index = PlaceKey::new("_3");
+        let length = PlaceKey::new("_4");
+        let condition = PlaceKey::new("_5");
+        let normal = BasicBlock::from_usize(1);
+        let selected = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::SelectedOpenBehavior,
+                args: Vec::new(),
+                destination: index.clone(),
+            },
+            value: RegistryValueModel::SelectedOpenBehavior {
+                token: "trait-index".into(),
+            },
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &data);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: selected,
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(1, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&data.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                }),
+            },
+            normal,
+            0,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(1, 1),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Ge,
+                        left: place_operand(&index.0),
+                        right: place_operand(&length.0),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                }),
+            },
+            normal,
+            1,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: index,
+            collection: Some(data),
+        };
+        assert!(state.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn modeled_length_keeps_relation_unknown_while_defining_its_destination() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let normal = BasicBlock::from_usize(1);
+        let length_call = || CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&collection.0)],
+                destination: length.clone(),
+            },
+            value: RegistryValueModel::Length(place_operand(&collection.0)),
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let compare = |destination: PlaceKey| ProgramOp {
+            point: point(1, 1),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination,
+                value: ValueModel::Compare {
+                    op: BinOp::Ge,
+                    left: place_operand(&index.0),
+                    right: place_operand(&length.0),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+            }),
+        };
+
+        let mut known = BlockState::empty();
+        seed_exact(&mut known, &collection);
+        seed_exact(&mut known, &index);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: length_call(),
+            },
+            normal,
+            &mut known,
+        );
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&known, &length)),
+            Some(length.clone())
+        );
+        let known_condition = PlaceKey::new("_4");
+        apply_program_op(&compare(known_condition.clone()), normal, 1, &mut known);
+        assert!(known.pending_must().contains_key(&known_condition));
+
+        let mut unknown = BlockState::empty();
+        unknown.set_value(
+            collection.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([collection.clone()]),
+                semantic_unknown: true,
+                ..ValueFacts::default()
+            },
+        );
+        seed_exact(&mut unknown, &index);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: length_call(),
+            },
+            normal,
+            &mut unknown,
+        );
+        let known_length = &known.may_values()[&length];
+        let unknown_length = &unknown.may_values()[&length];
+        let mut joined = known_length.clone();
+        joined.join_may(unknown_length);
+        assert_eq!(&joined, unknown_length);
+        assert!(unknown_length.length_relation_unknown);
+        assert_eq!(
+            unique_semantic_value(&semantic_value_at(&unknown, &length)),
+            Some(length.clone())
+        );
+        let unknown_condition = PlaceKey::new("_5");
+        apply_program_op(&compare(unknown_condition.clone()), normal, 1, &mut unknown);
+        assert!(!unknown.pending_must().contains_key(&unknown_condition));
+    }
+
+    #[test]
+    fn ffi_alias_expansion_only_grows_identity_and_versions() {
+        let actual = PlaceKey::new("_5");
+        let first = PlaceKey::new("_1");
+        let second = PlaceKey::new("_2");
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ExactFfiOut,
+                args: Vec::new(),
+                destination: PlaceKey::new("_0"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: vec![actual.clone()],
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let mut small = BlockState::empty();
+        small.set_value(
+            actual.clone(),
+            ValueFacts {
+                value_flow: BTreeSet::from([first.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        small.set_value(first.clone(), exact_value(&first));
+        let mut expanded = small.clone();
+        expanded.set_value(
+            actual,
+            ValueFacts {
+                value_flow: BTreeSet::from([first.clone(), second.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        expanded.set_value(
+            first.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([first.clone(), PlaceKey::new("_9")]),
+                semantic_unknown: true,
+                ..ValueFacts::default()
+            },
+        );
+        expanded.set_value(second.clone(), exact_value(&second));
+        apply_call_side_effects(&call, &point(0, 3), &mut small);
+        apply_call_side_effects(&call, &point(0, 3), &mut expanded);
+        for (place, small_value) in small.may_values() {
+            let expanded_value = &expanded.may_values()[place];
+            let mut joined = small_value.clone();
+            joined.join_may(expanded_value);
+            assert_eq!(&joined, expanded_value);
+        }
+        for (place, versions) in small.versions() {
+            assert!(expanded.versions()[place].is_superset(versions));
+        }
+        assert!(expanded.may_values()[&first].semantic_unknown);
+        assert!(expanded.may_values()[&first]
+            .exact_roots
+            .is_superset(&small.may_values()[&first].exact_roots));
+        assert!(expanded.versions().contains_key(&second));
+    }
+
+    #[test]
+    fn authoritative_local_binding_rejects_missing_and_wrong_bindings() {
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject: PlaceKey::new("_2"),
+            collection: Some(PlaceKey::new("_1")),
+        };
+        let mut state = BlockState::empty();
+        state.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+        assert!(state_proves_local_binding(&state, Some(&binding)));
+        assert!(!state_proves_local_binding(&state, None));
+        let wrong = ValidationBinding {
+            subject: PlaceKey::new("_9"),
+            ..binding
+        };
+        assert!(!state_proves_local_binding(&state, Some(&wrong)));
+    }
+
+    #[test]
+    fn edge_bound_write_only_reaches_its_normal_continuation() {
+        let successors = BTreeMap::from([
+            (0, BTreeSet::from([1, 2])),
+            (1, BTreeSet::from([3])),
+            (2, BTreeSet::from([4])),
+            (3, BTreeSet::new()),
+            (4, BTreeSet::new()),
+        ]);
+        let write = WriteFact {
+            place: PlaceKey::new("_1"),
+            point: point(0, 0),
+            kind: WriteKind::CallReturn,
+            normal_successor: Some(BasicBlock::from_usize(1)),
+        };
+        assert!(write_normal_edge_reaches(
+            &successors,
+            &write,
+            BasicBlock::from_usize(3)
+        ));
+        assert!(!write_normal_edge_reaches(
+            &successors,
+            &write,
+            BasicBlock::from_usize(4)
+        ));
+    }
+
+    #[test]
+    fn opaque_may_alias_write_only_grows_value_and_versions() {
+        let actual = PlaceKey::new("_1");
+        let referent = PlaceKey::new("_2");
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::OpaqueDirect,
+                args: Vec::new(),
+                destination: PlaceKey::new("_0"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: vec![actual.clone()],
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+        };
+        let mut state = BlockState::empty();
+        state.set_value(
+            actual,
+            ValueFacts {
+                value_flow: BTreeSet::from([referent.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        state.set_value(
+            referent.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                ..ValueFacts::default()
+            },
+        );
+        apply_call_side_effects(&call, &point(0, 3), &mut state);
+        let result = state.may_values().get(&referent).unwrap();
+        assert!(result.havoced);
+        assert!(result.value.origins.contains(&AbstractOrigin::Formal(1)));
+        assert!(state.versions()[&referent].contains(&StaticWriteToken::new(0, 3)));
+
+        let mut small = BlockState::empty();
+        small.set_value(PlaceKey::new("_1"), ValueFacts::default());
+        let mut expanded = small.clone();
+        expanded.set_value(
+            PlaceKey::new("_1"),
+            ValueFacts {
+                value_flow: BTreeSet::from([PlaceKey::new("_2")]),
+                ..ValueFacts::default()
+            },
+        );
+        apply_call_side_effects(&call, &point(0, 3), &mut small);
+        apply_call_side_effects(&call, &point(0, 3), &mut expanded);
+        for (place, small_value) in small.may_values() {
+            let expanded_value = &expanded.may_values()[place];
+            let mut joined = small_value.clone();
+            joined.join_may(expanded_value);
+            assert_eq!(&joined, expanded_value);
+        }
+        for (place, small_versions) in small.versions() {
+            assert!(expanded.versions()[place].is_superset(small_versions));
+        }
+        assert!(expanded
+            .versions()
+            .get(&PlaceKey::new("_2"))
+            .is_some_and(|versions| versions.contains(&StaticWriteToken::new(0, 3))));
+    }
+
+    #[test]
+    fn projected_value_cannot_hide_canonical_havoc() {
+        let storage = PlaceKey::new("_1");
+        let projection = PlaceKey::new("_1.0");
+        let mut small = BlockState::empty();
+        small.set_value(
+            storage,
+            ValueFacts {
+                havoced: true,
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                ..ValueFacts::default()
+            },
+        );
+        let mut expanded = small.clone();
+        expanded.set_value(
+            projection.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Constant(7)]),
+                ..ValueFacts::default()
+            },
+        );
+        let small_value = state_value(&small, &projection);
+        let expanded_value = state_value(&expanded, &projection);
+        assert!(expanded_value.havoced);
+        let mut joined = small_value;
+        joined.join_may(&expanded_value);
+        assert_eq!(joined, expanded_value);
+        assert!(expanded_value
+            .value
+            .origins
+            .contains(&AbstractOrigin::Constant(7)));
+        assert!(expanded_value
+            .value
+            .origins
+            .contains(&AbstractOrigin::Formal(1)));
     }
 
     #[test]

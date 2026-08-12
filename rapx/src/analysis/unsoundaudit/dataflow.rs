@@ -53,10 +53,7 @@ where
     K: Clone + Ord,
     P: Ord,
 {
-    pub(super) fn new(
-        predicate: P,
-        bound_places: impl IntoIterator<Item = K>,
-    ) -> Self {
+    pub(super) fn new(predicate: P, bound_places: impl IntoIterator<Item = K>) -> Self {
         Self {
             predicate,
             bound_versions: bound_places
@@ -104,6 +101,7 @@ pub(super) struct BlockState<K, V, P> {
     may_values: BTreeMap<K, V>,
     must_validations: BTreeSet<BoundValidation<K, P>>,
     versions: BTreeMap<K, BTreeSet<StaticWriteToken>>,
+    pending_must: BTreeMap<K, BTreeMap<(P, bool), BTreeMap<K, BTreeSet<StaticWriteToken>>>>,
 }
 
 impl<K, V, P> BlockState<K, V, P>
@@ -117,6 +115,7 @@ where
             may_values: BTreeMap::new(),
             must_validations: BTreeSet::new(),
             versions: BTreeMap::new(),
+            pending_must: BTreeMap::new(),
         }
     }
 
@@ -152,9 +151,55 @@ where
         &self.versions
     }
 
+    pub(super) fn pending_must(
+        &self,
+    ) -> &BTreeMap<K, BTreeMap<(P, bool), BTreeMap<K, BTreeSet<StaticWriteToken>>>> {
+        &self.pending_must
+    }
+
+    /// Strongly defines one condition's finite pending edge facts. Every fact
+    /// is sealed to the current reaching definitions when it is created.
+    pub(super) fn set_pending(
+        &mut self,
+        condition: K,
+        facts: impl IntoIterator<Item = (P, bool, Vec<K>)>,
+    ) {
+        let mut sealed = BTreeMap::<(P, bool), BTreeMap<K, BTreeSet<StaticWriteToken>>>::new();
+        for (fact, polarity, places) in facts {
+            let versions = places
+                .into_iter()
+                .map(|place| {
+                    let version = self.versions.get(&place).cloned().unwrap_or_default();
+                    (place, version)
+                })
+                .collect::<BTreeMap<_, _>>();
+            let entry = sealed.entry((fact, polarity)).or_default();
+            for (place, versions) in versions {
+                entry.entry(place).or_default().extend(versions);
+            }
+        }
+        self.pending_must.insert(condition, sealed);
+    }
+
+    pub(super) fn pending_is_current(&self, condition: &K, fact: &P, polarity: bool) -> bool {
+        self.pending_must
+            .get(condition)
+            .and_then(|facts| facts.get(&(fact.clone(), polarity)))
+            .is_some_and(|sealed| {
+                sealed.iter().all(|(place, version)| {
+                    self.versions.get(place).cloned().unwrap_or_default() == *version
+                })
+            })
+    }
+
+    pub(super) fn clear_pending(&mut self, condition: &K) {
+        self.pending_must.remove(condition);
+    }
+
     /// Strongly assigns the value at one program point. May-union happens only
     /// when predecessor states are joined.
     pub(super) fn set_value(&mut self, place: K, value: V) {
+        self.pending_must.remove(&place);
         self.may_values.insert(place, value);
     }
 
@@ -167,8 +212,27 @@ where
     /// every validation bound to the written storage is invalidated.
     pub(super) fn record_write(&mut self, place: K, token: StaticWriteToken) {
         self.versions.insert(place.clone(), BTreeSet::from([token]));
+        self.kill_written_bindings(&place);
+    }
+
+    /// Records a write through a may-alias. The version set only grows because
+    /// discovering another alias from a larger input state must be monotone.
+    pub(super) fn record_may_write(&mut self, place: K, token: StaticWriteToken) {
+        self.versions
+            .entry(place.clone())
+            .or_default()
+            .insert(token);
+        self.kill_written_bindings(&place);
+    }
+
+    fn kill_written_bindings(&mut self, place: &K) {
         self.must_validations
-            .retain(|validation| !validation.binds(&place));
+            .retain(|validation| !validation.binds(place));
+        self.pending_must.remove(place);
+        self.pending_must.retain(|_, facts| {
+            facts.retain(|_, sealed| !sealed.contains_key(place));
+            !facts.is_empty()
+        });
     }
 
     /// Joins reachable predecessor states. An empty iterator means unreachable
@@ -207,6 +271,27 @@ where
                 must.insert(validation);
             }
             joined.must_validations = must;
+            joined.pending_must.retain(|condition, facts| {
+                let Some(other_facts) = predecessor.pending_must.get(condition) else {
+                    return false;
+                };
+                facts.retain(|fact, sealed| {
+                    let Some(other) = other_facts.get(fact) else {
+                        return false;
+                    };
+                    if sealed.keys().ne(other.keys()) {
+                        return false;
+                    }
+                    for (place, versions) in other {
+                        sealed
+                            .entry(place.clone())
+                            .or_default()
+                            .extend(versions.iter().copied());
+                    }
+                    true
+                });
+                !facts.is_empty()
+            });
             for (place, versions) in &predecessor.versions {
                 joined
                     .versions
@@ -321,9 +406,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        solve_cfg, BlockState, BoundValidation, MayJoin, StaticWriteToken,
-    };
+    use super::{solve_cfg, BlockState, BoundValidation, MayJoin, StaticWriteToken};
     use rustc_index::IndexVec;
     use rustc_middle::mir::BasicBlock;
     use std::collections::{BTreeMap, BTreeSet};
@@ -426,10 +509,7 @@ mod tests {
         let joined = BlockState::join_predecessors([&right, &left]).unwrap();
         assert_eq!(
             joined.versions()["index"],
-            BTreeSet::from([
-                StaticWriteToken::new(1, 2),
-                StaticWriteToken::new(3, 1),
-            ])
+            BTreeSet::from([StaticWriteToken::new(1, 2), StaticWriteToken::new(3, 1),])
         );
     }
 
@@ -439,18 +519,9 @@ mod tests {
         let operations = IndexVec::from_elem_n(0, 3);
         let mut seed = State::empty();
         seed.set_value("arg1".into(), BTreeSet::from(["formal1".into()]));
-        let result = solve_cfg(
-            &successors,
-            &operations,
-            seed,
-            |_, _, _| {},
-            |_, _, _| {},
-        );
+        let result = solve_cfg(&successors, &operations, seed, |_, _, _| {}, |_, _, _| {});
         assert_eq!(
-            result.entry[block(0)]
-                .as_ref()
-                .unwrap()
-                .may_values()["arg1"],
+            result.entry[block(0)].as_ref().unwrap().may_values()["arg1"],
             BTreeSet::from(["formal1".into()])
         );
         assert!(result.entry[block(2)].is_none());
@@ -542,10 +613,7 @@ mod tests {
         ));
         assert_eq!(
             joined.versions()["index"],
-            BTreeSet::from([
-                StaticWriteToken::new(1, 0),
-                StaticWriteToken::new(2, 0),
-            ])
+            BTreeSet::from([StaticWriteToken::new(1, 0), StaticWriteToken::new(2, 0),])
         );
     }
 
@@ -586,18 +654,12 @@ mod tests {
             State::empty(),
             |bb, _, state| {
                 transfers += 1;
-                state.record_write(
-                    "index".into(),
-                    StaticWriteToken::new(bb.index() as u32, 0),
-                );
+                state.record_write("index".into(), StaticWriteToken::new(bb.index() as u32, 0));
             },
             |_, _, _| {},
         );
         assert_eq!(
-            result.exit[block(1)]
-                .as_ref()
-                .unwrap()
-                .versions()["index"],
+            result.exit[block(1)].as_ref().unwrap().versions()["index"],
             BTreeSet::from([StaticWriteToken::new(1, 0)])
         );
         assert!(transfers < 10, "the finite loop should stabilize promptly");
@@ -613,10 +675,7 @@ mod tests {
                 &operations,
                 State::empty(),
                 |bb, _, state| {
-                    state.set_value(
-                        "seen".into(),
-                        BTreeSet::from([bb.index().to_string()]),
-                    );
+                    state.set_value("seen".into(), BTreeSet::from([bb.index().to_string()]));
                 },
                 |_, _, _| {},
             )
@@ -675,5 +734,86 @@ mod tests {
 
         let expected_versions = BTreeMap::<String, BTreeSet<StaticWriteToken>>::new();
         assert_eq!(joined.versions(), &expected_versions);
+    }
+
+    #[test]
+    fn pending_edge_facts_are_sealed_intersected_and_killed_by_writes() {
+        let fact = "ge:false:index:slice".to_string();
+        let condition = "cmp".to_string();
+        let mut left = State::empty();
+        left.record_write("index".into(), StaticWriteToken::new(0, 1));
+        left.set_pending(
+            condition.clone(),
+            [(
+                fact.clone(),
+                false,
+                vec!["index".to_string(), "slice".to_string()],
+            )],
+        );
+        assert!(left.pending_is_current(&condition, &fact, false));
+
+        let unguarded = State::empty();
+        let joined = BlockState::join_predecessors([&left, &unguarded]).unwrap();
+        assert!(joined.pending_must().is_empty());
+
+        left.record_write("index".into(), StaticWriteToken::new(0, 2));
+        assert!(!left.pending_is_current(&condition, &fact, false));
+        assert!(left.pending_must().is_empty());
+    }
+
+    #[test]
+    fn pending_strong_definition_replaces_the_previous_condition_fact() {
+        let mut state = State::empty();
+        let first_condition = "cmp1".to_string();
+        let second_condition = "cmp2".to_string();
+        state.set_pending(
+            first_condition.clone(),
+            [("first".to_string(), true, vec!["index".to_string()])],
+        );
+        state.set_pending(
+            second_condition.clone(),
+            [("second".to_string(), false, vec!["slice".to_string()])],
+        );
+        assert_eq!(
+            state.pending_must().keys().cloned().collect::<Vec<_>>(),
+            ["cmp1", "cmp2"]
+        );
+        state.set_pending(
+            first_condition.clone(),
+            [("replacement".to_string(), true, vec!["index".to_string()])],
+        );
+        assert!(
+            state.pending_must()[&second_condition].contains_key(&("second".to_string(), false))
+        );
+        assert!(!state.pending_must()[&first_condition].contains_key(&("first".to_string(), true)));
+        state.clear_pending(&first_condition);
+        assert_eq!(state.pending_must().len(), 1);
+    }
+
+    #[test]
+    fn pending_join_unions_versions_for_the_same_semantic_fact() {
+        let condition = "cmp".to_string();
+        let fact = "ge:false:index:slice".to_string();
+        let build = |token| {
+            let mut state = State::empty();
+            state.record_write("index".to_string(), token);
+            state.set_pending(
+                condition.clone(),
+                [(
+                    fact.clone(),
+                    false,
+                    vec!["index".to_string(), "slice".to_string()],
+                )],
+            );
+            state
+        };
+        let left = build(StaticWriteToken::new(1, 0));
+        let right = build(StaticWriteToken::new(2, 0));
+        let joined = BlockState::join_predecessors([&left, &right]).unwrap();
+        assert!(joined.pending_is_current(&condition, &fact, false));
+        assert_eq!(
+            joined.pending_must()[&condition][&(fact, false)]["index"],
+            BTreeSet::from([StaticWriteToken::new(1, 0), StaticWriteToken::new(2, 0),])
+        );
     }
 }
