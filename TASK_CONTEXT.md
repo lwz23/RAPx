@@ -5,6 +5,7 @@
 - Implement fixture-closed UnsoundAudit v2 on `feature/unsoundaudit-v2-p1-p6`.
 - Replace the v1 string-based detectors with one crate-local MIR summary engine using statically resolved calls and SCC fixed points.
 - Validate only the frozen 27 dependency-free library fixtures and emit deterministic `rap-unit-v2` receipts.
+- Extend validation with an adversarial correctness pack and a separately bounded real-project robustness pilot without changing the frozen P1–P6 registry.
 
 ## Status
 
@@ -22,7 +23,11 @@
 - Two complete serial runs of all 27 frozen fixtures passed. Each case used separate fresh control and scan targets; both normalized receipts were byte-identical with SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
 - Final aggregate counts are P1=3, P2=2, P3=2, P4=2, P5=1, and P6=2. All 12 positives have one primary finding; all 14 negatives and the noise fixture have zero findings.
 - A read-only final semantic review returned `ship` with no blocking findings.
-- Implementation and deterministic receipt commits are complete locally. Remaining gate: commit this context/review update, fetch and verify remote ancestry, then push the same feature branch without rebase or force.
+- The fixture-closed implementation, deterministic receipts, context, and Mac review summary are committed and pushed.
+- The original implementation and Mac evidence were pushed at `7eebcccf9087b2af73523c6b7eb1ee99812151ea` with a clean remote match.
+- The user subsequently authorized a new robustness work package: structural CFG/validation/return/out fixes, equivalent frozen guards, an adversarial challenge pack, and a standard-library pilot. Registry expansion, precedence changes, and cross-crate propagation still require separate approval.
+- A read-only audit found that the current evidence does not establish real-project precision. High-risk gaps include block-order-dependent intraprocedural facts, incomplete callee-side validation propagation, no end-to-end MIR recursion case, and no production local out-parameter propagation.
+- The robustness protocol is specified in `docs/superpowers/specs/2026-08-12-unsoundaudit-v2-real-project-robustness-pilot-design.md`; implementation remains gated on written-spec review and a detailed implementation plan.
 
 ## Decisions
 
@@ -42,6 +47,8 @@
 - Lifetime-transmute P3 is narrowed to an internal operand transmuted into the public function's `&'static` return shape; this remains a heuristic candidate form, not a proof of region unsoundness.
 - Canonical fixture data remains only in `tests/unsoundaudit-v2/fixture_manifest.json`. No artifact copy was added because its relative legacy provenance path is meaningful from the canonical location.
 - Raw final logs remain local and uncommitted; only their SHA-256 digests and the normalized deterministic result are tracked.
+- Real-project results use pre-registered samples, labels, and stop lines. Standard-library findings become development data after any result-informed change and cannot then serve as an unseen precision holdout.
+- `core`, `alloc`, and `std` are evaluated separately because crate-local analysis intentionally does not propagate across their boundaries.
 
 ## Rejected Alternatives
 
