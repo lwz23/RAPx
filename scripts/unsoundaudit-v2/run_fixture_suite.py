@@ -41,6 +41,7 @@ EXPECTED_COUNTS = {
     "pattern5": 1,
     "pattern6": 2,
 }
+FORBIDDEN_DEPENDENCY_TABLES = frozenset({"dependencies", "dev-dependencies", "build-dependencies"})
 BASELINE_MANIFEST_RELATIVE = Path("docs/unsoundaudit-v2/baseline_manifest_v1.json")
 ENVIRONMENT_RECEIPT_RELATIVE = Path(
     "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/environment_receipt.json"
@@ -49,6 +50,29 @@ ENVIRONMENT_RECEIPT_RELATIVE = Path(
 
 def fail(message: str) -> None:
     raise ContractError(message)
+
+
+def json_values_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return set(left) == set(right) and all(json_values_equal(left[key], right[key]) for key in left)
+    if isinstance(left, list):
+        return len(left) == len(right) and all(json_values_equal(a, b) for a, b in zip(left, right))
+    return left == right
+
+
+def valid_case_id(value: Any) -> bool:
+    if not isinstance(value, str) or not value or "/" in value or "\\" in value or "\0" in value:
+        return False
+    pure = PurePosixPath(value)
+    return (
+        not pure.is_absolute()
+        and re.match(r"^[A-Za-z]:", value) is None
+        and pure.as_posix() == value
+        and pure.parts == (value,)
+        and value not in {".", ".."}
+    )
 
 
 def normalized_case(case_id: str, receipt: dict) -> dict:
@@ -129,6 +153,27 @@ def audit_cargo_configs(repo_root: Path, cargo_home: Path) -> None:
 
         if contains_rustflags(config.get("build")) or contains_rustflags(config.get("target")):
             fail(f"Cargo build/target configuration contains rustflags: {candidate}")
+
+
+def audit_fixture_cargo_manifest(path: Path, case_id: str) -> None:
+    try:
+        with path.open("rb") as source:
+            manifest = tomllib.load(source)
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        fail(f"{case_id}: Cargo.toml cannot be audited: {error}")
+
+    def contains_dependency_table(value: Any) -> bool:
+        if isinstance(value, dict):
+            return any(
+                key in FORBIDDEN_DEPENDENCY_TABLES or contains_dependency_table(child)
+                for key, child in value.items()
+            )
+        if isinstance(value, list):
+            return any(contains_dependency_table(child) for child in value)
+        return False
+
+    if contains_dependency_table(manifest):
+        fail(f"{case_id}: dependency sections are forbidden")
 
 
 def approved_rustflags(repo_root: Path) -> str:
@@ -304,38 +349,107 @@ def verify_legacy_provenance(repo_root: Path, manifest_path: Path, provenance: d
         )
 
 
-def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, manifest: dict) -> list[str]:
+def verify_case_contract(
+    repo_root: Path,
+    case_root: Path,
+    manifest_path: Path,
+    manifest: dict,
+    *,
+    expected_schema: str,
+    expected_count: int,
+    expected_counts: dict[str, int],
+    require_legacy_provenance: bool,
+) -> list[str]:
+    if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count <= 0:
+        fail("expected case count must be a positive integer")
+    if (
+        not isinstance(expected_counts, dict)
+        or set(expected_counts) != set(EXPECTED_COUNTS)
+        or any(
+            not isinstance(count, int) or isinstance(count, bool) or count < 0
+            for count in expected_counts.values()
+        )
+    ):
+        fail("expected aggregate must contain exact non-negative integer pattern1-pattern6 counts")
+    expected_manifest_keys = {
+        "schema_version",
+        "fixture_count",
+        "role_counts",
+        "aggregate_expected_pattern_counts",
+        "cases",
+    }
+    if require_legacy_provenance:
+        expected_manifest_keys.add("legacy_provenance_manifest")
+    if not isinstance(manifest, dict) or set(manifest) != expected_manifest_keys:
+        fail("case manifest top-level keys drifted")
+    if manifest["schema_version"] != expected_schema:
+        fail("case manifest schema drifted")
+    fixture_count = manifest["fixture_count"]
+    if not isinstance(fixture_count, int) or isinstance(fixture_count, bool) or fixture_count <= 0:
+        fail("case manifest fixture_count must be a positive integer")
+    if fixture_count != expected_count:
+        fail(f"case manifest fixture_count must be exactly {expected_count}")
+    manifest_counts = manifest["aggregate_expected_pattern_counts"]
+    if (
+        not isinstance(manifest_counts, dict)
+        or set(manifest_counts) != set(expected_counts)
+        or any(
+            not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in manifest_counts.values()
+        )
+    ):
+        fail("case manifest aggregate counts must be exact non-negative integers")
+    if manifest_counts != expected_counts:
+        fail("case manifest aggregate oracle drifted")
+
+    manifest_role_counts = manifest["role_counts"]
+    if (
+        not isinstance(manifest_role_counts, dict)
+        or not manifest_role_counts
+        or any(not isinstance(role, str) or not role for role in manifest_role_counts)
+        or any(
+            not isinstance(count, int) or isinstance(count, bool) or count < 0
+            for count in manifest_role_counts.values()
+        )
+    ):
+        fail("case manifest role counts must use non-empty keys and non-negative integer values")
+
     case_rows = manifest.get("cases")
-    if not isinstance(case_rows, list) or len(case_rows) != EXPECTED_FIXTURE_COUNT:
-        fail(f"fixture manifest must contain exactly {EXPECTED_FIXTURE_COUNT} cases")
-    if not all(isinstance(row, dict) and isinstance(row.get("case_id"), str) for row in case_rows):
-        fail("fixture manifest cases must be objects with case_id")
+    if not isinstance(case_rows, list) or len(case_rows) != expected_count:
+        fail(f"case manifest must contain exactly {expected_count} cases")
+    if not all(isinstance(row, dict) and valid_case_id(row.get("case_id")) for row in case_rows):
+        fail("case manifest cases must be objects with case_id")
     case_ids = [row["case_id"] for row in case_rows]
-    if len(case_ids) != len(set(case_ids)) or not all(isinstance(case_id, str) and case_id for case_id in case_ids):
-        fail("fixture manifest case ids must be unique non-empty strings")
-    directories = sorted(path.name for path in fixture_root.iterdir() if path.is_dir())
+    if len(case_ids) != len(set(case_ids)):
+        fail("case manifest case ids must be unique non-empty directory names")
+    directories = sorted(path.name for path in case_root.iterdir() if path.is_dir())
     if sorted(case_ids) != directories:
-        fail("fixture manifest and fixture directories differ")
-    if manifest.get("aggregate_expected_pattern_counts") != EXPECTED_COUNTS:
-        fail("fixture manifest aggregate oracle drifted")
-    provenance = manifest.get("legacy_provenance_manifest")
-    if not isinstance(provenance, dict) or set(provenance) != {"path", "sha256", "verified_file_count"}:
-        fail("fixture manifest legacy provenance entry drifted")
-    verify_legacy_provenance(repo_root, manifest_path, provenance)
+        fail("case manifest and case directories differ")
+
+    role_counts: dict[str, int] = {}
+    aggregate = {pattern: 0 for pattern in expected_counts}
     row_by_case = {row["case_id"]: row for row in case_rows}
     for case_id in sorted(case_ids):
-        fixture = fixture_root / case_id
+        fixture = case_root / case_id
+        if fixture.is_symlink():
+            fail(f"{case_id}: fixture directory must not be a symbolic link")
+        try:
+            resolved_fixture = fixture.resolve(strict=True)
+            resolved_fixture.relative_to(case_root.resolve(strict=True))
+        except (OSError, ValueError) as error:
+            fail(f"{case_id}: fixture directory escapes its root: {error}")
         required = (fixture / "Cargo.toml", fixture / "Cargo.lock", fixture / "src" / "lib.rs", fixture / "fixture.json")
         for path in required:
-            if not path.is_file():
+            if path.is_symlink() or not path.is_file():
                 fail(f"{case_id}: missing {path.relative_to(fixture)}")
+            try:
+                path.resolve(strict=True).relative_to(resolved_fixture)
+            except (OSError, ValueError) as error:
+                fail(f"{case_id}: {path.relative_to(fixture)} escapes its fixture: {error}")
             if not git_tracked(repo_root, path):
                 fail(f"{case_id}: {path.relative_to(repo_root)} is not tracked by Git")
         if (fixture / "build.rs").exists():
             fail(f"{case_id}: build.rs is forbidden")
-        cargo_text = (fixture / "Cargo.toml").read_text(encoding="utf-8")
-        if "[dependencies]" in cargo_text or "[dev-dependencies]" in cargo_text or "[build-dependencies]" in cargo_text:
-            fail(f"{case_id}: dependency sections are forbidden")
+        audit_fixture_cargo_manifest(fixture / "Cargo.toml", case_id)
         oracle = read_json(fixture / "fixture.json")
         if oracle.get("case_id") != case_id:
             fail(f"{case_id}: oracle case_id differs from directory")
@@ -351,10 +465,21 @@ def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, ma
         }
         optional_row_fields = {"legacy_frozen_case", "paired_with"}
         if not expected_row_fields <= set(row) or not set(row) <= expected_row_fields | optional_row_fields:
-            fail(f"{case_id}: fixture manifest row keys drifted")
+            fail(f"{case_id}: case manifest row keys drifted")
         for key in ("role", "package_name", "expected_primary_pattern", "expected_rule_id", "expected_pattern_counts"):
-            if row[key] != oracle.get(key):
-                fail(f"{case_id}: fixture manifest {key} differs from oracle")
+            if key not in oracle or not json_values_equal(row[key], oracle[key]):
+                fail(f"{case_id}: case manifest {key} differs from oracle")
+        role = row["role"]
+        if not isinstance(role, str) or not role:
+            fail(f"{case_id}: role must be a non-empty string")
+        role_counts[role] = role_counts.get(role, 0) + 1
+        counts = row["expected_pattern_counts"]
+        if not isinstance(counts, dict) or set(counts) != set(expected_counts):
+            fail(f"{case_id}: expected pattern-count keys drifted")
+        for pattern, count in counts.items():
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                fail(f"{case_id}: {pattern} count must be a non-negative integer")
+            aggregate[pattern] += count
         file_rows = row["files"]
         if not isinstance(file_rows, dict) or set(file_rows) != {"manifest", "source", "lock", "oracle"}:
             fail(f"{case_id}: fixture file hash set drifted")
@@ -368,10 +493,36 @@ def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, ma
             file_row = file_rows[role]
             if not isinstance(file_row, dict) or set(file_row) != {"path", "sha256"}:
                 fail(f"{case_id}: {role} hash entry drifted")
-            expected_relative = path.relative_to(fixture_root.parent).as_posix()
-            if file_row["path"] != expected_relative or sha256(path) != file_row["sha256"]:
-                fail(f"{case_id}: {role} path or SHA-256 differs from fixture manifest")
+            expected_relative = path.relative_to(case_root.parent).as_posix()
+            if (
+                file_row["path"] != expected_relative
+                or not isinstance(file_row["sha256"], str)
+                or not re.fullmatch(r"[0-9a-f]{64}", file_row["sha256"])
+                or sha256(path) != file_row["sha256"]
+            ):
+                fail(f"{case_id}: {role} path or SHA-256 differs from case manifest")
+    if set(manifest_role_counts) != set(role_counts) or manifest_role_counts != role_counts:
+        fail("case manifest role totals drifted")
+    if aggregate != expected_counts:
+        fail("case rows do not sum to the expected aggregate")
     return sorted(case_ids)
+
+
+def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, manifest: dict) -> list[str]:
+    provenance = manifest.get("legacy_provenance_manifest") if isinstance(manifest, dict) else None
+    if not isinstance(provenance, dict) or set(provenance) != {"path", "sha256", "verified_file_count"}:
+        fail("fixture manifest legacy provenance entry drifted")
+    verify_legacy_provenance(repo_root, manifest_path, provenance)
+    return verify_case_contract(
+        repo_root,
+        fixture_root,
+        manifest_path,
+        manifest,
+        expected_schema="unsoundaudit-v2-fixture-manifest-v1",
+        expected_count=EXPECTED_FIXTURE_COUNT,
+        expected_counts=EXPECTED_COUNTS,
+        require_legacy_provenance=True,
+    )
 
 
 def run_command(command: list[str], cwd: Path, environment: dict[str, str], log_path: Path) -> None:
