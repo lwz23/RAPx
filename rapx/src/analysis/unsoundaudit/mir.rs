@@ -2,12 +2,12 @@ use super::dataflow::{
     solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin, StaticWriteToken,
 };
 use super::summary::{
-    classify_primary_with_secondary, map_call_outputs, scc_cycle_token, solve_summaries,
-    AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary, CallMapping, CanonicalWitness,
-    ContractRequirement, FailureClass, Finding, FunctionKey, FunctionSummary, Obligation,
-    Operation, OperationKind, OriginKey, Pattern, PlaceKey, Predicate, ProgramPoint, RuleId,
-    SinkObligation, Source, SourceKind, StablePosition, StableSpan, ValidationFact, WitnessStep,
-    WitnessStepKind, WriteEffect,
+    classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
+    scc_cycle_token, solve_summaries, AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary,
+    CallMapping, CanonicalWitness, ContractRequirement, FailureClass, Finding, FunctionKey,
+    FunctionSummary, Obligation, Operation, OperationKind, OriginKey, OutDependency, Pattern,
+    PlaceKey, Predicate, ProgramPoint, RuleId, SinkObligation, Source, SourceKind, StablePosition,
+    StableSpan, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
 use rustc_hir::{
     def::DefKind,
@@ -124,9 +124,251 @@ impl ValidationBinding {
 
 #[derive(Clone, Debug)]
 struct BodyProgram {
+    def_id: LocalDefId,
+    function: FunctionKey,
+    root_span: StableSpan,
+    arg_count: usize,
+    has_self: bool,
+    out_formals: BTreeMap<PlaceKey, u32>,
+    utf8_discharged: BTreeSet<ProgramPoint>,
     operations: IndexVec<BasicBlock, Vec<ProgramOp>>,
     edges: IndexVec<BasicBlock, EdgeTerm>,
     successors: IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct MappedCallOutputs {
+    returned: Option<(PlaceKey, AbstractValue)>,
+    outs: BTreeMap<PlaceKey, MappedOutValue>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct MappedOutValue {
+    value: AbstractValue,
+    may_skip_write: bool,
+}
+
+type LocalCallOutputs = BTreeMap<ProgramPoint, MappedCallOutputs>;
+
+fn out_slot(formal_index: u32) -> PlaceKey {
+    PlaceKey::new(format!("$out:{formal_index}"))
+}
+
+fn join_local_outputs(
+    current: &mut BTreeMap<FunctionKey, LocalCallOutputs>,
+    incoming: &BTreeMap<FunctionKey, LocalCallOutputs>,
+) -> bool {
+    let before = current.clone();
+    for (function, calls) in incoming {
+        for (point, outputs) in calls {
+            let destination = current
+                .entry(function.clone())
+                .or_default()
+                .entry(point.clone())
+                .or_default();
+            if let Some((place, value)) = &outputs.returned {
+                let returned = destination
+                    .returned
+                    .get_or_insert_with(|| (place.clone(), AbstractValue::default()));
+                debug_assert_eq!(returned.0, *place);
+                returned.1.origins.extend(value.origins.iter().cloned());
+            }
+            for (place, value) in &outputs.outs {
+                let output = destination.outs.entry(place.clone()).or_default();
+                output
+                    .value
+                    .origins
+                    .extend(value.value.origins.iter().cloned());
+                output.may_skip_write |= value.may_skip_write;
+            }
+        }
+    }
+    *current != before
+}
+
+fn map_structured_local_outputs(
+    mappings: &BTreeSet<CallMapping>,
+    summary: &FunctionSummary,
+    actuals: &[AbstractValue],
+    caller_out_formals: &BTreeMap<PlaceKey, u32>,
+    definite_outs: BTreeSet<u32>,
+) -> MappedCallOutputs {
+    let return_mappings = mappings
+        .iter()
+        .filter(|mapping| matches!(mapping, CallMapping::ReturnToDestination { .. }))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let out_mappings = mappings
+        .iter()
+        .filter(|mapping| matches!(mapping, CallMapping::OutToCaller { .. }))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let returned = map_call_outputs(
+        &return_mappings,
+        &summary.return_value,
+        &BTreeMap::new(),
+        actuals,
+    )
+    .into_iter()
+    .next();
+    let mut outs = BTreeMap::<PlaceKey, MappedOutValue>::new();
+    let out_values = out_values_from_dependencies(&summary.out_dependencies);
+    for mapping in out_mappings {
+        let CallMapping::OutToCaller {
+            formal_index,
+            caller_place,
+        } = mapping
+        else {
+            unreachable!("out_mappings contains only OutToCaller entries");
+        };
+        let mapped = map_call_outputs(
+            &BTreeSet::from([CallMapping::OutToCaller {
+                formal_index,
+                caller_place: caller_place.clone(),
+            }]),
+            &AbstractValue::default(),
+            &out_values,
+            actuals,
+        );
+        let mapped = mapped.into_iter().next().or_else(|| {
+            definite_outs
+                .contains(&formal_index)
+                .then(|| (caller_place, AbstractValue::default()))
+        });
+        if let Some((place, value)) = mapped {
+            let must_write = definite_outs.contains(&formal_index);
+            let output = outs.entry(place.clone()).or_default();
+            output.value.origins.extend(value.origins.iter().cloned());
+            output.may_skip_write |= !must_write;
+            if let Some(slot) = caller_out_formals.get(&place).copied().map(out_slot) {
+                let output = outs.entry(slot).or_default();
+                output.value.origins.extend(value.origins);
+                output.may_skip_write |= !must_write;
+            }
+        }
+    }
+    MappedCallOutputs { returned, outs }
+}
+
+fn reachable_out_dependencies(
+    edges: &IndexVec<BasicBlock, EdgeTerm>,
+    formals: impl IntoIterator<Item = u32>,
+    solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+    definite_outs: &BTreeSet<u32>,
+) -> BTreeSet<OutDependency> {
+    let formals = formals.into_iter().collect::<BTreeSet<_>>();
+    let mut values = BTreeMap::<u32, AbstractValue>::new();
+    for (block, edge) in edges.iter_enumerated() {
+        if !matches!(edge, EdgeTerm::Return) {
+            continue;
+        }
+        let Some(state) = solved.exit[block].as_ref() else {
+            continue;
+        };
+        for formal_index in &formals {
+            let Some(output) = state.may_values().get(&out_slot(*formal_index)) else {
+                continue;
+            };
+            values
+                .entry(*formal_index)
+                .or_default()
+                .origins
+                .extend(output.value.origins.iter().cloned());
+        }
+    }
+    formals
+        .into_iter()
+        .filter_map(|formal_index| {
+            let value = values.remove(&formal_index).unwrap_or_default();
+            (!value.origins.is_empty() || definite_outs.contains(&formal_index)).then_some(
+                OutDependency {
+                    formal_index,
+                    value,
+                    may_skip_write: !definite_outs.contains(&formal_index),
+                },
+            )
+        })
+        .collect()
+}
+
+fn solve_out_must(
+    operations: &IndexVec<BasicBlock, Vec<ProgramOp>>,
+    edges: &IndexVec<BasicBlock, EdgeTerm>,
+    successors: &IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+    local_outputs: &LocalCallOutputs,
+) -> IndexVec<BasicBlock, Option<BTreeSet<u32>>> {
+    let mut entry = IndexVec::from_elem_n(None, operations.len());
+    let mut exit = IndexVec::from_elem_n(None, operations.len());
+    let mut edge = BTreeMap::<(BasicBlock, BasicBlock), BTreeSet<u32>>::new();
+    loop {
+        let before = (entry.clone(), exit.clone(), edge.clone());
+        for block in operations.indices() {
+            let incoming = if block.index() == 0 {
+                Some(BTreeSet::new())
+            } else {
+                let mut predecessors = edge
+                    .iter()
+                    .filter(|((_, target), _)| *target == block)
+                    .map(|(_, state)| state);
+                predecessors.next().map(|first| {
+                    let mut common = first.clone();
+                    for state in predecessors {
+                        common.retain(|formal| state.contains(formal));
+                    }
+                    common
+                })
+            };
+            entry[block] = incoming.clone();
+            let Some(mut state) = incoming else {
+                exit[block] = None;
+                continue;
+            };
+            for operation in &operations[block] {
+                if let ProgramOpKind::Assign(AssignmentModel {
+                    out_formal: Some(formal_index),
+                    ..
+                }) = &operation.kind
+                {
+                    state.insert(*formal_index);
+                }
+            }
+            exit[block] = Some(state.clone());
+            for target in &successors[block] {
+                let mut edge_state = state.clone();
+                if let EdgeTerm::CallNormal {
+                    normal_target: Some(normal_target),
+                    point,
+                    ..
+                } = &edges[block]
+                {
+                    if target == normal_target {
+                        if let EdgeTerm::CallNormal { call, .. } = &edges[block] {
+                            if let Some(formal_index) = call.destination_out_formal {
+                                edge_state.insert(formal_index);
+                            }
+                        }
+                        if let Some(outputs) = local_outputs.get(point) {
+                            for (place, output) in &outputs.outs {
+                                if !output.may_skip_write {
+                                    if let Some(formal_index) = out_slot_index(place) {
+                                        edge_state.insert(formal_index);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                edge.insert((block, *target), edge_state);
+            }
+        }
+        if (entry.clone(), exit.clone(), edge.clone()) == before {
+            return exit;
+        }
+    }
+}
+
+fn out_slot_index(place: &PlaceKey) -> Option<u32> {
+    place.0.strip_prefix("$out:")?.parse().ok()
 }
 
 #[derive(Clone, Debug)]
@@ -149,6 +391,7 @@ struct AssignmentModel {
     field_origin: Option<AbstractOrigin>,
     raw_read_source: Option<OperandModel>,
     legacy_write: bool,
+    out_formal: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -187,6 +430,7 @@ struct CallModel {
     destination_is_bool: bool,
     access_width: Option<u64>,
     legacy_write: bool,
+    destination_out_formal: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -393,6 +637,7 @@ struct Engine<'tcx> {
     project_root: PathBuf,
     crate_name: String,
     bodies: BTreeMap<FunctionKey, BodyFacts>,
+    programs: BTreeMap<FunctionKey, BodyProgram>,
     preopt_transmutes: BTreeMap<FunctionKey, BTreeSet<PreoptTransmute>>,
 }
 
@@ -413,6 +658,7 @@ impl<'tcx> Engine<'tcx> {
             project_root,
             crate_name,
             bodies: BTreeMap::new(),
+            programs: BTreeMap::new(),
             preopt_transmutes: BTreeMap::new(),
         }
     }
@@ -422,92 +668,17 @@ impl<'tcx> Engine<'tcx> {
         self.preopt_transmutes = self.collect_preopt_transmutes(&ids)?;
         self.collect_bodies(&ids);
         let graph = self.call_graph();
-        let seeds = self
-            .bodies
-            .iter()
-            .map(|(key, facts)| (key.clone(), facts.summary_seed.clone()))
-            .collect::<BTreeMap<_, _>>();
-        let solved = solve_summaries(&graph, &seeds, |node, current| {
-            let mut derived = FunctionSummary::empty(node.clone());
-            let Some(caller) = self.bodies.get(node) else {
-                return derived;
-            };
-            for call in &caller.calls {
-                let Some(callee) = &call.callee else {
-                    continue;
-                };
-                let Some(callee_summary) = current.get(callee) else {
-                    continue;
-                };
-                let actuals = call
-                    .arg_values
-                    .iter()
-                    .map(|facts| facts.value.clone())
-                    .collect::<Vec<_>>();
-                let mapping = caller
-                    .summary_seed
-                    .calls
-                    .iter()
-                    .find(|boundary| boundary.callee == *callee && boundary.point == call.point)
-                    .map(|boundary| boundary.mapping.clone())
-                    .unwrap_or_default();
-                let out_values = BTreeMap::new();
-                let mapped_outputs = map_call_outputs(
-                    &mapping,
-                    &callee_summary.return_value,
-                    &out_values,
-                    &actuals,
-                );
-                let reaches_return = self.place_reaches_return(caller, &call.destination);
-                for requirement in &callee_summary.requirements {
-                    if requirement.return_exposure && !reaches_return {
-                        continue;
-                    }
-                    let mut requirement = requirement.clone();
-                    requirement.subject = requirement.subject.substitute(&actuals);
-                    requirement.collection = requirement
-                        .collection
-                        .as_ref()
-                        .map(|value| value.substitute(&actuals));
-                    derived.requirements.insert(requirement);
-                }
-                for validation in &callee_summary.validations {
-                    if validation.requirement.return_exposure && !reaches_return {
-                        continue;
-                    }
-                    let Some(state) = caller.states.get(&(
-                        call.point.point_location().block,
-                        call.point.statement as usize,
-                    )) else {
-                        derived
-                            .requirements
-                            .insert(validation.instantiate_requirement(&actuals));
-                        continue;
-                    };
-                    match compose_validation_route(validation, call, state, caller.arg_count) {
-                        ValidationRoute::Satisfied => {}
-                        ValidationRoute::Conditional(validation) => {
-                            derived.validations.insert(validation);
-                        }
-                        ValidationRoute::Hard(requirement) => {
-                            derived.requirements.insert(requirement);
-                        }
-                    }
-                }
-                if reaches_return {
-                    if let Some(returned) = mapped_outputs.get(&call.destination) {
-                        derived
-                            .return_value
-                            .origins
-                            .extend(returned.origins.iter().cloned());
-                    }
-                }
-                derived
-                    .cycle_tokens
-                    .extend(callee_summary.cycle_tokens.iter().cloned());
+        let must_outputs = self.solve_local_out_must();
+        let mut local_outputs = self.local_out_effects(&must_outputs);
+        self.rebuild_bodies(&local_outputs, &must_outputs);
+        let solved = loop {
+            let solved = self.solve_current_summaries(&graph);
+            let derived = self.derive_local_outputs(&solved, &must_outputs);
+            if !join_local_outputs(&mut local_outputs, &derived) {
+                break solved;
             }
-            derived
-        });
+            self.rebuild_bodies(&local_outputs, &must_outputs);
+        };
 
         let components = super::summary::strongly_connected_components(&graph);
         let recursive = components
@@ -574,6 +745,255 @@ impl<'tcx> Engine<'tcx> {
             }
         }
         Ok(findings)
+    }
+
+    fn solve_local_out_must(&self) -> BTreeMap<FunctionKey, BTreeSet<u32>> {
+        let mut must = self
+            .programs
+            .keys()
+            .cloned()
+            .map(|function| (function, BTreeSet::new()))
+            .collect::<BTreeMap<_, _>>();
+        loop {
+            let effects = self.local_out_effects(&must);
+            let mut changed = false;
+            for (function, program) in &self.programs {
+                let outputs = effects.get(function).cloned().unwrap_or_default();
+                let solved = solve_out_must(
+                    &program.operations,
+                    &program.edges,
+                    &program.successors,
+                    &outputs,
+                );
+                let return_blocks = program
+                    .edges
+                    .iter_enumerated()
+                    .filter(|(block, edge)| {
+                        matches!(edge, EdgeTerm::Return) && solved[*block].is_some()
+                    })
+                    .map(|(block, _)| block)
+                    .collect::<Vec<_>>();
+                if return_blocks.is_empty() {
+                    continue;
+                }
+                for formal_index in program.out_formals.values() {
+                    if return_blocks.iter().all(|block| {
+                        solved[*block]
+                            .as_ref()
+                            .is_some_and(|written| written.contains(formal_index))
+                    }) {
+                        changed |= must
+                            .entry(function.clone())
+                            .or_default()
+                            .insert(*formal_index);
+                    }
+                }
+            }
+            if !changed {
+                return must;
+            }
+        }
+    }
+
+    fn local_out_effects(
+        &self,
+        must: &BTreeMap<FunctionKey, BTreeSet<u32>>,
+    ) -> BTreeMap<FunctionKey, LocalCallOutputs> {
+        let mut effects = BTreeMap::<FunctionKey, LocalCallOutputs>::new();
+        for (caller_key, caller) in &self.bodies {
+            let Some(program) = self.programs.get(caller_key) else {
+                continue;
+            };
+            for boundary in &caller.summary_seed.calls {
+                let callee_must = must.get(&boundary.callee);
+                for mapping in &boundary.mapping {
+                    let CallMapping::OutToCaller {
+                        formal_index,
+                        caller_place,
+                    } = mapping
+                    else {
+                        continue;
+                    };
+                    let output = effects
+                        .entry(caller_key.clone())
+                        .or_default()
+                        .entry(boundary.point.clone())
+                        .or_default()
+                        .outs
+                        .entry(caller_place.clone())
+                        .or_default();
+                    let may_skip =
+                        !callee_must.is_some_and(|written| written.contains(formal_index));
+                    output.may_skip_write |= may_skip;
+                    if let Some(slot) = program.out_formals.get(caller_place).copied().map(out_slot)
+                    {
+                        effects
+                            .entry(caller_key.clone())
+                            .or_default()
+                            .entry(boundary.point.clone())
+                            .or_default()
+                            .outs
+                            .entry(slot)
+                            .or_default()
+                            .may_skip_write |= may_skip;
+                    }
+                }
+            }
+        }
+        effects
+    }
+
+    fn solve_current_summaries(
+        &self,
+        graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
+    ) -> BTreeMap<FunctionKey, FunctionSummary> {
+        let seeds = self
+            .bodies
+            .iter()
+            .map(|(key, facts)| (key.clone(), facts.summary_seed.clone()))
+            .collect::<BTreeMap<_, _>>();
+        solve_summaries(graph, &seeds, |node, current| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            let Some(caller) = self.bodies.get(node) else {
+                return derived;
+            };
+            for call in &caller.calls {
+                let Some(callee) = &call.callee else {
+                    continue;
+                };
+                let Some(callee_summary) = current.get(callee) else {
+                    continue;
+                };
+                let actuals = call
+                    .arg_values
+                    .iter()
+                    .map(|facts| facts.value.clone())
+                    .collect::<Vec<_>>();
+                let reaches_return = self.place_reaches_return(caller, &call.destination);
+                for requirement in &callee_summary.requirements {
+                    if requirement.return_exposure && !reaches_return {
+                        continue;
+                    }
+                    let mut requirement = requirement.clone();
+                    requirement.subject = requirement.subject.substitute(&actuals);
+                    requirement.collection = requirement
+                        .collection
+                        .as_ref()
+                        .map(|value| value.substitute(&actuals));
+                    derived.requirements.insert(requirement);
+                }
+                for validation in &callee_summary.validations {
+                    if validation.requirement.return_exposure && !reaches_return {
+                        continue;
+                    }
+                    let Some(state) = caller.states.get(&(
+                        call.point.point_location().block,
+                        call.point.statement as usize,
+                    )) else {
+                        derived
+                            .requirements
+                            .insert(validation.instantiate_requirement(&actuals));
+                        continue;
+                    };
+                    match compose_validation_route(validation, call, state, caller.arg_count) {
+                        ValidationRoute::Satisfied => {}
+                        ValidationRoute::Conditional(validation) => {
+                            derived.validations.insert(validation);
+                        }
+                        ValidationRoute::Hard(requirement) => {
+                            derived.requirements.insert(requirement);
+                        }
+                    }
+                }
+                derived
+                    .cycle_tokens
+                    .extend(callee_summary.cycle_tokens.iter().cloned());
+            }
+            derived
+        })
+    }
+
+    fn derive_local_outputs(
+        &self,
+        summaries: &BTreeMap<FunctionKey, FunctionSummary>,
+        definite_outs: &BTreeMap<FunctionKey, BTreeSet<u32>>,
+    ) -> BTreeMap<FunctionKey, LocalCallOutputs> {
+        let mut result = BTreeMap::<FunctionKey, LocalCallOutputs>::new();
+        for (caller_key, caller) in &self.bodies {
+            for call in &caller.calls {
+                if call.disposition != BoundaryDisposition::ResolvedLocal {
+                    continue;
+                }
+                let Some(callee) = call.callee.as_ref() else {
+                    continue;
+                };
+                let Some(summary) = summaries.get(callee) else {
+                    continue;
+                };
+                let Some(boundary) =
+                    caller.summary_seed.calls.iter().find(|boundary| {
+                        boundary.callee == *callee && boundary.point == call.point
+                    })
+                else {
+                    continue;
+                };
+                let actuals = call
+                    .arg_values
+                    .iter()
+                    .map(|facts| facts.value.clone())
+                    .collect::<Vec<_>>();
+                let Some(program) = self.programs.get(caller_key) else {
+                    continue;
+                };
+                let mapped = map_structured_local_outputs(
+                    &boundary.mapping,
+                    summary,
+                    &actuals,
+                    &program.out_formals,
+                    definite_outs.get(callee).cloned().unwrap_or_default(),
+                );
+                let outputs = result
+                    .entry(caller_key.clone())
+                    .or_default()
+                    .entry(call.point.clone())
+                    .or_default();
+                if let Some((place, value)) = mapped.returned {
+                    let returned = outputs
+                        .returned
+                        .get_or_insert_with(|| (place.clone(), AbstractValue::default()));
+                    debug_assert_eq!(returned.0, place);
+                    returned.1.origins.extend(value.origins);
+                }
+                for (place, value) in mapped.outs {
+                    let output = outputs.outs.entry(place).or_default();
+                    output.value.origins.extend(value.value.origins);
+                    output.may_skip_write |= value.may_skip_write;
+                }
+            }
+        }
+        result
+    }
+
+    fn rebuild_bodies(
+        &mut self,
+        local_outputs: &BTreeMap<FunctionKey, LocalCallOutputs>,
+        definite_outs: &BTreeMap<FunctionKey, BTreeSet<u32>>,
+    ) {
+        let inputs = self
+            .programs
+            .iter()
+            .map(|(function, program)| (function.clone(), program.clone()))
+            .collect::<Vec<_>>();
+        let mut rebuilt = BTreeMap::new();
+        for (function, program) in inputs {
+            let outputs = local_outputs.get(&function).cloned().unwrap_or_default();
+            let definite = definite_outs.get(&function).cloned().unwrap_or_default();
+            rebuilt.insert(
+                function,
+                self.extract_program(&program, &outputs, &definite),
+            );
+        }
+        self.bodies = rebuilt;
     }
 
     fn local_function_ids(&self) -> Vec<LocalDefId> {
@@ -669,26 +1089,48 @@ impl<'tcx> Engine<'tcx> {
 
     fn collect_bodies(&mut self, ids: &[LocalDefId]) {
         for id in ids {
-            let facts = self.extract_body(*id);
+            let did = id.to_def_id();
+            let body = self.tcx.optimized_mir(did);
+            let function = FunctionKey::new(self.tcx.def_path_str(did));
+            let mut program = self.normalize_body(*id, body, &function);
+            let provisional =
+                self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
+            program.utf8_discharged = provisional
+                .calls
+                .iter()
+                .filter(|call| {
+                    call.raw_def.is_some_and(|raw| {
+                        self.tcx
+                            .is_diagnostic_item(sym::str_from_utf8_unchecked, raw)
+                    }) && !call.args.is_empty()
+                        && self.utf8_discharged(
+                            body,
+                            &provisional,
+                            &call.args[0],
+                            call.point.point_location(),
+                        )
+                })
+                .map(|call| call.point.clone())
+                .collect();
+            let facts = self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
+            self.programs.insert(function, program);
             self.bodies.insert(facts.function.clone(), facts);
         }
     }
 
-    fn extract_body(&self, id: LocalDefId) -> BodyFacts {
-        let did = id.to_def_id();
-        let body = self.tcx.optimized_mir(did);
-        let function = FunctionKey::new(self.tcx.def_path_str(did));
-        let has_self = self
-            .tcx
-            .opt_associated_item(did)
-            .is_some_and(|item| item.fn_has_self_parameter);
+    fn extract_program(
+        &self,
+        program: &BodyProgram,
+        local_outputs: &LocalCallOutputs,
+        definite_outs: &BTreeSet<u32>,
+    ) -> BodyFacts {
         let mut facts = BodyFacts {
-            def_id: id,
-            function: function.clone(),
-            root_span: self.stable_span(self.tcx.def_span(did)),
-            arg_count: body.arg_count,
-            has_self,
-            summary_seed: FunctionSummary::empty(function.clone()),
+            def_id: program.def_id,
+            function: program.function.clone(),
+            root_span: program.root_span.clone(),
+            arg_count: program.arg_count,
+            has_self: program.has_self,
+            summary_seed: FunctionSummary::empty(program.function.clone()),
             values: BTreeMap::new(),
             calls: Vec::new(),
             compares: Vec::new(),
@@ -699,21 +1141,20 @@ impl<'tcx> Engine<'tcx> {
             states: BTreeMap::new(),
             local_bindings: BTreeMap::new(),
         };
-        for arg in body.args_iter() {
+        for index in 1..=program.arg_count {
+            let place = PlaceKey::new(format!("_{index}"));
             facts.values.insert(
-                PlaceKey::new(format!("_{0}", arg.index())),
+                place.clone(),
                 ValueFacts {
-                    value: AbstractValue::new([AbstractOrigin::Formal(arg.index() as u32)]),
-                    dependencies: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
-                    value_flow: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
-                    exact_roots: BTreeSet::from([PlaceKey::new(format!("_{0}", arg.index()))]),
+                    value: AbstractValue::new([AbstractOrigin::Formal(index as u32)]),
+                    dependencies: BTreeSet::from([place.clone()]),
+                    value_flow: BTreeSet::from([place.clone()]),
+                    exact_roots: BTreeSet::from([place]),
                     may_be_non_length: true,
                     ..ValueFacts::default()
                 },
             );
         }
-
-        let program = self.normalize_body(did, body, &function);
         let operation_counts = program.operations.iter().map(Vec::len).collect();
         let mut entry = BlockState::empty();
         for (place, value) in &facts.values {
@@ -726,11 +1167,13 @@ impl<'tcx> Engine<'tcx> {
             |block, index, state| {
                 apply_program_op(&program.operations[block][index], block, index, state)
             },
-            |block, target, state| apply_program_edge(&program.edges[block], target, state),
+            |block, target, state| {
+                apply_program_edge_with_outputs(&program.edges[block], target, state, local_outputs)
+            },
         );
         facts.states = solved.before.clone();
         self.materialize_program(&program, &solved, &mut facts);
-        self.add_local_requirements(body, &mut facts);
+        self.add_local_requirements(program, &mut facts);
         self.partition_validation_contracts(&mut facts);
         for (block, edge) in program.edges.iter_enumerated() {
             if !matches!(edge, EdgeTerm::Return) {
@@ -747,6 +1190,15 @@ impl<'tcx> Engine<'tcx> {
                     .extend(returned.value.origins.iter().cloned());
             }
         }
+        facts
+            .summary_seed
+            .out_dependencies
+            .extend(reachable_out_dependencies(
+                &program.edges,
+                program.out_formals.values().copied(),
+                &solved,
+                definite_outs,
+            ));
         facts
     }
 
@@ -908,18 +1360,7 @@ impl<'tcx> Engine<'tcx> {
                             access_width: call.access_width,
                         });
                         if let Some(callee) = &descriptor.callee {
-                            let mut mapping = BTreeSet::new();
-                            for (index, operand) in args.iter().enumerate() {
-                                if let CallOperand::Place(actual) = operand {
-                                    mapping.insert(CallMapping::ActualToFormal {
-                                        actual: actual.clone(),
-                                        formal_index: index as u32 + 1,
-                                    });
-                                }
-                            }
-                            mapping.insert(CallMapping::ReturnToDestination {
-                                destination: descriptor.destination.clone(),
-                            });
+                            let mapping = local_call_boundary_mapping(call, state);
                             facts.summary_seed.calls.insert(CallBoundary {
                                 caller: facts.function.clone(),
                                 callee: callee.clone(),
@@ -1035,10 +1476,11 @@ impl<'tcx> Engine<'tcx> {
 
     fn normalize_body(
         &self,
-        caller: DefId,
+        local_id: LocalDefId,
         body: &Body<'tcx>,
         function: &FunctionKey,
     ) -> BodyProgram {
+        let caller = local_id.to_def_id();
         let mut operations = IndexVec::new();
         let mut edges = IndexVec::new();
         let mut successors = IndexVec::new();
@@ -1166,6 +1608,25 @@ impl<'tcx> Engine<'tcx> {
             });
         }
         BodyProgram {
+            def_id: local_id,
+            function: function.clone(),
+            root_span: self.stable_span(self.tcx.def_span(caller)),
+            arg_count: body.arg_count,
+            has_self: self
+                .tcx
+                .opt_associated_item(caller)
+                .is_some_and(|item| item.fn_has_self_parameter),
+            out_formals: body
+                .args_iter()
+                .filter(|arg| is_mutable_call_actual(body.local_decls[*arg].ty))
+                .map(|arg| {
+                    (
+                        PlaceKey::new(format!("_{}", arg.index())),
+                        arg.index() as u32,
+                    )
+                })
+                .collect(),
+            utf8_discharged: BTreeSet::new(),
             operations,
             edges,
             successors,
@@ -1262,6 +1723,7 @@ impl<'tcx> Engine<'tcx> {
             field_origin,
             raw_read_source,
             legacy_write,
+            out_formal: out_formal_index(body, destination),
         }
     }
 
@@ -1483,10 +1945,11 @@ impl<'tcx> Engine<'tcx> {
             destination_is_bool: destination_ty.is_bool(),
             access_width,
             legacy_write,
+            destination_out_formal: out_formal_index(body, destination),
         }
     }
 
-    fn add_local_requirements(&self, body: &Body<'tcx>, facts: &mut BodyFacts) {
+    fn add_local_requirements(&self, program: &BodyProgram, facts: &mut BodyFacts) {
         if let Some(items) = self.preopt_transmutes.get(&facts.function) {
             for item in items {
                 let origin = AbstractOrigin::InternalLocal {
@@ -1635,7 +2098,7 @@ impl<'tcx> Engine<'tcx> {
                 .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
                 && !call.args.is_empty()
             {
-                if !self.utf8_discharged(body, facts, &call.args[0], call.point.point_location()) {
+                if !program.utf8_discharged.contains(&call.point) {
                     let origin = AbstractOrigin::InternalLocal {
                         function: facts.function.clone(),
                         place: call.destination.clone(),
@@ -3203,10 +3666,19 @@ fn apply_program_op(
                 value.exact_roots.insert(assignment.destination.clone());
                 value.semantic_unknown = false;
             }
+            let out_value = assignment.out_formal.map(|formal_index| {
+                let mut output = value.clone();
+                output.exact_roots.clear();
+                output.semantic_unknown = true;
+                (formal_index, output)
+            });
             let storage = canonical_storage(&assignment.destination);
             state.record_write(storage.clone(), token);
             invalidate_length_evidence(state, &storage);
             state.set_value(assignment.destination.clone(), value);
+            if let Some((formal_index, output)) = out_value {
+                strong_write_out_formal(state, formal_index, &output, token);
+            }
 
             if !pending.is_empty() {
                 state.set_pending(assignment.destination.clone(), pending);
@@ -3223,6 +3695,15 @@ fn apply_program_edge(
     target: BasicBlock,
     state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
 ) {
+    apply_program_edge_with_outputs(edge, target, state, &LocalCallOutputs::new());
+}
+
+fn apply_program_edge_with_outputs(
+    edge: &EdgeTerm,
+    target: BasicBlock,
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    local_outputs: &LocalCallOutputs,
+) {
     if let EdgeTerm::CallNormal {
         normal_target,
         point,
@@ -3234,7 +3715,32 @@ fn apply_program_edge(
         }
         let return_value = eval_registry_value(state, &call.value, point);
         apply_call_side_effects(call, point, state);
+        if let Some(outputs) = local_outputs.get(point) {
+            apply_local_outputs(state, &outputs.outs);
+        }
         apply_call_return(call, point, return_value, state);
+        if let Some((destination, returned)) = local_outputs
+            .get(point)
+            .and_then(|outputs| outputs.returned.as_ref())
+        {
+            debug_assert_eq!(*destination, call.descriptor.destination);
+            let mut current = state_value(state, destination);
+            current.value = returned.clone();
+            state.set_value(destination.clone(), current);
+        }
+        if let Some(formal_index) = call.destination_out_formal {
+            let output = state
+                .may_values()
+                .get(&call.descriptor.destination)
+                .cloned()
+                .unwrap_or_default();
+            strong_write_out_formal(
+                state,
+                formal_index,
+                &output,
+                StaticWriteToken::new(point.block, point.statement),
+            );
+        }
         return;
     }
     if let EdgeTerm::AssertPlumbingOnly {
@@ -3282,6 +3788,63 @@ fn apply_program_edge(
             binding.storage_places(),
         ));
     }
+}
+
+fn apply_local_outputs<'a>(
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    outputs: &'a BTreeMap<PlaceKey, MappedOutValue>,
+) {
+    for (place, output) in outputs {
+        apply_mapped_out_value(state, place, output);
+        if let Some(formal_index) = out_slot_index(place) {
+            // A nested local out call updates both summary bookkeeping and the
+            // concrete referent read later in this function. The base formal is
+            // carried as a second mapping; synchronizing the exact dereference
+            // prevents an earlier `*out = ...` entry from retaining stale value
+            // provenance after a later definite call write.
+            let dereference = PlaceKey::new(format!("(*_{formal_index})"));
+            apply_mapped_out_value(state, &dereference, output);
+        }
+    }
+}
+
+fn apply_mapped_out_value(
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    place: &PlaceKey,
+    output: &MappedOutValue,
+) {
+    let mut current = state.may_values().get(place).cloned().unwrap_or_default();
+    if output.may_skip_write {
+        current
+            .value
+            .origins
+            .extend(output.value.origins.iter().cloned());
+    } else {
+        current.value = output.value.clone();
+    }
+    state.set_value(place.clone(), current);
+}
+
+fn strong_write_out_formal(
+    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    formal_index: u32,
+    written: &ValueFacts,
+    token: StaticWriteToken,
+) {
+    // The base local carries the reference identity, while its `value` field is
+    // the provenance observed by reads through the referent. Keep the former
+    // and replace only the latter after an exact `*formal` write.
+    let base = PlaceKey::new(format!("_{formal_index}"));
+    let mut base_value = state.may_values().get(&base).cloned().unwrap_or_default();
+    base_value.value = written.value.clone();
+    state.set_value(base, base_value);
+
+    let slot = out_slot(formal_index);
+    let mut output = written.clone();
+    output.exact_roots.clear();
+    output.semantic_unknown = true;
+    state.record_write(slot.clone(), token);
+    state.set_value(slot, output);
 }
 
 fn state_proves_local_binding(
@@ -3385,6 +3948,43 @@ fn instantiate_validation_binding(
         subject,
         collection,
     })
+}
+
+fn local_call_boundary_mapping(
+    call: &CallModel,
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+) -> BTreeSet<CallMapping> {
+    let mut mapping = BTreeSet::new();
+    for (index, operand) in call.descriptor.args.iter().enumerate() {
+        if let Some(actual) = operand.operand.place() {
+            mapping.insert(CallMapping::ActualToFormal {
+                actual: actual.clone(),
+                formal_index: index as u32 + 1,
+            });
+        }
+    }
+    mapping.insert(CallMapping::ReturnToDestination {
+        destination: call.descriptor.destination.clone(),
+    });
+    if call.descriptor.disposition != BoundaryDisposition::ResolvedLocal {
+        return mapping;
+    }
+    for (index, operand) in call.descriptor.args.iter().enumerate() {
+        let Some(raw_actual) = operand.operand.place() else {
+            continue;
+        };
+        if !call.mutable_actuals.contains(raw_actual) {
+            continue;
+        }
+        let Some(caller_place) = unique_semantic_value(&eval_operand(state, operand)) else {
+            continue;
+        };
+        mapping.insert(CallMapping::OutToCaller {
+            formal_index: index as u32 + 1,
+            caller_place,
+        });
+    }
+    mapping
 }
 
 fn apply_call_side_effects(
@@ -3512,6 +4112,17 @@ fn is_mutable_call_actual(ty: ty::Ty<'_>) -> bool {
         ty.kind(),
         ty::Ref(_, _, Mutability::Mut) | ty::RawPtr(_, Mutability::Mut)
     )
+}
+
+fn out_formal_index(body: &Body<'_>, destination: Place<'_>) -> Option<u32> {
+    if !matches!(destination.projection.as_ref(), [ProjectionElem::Deref]) {
+        return None;
+    }
+    let index = destination.local.index();
+    (index > 0
+        && index <= body.arg_count
+        && is_mutable_call_actual(body.local_decls[destination.local].ty))
+    .then_some(index as u32)
 }
 
 fn record_write(facts: &mut BodyFacts, place: PlaceKey, point: ProgramPoint, kind: WriteKind) {
@@ -3908,6 +4519,16 @@ mod tests {
         }
     }
 
+    fn constant_operand(value: u64) -> OperandModel {
+        OperandModel {
+            operand: CallOperand::Constant(value),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_unknown: false,
+        }
+    }
+
     fn exact_value(place: &PlaceKey) -> ValueFacts {
         ValueFacts {
             exact_roots: BTreeSet::from([place.clone()]),
@@ -4094,6 +4715,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
 
         let mut normal = before.clone();
@@ -4101,6 +4723,590 @@ mod tests {
         assert!(state_value(&normal, &referent).havoced);
         assert!(!normal.has_current_validation(&binding, binding.storage_places()));
         assert!(before.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    fn task7_assignment(
+        destination: &str,
+        value: ValueModel,
+        out_formal: Option<u32>,
+        statement: u32,
+    ) -> ProgramOp {
+        ProgramOp {
+            point: point(0, statement),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: PlaceKey::new(destination),
+                value,
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+                out_formal,
+            }),
+        }
+    }
+
+    #[test]
+    fn task7_out_slot_strong_overwrite_exports_only_the_last_reachable_value() {
+        let mut operations = IndexVec::new();
+        operations.push(vec![
+            task7_assignment(
+                "(*_1)",
+                ValueModel::Operand(place_operand("_2")),
+                Some(1),
+                0,
+            ),
+            task7_assignment(
+                "(*_1)",
+                ValueModel::Operand(constant_operand(0)),
+                Some(1),
+                1,
+            ),
+        ]);
+        let mut edges = IndexVec::new();
+        edges.push(EdgeTerm::Return);
+        let mut successors = IndexVec::new();
+        successors.push(BTreeSet::new());
+        let mut entry = BlockState::empty();
+        entry.set_value(
+            PlaceKey::new("_2"),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+                ..ValueFacts::default()
+            },
+        );
+        let counts = operations.iter().map(Vec::len).collect();
+        entry.set_value(
+            PlaceKey::new("_1"),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                exact_roots: BTreeSet::from([PlaceKey::new("_1")]),
+                ..ValueFacts::default()
+            },
+        );
+        let solved = solve_cfg(
+            &successors,
+            &counts,
+            entry,
+            |block, index, state| apply_program_op(&operations[block][index], block, index, state),
+            |_, _, _| {},
+        );
+
+        assert_eq!(
+            reachable_out_dependencies(&edges, [1], &solved, &BTreeSet::from([1])),
+            BTreeSet::from([OutDependency {
+                formal_index: 1,
+                value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                may_skip_write: false,
+            }])
+        );
+        let returned = solved.exit[BasicBlock::from_usize(0)]
+            .as_ref()
+            .expect("the return block is reachable");
+        assert_eq!(
+            state_value(returned, &PlaceKey::new("(*_1)")).value,
+            AbstractValue::new([AbstractOrigin::Constant(0)])
+        );
+        assert_eq!(
+            returned.may_values()[&PlaceKey::new("_1")].exact_roots,
+            BTreeSet::from([PlaceKey::new("_1")])
+        );
+    }
+
+    #[test]
+    fn task7_nonreturn_exit_does_not_export_an_out_value() {
+        let mut operations = IndexVec::new();
+        operations.push(vec![task7_assignment(
+            "(*_1)",
+            ValueModel::Operand(place_operand("_2")),
+            Some(1),
+            0,
+        )]);
+        let mut edges = IndexVec::new();
+        edges.push(EdgeTerm::None);
+        let mut successors = IndexVec::new();
+        successors.push(BTreeSet::new());
+        let mut entry = BlockState::empty();
+        entry.set_value(
+            PlaceKey::new("_2"),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+                ..ValueFacts::default()
+            },
+        );
+        let counts = operations.iter().map(Vec::len).collect();
+        let solved = solve_cfg(
+            &successors,
+            &counts,
+            entry,
+            |block, index, state| apply_program_op(&operations[block][index], block, index, state),
+            |_, _, _| {},
+        );
+
+        assert!(reachable_out_dependencies(&edges, [1], &solved, &BTreeSet::new()).is_empty());
+    }
+
+    #[test]
+    fn task7_partial_local_out_overlay_preserves_the_callers_old_may_origin_and_havoc() {
+        let place = PlaceKey::new("_2");
+        let mut state = BlockState::empty();
+        state.set_value(
+            place.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                havoced: true,
+                ..ValueFacts::default()
+            },
+        );
+        apply_local_outputs(
+            &mut state,
+            &BTreeMap::from([(
+                place.clone(),
+                MappedOutValue {
+                    value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                    may_skip_write: true,
+                },
+            )]),
+        );
+
+        assert_eq!(
+            state_value(&state, &place).value,
+            AbstractValue::new([AbstractOrigin::Formal(1), AbstractOrigin::Constant(0)])
+        );
+        assert!(state_value(&state, &place).havoced);
+    }
+
+    #[test]
+    fn task7_out_then_return_alias_preserves_normal_edge_order_and_channels() {
+        let destination = PlaceKey::new("_2");
+        let point = point(0, 0);
+        let mut state = BlockState::empty();
+        state.set_value(
+            destination.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                ..ValueFacts::default()
+            },
+        );
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(FunctionKey::new("crate::update")),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand("_3")],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(BasicBlock::from_usize(1)),
+            point: point.clone(),
+            call,
+        };
+        let outputs = BTreeMap::from([(
+            point,
+            MappedCallOutputs {
+                returned: Some((
+                    destination.clone(),
+                    AbstractValue::new([AbstractOrigin::Constant(9)]),
+                )),
+                outs: BTreeMap::from([(
+                    destination.clone(),
+                    MappedOutValue {
+                        value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                        may_skip_write: false,
+                    },
+                )]),
+            },
+        )]);
+
+        apply_program_edge_with_outputs(&edge, BasicBlock::from_usize(1), &mut state, &outputs);
+        assert_eq!(
+            state_value(&state, &destination).value,
+            AbstractValue::new([AbstractOrigin::Constant(9)])
+        );
+    }
+
+    #[test]
+    fn task7_return_to_mutable_formal_without_out_mapping_does_not_write_out_slot() {
+        let mut callee = FunctionSummary::empty(FunctionKey::new("crate::callee"));
+        callee.return_value = AbstractValue::new([AbstractOrigin::Constant(4)]);
+        let outputs = map_structured_local_outputs(
+            &BTreeSet::from([CallMapping::ReturnToDestination {
+                destination: PlaceKey::new("_1"),
+            }]),
+            &callee,
+            &[],
+            &BTreeMap::from([(PlaceKey::new("_1"), 1)]),
+            BTreeSet::new(),
+        );
+
+        assert!(outputs.outs.is_empty());
+        assert_eq!(
+            outputs.returned,
+            Some((
+                PlaceKey::new("_1"),
+                AbstractValue::new([AbstractOrigin::Constant(4)])
+            ))
+        );
+    }
+
+    #[test]
+    fn task7_definite_and_conditional_out_effects_replace_or_preserve_old_value() {
+        let place = PlaceKey::new("_2");
+        let old = AbstractOrigin::PublicField {
+            def_path: "crate::Config::index".into(),
+            span: span(),
+        };
+        for (may_skip_write, expected) in [
+            (false, AbstractValue::new([AbstractOrigin::Constant(0)])),
+            (
+                true,
+                AbstractValue::new([old.clone(), AbstractOrigin::Constant(0)]),
+            ),
+        ] {
+            let mut state = BlockState::empty();
+            state.set_value(
+                place.clone(),
+                ValueFacts {
+                    value: AbstractValue::new([old.clone()]),
+                    havoced: true,
+                    ..ValueFacts::default()
+                },
+            );
+            apply_local_outputs(
+                &mut state,
+                &BTreeMap::from([(
+                    place.clone(),
+                    MappedOutValue {
+                        value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                        may_skip_write,
+                    },
+                )]),
+            );
+            assert_eq!(state_value(&state, &place).value, expected);
+            assert!(state_value(&state, &place).havoced);
+        }
+    }
+
+    #[test]
+    fn task7_frozen_must_output_replaces_an_earlier_direct_write_without_stale_history() {
+        let base = PlaceKey::new("_1");
+        let dereference = PlaceKey::new("(*_1)");
+        let mut state = BlockState::empty();
+        state.set_value(
+            base.clone(),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                exact_roots: BTreeSet::from([base.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        apply_program_op(
+            &task7_assignment(
+                "(*_1)",
+                ValueModel::Operand(constant_operand(0)),
+                Some(1),
+                0,
+            ),
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+
+        let nested = MappedOutValue {
+            value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+            may_skip_write: false,
+        };
+        apply_local_outputs(
+            &mut state,
+            &BTreeMap::from([(base.clone(), nested.clone()), (out_slot(1), nested)]),
+        );
+
+        assert_eq!(
+            state_value(&state, &dereference).value,
+            AbstractValue::new([AbstractOrigin::Formal(2)])
+        );
+        assert_eq!(
+            state.may_values()[&out_slot(1)].value,
+            AbstractValue::new([AbstractOrigin::Formal(2)])
+        );
+        assert_eq!(
+            state.may_values()[&base].exact_roots,
+            BTreeSet::from([base])
+        );
+    }
+
+    #[test]
+    fn task7_out_must_intersects_reachable_return_paths() {
+        let entry = BasicBlock::from_usize(0);
+        let writes = BasicBlock::from_usize(1);
+        let skips = BasicBlock::from_usize(2);
+        let returns = BasicBlock::from_usize(3);
+        let mut operations = IndexVec::new();
+        operations.push(Vec::new());
+        operations.push(vec![task7_assignment(
+            "(*_1)",
+            ValueModel::Operand(constant_operand(0)),
+            Some(1),
+            0,
+        )]);
+        operations.push(Vec::new());
+        operations.push(Vec::new());
+        let mut edges = IndexVec::new();
+        edges.push(EdgeTerm::None);
+        edges.push(EdgeTerm::None);
+        edges.push(EdgeTerm::None);
+        edges.push(EdgeTerm::Return);
+        let mut successors = IndexVec::new();
+        successors.push(BTreeSet::from([writes, skips]));
+        successors.push(BTreeSet::from([returns]));
+        successors.push(BTreeSet::from([returns]));
+        successors.push(BTreeSet::new());
+
+        let solved = solve_out_must(&operations, &edges, &successors, &BTreeMap::new());
+        assert_eq!(solved[entry], Some(BTreeSet::new()));
+        assert!(solved[writes]
+            .as_ref()
+            .is_some_and(|facts| facts.contains(&1)));
+        assert_eq!(solved[returns], Some(BTreeSet::new()));
+    }
+
+    #[test]
+    fn task7_local_output_join_is_union_idempotent_and_skip_is_monotone() {
+        let function = FunctionKey::new("crate::caller");
+        let call_point = point(0, 0);
+        let place = PlaceKey::new("_1");
+        let mut current = BTreeMap::from([(
+            function.clone(),
+            BTreeMap::from([(
+                call_point.clone(),
+                MappedCallOutputs {
+                    returned: None,
+                    outs: BTreeMap::from([(
+                        place.clone(),
+                        MappedOutValue {
+                            value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                            may_skip_write: false,
+                        },
+                    )]),
+                },
+            )]),
+        )]);
+        let incoming = BTreeMap::from([(
+            function.clone(),
+            BTreeMap::from([(
+                call_point.clone(),
+                MappedCallOutputs {
+                    returned: None,
+                    outs: BTreeMap::from([(
+                        place.clone(),
+                        MappedOutValue {
+                            value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+                            may_skip_write: true,
+                        },
+                    )]),
+                },
+            )]),
+        )]);
+
+        assert!(join_local_outputs(&mut current, &incoming));
+        assert!(!join_local_outputs(&mut current, &incoming));
+        let joined = &current[&function][&call_point].outs[&place];
+        assert_eq!(
+            joined.value,
+            AbstractValue::new([AbstractOrigin::Formal(2), AbstractOrigin::Constant(0)])
+        );
+        assert!(joined.may_skip_write);
+    }
+
+    #[test]
+    fn task7_structured_out_updates_actual_and_summary_slot_without_stale_origin() {
+        let mut callee = FunctionSummary::empty(FunctionKey::new("crate::set"));
+        callee.out_dependencies.insert(OutDependency {
+            formal_index: 1,
+            value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+            may_skip_write: false,
+        });
+        let outputs = map_structured_local_outputs(
+            &BTreeSet::from([CallMapping::OutToCaller {
+                formal_index: 1,
+                caller_place: PlaceKey::new("_1"),
+            }]),
+            &callee,
+            &[
+                AbstractValue::new([AbstractOrigin::Formal(1)]),
+                AbstractValue::new([AbstractOrigin::Formal(2)]),
+            ],
+            &BTreeMap::from([(PlaceKey::new("_1"), 1)]),
+            BTreeSet::from([1]),
+        );
+
+        assert_eq!(
+            outputs.outs[&PlaceKey::new("_1")].value,
+            AbstractValue::new([AbstractOrigin::Formal(2)])
+        );
+        assert_eq!(
+            outputs.outs[&out_slot(1)].value,
+            AbstractValue::new([AbstractOrigin::Formal(2)])
+        );
+        assert!(!outputs.outs[&PlaceKey::new("_1")].may_skip_write);
+    }
+
+    #[test]
+    fn task7_call_destination_out_slot_uses_exact_return_and_is_normal_edge_only() {
+        let destination = PlaceKey::new("(*_1)");
+        let normal = BasicBlock::from_usize(1);
+        let unwind_target = BasicBlock::from_usize(2);
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(FunctionKey::new("crate::constant")),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: Vec::new(),
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: Some(1),
+        };
+        let call_point = point(0, 0);
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: call_point.clone(),
+            call,
+        };
+        let outputs = BTreeMap::from([(
+            call_point,
+            MappedCallOutputs {
+                returned: Some((
+                    destination.clone(),
+                    AbstractValue::new([AbstractOrigin::Constant(0)]),
+                )),
+                outs: BTreeMap::new(),
+            },
+        )]);
+        let mut state = BlockState::empty();
+        state.set_value(
+            PlaceKey::new("_1"),
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                exact_roots: BTreeSet::from([PlaceKey::new("_1")]),
+                ..ValueFacts::default()
+            },
+        );
+        let mut unwind = state.clone();
+        apply_program_edge_with_outputs(&edge, unwind_target, &mut unwind, &outputs);
+        apply_program_edge_with_outputs(&edge, normal, &mut state, &outputs);
+        assert_eq!(
+            state.may_values()[&out_slot(1)].value,
+            AbstractValue::new([AbstractOrigin::Constant(0)])
+        );
+        assert_eq!(
+            state_value(&state, &destination).value,
+            AbstractValue::new([AbstractOrigin::Constant(0)])
+        );
+        assert_eq!(
+            state.may_values()[&PlaceKey::new("_1")].exact_roots,
+            BTreeSet::from([PlaceKey::new("_1")])
+        );
+        assert_eq!(unwind.may_values().get(&out_slot(1)), None);
+        assert_eq!(
+            state_value(&unwind, &destination).value,
+            AbstractValue::new([AbstractOrigin::Formal(1)])
+        );
+
+        let mut operations = IndexVec::new();
+        operations.push(vec![ProgramOp {
+            point: point(0, 0),
+            kind: ProgramOpKind::Call(match edge {
+                EdgeTerm::CallNormal { call, .. } => call,
+                _ => unreachable!(),
+            }),
+        }]);
+        operations.push(Vec::new());
+        operations.push(Vec::new());
+        let mut edges = IndexVec::new();
+        edges.push(EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: point(0, 0),
+            call: match &operations[BasicBlock::from_usize(0)][0].kind {
+                ProgramOpKind::Call(call) => call.clone(),
+                _ => unreachable!(),
+            },
+        });
+        edges.push(EdgeTerm::Return);
+        edges.push(EdgeTerm::Return);
+        let mut successors = IndexVec::new();
+        successors.push(BTreeSet::from([normal, unwind_target]));
+        successors.push(BTreeSet::new());
+        successors.push(BTreeSet::new());
+        let must = solve_out_must(&operations, &edges, &successors, &outputs);
+        assert!(must[normal]
+            .as_ref()
+            .is_some_and(|facts| facts.contains(&1)));
+        assert!(must[unwind_target]
+            .as_ref()
+            .is_some_and(|facts| !facts.contains(&1)));
+    }
+
+    #[test]
+    fn task7_production_mapping_adds_only_exact_resolved_local_out_actuals() {
+        let reference = PlaceKey::new("_3");
+        let referent = PlaceKey::new("_2");
+        let mut state = BlockState::empty();
+        state.set_value(
+            reference.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([referent.clone()]),
+                value_flow: BTreeSet::from([referent.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let mut call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(FunctionKey::new("crate::set")),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand("_3")],
+                destination: PlaceKey::new("_4"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: vec![reference.clone()],
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        assert!(
+            local_call_boundary_mapping(&call, &state).contains(&CallMapping::OutToCaller {
+                formal_index: 1,
+                caller_place: referent,
+            })
+        );
+
+        let mut ambiguous = state_value(&state, &reference);
+        ambiguous.exact_roots.insert(PlaceKey::new("_5"));
+        state.set_value(reference, ambiguous);
+        assert!(!local_call_boundary_mapping(&call, &state)
+            .iter()
+            .any(|mapping| matches!(mapping, CallMapping::OutToCaller { .. })));
+        call.descriptor.disposition = BoundaryDisposition::OpaqueDirect;
+        assert!(!local_call_boundary_mapping(&call, &BlockState::empty())
+            .iter()
+            .any(|mapping| matches!(mapping, CallMapping::OutToCaller { .. })));
     }
 
     #[test]
@@ -4130,6 +5336,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         apply_program_op(&operation, BasicBlock::from_usize(0), 0, &mut state);
@@ -4149,6 +5356,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         let compare = |destination: PlaceKey| ProgramOp {
@@ -4163,6 +5371,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         let mut fresh = BlockState::empty();
@@ -4310,6 +5519,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         apply_program_op(&length_op, BasicBlock::from_usize(0), 1, &mut state);
@@ -4326,6 +5536,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         apply_program_op(&compare, BasicBlock::from_usize(0), 2, &mut state);
@@ -4398,6 +5609,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
         apply_program_op(&operation, BasicBlock::from_usize(0), 1, &mut state);
@@ -4485,6 +5697,7 @@ mod tests {
                             field_origin: None,
                             raw_read_source: None,
                             legacy_write: false,
+                            out_formal: None,
                         }),
                     },
                     BasicBlock::from_usize(block),
@@ -4504,6 +5717,7 @@ mod tests {
                             field_origin: None,
                             raw_read_source: None,
                             legacy_write: false,
+                            out_formal: None,
                         }),
                     },
                     BasicBlock::from_usize(block),
@@ -4830,6 +6044,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let edge = EdgeTerm::CallNormal {
             normal_target: Some(normal),
@@ -4864,6 +6079,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let edge = EdgeTerm::CallNormal {
             normal_target: Some(normal),
@@ -4907,6 +6123,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let mut state = BlockState::empty();
         apply_program_edge(
@@ -4947,6 +6164,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         apply_call_side_effects(&ffi, &point(0, 1), &mut state);
         assert_eq!(
@@ -4971,6 +6189,7 @@ mod tests {
             destination_is_bool: true,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         apply_program_edge(
             &EdgeTerm::CallNormal {
@@ -5011,6 +6230,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let mut state = BlockState::empty();
         apply_program_edge(
@@ -5039,6 +6259,7 @@ mod tests {
             destination_is_bool: true,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         apply_program_edge(
             &EdgeTerm::CallNormal {
@@ -5081,6 +6302,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let mut state = BlockState::empty();
         seed_exact(&mut state, &data);
@@ -5102,6 +6324,7 @@ mod tests {
                     field_origin: None,
                     raw_read_source: None,
                     legacy_write: false,
+                    out_formal: None,
                 }),
             },
             normal,
@@ -5121,6 +6344,7 @@ mod tests {
                     field_origin: None,
                     raw_read_source: None,
                     legacy_write: false,
+                    out_formal: None,
                 }),
             },
             normal,
@@ -5156,6 +6380,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let compare = |destination: PlaceKey| ProgramOp {
             point: point(1, 1),
@@ -5169,6 +6394,7 @@ mod tests {
                 field_origin: None,
                 raw_read_source: None,
                 legacy_write: false,
+                out_formal: None,
             }),
         };
 
@@ -5246,6 +6472,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let mut small = BlockState::empty();
         small.set_value(
@@ -5358,6 +6585,7 @@ mod tests {
             destination_is_bool: false,
             access_width: None,
             legacy_write: false,
+            destination_out_formal: None,
         };
         let mut state = BlockState::empty();
         state.set_value(

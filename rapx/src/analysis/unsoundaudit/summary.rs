@@ -276,7 +276,8 @@ pub struct CallBoundary {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OutDependency {
     pub formal_index: u32,
-    pub origin: OriginKey,
+    pub value: AbstractValue,
+    pub may_skip_write: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -384,6 +385,20 @@ pub fn map_call_outputs(
         }
     }
     mapped
+}
+
+pub fn out_values_from_dependencies(
+    dependencies: &BTreeSet<OutDependency>,
+) -> BTreeMap<u32, AbstractValue> {
+    let mut values = BTreeMap::<u32, AbstractValue>::new();
+    for dependency in dependencies {
+        values
+            .entry(dependency.formal_index)
+            .or_default()
+            .origins
+            .extend(dependency.value.origins.iter().cloned());
+    }
+    values
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -1193,7 +1208,8 @@ mod tests {
         summary.return_origins.insert(OriginKey::new(tag));
         summary.out_dependencies.insert(OutDependency {
             formal_index: ordinal,
-            origin: OriginKey::new(tag),
+            value: AbstractValue::new([AbstractOrigin::Formal(ordinal)]),
+            may_skip_write: false,
         });
         summary.sink_obligations.insert(SinkObligation {
             source,
@@ -1274,9 +1290,13 @@ mod tests {
         assert_eq!(
             left.out_dependencies
                 .iter()
-                .map(|fact| fact.origin.0.as_str())
+                .flat_map(|fact| fact.value.origins.iter())
+                .filter_map(|origin| match origin {
+                    AbstractOrigin::Formal(index) => Some(*index),
+                    _ => None,
+                })
                 .collect::<Vec<_>>(),
-            vec!["a", "z"]
+            vec![1, 2]
         );
         assert_eq!(
             left.sink_obligations
@@ -1498,6 +1518,76 @@ mod tests {
             AbstractValue::new([public_field, ffi_output])
         );
         assert!(!mapped.contains_key(&PlaceKey::new("_2")));
+    }
+
+    #[test]
+    fn constant_return_does_not_inherit_unreturned_actual_origins() {
+        let mappings = BTreeSet::from([CallMapping::ReturnToDestination {
+            destination: PlaceKey::new("_3"),
+        }]);
+        let actuals = vec![AbstractValue::new([AbstractOrigin::Formal(1)])];
+        let mapped = map_call_outputs(
+            &mappings,
+            &AbstractValue::new([AbstractOrigin::Constant(0)]),
+            &BTreeMap::new(),
+            &actuals,
+        );
+
+        assert_eq!(
+            mapped[&PlaceKey::new("_3")],
+            AbstractValue::new([AbstractOrigin::Constant(0)])
+        );
+    }
+
+    #[test]
+    fn returned_formal_reaches_only_the_return_destination() {
+        let mappings = BTreeSet::from([
+            CallMapping::ActualToFormal {
+                actual: PlaceKey::new("_1"),
+                formal_index: 1,
+            },
+            CallMapping::ReturnToDestination {
+                destination: PlaceKey::new("_4"),
+            },
+        ]);
+        let actual = AbstractValue::new([AbstractOrigin::PublicField {
+            def_path: "crate::Config::index".into(),
+            span: span(4),
+        }]);
+        let mapped = map_call_outputs(
+            &mappings,
+            &AbstractValue::new([AbstractOrigin::Formal(1)]),
+            &BTreeMap::new(),
+            &[actual.clone()],
+        );
+
+        assert_eq!(mapped, BTreeMap::from([(PlaceKey::new("_4"), actual)]));
+    }
+
+    #[test]
+    fn structured_out_dependencies_map_only_the_selected_projected_actual() {
+        let dependencies = BTreeSet::from([OutDependency {
+            formal_index: 1,
+            value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+            may_skip_write: false,
+        }]);
+        let out_values = out_values_from_dependencies(&dependencies);
+        let mappings = BTreeSet::from([CallMapping::OutToCaller {
+            formal_index: 1,
+            caller_place: PlaceKey::new("(*_7).0"),
+        }]);
+        let actuals = vec![
+            AbstractValue::new([AbstractOrigin::Constant(11)]),
+            AbstractValue::new([AbstractOrigin::Formal(3)]),
+        ];
+
+        assert_eq!(
+            map_call_outputs(&mappings, &AbstractValue::default(), &out_values, &actuals,),
+            BTreeMap::from([(
+                PlaceKey::new("(*_7).0"),
+                AbstractValue::new([AbstractOrigin::Formal(3)]),
+            )])
+        );
     }
 
     #[test]
