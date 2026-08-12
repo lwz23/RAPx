@@ -1,0 +1,49 @@
+{
+  "schema_version": "rap-unsoundaudit-v2-mac-environment-v1",
+  "status": "pass",
+  "platform": {
+    "architecture": "arm64",
+    "build": "25F80",
+    "os": "macOS",
+    "translated": false,
+    "version": "26.5.1"
+  },
+  "developer_tools": {
+    "clang_target": "arm64-apple-darwin25.5.0",
+    "clang_version": "Apple clang 21.0.0 (clang-2100.1.1.101)",
+    "macos_sdk": "26.5",
+    "selected_developer_directory_role": "xcode_command_line_tools"
+  },
+  "homebrew_dependencies": {
+    "cmake": "4.0.1",
+    "homebrew_architecture": "arm64",
+    "libclang_architecture": "arm64",
+    "llvm": "21.1.8_1",
+    "pkg_config_provider": "pkgconf 2.5.1",
+    "z3": "4.15.4",
+    "z3_architecture": "arm64",
+    "z3_pkg_config_version": "4.15.4.0"
+  },
+  "toolchain": {
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "channel": "nightly-2024-10-12",
+    "components": [
+      "cargo",
+      "llvm-tools",
+      "rust-src",
+      "rust-std-aarch64-apple-darwin",
+      "rustc",
+      "rustc-dev"
+    ],
+    "host": "aarch64-apple-darwin",
+    "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "environment_controls": {
+    "cargo_encoded_rustflags_inherited": false,
+    "cargo_home_role": "isolated_task_local_temporary_cache",
+    "preexisting_rustflags_detected": true,
+    "preexisting_rustflags_inherited": false,
+    "rustflags_role": "z3_native_library_search_only",
+    "target_role": "fresh_build_target"
+  }
+}

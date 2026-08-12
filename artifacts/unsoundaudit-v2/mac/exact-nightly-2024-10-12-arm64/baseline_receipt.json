@@ -1,0 +1,36 @@
+{
+  "schema_version": "rap-unsoundaudit-v2-mac-baseline-v1",
+  "status": "pass",
+  "baseline": {
+    "branch": "feature/unsoundaudit-v2-p1-p6",
+    "handoff_head": "a8ac7640d8778ac047bc9e0b6a1a3afecd144c34",
+    "tag": "unsoundaudit-v1-linux-baseline-20260812-9d36ece7",
+    "tag_commit": "9f04dbb377afa5ca0557a51ecb08c5f78ac4fc19"
+  },
+  "source": {
+    "restricted_diff_empty": true,
+    "source_tree_sha256": "9d36ece76ddacc8ab052ecaf4f64f412f7d648a93c1acc102d418c499c9d84c1",
+    "unsoundaudit_sha256": "47112d602470fe5afd236ef164e5798a7c2fdc628352c5912a705c25ba2f01e0",
+    "worktree_clean_before_build": true
+  },
+  "build": {
+    "cargo_jobs": 1,
+    "command": "<exact-cargo> build --manifest-path rapx/Cargo.toml --locked --bins --jobs 1",
+    "exit_code": 0,
+    "fresh_target": true,
+    "isolated_cargo_home": true,
+    "outputs_present": [
+      "cargo-rapx",
+      "rapx"
+    ]
+  },
+  "toolchain": {
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "channel": "nightly-2024-10-12",
+    "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "local_log": {
+    "committed": false,
+    "sha256": "1c74046b265209c5d0043500f44ad71937d48cd042126942d53b0ba16fa12339"
+  }
+}
