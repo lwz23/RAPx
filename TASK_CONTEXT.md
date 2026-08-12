@@ -27,7 +27,8 @@
 - The original implementation and Mac evidence were pushed at `7eebcccf9087b2af73523c6b7eb1ee99812151ea` with a clean remote match.
 - The user subsequently authorized a new robustness work package: structural CFG/validation/return/out fixes, equivalent frozen guards, an adversarial challenge pack, and a standard-library pilot. Registry expansion, precedence changes, and cross-crate propagation still require separate approval.
 - A read-only audit found that the current evidence does not establish real-project precision. High-risk gaps include block-order-dependent intraprocedural facts, incomplete callee-side validation propagation, no end-to-end MIR recursion case, and no production local out-parameter propagation.
-- The robustness protocol is specified in `docs/superpowers/specs/2026-08-12-unsoundaudit-v2-real-project-robustness-pilot-design.md`; implementation remains gated on written-spec review and a detailed implementation plan.
+- The user approved the written robustness protocol in `docs/superpowers/specs/2026-08-12-unsoundaudit-v2-real-project-robustness-pilot-design.md`.
+- The TDD execution plans are `docs/superpowers/plans/2026-08-12-unsoundaudit-v2-robustness-implementation.md` for the synthetic correctness package and `docs/superpowers/plans/2026-08-12-unsoundaudit-v2-stdlib-pilot.md` for the gated real-project pilot. Execution begins with an independent challenge contract and RED receipt; standard-library scanning cannot start until the synthetic suite is deterministic and green.
 
 ## Decisions
 
