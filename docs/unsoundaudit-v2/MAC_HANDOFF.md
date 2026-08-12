@@ -35,6 +35,7 @@
 | `unsoundaudit.rs` SHA-256 | `47112d602470fe5afd236ef164e5798a7c2fdc628352c5912a705c25ba2f01e0` |
 | Rust toolchain | `nightly-2024-10-12` |
 | rustc commit hash | `1bc403daadbebb553ccc211a0a8eebb73989665f` |
+| Cargo commit hash | `15fbd2f607d4defc87053b8b76bf5038f2483cf4` |
 
 完整机器可读信息见 `docs/unsoundaudit-v2/baseline_manifest_v1.json`。基线 hash 工具为 `scripts/unsoundaudit_v2_source_tree_sha256.py`。
 
@@ -43,9 +44,12 @@
 选择一个新的、原先不存在的目录，然后执行：
 
 ```bash
-git clone --branch feature/unsoundaudit-v2-p1-p6 --single-branch \
+set -euo pipefail
+git -c core.autocrlf=false clone \
+  --branch feature/unsoundaudit-v2-p1-p6 --single-branch \
   git@github.com:lwz23/RAPx.git RAPx-unsoundaudit-v2
 cd RAPx-unsoundaudit-v2
+git config core.autocrlf false
 git fetch origin tag unsoundaudit-v1-linux-baseline-20260812-9d36ece7
 git status --short --branch
 ```
@@ -53,6 +57,7 @@ git status --short --branch
 必须满足以下检查；任意一项不满足都先停止，不要自行“修复”基线：
 
 ```bash
+set -euo pipefail
 test "$(git rev-parse 'unsoundaudit-v1-linux-baseline-20260812-9d36ece7^{commit}')" \
   = "9f04dbb377afa5ca0557a51ecb08c5f78ac4fc19"
 git merge-base --is-ancestor \
@@ -128,17 +133,43 @@ cargo +nightly-2024-10-12 -Vv
 为当前 shell 设置本机构建环境。变量名不要覆盖系统的 `HOME`：
 
 ```bash
+set -euo pipefail
 RAPV2_BREW_PREFIX="$(brew --prefix)"
 RAPV2_LLVM_PREFIX="$(brew --prefix llvm)"
 RAPV2_Z3_PREFIX="$(brew --prefix z3)"
 RAPV2_SYSROOT="$(rustc +nightly-2024-10-12 --print sysroot)"
 RAPV2_RUSTC="$(rustup which --toolchain nightly-2024-10-12 rustc)"
+RAPV2_CARGO="$(rustup which --toolchain nightly-2024-10-12 cargo)"
+RAPV2_RUSTC_COMMIT="$(rustc +nightly-2024-10-12 -Vv | awk -F': ' '$1 == "commit-hash" {print $2}')"
+RAPV2_CARGO_COMMIT="$(cargo +nightly-2024-10-12 -Vv | awk -F': ' '$1 == "commit-hash" {print $2}')"
+
+test "$RAPV2_RUSTC_COMMIT" = "1bc403daadbebb553ccc211a0a8eebb73989665f"
+test "$RAPV2_CARGO_COMMIT" = "15fbd2f607d4defc87053b8b76bf5038f2483cf4"
+test -z "${RUSTFLAGS:-}" || {
+  echo "Refusing to inherit pre-existing RUSTFLAGS for the exact baseline" >&2
+  exit 1
+}
+test -z "${CARGO_ENCODED_RUSTFLAGS:-}" || {
+  echo "Refusing to inherit CARGO_ENCODED_RUSTFLAGS for the exact baseline" >&2
+  exit 1
+}
 
 export PATH="$RAPV2_LLVM_PREFIX/bin:$PATH"
 export LIBCLANG_PATH="$RAPV2_LLVM_PREFIX/lib"
 export PKG_CONFIG_PATH="$RAPV2_Z3_PREFIX/lib/pkgconfig:$RAPV2_LLVM_PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 export DYLD_LIBRARY_PATH="$RAPV2_SYSROOT/lib:$RAPV2_Z3_PREFIX/lib:$RAPV2_LLVM_PREFIX/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+export Z3_SYS_Z3_HEADER="$RAPV2_Z3_PREFIX/include/z3.h"
+export RUSTFLAGS="-Lnative=$RAPV2_Z3_PREFIX/lib"
+export RUST_SYSROOT="$RAPV2_SYSROOT"
+
+export UNSOUND_SCANNER_EXACT_CARGO_PATH="$RAPV2_CARGO"
+export UNSOUND_SCANNER_EXACT_CARGO_COMMIT="$RAPV2_CARGO_COMMIT"
+export RUSTC="$RAPV2_RUSTC"
+export UNSOUND_SCANNER_EXPECTED_RUSTC_PATH="$RAPV2_RUSTC"
+export UNSOUND_SCANNER_EXPECTED_RUSTC_COMMIT="$RAPV2_RUSTC_COMMIT"
 ```
+
+这里的 Cargo commit 必须从 pinned Cargo 自己的 `-Vv` 单独提取并精确匹配，不能拿 rustc commit 代替。`Z3_SYS_Z3_HEADER` 供冻结的 `z3-sys 0.8.1` 选择 Homebrew 头文件；`RUSTFLAGS=-Lnative=...` 供链接器找到 Z3，`DYLD_LIBRARY_PATH` 只解决运行时动态库加载，三者不能互相替代。`RUST_SYSROOT` 必须在编译 RAP 时存在，因为本分支会把 sysroot 编入 binary；直接调用真实 toolchain Cargo 绕过了 rustup proxy，不能依赖 proxy 自动提供该值。为保持 exact baseline，不继承用户已有的额外 `RUSTFLAGS`。
 
 随后记录并检查实际架构：
 
@@ -146,6 +177,7 @@ export DYLD_LIBRARY_PATH="$RAPV2_SYSROOT/lib:$RAPV2_Z3_PREFIX/lib:$RAPV2_LLVM_PR
 brew --prefix
 brew list --versions llvm z3 cmake pkg-config
 file "$RAPV2_RUSTC"
+file "$RAPV2_CARGO"
 file "$RAPV2_LLVM_PREFIX/bin/clang"
 file "$RAPV2_Z3_PREFIX/lib/"*z3*.dylib
 pkg-config --modversion z3
@@ -159,10 +191,14 @@ cmake --version
 在修改源码前，用 fresh target 和单 Cargo job 编译现有基线：
 
 ```bash
+set -euo pipefail
 RAPV2_BASELINE_TARGET="$(mktemp -d "${TMPDIR:-/tmp}/rapx-v1-baseline-target.XXXXXX")"
-CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BASELINE_TARGET" \
-  cargo +nightly-2024-10-12 build \
-  --manifest-path rapx/Cargo.toml --locked --bin cargo-rapx --jobs 1
+UNSOUND_SCANNER_RAP_BUILD_RUSTC_COMMIT="$RAPV2_RUSTC_COMMIT" \
+  CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BASELINE_TARGET" \
+  "$RAPV2_CARGO" build \
+  --manifest-path rapx/Cargo.toml --locked --bins --jobs 1
+test -x "$RAPV2_BASELINE_TARGET/debug/cargo-rapx"
+test -x "$RAPV2_BASELINE_TARGET/debug/rapx"
 ```
 
 这一步的目标只是证明 Mac 环境能构建冻结的 Linux 源码，不是证明两个平台产出相同二进制。保留命令、退出码、`rustc -Vv`、源码 hash 和错误摘要，生成 preflight receipt。
@@ -180,7 +216,7 @@ CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BASELINE_TARGET" \
 
 ### P1：普通函数参数进入 unsafe sink
 
-合并旧 P1 与旧 P3。public safe entry 的普通参数经过 0..N 个 crate 内、静态可解析调用后，未经能支配 sink 的有效检查进入 unsafe operation。过程内/过程间只是 `propagation_depth` 属性，不再是两个 Pattern。
+合并旧 P1 与旧 P3。public safe entry 的普通参数及仍 data-dependent 于它的派生值，经过 0..N 个 crate 内、静态可解析调用后，未经能支配 sink 的有效检查进入 unsafe operation。过程内/过程间只是 `propagation_depth` 属性，不再是两个 Pattern。普通参数即使经过 `index + 1` 等算术仍默认归 P1；不得仅因发生内部算术而改归 P4。
 
 ### P2：literal public field 污染 unsafe sink
 
@@ -188,11 +224,11 @@ CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BASELINE_TARGET" \
 
 ### P3：内部 unsafe 构造并暴露非法值或状态
 
-对应旧 P4 的严格版本：合法入口后，项目内部 unsafe-backed origin 构造、保留或暴露非法运行时 value/state，且该输出流跨入 Safe Rust 是 UB 链的必要步骤。只使用冻结的有限 origin registry；同函数出现危险 API 或危险返回类型但不在同一 bug path 上，不算 P3。
+对应旧 P4 的严格版本：合法入口后，项目内部 unsafe-backed origin 位于 public safe API 的 return/store/exposure causal slice 上，并构造、保留或暴露非法运行时 value/state。Rust validity UB 可能在 invalid typed value 被构造时已经发生；return flow 用来证明 safe-only 可达 causal slice，不得声称 UB 一定等到返回后才发生。只使用冻结的有限 origin registry；同函数出现危险 API 或危险返回类型但不在同一 bug path 上，不算 P3。
 
 ### P4：内部派生内存操作数违反 unsafe 合同
 
-source 不是调用者直接传入，而是项目内部计算得到的 index、length、offset 或 access width；该派生量在进入 unsafe sink 前没有被证明满足对应 bounds/pointer-offset obligation。
+source 不是调用者直接传入，而是由 private/internal state 在项目内部计算得到的 index、length、offset 或 access width；该派生量在进入 unsafe sink 前没有被证明满足对应 bounds/pointer-offset obligation。只有 private/internal state 是唯一 root，或外部值原有义务已成立、项目 transform 随后重新破坏该义务时才归 P4；`self` 仅作为 private state 容器不算 P1。
 
 第一版只做两类：
 
@@ -231,7 +267,7 @@ alignment/provenance 只有存在明确、可绑定的静态 facts 时才做；�
 - 同一 local crate；
 - 静态可解析调用，优先使用 rustc 的 `Instance::try_resolve` 或等价精确解析；
 - actual→formal、callee return→caller destination，以及确有事实时的 out-parameter 映射；
-- call graph 上按 SCC 做单调 fixed point；递归不能靠固定“10 轮”或静默截断；
+- call graph 上按 SCC 做单调、有限高度的 fixed point；递归不能靠固定“10 轮”或静默截断；summary equality 不含无限展开的 call path/depth，使用稳定 SCC-cycle token、确定性最短 witness 和饱和的 `recursive` depth，facts 来自有限 registry；若加入会增长的抽象必须显式 widening 并测试；
 - dyn/external/unresolved call 不做臆测式跨体内联，只有符合 P6 source 定义时才产生 external-output fact；
 - 不做跨 crate whole-program analysis。
 
@@ -288,17 +324,17 @@ scripts/unsoundaudit-v2/
 | `pattern4_positive` | 新 P3 恰好 1 条 |
 | `pattern4_negative_checked_utf8` | 0 条 |
 
-Linux 原始位置是 `/home/lwz/unsound_scanner/tests/fixtures/unsoundaudit/`，但 Mac 不应假装能读取这个 Linux 绝对路径。开始迁移前，先确认交接分支已经带有这 10 个 fixture 的冻结副本或逐文件 manifest。若两者都没有，停止这一阶段并请 Linux 线程把冻结输入加入分支；不要只根据名字重新编造“等价”案例。复制前在交接 receipt 中记录来源和逐文件 SHA-256；复制后不再依赖 Linux 路径。
+Linux 原始位置是 `/home/lwz/unsound_scanner/tests/fixtures/unsoundaudit/`，但 Mac 不应读取或依赖这个 Linux 绝对路径。交接分支已经在 `docs/unsoundaudit-v2/frozen-v1-fixtures/` 携带逐字副本和 `legacy_fixture_manifest.json`；迁移前必须重算清单中的 31 个 SHA-256，再从该冻结目录复制到正式 v2 fixture root。冻结目录里的原始 `README.md` 也只是 provenance bytes，其中 v1 checker/receipt 命令不适用于 v2，不得执行。若冻结目录、清单或任一哈希不匹配，停止并请 Linux 线程修复交接，不要凭名字重新编造“等价”案例。
 
 ### 5.2 新增 8 对 vulnerable/fixed fixture，共 16 个
 
 每对分别验证：
 
 1. P1：参数经过两层 local helper 到 sink；fixed 版有同源、支配 sink 的检查；
-2. P2：public state 经 helper 到 sink；fixed 版收窄状态或在 sink 前验证；
+2. P2：literal `pub` field 经 helper 到 sink；fixed 版保留同一 public field 与 sink，只在 sink 前加入同值支配性验证；
 3. P3：helper 内 unsafe origin 通过 return flow 暴露；fixed 版返回前恢复 validity；
-4. P4-bounds：内部派生 index/width 越界；fixed 版证明同源 bounds；
-5. P4-offset：内部派生 pointer offset 无范围保证；fixed 版建立有效 offset 范围；
+4. P4-bounds：Bumpalo 风格 private backing state 派生 index/width，safe method 没有 scalar/slice public source；fixed 版保持同一 private source、slice、helper 与 sink，只增加支配性的同源 bounds 证明；
+5. P4-offset：private backing state 内部派生 pointer offset 且无范围保证；fixed 版保持同源与 sink并建立有效 offset 范围；
 6. P5.1-nonempty：泛型/关联 slice 上固定位置 unchecked access；fixed 版有支配性的 `is_empty`/length guard；
 7. P6-FFI：最小 `extern "C"` 声明的返回值或 out value 进入 unsafe-sensitive sink；fixed 版验证值域/空指针/长度；只需 `cargo check`，不链接或调用外部符号；
 8. P6-trait：open trait/Iterator/callback 结果进入 sink；fixed 版在 sink 前验证返回结果。
@@ -340,6 +376,8 @@ Linux 原始位置是 `/home/lwz/unsound_scanner/tests/fixtures/unsoundaudit/`�
 11. **分类、去重、稳定输出**：primary pattern 互斥，输出 `rap-unit-v2`，计数恰好 P1–P6。
 12. **全套串行验证与独立复核**：27/27、unit tests、两次 normalized receipts byte-identical。
 
+阶段 1 还必须为迁移后的 27 个 v2 crate 各生成并冻结 `Cargo.lock`。冻结输入目录故意没有携带 Ubuntu lockfile；把源码复制到正式 v2 fixture root 后，逐 crate 使用 pinned `$RAPV2_CARGO generate-lockfile --manifest-path <fixture>/Cargo.toml`，再用 `.gitignore` 精确 exception 或 `git add -f` 跟踪这些 lockfile。验收运行前 27/27 都必须已有版本控制中的 lockfile，之后才使用 `--locked`；不得修改 `docs/unsoundaudit-v2/frozen-v1-fixtures/` 的 provenance bytes。
+
 若某条规则只能观察必要条件，保留候选生成器语义和明确 `limitations`；不要为了达到 fixture 数而把启发式输出写成 soundness detector。
 
 ## 7. 运行方式与资源限制
@@ -347,21 +385,54 @@ Linux 原始位置是 `/home/lwz/unsound_scanner/tests/fixtures/unsoundaudit/`�
 每次 RAP 自身构建或测试都使用全新的 target：
 
 ```bash
+set -euo pipefail
 RAPV2_BUILD_TARGET="$(mktemp -d "${TMPDIR:-/tmp}/rapx-v2-build-target.XXXXXX")"
-CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BUILD_TARGET" \
-  cargo +nightly-2024-10-12 test \
+UNSOUND_SCANNER_RAP_BUILD_RUSTC_COMMIT="$RAPV2_RUSTC_COMMIT" \
+  CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BUILD_TARGET" \
+  "$RAPV2_CARGO" build \
+  --manifest-path rapx/Cargo.toml --locked --bins --jobs 1
+UNSOUND_SCANNER_RAP_BUILD_RUSTC_COMMIT="$RAPV2_RUSTC_COMMIT" \
+  CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_BUILD_TARGET" \
+  "$RAPV2_CARGO" test \
   --manifest-path rapx/Cargo.toml --locked --lib --jobs 1
+RAPV2_BIN_DIR="$RAPV2_BUILD_TARGET/debug"
+test -x "$RAPV2_BIN_DIR/cargo-rapx"
+test -x "$RAPV2_BIN_DIR/rapx"
 ```
 
 这里只运行 RAP 自身的纯 unit tests；不得把会触发 UB 的 fixture 函数写成并执行 `#[test]`。
 
 fixture runner 必须逐个串行执行，且对每个 fixture：
 
-1. 建一个 fresh target；
-2. 先运行 `cargo +nightly-2024-10-12 check --lib --locked --jobs 1`，证明 fixture 可编译；
-3. 再用同一精确 toolchain 调用当前分支构建的 `cargo-rapx -unsoundaudit -- --lib` 做静态扫描；
+1. 为 control check 和 RAP scan 分别建一个 fresh target，并为本 case 建一个 fresh receipt directory；
+2. 在 fixture 目录运行 `CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_CONTROL_TARGET" "$RAPV2_CARGO" check --lib --locked --jobs 1`，证明 fixture 可编译；
+3. 设置 `UNSOUND_SCANNER_RAP_JSON_DIR` 为该 case 的绝对 receipt directory、`UNSOUND_SCANNER_PROJECT_ROOT` 为 fixture 的 canonical absolute root，并保留第 2.2 节的 exact Cargo/rustc 环境；随后在 fixture 目录运行 `CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_SCAN_TARGET" "$RAPV2_BIN_DIR/cargo-rapx" rapx -unsoundaudit -- --lib --locked --jobs 1`。直接执行 `cargo-rapx -unsoundaudit` 是错误调用，因为当前 dispatcher 要求 argv[1] 为字面量 `rapx`；
 4. 禁止 `cargo run`、fixture `cargo test`、Miri、benchmark 或真实项目扫描；
 5. 解析 v2 receipt 并立即核对 oracle，失败即停止该轮且保留证据。
+
+Runner 中每个 case 的调用应等价于下面的结构；变量都必须是 canonical absolute path：
+
+```bash
+set -euo pipefail
+RAPV2_CONTROL_TARGET="$(mktemp -d "${TMPDIR:-/tmp}/rapx-v2-control-target.XXXXXX")"
+RAPV2_SCAN_TARGET="$(mktemp -d "${TMPDIR:-/tmp}/rapx-v2-scan-target.XXXXXX")"
+RAPV2_FIXTURE_ROOT="$(cd "$RAPV2_FIXTURE_DIR" && pwd -P)"
+mkdir -p "$RAPV2_RECEIPT_DIR"
+RAPV2_RECEIPT_ROOT="$(cd "$RAPV2_RECEIPT_DIR" && pwd -P)"
+
+(
+  cd "$RAPV2_FIXTURE_ROOT"
+  CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_CONTROL_TARGET" \
+    "$RAPV2_CARGO" check --lib --locked --jobs 1
+  UNSOUND_SCANNER_RAP_JSON_DIR="$RAPV2_RECEIPT_ROOT" \
+    UNSOUND_SCANNER_PROJECT_ROOT="$RAPV2_FIXTURE_ROOT" \
+    CARGO_BUILD_JOBS=1 CARGO_TARGET_DIR="$RAPV2_SCAN_TARGET" \
+    "$RAPV2_BIN_DIR/cargo-rapx" rapx -unsoundaudit -- \
+    --lib --locked --jobs 1
+)
+```
+
+上例依赖第 2.2 节已经 export 的 exact Cargo/rustc 环境。Runner 必须先检查这些变量非空、两个 bin 为同一 build target 下的 sibling、fixture lockfile 存在且受 Git 跟踪、receipt directory 在调用前为空。
 
 不要并行启动多个 Cargo。runner 本身要 fail closed：发现 schema 不对、缺 receipt、重复 finding、unexpected pattern、fixture 数不是 27，均返回非零。
 
@@ -381,9 +452,11 @@ artifacts/unsoundaudit-v2/mac/<run-id>/
 - `fixture_results.normalized.json`：实际的结构化候选结果；
 - `unit_test_summary.json`；
 - `sha256_manifest.json`；
-- 若失败，`blocked_receipt.json` 和最小、完整的错误日志路径。
+- 若失败，提交 `blocked_receipt.json`、脱敏错误摘要和 Mac 本地原始日志的 SHA-256；原始日志路径只记录在不提交的本地 custody note 中。
 
 normalized receipt 不得包含 wall-clock 时间、随机 run id、绝对用户路径、target 路径、进程 ID、HashMap 非确定顺序或秘密。环境 receipt 可以另存非决定性元数据，但不得参与 byte-identical 比较。
+
+原始完整构建/扫描日志只保存在 Mac 本地且不提交；提交前生成脱敏摘要，删除用户名、绝对 home/target/cache/tool 路径、环境变量值中的凭据及任何 token。`environment_receipt.json` 的提交副本同样不得保留绝对工具路径，只保留工具 identity、版本、commit、架构和路径角色。Git 中只保存研究结论所需的小型 JSON/text receipt 与 SHA，不保存指向另一台机器私有路径却不可复核的“完整日志路径”。若 `.cargo/config*` 或环境中存在 target-specific `rustflags`，也应视为 exact-environment 污染并停止，不能与本文的 Z3 单一 link flag 混用。
 
 最终确定性门：从相同源码和相同 oracle 使用两个 fresh target 串行运行两次，两个 `fixture_results.normalized.json` 必须 byte-identical。还要重算所有源码/receipt SHA。
 
@@ -391,7 +464,7 @@ Git 规范：
 
 - 修改文件使用可审查的小步提交；不夹带格式化整个仓库或无关重构；
 - 不提交 `target/`、二进制、dylib、Cargo registry/cache、编辑器文件、token 或绝对 Mac 用户路径；
-- 不 force-push；推送前先 `git fetch origin`，确认远端分支没有未知提交；
+- 不 force-push；推送前执行 `git fetch origin feature/unsoundaudit-v2-p1-p6`，并要求 `git merge-base --is-ancestor origin/feature/unsoundaudit-v2-p1-p6 HEAD` 成功。失败表示远端有本地未包含的提交，必须停止协调，不能覆盖或静默 rebase；
 - 每次 push 都保持分支可构建；若多人同时工作，先停下来协调，不用 rebase/覆盖他人提交静默解决；
 - 最终 push 到 `origin/feature/unsoundaudit-v2-p1-p6`，不要合并到 `main`；
 - 最终总结明确区分：已实现规则、fixture 结构验证、未做真实项目验证、已知漏检/误报边界。
@@ -435,7 +508,8 @@ feature/unsoundaudit-v2-p1-p6。
 
 开始前请完整阅读：
 docs/unsoundaudit-v2/MAC_HANDOFF.md
-docs/unsoundaudit-v2/design.md（如果已存在）
+docs/unsoundaudit-v2/design.md
+docs/unsoundaudit-v2/fixture_matrix.md
 docs/unsoundaudit-v2/baseline_manifest_v1.json
 
 必须先按 MAC_HANDOFF.md 验证 baseline tag/commit、rapx 源码树 hash、
@@ -447,7 +521,7 @@ Xcode/LLVM/libclang/Z3/CMake/pkg-config 和 CPU 架构预检。基线在依赖�
 实现范围固定：
 1. 用 crate 内、静态可解析调用、SCC/fixed-point 的 MIR FunctionSummary 层统一
    P1-P6；不做跨 crate whole-program analysis。
-2. 新 P1 合并旧 P1/P3；P2 保持公开可修改状态；P3 是旧 P4 的严格内部非法
+2. 新 P1 合并旧 P1/P3；P2 严格限于 safe caller 可直接写入的 literal public field；P3 是旧 P4 的严格内部非法
    value/state 暴露；P4 先做 internal-derived bounds 和 pointer-offset；P5 只做
    P5.1 泛型/关联 slice 非空义务；P6 分 FFI output 和 trait/Iterator/callback
    output。

@@ -20,6 +20,7 @@
     "unsoundaudit_sha256": "47112d602470fe5afd236ef164e5798a7c2fdc628352c5912a705c25ba2f01e0"
   },
   "toolchain": {
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
     "channel": "nightly-2024-10-12",
     "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f"
   },

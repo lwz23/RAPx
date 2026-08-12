@@ -5,6 +5,7 @@
 ## 通用约束
 
 - 总数必须恰好为 27 个无第三方依赖的 library crate。
+- 正式 v2 fixture root 中的每个 crate 必须用 pinned Cargo 生成并版本控制 `Cargo.lock`；验收一律使用 `--locked`。本目录下的 frozen v1 provenance 副本不补写 lockfile。
 - 只允许 `cargo check --lib` 和 RAP 静态扫描；不得执行任何可能触发 UB 的入口。
 - 所有 positive 都必须保留 safe entry、unsafe sink 和完整 source-to-sink 路径。
 - 每个 positive 只允许一个 primary pattern；其他五类计数必须为零。
@@ -44,13 +45,13 @@
 
 ### B3. P3：内部非法值经 helper 返回
 
-- `p3_helper_return_positive`：private producer 对未初始化 `bool` 调用 `assume_init`，中间 helper 返回，public safe API 暴露该值；预期 P3=1。
+- `p3_helper_return_positive`：private producer 对未初始化 `bool` 调用 `assume_init`，中间 helper 返回，public safe API 暴露该值；预期 P3=1。此例中 UB 可在 invalid `bool` 被构造时即发生；return flow 的意义是证明该 internal unsafe origin 位于 public safe API 的 causal slice，而不是声称 UB 一定发生在 return 之后。
 - `p3_helper_return_initialized_negative`：保留 `assume_init`，但来源改为 `MaybeUninit::new(false)`；预期全零。该用例拒绝“只按危险 API 名报警”。
 
 ### B4. P4.1：内部派生 bounds 义务
 
-- `p4_internal_bounds_positive`：合法入口后，private `len` 先减一，再对已缩短到该长度的 slice 使用 `get_unchecked(len)`；index 恰等于新长度；预期 P4=1。
-- `p4_internal_bounds_checked_negative`：保持同一内部派生和 sink，但在原 slice 上读取 `len - 1`，或显式证明 index 小于缩短后长度；预期全零。
+- `p4_internal_bounds_positive`：Bumpalo 风格的对象只含 private backing array 与 private `len`；safe method 没有 scalar/slice public 参数。方法将 private `len` 减一，再把 backing array 缩短到该长度，并对该 slice 使用 `get_unchecked(len)`；index 恰等于新长度；预期 P4=1。`self` 只是 private state 的容器，不算普通 P1 source。
+- `p4_internal_bounds_checked_negative`：保持相同 private source、缩短后的 slice、helper 和 `get_unchecked` sink，只在调用 sink 前增加支配性的 `index < shortened.len()` 检查；预期全零。不得改成另一个 slice 或另一个 index，以确保它确实验证 dominance 和同源 predicate。
 
 ### B5. P4.2：内部派生 pointer-offset/access-width 义务
 

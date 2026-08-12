@@ -14,6 +14,7 @@
 | `unsoundaudit.rs` SHA-256 | `47112d602470fe5afd236ef164e5798a7c2fdc628352c5912a705c25ba2f01e0` |
 | Rust 工具链 | `nightly-2024-10-12` |
 | rustc commit | `1bc403daadbebb553ccc211a0a8eebb73989665f` |
+| Cargo commit | `15fbd2f607d4defc87053b8b76bf5038f2483cf4` |
 
 上述哈希用于确认实现起点，不表示 v2 完成后的源码仍应具有相同哈希。
 
@@ -73,13 +74,14 @@ P1–P6 必须互斥。分类器先确定同一 UB causal slice 上的**首次 c
    - FFI return/out-param 或 open trait/Iterator/callback 的运行时返回：**P6**；
    - 泛型/关联类型能力缺少本轮支持的非空保证：**P5.1**；
    - safe caller 可直接修改的 literal public field/state：**P2**；
-   - 普通 public 函数参数：**P1**；
-   - 不来自上述外部 source、由函数内部算术/布局/地址计算产生的 operand：**P4**。
+   - 普通 public 函数参数及仍 data-dependent 于该参数的派生值：**P1**；
+   - 不来自上述外部 source、由 private/internal state 经函数内部算术、布局或地址计算产生的 operand：**P4**。
 
 这个顺序不是“编号较小优先”，而是在消除表面重叠。例如：
 
 - callback 本身可能作为函数参数传入，但真正使 sink 失效的是 callback 的返回值，因此是 P6，`parameter` 只作为 secondary source metadata。
 - generic length 最终也表现为内部 index，但首次缺失的是 public bounds 无法保证非空，因此是 P5.1，而不是 P4。
+- 普通 public 参数即使经过 `index + 1`、`len - 1` 等算术，source 仍是参数，因此默认是 P1。只有 private/internal state 是唯一 source root，或外部值原有义务已经成立、随后项目内部 transform 重新破坏该义务时，才归 P4；`self` 仅作为 private state 的容器时不算普通 P1 参数。
 - P4 在 unsafe 操作执行**之前**已有不满足的 bounds/offset 前置条件；P3 在合法入口之后由内部 unsafe 操作产生并暴露非法值/状态。
 - 若同一实例确有两个独立 safety obligation，应生成两个具有不同 causal key 的 findings，而不是把同一 causal edge 同时报入多个 Pattern。
 
@@ -117,7 +119,7 @@ P2 同样允许字段读取后经过本地 helper。普通 private field 配合 
 
 - safe caller 的入口输入满足公开合同；
 - 内部 unsafe-backed 操作在其 own causal path 上创建、保留或暴露 Rust validity/invariant 不允许的运行时值或状态；
-- 该非法值/状态通过 return、reference/view/iterator/guard 或持久状态跨入 Safe Rust，是后续 UB 链的必要步骤。
+- 该 internal unsafe origin 位于 public safe API 的 return、store 或 exposure causal slice 上，使安全调用者可以到达该非法值/状态。对于 Rust validity 规则，UB 可能在 invalid typed value 被构造时已经发生；不得错误声称一定要等到 return 后才发生。
 
 P3 必须使用有限且可审计的 internal-origin registry，例如 `transmute`、unchecked UTF-8/value construction、`MaybeUninit::assume_init`、raw-backed reference/slice construction 等，并为每个 origin 指定其 validity obligation。不得恢复旧实现中“同一函数有 high-risk call + 看起来危险的返回类型即可命中”的宽松分支。
 
@@ -243,7 +245,7 @@ Alignment/provenance facts只能在显式可得时使用，不要求首版求解
 - 调用边界、resolved callee 和 actual↔formal/return mapping；
 - 能生成 deterministic witness 的最短或规范传播路径。
 
-Summary join 必须是单调的，并对等价事实 canonicalize/deduplicate，使递归 SCC 能达到稳定点。
+Summary join 必须是单调且有限高度的，并对等价事实 canonicalize/deduplicate，使递归 SCC 能达到稳定点。Summary equality 不得包含随递归不断展开的完整 call path 或无界 call depth：递归传播使用稳定的 SCC-cycle token 和确定性的最短代表 witness，depth 在递归处饱和为 `recursive`；source、sink、predicate 与 expression kind 均来自有限 registry。若实现加入仍可能增长的抽象，必须定义有单元测试的 widening，不能靠隐藏轮数截断。
 
 ## 7. 局部 crate 内过程间分析
 
