@@ -1,3 +1,5 @@
+mod summary;
+
 #[rustversion::since(1.96)]
 use rustc_abi::VariantIdx;
 use rustc_hir::Node;

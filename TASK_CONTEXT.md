@@ -16,7 +16,8 @@
 - The 27 v2 fixture oracles, tracked lockfiles, formal schema, stdlib-only fail-closed validator, serial runner, and normalizer are frozen locally.
 - All 27 fixtures pass `cargo check --lib --locked --jobs 1` with a separate fresh target per case.
 - The specified first RED was observed: frozen v1 scanning exits successfully but emits `rap-unit-v1` with only P1–P4; the v2 validator exits nonzero.
-- Next gate: add the structured summary IR and pure Rust unit tests, then replace the detector through MIR facts, calls, SCC convergence, validation, and P1–P6 TDD stages.
+- Structured summary IR is implemented locally with ordered facts, monotone/idempotent joins, explicit call mappings, primary precedence, causal dedup, stable SHA-256 IDs, deterministic witnesses, Tarjan SCCs, and equality-based fixed points without a round cap.
+- The first fresh-target exact-nightly RAP unit run passed all 8 summary tests. Next gate: MIR fact extraction, static local call resolution, CFG validation, and fixture subset TDD.
 
 ## Decisions
 
@@ -31,6 +32,7 @@
 - Finding IDs are canonical causal-key SHA-256 values; the canonical key excludes witness choice and propagation depth.
 - Legacy `Cargo.toml` and `src/lib.rs` files remain byte-identical to the frozen handoff copies. New fixture pairs use the smallest safe construction APIs needed to make private-state roots reachable without changing their source classification.
 - The one-shot fixture generation helper was not retained; the frozen crate sources, oracles, lockfiles, and manifest are the reviewable source of truth.
+- The exact nightly's installed component set was not changed when `rustfmt` was absent. Stable rustfmt was used only as a mechanical formatter for the new standalone Rust source; compilation and tests remain pinned to nightly-2024-10-12.
 
 ## Rejected Alternatives
 
