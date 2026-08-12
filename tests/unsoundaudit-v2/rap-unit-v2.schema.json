@@ -100,11 +100,16 @@
         "path": {
           "type": "string",
           "minLength": 1,
-          "pattern": "^(?!/)(?![A-Za-z]:[\\\\/]).+"
+          "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*\\u0000)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*\\/$).+"
         },
         "start": { "$ref": "#/$defs/position" },
         "end": { "$ref": "#/$defs/position" }
       }
+    },
+    "stable_identity": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*\\u0000)(?!.*\\\\)(?!.*[^A-Za-z0-9_.-]/)(?!.*[^A-Za-z0-9_.-][A-Za-z]:[\\\\/]).+"
     },
     "source": {
       "type": "object",
@@ -122,16 +127,28 @@
             "open_behavior_output"
           ]
         },
-        "origin_key": { "type": "string", "minLength": 1 },
+        "origin_key": { "$ref": "#/$defs/stable_identity" },
         "span": { "$ref": "#/$defs/span" }
       }
+    },
+    "operation_kind": {
+      "enum": [
+        "raw_read",
+        "get_unchecked",
+        "read_unaligned",
+        "nonnull_new_unchecked",
+        "lifetime_transmute",
+        "assume_init",
+        "from_utf8_unchecked",
+        "invalid_value_exposure"
+      ]
     },
     "operation": {
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "span"],
       "properties": {
-        "kind": { "type": "string", "minLength": 1 },
+        "kind": { "$ref": "#/$defs/operation_kind" },
         "span": { "$ref": "#/$defs/span" }
       }
     },
@@ -158,7 +175,7 @@
             ]
           }
         },
-        "subject": { "type": "string", "minLength": 1 }
+        "subject": { "$ref": "#/$defs/stable_identity" }
       }
     },
     "validation": {
@@ -169,7 +186,7 @@
         "status": { "const": "missing" },
         "facts": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": { "$ref": "#/$defs/stable_identity" },
           "uniqueItems": true
         }
       }
@@ -179,7 +196,7 @@
       "additionalProperties": false,
       "required": ["def_path", "span"],
       "properties": {
-        "def_path": { "type": "string", "minLength": 1 },
+        "def_path": { "$ref": "#/$defs/stable_identity" },
         "span": { "$ref": "#/$defs/span" }
       }
     },
@@ -189,7 +206,7 @@
       "required": ["kind", "function", "span"],
       "properties": {
         "kind": { "enum": ["entry", "source", "local_call", "scc_cycle", "sink", "exposure"] },
-        "function": { "type": "string", "minLength": 1 },
+        "function": { "$ref": "#/$defs/stable_identity" },
         "span": { "$ref": "#/$defs/span" }
       }
     },
@@ -207,7 +224,8 @@
         },
         "boundaries": {
           "type": "array",
-          "items": { "type": "string" }
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/stable_identity" }
         },
         "witness": {
           "type": "array",
@@ -221,12 +239,12 @@
       "additionalProperties": false,
       "required": ["crate", "public_root", "source_origin", "first_contract_failure", "sink_or_exposure", "canonical_obligation"],
       "properties": {
-        "crate": { "type": "string", "minLength": 1 },
-        "public_root": { "type": "string", "minLength": 1 },
-        "source_origin": { "type": "string", "minLength": 1 },
-        "first_contract_failure": { "type": "string", "minLength": 1 },
-        "sink_or_exposure": { "type": "string", "minLength": 1 },
-        "canonical_obligation": { "type": "string", "minLength": 1 }
+        "crate": { "$ref": "#/$defs/stable_identity" },
+        "public_root": { "$ref": "#/$defs/stable_identity" },
+        "source_origin": { "$ref": "#/$defs/stable_identity" },
+        "first_contract_failure": { "$ref": "#/$defs/stable_identity" },
+        "sink_or_exposure": { "$ref": "#/$defs/stable_identity" },
+        "canonical_obligation": { "$ref": "#/$defs/stable_identity" }
       }
     },
     "finding": {
@@ -278,7 +296,7 @@
         "secondary_source_kinds": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "type": "string" }
+          "items": { "$ref": "#/$defs/source/properties/kind" }
         },
         "heuristic_candidate_generator": { "const": true },
         "limitations": {
@@ -287,7 +305,129 @@
           "items": { "type": "string", "minLength": 1 }
         },
         "family_support": { "const": "partial" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "rule_id": { "const": "P1.raw_read" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern1" },
+            "source": { "properties": { "kind": { "const": "public_parameter" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "raw_read" } } },
+            "sink": { "properties": { "kind": { "const": "raw_read" } } },
+            "obligation": { "properties": { "predicates": { "const": ["valid_for_read"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P1.get_unchecked" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern1" },
+            "source": { "properties": { "kind": { "const": "public_parameter" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["in_bounds"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P2.raw_read" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern2" },
+            "source": { "properties": { "kind": { "const": "literal_public_field" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "raw_read" } } },
+            "sink": { "properties": { "kind": { "const": "raw_read" } } },
+            "obligation": { "properties": { "predicates": { "const": ["valid_for_read"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P2.get_unchecked" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern2" },
+            "source": { "properties": { "kind": { "const": "literal_public_field" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["in_bounds"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P3.lifetime_transmute" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern3" },
+            "source": { "properties": { "kind": { "const": "internal_unsafe_origin" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "lifetime_transmute" } } },
+            "sink": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "obligation": { "properties": { "predicates": { "const": ["referent_outlives_reference"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P3.assume_init_bool" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern3" },
+            "source": { "properties": { "kind": { "const": "internal_unsafe_origin" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "assume_init" } } },
+            "sink": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "obligation": { "properties": { "predicates": { "const": ["initialized", "valid_bool"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P3.unchecked_utf8" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern3" },
+            "source": { "properties": { "kind": { "const": "internal_unsafe_origin" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "from_utf8_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "obligation": { "properties": { "predicates": { "const": ["valid_utf8"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P4.bounds" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern4" },
+            "source": { "properties": { "kind": { "const": "internal_derived" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["in_bounds"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P4.offset" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern4" },
+            "source": { "properties": { "kind": { "const": "internal_derived" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "read_unaligned" } } },
+            "sink": { "properties": { "kind": { "const": "read_unaligned" } } },
+            "obligation": { "properties": { "predicates": { "const": ["range_in_bounds"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P5.1.nonempty" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern5" },
+            "source": { "properties": { "kind": { "const": "generic_nonempty_capability" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["non_empty"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P6.ffi_out_param" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern6" },
+            "source": { "properties": { "kind": { "const": "ffi_output" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "nonnull_new_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "nonnull_new_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["nonnull"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P6.open_trait_index" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern6" },
+            "source": { "properties": { "kind": { "const": "open_behavior_output" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "sink": { "properties": { "kind": { "const": "get_unchecked" } } },
+            "obligation": { "properties": { "predicates": { "const": ["in_bounds"] } } }
+          } }
+        }
+      ]
     }
   }
 }

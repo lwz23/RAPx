@@ -80,20 +80,73 @@ PREDICATES = {
     "valid_bool",
     "valid_utf8",
 }
-RULES = {
-    "P1.raw_read",
-    "P1.get_unchecked",
-    "P2.raw_read",
-    "P2.get_unchecked",
-    "P3.lifetime_transmute",
-    "P3.assume_init_bool",
-    "P3.unchecked_utf8",
-    "P4.bounds",
-    "P4.offset",
-    "P5.1.nonempty",
-    "P6.ffi_out_param",
-    "P6.open_trait_index",
+OPERATION_KINDS = {
+    "raw_read",
+    "get_unchecked",
+    "read_unaligned",
+    "nonnull_new_unchecked",
+    "lifetime_transmute",
+    "assume_init",
+    "from_utf8_unchecked",
+    "invalid_value_exposure",
 }
+RULE_MATRIX = {
+    "P1.raw_read": ("pattern1", "public_parameter", "raw_read", "raw_read", ("valid_for_read",)),
+    "P1.get_unchecked": ("pattern1", "public_parameter", "get_unchecked", "get_unchecked", ("in_bounds",)),
+    "P2.raw_read": ("pattern2", "literal_public_field", "raw_read", "raw_read", ("valid_for_read",)),
+    "P2.get_unchecked": ("pattern2", "literal_public_field", "get_unchecked", "get_unchecked", ("in_bounds",)),
+    "P3.lifetime_transmute": (
+        "pattern3",
+        "internal_unsafe_origin",
+        "lifetime_transmute",
+        "invalid_value_exposure",
+        ("referent_outlives_reference",),
+    ),
+    "P3.assume_init_bool": (
+        "pattern3",
+        "internal_unsafe_origin",
+        "assume_init",
+        "invalid_value_exposure",
+        ("initialized", "valid_bool"),
+    ),
+    "P3.unchecked_utf8": (
+        "pattern3",
+        "internal_unsafe_origin",
+        "from_utf8_unchecked",
+        "invalid_value_exposure",
+        ("valid_utf8",),
+    ),
+    "P4.bounds": ("pattern4", "internal_derived", "get_unchecked", "get_unchecked", ("in_bounds",)),
+    "P4.offset": (
+        "pattern4",
+        "internal_derived",
+        "read_unaligned",
+        "read_unaligned",
+        ("range_in_bounds",),
+    ),
+    "P5.1.nonempty": (
+        "pattern5",
+        "generic_nonempty_capability",
+        "get_unchecked",
+        "get_unchecked",
+        ("non_empty",),
+    ),
+    "P6.ffi_out_param": (
+        "pattern6",
+        "ffi_output",
+        "nonnull_new_unchecked",
+        "nonnull_new_unchecked",
+        ("nonnull",),
+    ),
+    "P6.open_trait_index": (
+        "pattern6",
+        "open_behavior_output",
+        "get_unchecked",
+        "get_unchecked",
+        ("in_bounds",),
+    ),
+}
+RULES = set(RULE_MATRIX)
 OBLIGATION_ALIASES = {
     "initialized_and_valid_bool": ["initialized", "valid_bool"],
 }
@@ -142,10 +195,14 @@ def validate_position(value: Any, location: str) -> tuple[int, int]:
 def validate_span(value: Any, location: str) -> tuple[str, tuple[int, int], tuple[int, int]]:
     span = exact_keys(value, {"path", "start", "end"}, location)
     path = nonempty_string(span["path"], f"{location}.path")
-    require("\\" not in path, f"{location}.path must use '/' separators")
+    require("\\" not in path and "\0" not in path, f"{location}.path must use machine-independent separators")
     pure = PurePosixPath(path)
     require(not pure.is_absolute(), f"{location}.path must be repository-relative")
-    require(".." not in pure.parts and "." not in pure.parts, f"{location}.path must be normalized")
+    require(not re.match(r"^[A-Za-z]:/", path), f"{location}.path must not be a Windows absolute path")
+    require(
+        pure.as_posix() == path and ".." not in pure.parts and "." not in pure.parts,
+        f"{location}.path must be normalized exactly",
+    )
     start = validate_position(span["start"], f"{location}.start")
     end = validate_position(span["end"], f"{location}.end")
     require(end >= start, f"{location}.end precedes start")
@@ -160,8 +217,30 @@ def span_token(value: Any) -> str:
 def stable_identity(value: Any, location: str) -> str:
     identity = nonempty_string(value, location)
     require("\\" not in identity and "\0" not in identity, f"{location} must be machine-independent")
-    require(not identity.startswith("/") and not re.match(r"^[A-Za-z]:[/\\]", identity), f"{location} must not be an absolute path")
+    absolute_fragment = re.search(r"(?:^|[^A-Za-z0-9_.-])/(?!/)", identity)
+    windows_fragment = re.search(r"(?:^|[^A-Za-z0-9_.-])[A-Za-z]:[/\\]", identity)
+    require(not absolute_fragment and not windows_fragment, f"{location} must not contain an absolute path")
     return identity
+
+
+def schema_rule_constraints() -> list[dict[str, Any]]:
+    constraints = []
+    for rule, (primary, source, first_failure, sink, predicates) in RULE_MATRIX.items():
+        constraints.append(
+            {
+                "if": {"properties": {"rule_id": {"const": rule}}, "required": ["rule_id"]},
+                "then": {
+                    "properties": {
+                        "primary_pattern": {"const": primary},
+                        "source": {"properties": {"kind": {"const": source}}},
+                        "first_contract_failure": {"properties": {"kind": {"const": first_failure}}},
+                        "sink": {"properties": {"kind": {"const": sink}}},
+                        "obligation": {"properties": {"predicates": {"const": list(predicates)}}},
+                    }
+                },
+            }
+        )
+    return constraints
 
 
 def validate_schema_contract(schema: Any) -> None:
@@ -176,6 +255,37 @@ def validate_schema_contract(schema: Any) -> None:
     require(finding.get("additionalProperties") is False, "finding must close additional properties")
     require(set(finding.get("required", [])) == FINDING_REQUIRED_KEYS, "schema finding required keys drifted")
     require(set(finding.get("properties", {})) == FINDING_REQUIRED_KEYS | FINDING_OPTIONAL_KEYS, "schema finding properties drifted")
+    require(
+        set(schema.get("$defs", {}).get("operation_kind", {}).get("enum", [])) == OPERATION_KINDS,
+        "schema operation registry drifted",
+    )
+    require(
+        schema.get("$defs", {}).get("operation", {}).get("properties", {}).get("kind")
+        == {"$ref": "#/$defs/operation_kind"},
+        "schema operations must use the frozen operation registry",
+    )
+    require(
+        set(schema.get("$defs", {}).get("source", {}).get("properties", {}).get("kind", {}).get("enum", []))
+        == SOURCE_KINDS,
+        "schema source registry drifted",
+    )
+    require(
+        set(
+            schema.get("$defs", {})
+            .get("obligation", {})
+            .get("properties", {})
+            .get("predicates", {})
+            .get("items", {})
+            .get("enum", [])
+        )
+        == PREDICATES,
+        "schema predicate registry drifted",
+    )
+    require(
+        set(finding["properties"]["rule_id"].get("enum", [])) == RULES,
+        "schema rule registry drifted",
+    )
+    require(finding.get("allOf") == schema_rule_constraints(), "schema rule matrix drifted")
 
 
 def validate_pattern_counts(value: Any, location: str = "pattern_counts") -> dict[str, int]:
@@ -199,7 +309,6 @@ def validate_finding(value: Any, index: int, receipt_crate_name: str) -> tuple[s
     require(primary in PATTERN_SET, f"{location}.primary_pattern is unsupported")
     rule = nonempty_string(value["rule_id"], f"{location}.rule_id")
     require(rule in RULES, f"{location}.rule_id is outside the frozen registry")
-    require(rule.startswith(f"P{primary[-1]}."), f"{location}.rule_id disagrees with primary pattern")
 
     causal = exact_keys(
         value["causal_key"],
@@ -220,7 +329,7 @@ def validate_finding(value: Any, index: int, receipt_crate_name: str) -> tuple[s
 
     for operation_name in ("first_contract_failure", "sink"):
         operation = exact_keys(value[operation_name], {"kind", "span"}, f"{location}.{operation_name}")
-        nonempty_string(operation["kind"], f"{location}.{operation_name}.kind")
+        require(operation["kind"] in OPERATION_KINDS, f"{location}.{operation_name}.kind is outside the frozen registry")
         validate_span(operation["span"], f"{location}.{operation_name}.span")
 
     obligation = exact_keys(value["obligation"], {"predicates", "subject"}, f"{location}.obligation")
@@ -233,6 +342,8 @@ def validate_finding(value: Any, index: int, receipt_crate_name: str) -> tuple[s
     require(validation["status"] == "missing", f"{location}.validation_status.status must be missing for a finding")
     facts = string_list(validation["facts"], f"{location}.validation_status.facts")
     require(facts == sorted(facts), f"{location}.validation_status.facts must be sorted")
+    for fact_index, fact in enumerate(facts):
+        stable_identity(fact, f"{location}.validation_status.facts[{fact_index}]")
 
     propagation = exact_keys(value["propagation"], {"depth", "local_call_count", "boundaries", "witness"}, f"{location}.propagation")
     require(propagation["depth"] in {"intra_procedural", "inter_procedural", "recursive"}, f"{location}.propagation.depth is invalid")
@@ -243,17 +354,48 @@ def validate_finding(value: Any, index: int, receipt_crate_name: str) -> tuple[s
     else:
         require(call_count is not None, f"{location}.non-recursive propagation needs local_call_count")
         require((call_count == 0) == (propagation["depth"] == "intra_procedural"), f"{location}.propagation depth/count disagree")
-    string_list(propagation["boundaries"], f"{location}.propagation.boundaries")
+    boundaries = string_list(propagation["boundaries"], f"{location}.propagation.boundaries")
+    require(boundaries == sorted(boundaries), f"{location}.propagation.boundaries must be sorted")
+    for boundary_index, boundary in enumerate(boundaries):
+        stable_identity(boundary, f"{location}.propagation.boundaries[{boundary_index}]")
     witness = propagation["witness"]
     require(isinstance(witness, list) and len(witness) >= 2, f"{location}.propagation.witness must contain at least two steps")
     for witness_index, step_value in enumerate(witness):
         step = exact_keys(step_value, {"kind", "function", "span"}, f"{location}.propagation.witness[{witness_index}]")
         require(step["kind"] in {"entry", "source", "local_call", "scc_cycle", "sink", "exposure"}, f"{location}.propagation.witness[{witness_index}].kind is invalid")
-        nonempty_string(step["function"], f"{location}.propagation.witness[{witness_index}].function")
+        stable_identity(step["function"], f"{location}.propagation.witness[{witness_index}].function")
         validate_span(step["span"], f"{location}.propagation.witness[{witness_index}].span")
+
+    require(witness[0]["kind"] == "entry", f"{location}.propagation.witness must begin with entry")
+    require(witness[0]["function"] == root["def_path"], f"{location}.propagation entry must name the public root")
+    require(
+        sum(step["kind"] == "entry" for step in witness) == 1,
+        f"{location}.propagation.witness must contain exactly one entry",
+    )
+    local_calls = [step for step in witness if step["kind"] == "local_call"]
+    cycle_count = sum(step["kind"] == "scc_cycle" for step in witness)
+    if propagation["depth"] == "recursive":
+        require(cycle_count == 1, f"{location}.recursive propagation requires exactly one SCC cycle step")
+    else:
+        require(cycle_count == 0, f"{location}.non-recursive propagation must not contain an SCC cycle step")
+        require(call_count == len(local_calls), f"{location}.local_call_count disagrees with witness steps")
+    require(
+        {step["function"] for step in local_calls} <= set(boundaries),
+        f"{location}.boundaries omit a local-call function",
+    )
+    expected_terminal_kind = "exposure" if value["sink"]["kind"] == "invalid_value_exposure" else "sink"
+    require(witness[-1]["kind"] == expected_terminal_kind, f"{location}.propagation witness has the wrong terminal kind")
+    require(witness[-1]["span"] == value["sink"]["span"], f"{location}.propagation terminal span differs from the sink")
+    expected_sink_function = local_calls[-1]["function"] if local_calls else root["def_path"]
+    require(witness[-1]["function"] == expected_sink_function, f"{location}.propagation terminal function differs from the sink function")
+    require(
+        sum(step["kind"] in {"sink", "exposure"} for step in witness) == 1,
+        f"{location}.propagation.witness must contain exactly one terminal step",
+    )
 
     secondary = string_list(value["secondary_source_kinds"], f"{location}.secondary_source_kinds")
     require(secondary == sorted(secondary), f"{location}.secondary_source_kinds must be sorted")
+    require(set(secondary) <= SOURCE_KINDS, f"{location}.secondary_source_kinds is outside the frozen registry")
     require(value["heuristic_candidate_generator"] is True, f"{location} must identify itself as a heuristic candidate generator")
     string_list(value["limitations"], f"{location}.limitations", nonempty=True)
 
@@ -261,10 +403,12 @@ def validate_finding(value: Any, index: int, receipt_crate_name: str) -> tuple[s
         require(value.get("family_support") == "partial", f"{location} P5 finding must declare partial family support")
     else:
         require("family_support" not in value, f"{location} non-P5 finding must not declare family_support")
-    if rule == "P6.ffi_out_param":
-        require(source["kind"] == "ffi_output", f"{location} FFI rule requires ffi_output source")
-    if rule == "P6.open_trait_index":
-        require(source["kind"] == "open_behavior_output", f"{location} open-trait rule requires open_behavior_output source")
+    expected_primary, expected_source, expected_failure, expected_sink, expected_predicates = RULE_MATRIX[rule]
+    require(primary == expected_primary, f"{location}.primary_pattern disagrees with the frozen rule matrix")
+    require(source["kind"] == expected_source, f"{location}.source.kind disagrees with the frozen rule matrix")
+    require(value["first_contract_failure"]["kind"] == expected_failure, f"{location}.first_contract_failure disagrees with the frozen rule matrix")
+    require(value["sink"]["kind"] == expected_sink, f"{location}.sink disagrees with the frozen rule matrix")
+    require(predicates == list(expected_predicates), f"{location}.obligation.predicates disagrees with the frozen rule matrix")
 
     expected_causal = {
         "crate": receipt_crate_name,

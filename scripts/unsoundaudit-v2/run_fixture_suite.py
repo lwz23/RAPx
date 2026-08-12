@@ -7,12 +7,14 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
+import tomllib
+from pathlib import Path, PurePosixPath
+from typing import Any
 
-from normalize_receipts import normalized_case
 from validate_receipt import ContractError, read_json, validate_oracle, validate_receipt
 
 
@@ -39,10 +41,32 @@ EXPECTED_COUNTS = {
     "pattern5": 1,
     "pattern6": 2,
 }
+BASELINE_MANIFEST_RELATIVE = Path("docs/unsoundaudit-v2/baseline_manifest_v1.json")
+ENVIRONMENT_RECEIPT_RELATIVE = Path(
+    "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/environment_receipt.json"
+)
 
 
 def fail(message: str) -> None:
     raise ContractError(message)
+
+
+def normalized_case(case_id: str, receipt: dict) -> dict:
+    return {
+        "case_id": case_id,
+        "package_name": receipt["package_name"],
+        "package_version": receipt["package_version"],
+        "crate_name": receipt["crate_name"],
+        "crate_types": receipt["crate_types"],
+        "target_kind": receipt["target_kind"],
+        "target_triple": receipt["target_triple"],
+        "cargo_supplied_rustc_commit": receipt["cargo_supplied_rustc_commit"],
+        "rap_compiler_commit": receipt["rap_compiler_commit"],
+        "rustc_commit": receipt["rustc_commit"],
+        "pattern_counts": receipt["pattern_counts"],
+        "finding_count": receipt["finding_count"],
+        "findings": receipt["findings"],
+    }
 
 
 def canonical_existing(path: Path, role: str) -> Path:
@@ -53,12 +77,108 @@ def canonical_existing(path: Path, role: str) -> Path:
     return resolved
 
 
-def verify_environment(cargo: Path, rap_bin_dir: Path) -> tuple[Path, Path]:
+def command_commit(executable: Path, role: str) -> str:
+    result = subprocess.run(
+        [str(executable), "-Vv"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        fail(f"{role} -Vv failed with exit {result.returncode}")
+    fields = {}
+    for line in result.stdout.splitlines():
+        key, separator, value = line.partition(": ")
+        if separator:
+            fields[key] = value
+    commit = fields.get("commit-hash")
+    if not isinstance(commit, str) or not commit:
+        fail(f"{role} -Vv did not report commit-hash")
+    return commit
+
+
+def cargo_config_candidates(repo_root: Path, cargo_home: Path) -> tuple[Path, ...]:
+    return (
+        repo_root / ".cargo" / "config",
+        repo_root / ".cargo" / "config.toml",
+        cargo_home / "config",
+        cargo_home / "config.toml",
+        cargo_home / ".cargo" / "config",
+        cargo_home / ".cargo" / "config.toml",
+    )
+
+
+def audit_cargo_configs(repo_root: Path, cargo_home: Path) -> None:
+    for candidate in cargo_config_candidates(repo_root, cargo_home):
+        if not candidate.exists():
+            continue
+        if not candidate.is_file():
+            fail(f"Cargo configuration path is not a regular file: {candidate}")
+        try:
+            with candidate.open("rb") as source:
+                config = tomllib.load(source)
+        except (OSError, tomllib.TOMLDecodeError) as error:
+            fail(f"Cargo configuration cannot be audited: {candidate}: {error}")
+
+        def contains_rustflags(value: Any) -> bool:
+            if not isinstance(value, dict):
+                return False
+            return "rustflags" in value or any(contains_rustflags(child) for child in value.values())
+
+        if contains_rustflags(config.get("build")) or contains_rustflags(config.get("target")):
+            fail(f"Cargo build/target configuration contains rustflags: {candidate}")
+
+
+def approved_rustflags(repo_root: Path) -> str:
+    receipt = read_json(repo_root / ENVIRONMENT_RECEIPT_RELATIVE)
+    controls = receipt.get("environment_controls") if isinstance(receipt, dict) else None
+    if (
+        not isinstance(receipt, dict)
+        or receipt.get("status") != "pass"
+        or not isinstance(controls, dict)
+        or controls.get("rustflags_role") != "z3_native_library_search_only"
+    ):
+        fail("Mac environment receipt does not approve the Z3-only RUSTFLAGS role")
+    header = Path(os.environ["Z3_SYS_Z3_HEADER"]).expanduser()
+    if not header.is_absolute() or ".." in header.parts or not header.is_file():
+        fail("Z3_SYS_Z3_HEADER does not identify an existing file")
+    if header.name != "z3.h" or header.parent.name != "include":
+        fail("Z3_SYS_Z3_HEADER must identify the approved Z3 include/z3.h")
+    expected_library = header.parent.parent / "lib"
+    if not expected_library.is_dir():
+        fail("approved Z3 library directory does not exist")
+    return f"-Lnative={expected_library}"
+
+
+def baseline_toolchain(repo_root: Path) -> tuple[str, str]:
+    baseline = read_json(repo_root / BASELINE_MANIFEST_RELATIVE)
+    toolchain = baseline.get("toolchain") if isinstance(baseline, dict) else None
+    if not isinstance(toolchain, dict):
+        fail("baseline manifest toolchain entry is missing")
+    cargo_commit = toolchain.get("cargo_commit_hash")
+    rustc_commit = toolchain.get("rustc_commit_hash")
+    if not isinstance(cargo_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", cargo_commit):
+        fail("baseline manifest Cargo commit is invalid")
+    if not isinstance(rustc_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", rustc_commit):
+        fail("baseline manifest rustc commit is invalid")
+    return cargo_commit, rustc_commit
+
+
+def verify_receipt_toolchain(receipt: dict, expected_rustc_commit: str) -> None:
+    for field in ("cargo_supplied_rustc_commit", "rap_compiler_commit", "rustc_commit"):
+        if receipt[field] != expected_rustc_commit:
+            fail(f"receipt.{field} differs from the baseline rustc commit")
+
+
+def verify_environment(repo_root: Path, cargo: Path, rap_bin_dir: Path) -> tuple[Path, Path]:
     missing = [key for key in REQUIRED_ENVIRONMENT if not os.environ.get(key)]
     if missing:
         fail(f"exact environment is incomplete: {', '.join(missing)}")
-    if os.environ.get("CARGO_ENCODED_RUSTFLAGS"):
+    if "CARGO_ENCODED_RUSTFLAGS" in os.environ:
         fail("CARGO_ENCODED_RUSTFLAGS must be unset for the exact environment")
+    expected_cargo_commit, expected_rustc_commit = baseline_toolchain(repo_root)
     exact_cargo = canonical_existing(Path(os.environ["UNSOUND_SCANNER_EXACT_CARGO_PATH"]), "exact Cargo")
     if cargo != exact_cargo:
         fail("--cargo differs from UNSOUND_SCANNER_EXACT_CARGO_PATH")
@@ -66,6 +186,16 @@ def verify_environment(cargo: Path, rap_bin_dir: Path) -> tuple[Path, Path]:
     expected_rustc = canonical_existing(Path(os.environ["UNSOUND_SCANNER_EXPECTED_RUSTC_PATH"]), "expected rustc")
     if exact_rustc != expected_rustc:
         fail("RUSTC differs from UNSOUND_SCANNER_EXPECTED_RUSTC_PATH")
+    supplied_cargo_commit = os.environ["UNSOUND_SCANNER_EXACT_CARGO_COMMIT"]
+    supplied_rustc_commit = os.environ["UNSOUND_SCANNER_EXPECTED_RUSTC_COMMIT"]
+    if supplied_cargo_commit != expected_cargo_commit or command_commit(exact_cargo, "exact Cargo") != expected_cargo_commit:
+        fail("exact Cargo commit differs from the baseline manifest")
+    if supplied_rustc_commit != expected_rustc_commit or command_commit(exact_rustc, "exact rustc") != expected_rustc_commit:
+        fail("exact rustc commit differs from the baseline manifest")
+    if os.environ["RUSTFLAGS"] != approved_rustflags(repo_root):
+        fail("RUSTFLAGS must contain only the approved Z3 native-library search path")
+    cargo_home = canonical_existing(Path(os.environ["CARGO_HOME"]), "CARGO_HOME")
+    audit_cargo_configs(repo_root, cargo_home)
     cargo_rapx = canonical_existing(rap_bin_dir / "cargo-rapx", "cargo-rapx")
     rapx = canonical_existing(rap_bin_dir / "rapx", "rapx")
     if cargo_rapx.parent != rapx.parent:
@@ -95,6 +225,85 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def normalized_relative_path(value: Any, location: str) -> PurePosixPath:
+    if not isinstance(value, str) or not value or "\\" in value or "\0" in value:
+        fail(f"{location} must be a non-empty normalized POSIX path")
+    pure = PurePosixPath(value)
+    if (
+        pure.is_absolute()
+        or re.match(r"^[A-Za-z]:/", value)
+        or pure.as_posix() != value
+        or "." in pure.parts
+        or ".." in pure.parts
+        or "//" in value
+    ):
+        fail(f"{location} must be a normalized relative POSIX path")
+    return pure
+
+
+def manifest_reference_path(value: Any, location: str) -> PurePosixPath:
+    if not isinstance(value, str) or not value or "\\" in value or "\0" in value or "//" in value:
+        fail(f"{location} must be a normalized POSIX path")
+    pure = PurePosixPath(value)
+    if pure.is_absolute() or re.match(r"^[A-Za-z]:/", value) or pure.as_posix() != value or "/./" in f"/{value}/":
+        fail(f"{location} must be a normalized relative POSIX path")
+    return pure
+
+
+def verify_legacy_provenance(repo_root: Path, manifest_path: Path, provenance: dict) -> None:
+    repo_root = repo_root.resolve(strict=True)
+    manifest_path = manifest_path.resolve(strict=False)
+    provenance_relative = manifest_reference_path(provenance["path"], "legacy provenance path")
+    try:
+        provenance_path = (manifest_path.parent / provenance_relative).resolve(strict=True)
+    except OSError as error:
+        fail(f"legacy provenance manifest does not resolve: {error}")
+    try:
+        provenance_path.relative_to(repo_root)
+    except ValueError:
+        fail("legacy provenance manifest escapes the repository root")
+    if sha256(provenance_path) != provenance["sha256"]:
+        fail("legacy provenance manifest hash drifted")
+    legacy = read_json(provenance_path)
+    rows = legacy.get("files") if isinstance(legacy, dict) else None
+    expected_count = provenance["verified_file_count"]
+    if not isinstance(rows, list) or len(rows) != expected_count or expected_count != 31:
+        fail("legacy provenance manifest must contain exactly 31 file rows")
+    legacy_root = provenance_path.parent.resolve(strict=True)
+    expected_paths: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != {"path", "size_bytes", "sha256"}:
+            fail(f"legacy provenance files[{index}] keys drifted")
+        if not isinstance(row["size_bytes"], int) or isinstance(row["size_bytes"], bool) or row["size_bytes"] < 0:
+            fail(f"legacy provenance files[{index}].size_bytes is invalid")
+        if not isinstance(row["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", row["sha256"]):
+            fail(f"legacy provenance files[{index}].sha256 is invalid")
+        relative = normalized_relative_path(row["path"], f"legacy provenance files[{index}].path")
+        relative_text = relative.as_posix()
+        if relative_text in expected_paths:
+            fail(f"legacy provenance contains duplicate path: {relative_text}")
+        expected_paths.add(relative_text)
+        candidate = (legacy_root / relative).resolve(strict=False)
+        try:
+            candidate.relative_to(legacy_root)
+        except ValueError:
+            fail(f"legacy provenance path escapes its root: {relative_text}")
+        if not candidate.is_file():
+            fail(f"legacy provenance file is missing: {relative_text}")
+        if candidate.stat().st_size != row["size_bytes"] or sha256(candidate) != row["sha256"]:
+            fail(f"legacy provenance file size or SHA-256 differs: {relative_text}")
+    actual_paths = {
+        path.relative_to(legacy_root).as_posix()
+        for path in legacy_root.rglob("*")
+        if path.is_file() and path != provenance_path
+    }
+    if actual_paths != expected_paths:
+        fail(
+            "legacy provenance file set differs: "
+            f"missing={sorted(expected_paths - actual_paths)}, extra={sorted(actual_paths - expected_paths)}"
+        )
+
+
 def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, manifest: dict) -> list[str]:
     case_rows = manifest.get("cases")
     if not isinstance(case_rows, list) or len(case_rows) != EXPECTED_FIXTURE_COUNT:
@@ -112,9 +321,7 @@ def verify_contract(repo_root: Path, fixture_root: Path, manifest_path: Path, ma
     provenance = manifest.get("legacy_provenance_manifest")
     if not isinstance(provenance, dict) or set(provenance) != {"path", "sha256", "verified_file_count"}:
         fail("fixture manifest legacy provenance entry drifted")
-    provenance_path = (manifest_path.parent / provenance["path"]).resolve(strict=True)
-    if sha256(provenance_path) != provenance["sha256"] or provenance["verified_file_count"] != 31:
-        fail("legacy provenance manifest hash or file count drifted")
+    verify_legacy_provenance(repo_root, manifest_path, provenance)
     row_by_case = {row["case_id"]: row for row in case_rows}
     for case_id in sorted(case_ids):
         fixture = fixture_root / case_id
@@ -204,9 +411,10 @@ def main() -> int:
         schema_path = canonical_existing(args.schema, "receipt schema")
         cargo = canonical_existing(args.cargo, "Cargo")
         rap_bin_dir = canonical_existing(args.rap_bin_dir, "RAP binary directory")
-        cargo_rapx, _ = verify_environment(cargo, rap_bin_dir)
+        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir)
         manifest = read_json(manifest_path)
         schema = read_json(schema_path)
+        _, expected_rustc_commit = baseline_toolchain(repo_root)
         all_case_ids = verify_contract(repo_root, fixture_root, manifest_path, manifest)
         if args.selected_cases:
             unknown = sorted(set(args.selected_cases) - set(all_case_ids))
@@ -260,6 +468,7 @@ def main() -> int:
             if len(receipts) != 1:
                 fail(f"{case_id}: expected one unit receipt, found {len(receipts)}")
             receipt = validate_receipt(read_json(receipts[0]), schema)
+            verify_receipt_toolchain(receipt, expected_rustc_commit)
             oracle = read_json(fixture / "fixture.json")
             validate_oracle(receipt, oracle)
             case = normalized_case(case_id, receipt)

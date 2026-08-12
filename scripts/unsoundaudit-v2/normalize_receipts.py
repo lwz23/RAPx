@@ -8,25 +8,22 @@ import json
 import sys
 from pathlib import Path
 
+from run_fixture_suite import (
+    BASELINE_MANIFEST_RELATIVE,
+    baseline_toolchain,
+    canonical_existing,
+    normalized_case,
+    verify_contract,
+    verify_receipt_toolchain,
+)
 from validate_receipt import ContractError, read_json, validate_oracle, validate_receipt
 
 
-def normalized_case(case_id: str, receipt: dict) -> dict:
-    return {
-        "case_id": case_id,
-        "package_name": receipt["package_name"],
-        "package_version": receipt["package_version"],
-        "crate_name": receipt["crate_name"],
-        "crate_types": receipt["crate_types"],
-        "target_kind": receipt["target_kind"],
-        "target_triple": receipt["target_triple"],
-        "cargo_supplied_rustc_commit": receipt["cargo_supplied_rustc_commit"],
-        "rap_compiler_commit": receipt["rap_compiler_commit"],
-        "rustc_commit": receipt["rustc_commit"],
-        "pattern_counts": receipt["pattern_counts"],
-        "finding_count": receipt["finding_count"],
-        "findings": receipt["findings"],
-    }
+def discover_repo_root(manifest_path: Path) -> Path:
+    for candidate in manifest_path.parents:
+        if (candidate / BASELINE_MANIFEST_RELATIVE).is_file() and (candidate / ".git").exists():
+            return candidate.resolve(strict=True)
+    raise ContractError("could not derive repository root from the fixture manifest")
 
 
 def main() -> int:
@@ -38,27 +35,28 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
-        schema = read_json(args.schema)
-        manifest = read_json(args.manifest)
-        rows = manifest.get("cases")
-        if not isinstance(rows, list) or len(rows) != 27:
-            raise ContractError("fixture manifest must contain exactly 27 cases")
-        case_ids = sorted(row.get("case_id") for row in rows if isinstance(row, dict))
-        if len(case_ids) != 27 or len(case_ids) != len(set(case_ids)) or not all(isinstance(case_id, str) and case_id for case_id in case_ids):
-            raise ContractError("fixture manifest case ids are invalid")
-        fixture_ids = sorted(path.name for path in args.fixture_root.iterdir() if path.is_dir())
-        receipt_ids = sorted(path.name for path in args.receipt_root.iterdir() if path.is_dir())
-        if fixture_ids != case_ids or receipt_ids != case_ids:
-            raise ContractError("fixture or receipt directories differ from the manifest")
+        manifest_path = canonical_existing(args.manifest, "fixture manifest")
+        fixture_root = canonical_existing(args.fixture_root, "fixture root")
+        receipt_root = canonical_existing(args.receipt_root, "receipt root")
+        schema_path = canonical_existing(args.schema, "receipt schema")
+        repo_root = discover_repo_root(manifest_path)
+        schema = read_json(schema_path)
+        manifest = read_json(manifest_path)
+        _, expected_rustc_commit = baseline_toolchain(repo_root)
+        case_ids = verify_contract(repo_root, fixture_root, manifest_path, manifest)
+        receipt_ids = sorted(path.name for path in receipt_root.iterdir() if path.is_dir())
+        if receipt_ids != case_ids:
+            raise ContractError("receipt directories differ from the verified manifest")
         cases = []
         aggregate = {f"pattern{number}": 0 for number in range(1, 7)}
         for case_id in case_ids:
-            fixture_dir = args.fixture_root / case_id
+            fixture_dir = fixture_root / case_id
             oracle = read_json(fixture_dir / "fixture.json")
-            receipt_files = sorted((args.receipt_root / case_id).glob("*.json"))
+            receipt_files = sorted((receipt_root / case_id).glob("*.json"))
             if len(receipt_files) != 1:
                 raise ContractError(f"{case_id}: expected one receipt, found {len(receipt_files)}")
             receipt = validate_receipt(read_json(receipt_files[0]), schema)
+            verify_receipt_toolchain(receipt, expected_rustc_commit)
             validate_oracle(receipt, oracle)
             case = normalized_case(case_id, receipt)
             cases.append(case)
