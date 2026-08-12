@@ -8,7 +8,7 @@
 
 ## Status
 
-- Formal checkout is on `feature/unsoundaudit-v2-p1-p6` at handoff HEAD `a8ac7640d8778ac047bc9e0b6a1a3afecd144c34`.
+- Formal checkout is on `feature/unsoundaudit-v2-p1-p6`; the tested implementation commit is `f5988cb156f6f3d8cda59b03ac085607156e6acc`.
 - Baseline tag and commit, restricted source diff, source-tree hash, and `unsoundaudit.rs` hash all passed.
 - Native arm64 Xcode Command Line Tools, Homebrew LLVM/libclang, Z3, CMake, and pkg-config passed architecture and availability checks.
 - `nightly-2024-10-12` is installed with the required components. Rustc and Cargo commits exactly match the manifest.
@@ -16,8 +16,13 @@
 - The 27 v2 fixture oracles, tracked lockfiles, formal schema, stdlib-only fail-closed validator, serial runner, and normalizer are frozen locally.
 - All 27 fixtures pass `cargo check --lib --locked --jobs 1` with a separate fresh target per case.
 - The specified first RED was observed: frozen v1 scanning exits successfully but emits `rap-unit-v1` with only P1–P4; the v2 validator exits nonzero.
-- Structured summary IR is implemented locally with ordered facts, monotone/idempotent joins, explicit call mappings, primary precedence, causal dedup, stable SHA-256 IDs, deterministic witnesses, Tarjan SCCs, and equality-based fixed points without a round cap.
-- The first fresh-target exact-nightly RAP unit run passed all 8 summary tests. Next gate: MIR fact extraction, static local call resolution, CFG validation, and fixture subset TDD.
+- Structured summary IR and MIR extraction are implemented with ordered facts, explicit call mappings, CFG validation and write invalidation, primary precedence, causal dedup, stable SHA-256 IDs, deterministic witnesses, Tarjan SCCs, and equality-based fixed points without a round cap.
+- The exact-nightly final RAP unit gate passed 26 tests in a fresh target. The contract-hardening suite passed 14 tests.
+- The exact-nightly final binary build passed in a separate fresh target and produced both `cargo-rapx` and `rapx`.
+- Two complete serial runs of all 27 frozen fixtures passed. Each case used separate fresh control and scan targets; both normalized receipts were byte-identical with SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
+- Final aggregate counts are P1=3, P2=2, P3=2, P4=2, P5=1, and P6=2. All 12 positives have one primary finding; all 14 negatives and the noise fixture have zero findings.
+- A read-only final semantic review returned `ship` with no blocking findings.
+- Implementation and deterministic receipt commits are complete locally. Remaining gate: commit this context/review update, fetch and verify remote ancestry, then push the same feature branch without rebase or force.
 
 ## Decisions
 
@@ -33,6 +38,10 @@
 - Legacy `Cargo.toml` and `src/lib.rs` files remain byte-identical to the frozen handoff copies. New fixture pairs use the smallest safe construction APIs needed to make private-state roots reachable without changing their source classification.
 - The one-shot fixture generation helper was not retained; the frozen crate sources, oracles, lockfiles, and manifest are the reviewable source of truth.
 - The exact nightly's installed component set was not changed when `rustfmt` was absent. Stable rustfmt was used only as a mechanical formatter for the new standalone Rust source; compilation and tests remain pinned to nightly-2024-10-12.
+- Local-call edges are accepted only after `Instance::try_resolve` returns a local MIR item; unresolved and ordinary external Rust calls remain opaque.
+- Lifetime-transmute P3 is narrowed to an internal operand transmuted into the public function's `&'static` return shape; this remains a heuristic candidate form, not a proof of region unsoundness.
+- Canonical fixture data remains only in `tests/unsoundaudit-v2/fixture_manifest.json`. No artifact copy was added because its relative legacy provenance path is meaningful from the canonical location.
+- Raw final logs remain local and uncommitted; only their SHA-256 digests and the normalized deterministic result are tracked.
 
 ## Rejected Alternatives
 
