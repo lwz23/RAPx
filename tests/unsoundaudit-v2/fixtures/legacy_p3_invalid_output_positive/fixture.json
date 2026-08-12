@@ -1,0 +1,33 @@
+{
+  "case_id": "legacy_p3_invalid_output_positive",
+  "expected_finding_count": 1,
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 1,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "expected_primary_pattern": "pattern3",
+  "expected_rule_id": "P3.lifetime_transmute",
+  "family_support": null,
+  "fix_fact": null,
+  "forbidden_extra_patterns": [
+    "pattern1",
+    "pattern2",
+    "pattern4",
+    "pattern5",
+    "pattern6"
+  ],
+  "limitations": "fixture-closed heuristic candidate generator contract",
+  "manifest_relative_path": "Cargo.toml",
+  "obligation": "referent_outlives_reference",
+  "package_name": "pattern4_positive",
+  "propagation_depth": null,
+  "role": "positive",
+  "schema_version": "unsoundaudit-v2-fixture-v1",
+  "sink": "invalid_value_exposure",
+  "source": "internal_unsafe_origin",
+  "source_relative_path": "src/lib.rs"
+}

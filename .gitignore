@@ -2,4 +2,5 @@
 .vscode/
 target/
 Cargo.lock
+!tests/unsoundaudit-v2/fixtures/**/Cargo.lock
 rapx.txt

@@ -1,0 +1,941 @@
+{
+  "schema_version": "unsoundaudit-v2-fixture-manifest-v1",
+  "fixture_count": 27,
+  "role_counts": {
+    "positive": 12,
+    "negative": 14,
+    "noise": 1
+  },
+  "aggregate_expected_pattern_counts": {
+    "pattern1": 3,
+    "pattern2": 2,
+    "pattern3": 2,
+    "pattern4": 2,
+    "pattern5": 1,
+    "pattern6": 2
+  },
+  "legacy_provenance_manifest": {
+    "path": "../../docs/unsoundaudit-v2/frozen-v1-fixtures/legacy_fixture_manifest.json",
+    "sha256": "323303f85924347e8d65b8ec6cc1f00143c27a36be56c2580edadb942e259a1b",
+    "verified_file_count": 31
+  },
+  "cases": [
+    {
+      "case_id": "legacy_p1_param_direct_positive",
+      "role": "positive",
+      "package_name": "pattern1_positive",
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.raw_read",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p1_param_direct_positive/Cargo.toml",
+          "sha256": "eda67e74a281063f6e19ca0ae6cd25c2e53d7aaa4894ae51d72a76acac58f88a"
+        },
+        "source": {
+          "path": "fixtures/legacy_p1_param_direct_positive/src/lib.rs",
+          "sha256": "9a98c0ee4b2a77a939ce6224642e65e6d23c5c45cf753480c51bd60fe9fa7bb0"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p1_param_direct_positive/Cargo.lock",
+          "sha256": "465df78ee6fb3111664a92a0b82639168b5a33d6fcdd79340493237034737c2a"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p1_param_direct_positive/fixture.json",
+          "sha256": "b887d12af87b4b10fb9cfb5b4cfbc41f2cd783ba968ec549dcc9472357f7cd98"
+        }
+      },
+      "legacy_frozen_case": "pattern1_positive"
+    },
+    {
+      "case_id": "legacy_p1_local_pointer_negative",
+      "role": "negative",
+      "package_name": "pattern1_negative_local_pointer",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p1_local_pointer_negative/Cargo.toml",
+          "sha256": "17334d7e370651a89fa5dcecc66519c3a504a28085be7fe9cbd4344dbe50a7f4"
+        },
+        "source": {
+          "path": "fixtures/legacy_p1_local_pointer_negative/src/lib.rs",
+          "sha256": "24de19f762f82ecf8f53fb6dd85e91a5cba264fcccb7fbe4d1afad45af8bf399"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p1_local_pointer_negative/Cargo.lock",
+          "sha256": "5bbdd37251768b035bd781159ea0798cc0ecc7cd083999847207952651fc9059"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p1_local_pointer_negative/fixture.json",
+          "sha256": "a76229f0c6dbccce8777fee62fd9364c1676fc802c6e50e0c3feb364387fbc20"
+        }
+      },
+      "legacy_frozen_case": "pattern1_negative_local_pointer"
+    },
+    {
+      "case_id": "legacy_p2_public_field_positive",
+      "role": "positive",
+      "package_name": "pattern2_positive",
+      "expected_primary_pattern": "pattern2",
+      "expected_rule_id": "P2.raw_read",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 1,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p2_public_field_positive/Cargo.toml",
+          "sha256": "438d733cedece3caa2144b76f09b7991364f69f8815148143a419e0b2b2b130f"
+        },
+        "source": {
+          "path": "fixtures/legacy_p2_public_field_positive/src/lib.rs",
+          "sha256": "561ad24d1c1e10ae8a93b779d6d3446f7944dc3e9ef3b0c8eb8cf21141f9837e"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p2_public_field_positive/Cargo.lock",
+          "sha256": "1a2f0e8a6b48798396baf15c40914f434794c096b56c7a6e6fa28121476b400d"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p2_public_field_positive/fixture.json",
+          "sha256": "41365d424c5a4b0e4be1a9f14489d4976a7b3dc8eeef6b399e3951d8deb596ee"
+        }
+      },
+      "legacy_frozen_case": "pattern2_positive"
+    },
+    {
+      "case_id": "legacy_p2_private_field_negative",
+      "role": "negative",
+      "package_name": "pattern2_negative_private_field",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p2_private_field_negative/Cargo.toml",
+          "sha256": "71aef23d134b2e485b41d0ed15406855d92cd2fef76273fd2e9aa04847db6276"
+        },
+        "source": {
+          "path": "fixtures/legacy_p2_private_field_negative/src/lib.rs",
+          "sha256": "9dfa78497ac4cd11e1304e16170280e97750dfd9e108cf4c9035f187c9408fd9"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p2_private_field_negative/Cargo.lock",
+          "sha256": "d6edcaf5110ff11c714b931b81f4c7cb443327b7c233c5996f10edfedb6d8559"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p2_private_field_negative/fixture.json",
+          "sha256": "d56f34f28d7ee32db3a7d900d19f82c0fe0935a6d2ff632bf361603f292d2211"
+        }
+      },
+      "legacy_frozen_case": "pattern2_negative_private_field"
+    },
+    {
+      "case_id": "legacy_p2_display_negative",
+      "role": "negative",
+      "package_name": "pattern2_display_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p2_display_negative/Cargo.toml",
+          "sha256": "03e4e88864f79c694ad5cfa91ec4bee613eb5b3bf283148cbd2e15cbfb7d34c7"
+        },
+        "source": {
+          "path": "fixtures/legacy_p2_display_negative/src/lib.rs",
+          "sha256": "d98769232484c5c9a91f483571a0053c7c9679367b6881d3bcb605f0a6981e03"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p2_display_negative/Cargo.lock",
+          "sha256": "250d6c2169fd814480aff551b76357975b405c398dd8f8a8714ea730c2865ccd"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p2_display_negative/fixture.json",
+          "sha256": "2823346a7ab67327464a26e2b262945397b3d4a4be3de8dd682e0051497c826e"
+        }
+      },
+      "legacy_frozen_case": "pattern2_display_negative"
+    },
+    {
+      "case_id": "legacy_p2_write_negative",
+      "role": "negative",
+      "package_name": "pattern2_write_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p2_write_negative/Cargo.toml",
+          "sha256": "2a429d9171273fd6e067d8e2dc4d2680a3d655ebc0c4eb0b25eb96fbeffec81b"
+        },
+        "source": {
+          "path": "fixtures/legacy_p2_write_negative/src/lib.rs",
+          "sha256": "4254466a82b76a68651ebb05bd92e2b699894413f97e9c33313b75d68fd404e8"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p2_write_negative/Cargo.lock",
+          "sha256": "b64c9afa2c0b1efa12646a2f683246d8eecfc6ad9a63f161433ab33cabd63b39"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p2_write_negative/fixture.json",
+          "sha256": "dd7405c8758f2c5c0b0451a3a8565a65bd894efd4973cbd243d7822f1c204287"
+        }
+      },
+      "legacy_frozen_case": "pattern2_write_negative"
+    },
+    {
+      "case_id": "legacy_p1_param_helper_positive",
+      "role": "positive",
+      "package_name": "pattern3_positive",
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.raw_read",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p1_param_helper_positive/Cargo.toml",
+          "sha256": "77b3fa8256f1e9791c2b3b2b679d322da6b1cf93ae63168c7722374a5958899a"
+        },
+        "source": {
+          "path": "fixtures/legacy_p1_param_helper_positive/src/lib.rs",
+          "sha256": "b745d7dea39aa0a40267ecd7f5a72bbbb514cf8d133f429291b5ff9074f4f787"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p1_param_helper_positive/Cargo.lock",
+          "sha256": "99cb92e5e597c89277927f4ccfc1031922079a4be5069e67aa4cd74857f34d58"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p1_param_helper_positive/fixture.json",
+          "sha256": "c3664027ec6d12318601e0d20067f1597deae2e3adc7360456b199851814f503"
+        }
+      },
+      "legacy_frozen_case": "pattern3_positive"
+    },
+    {
+      "case_id": "legacy_p1_private_chain_negative",
+      "role": "negative",
+      "package_name": "pattern3_negative_private_chain",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p1_private_chain_negative/Cargo.toml",
+          "sha256": "c30aa0b0f0e88253cd9f8436898f051f1d770f38e5f5432e3ff5fe01d208b262"
+        },
+        "source": {
+          "path": "fixtures/legacy_p1_private_chain_negative/src/lib.rs",
+          "sha256": "81800225dba60fc583befcd7f8e0f2f58554e5b3ceb20550c7a94eb3b32f5c29"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p1_private_chain_negative/Cargo.lock",
+          "sha256": "aadf7524b3eb7244127a6660cc54b58d4a80da6d697eb2f530e5f72a1509f637"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p1_private_chain_negative/fixture.json",
+          "sha256": "72c7dba846ef32f1f579cfa2372e4e9e52317b6f221a7b9b9f8b28ab1a53114f"
+        }
+      },
+      "legacy_frozen_case": "pattern3_negative_private_chain"
+    },
+    {
+      "case_id": "legacy_p3_invalid_output_positive",
+      "role": "positive",
+      "package_name": "pattern4_positive",
+      "expected_primary_pattern": "pattern3",
+      "expected_rule_id": "P3.lifetime_transmute",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 1,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p3_invalid_output_positive/Cargo.toml",
+          "sha256": "42b7acb2522228d9fc273347c982e997aac06ccf3d180be20dcd7fed96cc22f3"
+        },
+        "source": {
+          "path": "fixtures/legacy_p3_invalid_output_positive/src/lib.rs",
+          "sha256": "c20becbf1fdb4c034a59e21b3c13917ca286b9db0a33aba3a2fc34bcbf2deef4"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p3_invalid_output_positive/Cargo.lock",
+          "sha256": "5ef132e7407b9b6656ca937de4e03d6f5c6260ebaf3f03e63c7a350afd0a1a95"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p3_invalid_output_positive/fixture.json",
+          "sha256": "81f04adae5c336a6b6cfc078d5c2168bcbcd37b28cd8e7db3e1d8e76a4c9cc48"
+        }
+      },
+      "legacy_frozen_case": "pattern4_positive"
+    },
+    {
+      "case_id": "legacy_p3_checked_utf8_negative",
+      "role": "negative",
+      "package_name": "pattern4_negative_checked_utf8",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/legacy_p3_checked_utf8_negative/Cargo.toml",
+          "sha256": "821736f367e77b646e9b39b28d48b92829b3dceda28660737a926cb7a39e92b4"
+        },
+        "source": {
+          "path": "fixtures/legacy_p3_checked_utf8_negative/src/lib.rs",
+          "sha256": "8d6a580db699b469fe0de8ce4c500e64c6e03321b217df4012b1c949062c8c3c"
+        },
+        "lock": {
+          "path": "fixtures/legacy_p3_checked_utf8_negative/Cargo.lock",
+          "sha256": "b243b120d156069a240319c3c525a6814398336ebdddbc4cbd65cdbf331e5680"
+        },
+        "oracle": {
+          "path": "fixtures/legacy_p3_checked_utf8_negative/fixture.json",
+          "sha256": "efab830006d3e5772d0a320d8cb4e7ddef7b773a7deba5ef3830d0cd5bd7fa4e"
+        }
+      },
+      "legacy_frozen_case": "pattern4_negative_checked_utf8"
+    },
+    {
+      "case_id": "p1_two_hop_positive",
+      "role": "positive",
+      "package_name": "p1_two_hop_positive",
+      "expected_primary_pattern": "pattern1",
+      "expected_rule_id": "P1.get_unchecked",
+      "expected_pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p1_two_hop_positive/Cargo.toml",
+          "sha256": "53a6872ca24ec5095a0f20a6f6151d321db9d96ede1effb2f1bbca2970fe96d9"
+        },
+        "source": {
+          "path": "fixtures/p1_two_hop_positive/src/lib.rs",
+          "sha256": "467db7aa58dce3943c73c54d7d89f5123f09b706c778bbbb0a3b7c45b77403d9"
+        },
+        "lock": {
+          "path": "fixtures/p1_two_hop_positive/Cargo.lock",
+          "sha256": "cccf74aa167f947ade3311be6d1a4873723732fe1d5986f0aeba7116f293284c"
+        },
+        "oracle": {
+          "path": "fixtures/p1_two_hop_positive/fixture.json",
+          "sha256": "22037bac100aaa6b8edada610d4f8b15b06accad3a87c51a0892dbc7e4bf85a3"
+        }
+      },
+      "paired_with": "p1_two_hop_checked_negative"
+    },
+    {
+      "case_id": "p1_two_hop_checked_negative",
+      "role": "negative",
+      "package_name": "p1_two_hop_checked_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p1_two_hop_checked_negative/Cargo.toml",
+          "sha256": "afbb9208f57afd4ed43ee5a61661813db3a91da061150c785d1032f4f1bcc32b"
+        },
+        "source": {
+          "path": "fixtures/p1_two_hop_checked_negative/src/lib.rs",
+          "sha256": "b861a764ff3fb03053574f91236d57cc60ae210e96c9dfc9747ee0aefd44ad07"
+        },
+        "lock": {
+          "path": "fixtures/p1_two_hop_checked_negative/Cargo.lock",
+          "sha256": "bd8829080fb0bd18bda460a267a3dbf872af77d29b6a98d65305788f4ac8b796"
+        },
+        "oracle": {
+          "path": "fixtures/p1_two_hop_checked_negative/fixture.json",
+          "sha256": "f0f54ba6bd76f5de65be2cbd36338bffed9a72fe0f3535b84cf5610bbd225531"
+        }
+      },
+      "paired_with": "p1_two_hop_positive"
+    },
+    {
+      "case_id": "p2_helper_positive",
+      "role": "positive",
+      "package_name": "p2_helper_positive",
+      "expected_primary_pattern": "pattern2",
+      "expected_rule_id": "P2.get_unchecked",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 1,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p2_helper_positive/Cargo.toml",
+          "sha256": "5ac1ee6b764e0c144a6713bd62f15d4bfd552b9392df84537dd69826c70c2c2c"
+        },
+        "source": {
+          "path": "fixtures/p2_helper_positive/src/lib.rs",
+          "sha256": "4681351bdc1ccbdbf75d1ff5729e035757103771dcff5e215d066c005669a70d"
+        },
+        "lock": {
+          "path": "fixtures/p2_helper_positive/Cargo.lock",
+          "sha256": "fe15b35bf068d235f2265e21d5a1edfe5d59ac76f58dfc86000e344c41e52daf"
+        },
+        "oracle": {
+          "path": "fixtures/p2_helper_positive/fixture.json",
+          "sha256": "48492b4e28cd95856bc0caf0385f6423f63c1b53a52b97dadab70ef24651511d"
+        }
+      },
+      "paired_with": "p2_helper_checked_negative"
+    },
+    {
+      "case_id": "p2_helper_checked_negative",
+      "role": "negative",
+      "package_name": "p2_helper_checked_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p2_helper_checked_negative/Cargo.toml",
+          "sha256": "fe0609789d06b7721e8133a0b7423200442a0b11f7e50d4ab909fe072b4b1c4a"
+        },
+        "source": {
+          "path": "fixtures/p2_helper_checked_negative/src/lib.rs",
+          "sha256": "3c95e756ba203200e9854ad13fc8bcf2ae3546ee4ddbc2dfc908f637a1862049"
+        },
+        "lock": {
+          "path": "fixtures/p2_helper_checked_negative/Cargo.lock",
+          "sha256": "24faaf2ff9491ecc9c876d1edeb3922c35654af09624d517674028b7a940cdee"
+        },
+        "oracle": {
+          "path": "fixtures/p2_helper_checked_negative/fixture.json",
+          "sha256": "5e5ada899a645e393b74fd86e622e3de17d6cb85109976889efad574dde56654"
+        }
+      },
+      "paired_with": "p2_helper_positive"
+    },
+    {
+      "case_id": "p3_helper_return_positive",
+      "role": "positive",
+      "package_name": "p3_helper_return_positive",
+      "expected_primary_pattern": "pattern3",
+      "expected_rule_id": "P3.assume_init_bool",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 1,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p3_helper_return_positive/Cargo.toml",
+          "sha256": "0094282dcd15c1f77b7d4361ead932c002a5e4165e9d0d5d6ae94c1a4fab0681"
+        },
+        "source": {
+          "path": "fixtures/p3_helper_return_positive/src/lib.rs",
+          "sha256": "81b32138db0bcd99a6be7ff4b7c4452269338fa5e501737b54050a7489ff0f94"
+        },
+        "lock": {
+          "path": "fixtures/p3_helper_return_positive/Cargo.lock",
+          "sha256": "d17c1fb9c84f2b4251b4ff0123d5bfbdfa779130b4a2a125d30f88210be1ba26"
+        },
+        "oracle": {
+          "path": "fixtures/p3_helper_return_positive/fixture.json",
+          "sha256": "3e3972a6d055632abfc21687caf3ba94e60632ff5e6f15ab0cb7c24efdd00530"
+        }
+      },
+      "paired_with": "p3_helper_return_initialized_negative"
+    },
+    {
+      "case_id": "p3_helper_return_initialized_negative",
+      "role": "negative",
+      "package_name": "p3_helper_return_initialized_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p3_helper_return_initialized_negative/Cargo.toml",
+          "sha256": "bc9fcc5ad40c6c9fdf4cccc1f414d7f03d40a1b9dec6ef75d86fba8a2e8de8d4"
+        },
+        "source": {
+          "path": "fixtures/p3_helper_return_initialized_negative/src/lib.rs",
+          "sha256": "678c067de58412dc4cd519d27168f5ab18038888d9fe5e00286b969c1d0c736a"
+        },
+        "lock": {
+          "path": "fixtures/p3_helper_return_initialized_negative/Cargo.lock",
+          "sha256": "44de8644aeeb599a5abeea660357aecf52cb5aa372df1b2c99c555149cc61300"
+        },
+        "oracle": {
+          "path": "fixtures/p3_helper_return_initialized_negative/fixture.json",
+          "sha256": "69f378e70f32e6683f76bbb9c1643ddc620fa82b3fe8b49ae6732de7ab913b57"
+        }
+      },
+      "paired_with": "p3_helper_return_positive"
+    },
+    {
+      "case_id": "p4_internal_bounds_positive",
+      "role": "positive",
+      "package_name": "p4_internal_bounds_positive",
+      "expected_primary_pattern": "pattern4",
+      "expected_rule_id": "P4.bounds",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 1,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p4_internal_bounds_positive/Cargo.toml",
+          "sha256": "0a5cad0c564b5e094f0dbec9608277967d71194fdec505252aad54164de3bd92"
+        },
+        "source": {
+          "path": "fixtures/p4_internal_bounds_positive/src/lib.rs",
+          "sha256": "2122c5e81b169f8969ef7ae80d449907d81fb511f7bc1d0caf18f4304d824bb8"
+        },
+        "lock": {
+          "path": "fixtures/p4_internal_bounds_positive/Cargo.lock",
+          "sha256": "df08b8f3f3bed4587424e565830285ec19c4923622190e4840e092f7e817ef14"
+        },
+        "oracle": {
+          "path": "fixtures/p4_internal_bounds_positive/fixture.json",
+          "sha256": "606baee3ecf0536c91661864c8e59078d8ff01693302a96e9effccbb41c3b990"
+        }
+      },
+      "paired_with": "p4_internal_bounds_checked_negative"
+    },
+    {
+      "case_id": "p4_internal_bounds_checked_negative",
+      "role": "negative",
+      "package_name": "p4_internal_bounds_checked_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p4_internal_bounds_checked_negative/Cargo.toml",
+          "sha256": "fed0908f475d087485822e650d17b7c4f3e9d69ca1238ad38ce2057f853dd559"
+        },
+        "source": {
+          "path": "fixtures/p4_internal_bounds_checked_negative/src/lib.rs",
+          "sha256": "1fbec54599c1e089f50969da44feaef862aacd3336869c9f1b73989e9f097904"
+        },
+        "lock": {
+          "path": "fixtures/p4_internal_bounds_checked_negative/Cargo.lock",
+          "sha256": "cb7938181953cf754722fd49fb87734c97b45080e533704271c2a2beda6e24e6"
+        },
+        "oracle": {
+          "path": "fixtures/p4_internal_bounds_checked_negative/fixture.json",
+          "sha256": "ab2107dfbfc618c2ee04e2759818d288628bf8105a7f4b034caaec8166582476"
+        }
+      },
+      "paired_with": "p4_internal_bounds_positive"
+    },
+    {
+      "case_id": "p4_internal_offset_positive",
+      "role": "positive",
+      "package_name": "p4_internal_offset_positive",
+      "expected_primary_pattern": "pattern4",
+      "expected_rule_id": "P4.offset",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 1,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p4_internal_offset_positive/Cargo.toml",
+          "sha256": "2c47c50e9683ebd1693cfbec58307fe52355fb3eb1cca1d83ad6ce2c394e91aa"
+        },
+        "source": {
+          "path": "fixtures/p4_internal_offset_positive/src/lib.rs",
+          "sha256": "9431cecc2c90d76512607851388e4505fcee442cd945550958aecc694b5e1927"
+        },
+        "lock": {
+          "path": "fixtures/p4_internal_offset_positive/Cargo.lock",
+          "sha256": "402363005577c71585755d88d3750a06d5653ada9b190bbb08f9cfd38d267685"
+        },
+        "oracle": {
+          "path": "fixtures/p4_internal_offset_positive/fixture.json",
+          "sha256": "e322faf1a557d241e6c00d115cebe14a2263375763aeea37bb7c31aa0b046003"
+        }
+      },
+      "paired_with": "p4_internal_offset_checked_negative"
+    },
+    {
+      "case_id": "p4_internal_offset_checked_negative",
+      "role": "negative",
+      "package_name": "p4_internal_offset_checked_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p4_internal_offset_checked_negative/Cargo.toml",
+          "sha256": "ba87f62e0ec504663adddbd0885f4abb987b32acbb1b23196ac1ea4797238ece"
+        },
+        "source": {
+          "path": "fixtures/p4_internal_offset_checked_negative/src/lib.rs",
+          "sha256": "4cf4a0a7652a0306876b83da6d6d69781af3acefdfb069a14497e59c3dca302e"
+        },
+        "lock": {
+          "path": "fixtures/p4_internal_offset_checked_negative/Cargo.lock",
+          "sha256": "322486b609a3d033a76c857beb35124df1d0baa12724ab1ebe74392d7620178c"
+        },
+        "oracle": {
+          "path": "fixtures/p4_internal_offset_checked_negative/fixture.json",
+          "sha256": "1cd9af7792ec71fe65e80acee2b446da2a1a897bd089b7028fa3532eee0ad01e"
+        }
+      },
+      "paired_with": "p4_internal_offset_positive"
+    },
+    {
+      "case_id": "p5_associated_slice_nonempty_positive",
+      "role": "positive",
+      "package_name": "p5_associated_slice_nonempty_positive",
+      "expected_primary_pattern": "pattern5",
+      "expected_rule_id": "P5.1.nonempty",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 1,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p5_associated_slice_nonempty_positive/Cargo.toml",
+          "sha256": "0afd3cc96a0fb26b488628a10111308a42d364b7d5a79a3c4658a849252fef82"
+        },
+        "source": {
+          "path": "fixtures/p5_associated_slice_nonempty_positive/src/lib.rs",
+          "sha256": "d5ad4db7b8c799fca2d2caf317cd3137b2343f32716571d09ba55dc970404782"
+        },
+        "lock": {
+          "path": "fixtures/p5_associated_slice_nonempty_positive/Cargo.lock",
+          "sha256": "50e892ba1efc14dfeee917d95493130fde07810f2ab9fa10ce43e815062569f0"
+        },
+        "oracle": {
+          "path": "fixtures/p5_associated_slice_nonempty_positive/fixture.json",
+          "sha256": "909d1d6160d6149ca0fdedb8e20ef9e91f7525dfb8b7e7b8edbdf13286a203cc"
+        }
+      },
+      "paired_with": "p5_associated_slice_nonempty_negative"
+    },
+    {
+      "case_id": "p5_associated_slice_nonempty_negative",
+      "role": "negative",
+      "package_name": "p5_associated_slice_nonempty_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p5_associated_slice_nonempty_negative/Cargo.toml",
+          "sha256": "f31521a3ee3bf3b9e9b3ea0bd94bf47ae747b77fccafcc93bf405ea19f3b6a78"
+        },
+        "source": {
+          "path": "fixtures/p5_associated_slice_nonempty_negative/src/lib.rs",
+          "sha256": "04bdc61934fa10d84690a2c92719ce10c60b2e193a2d4ee909517c16fc4ccfde"
+        },
+        "lock": {
+          "path": "fixtures/p5_associated_slice_nonempty_negative/Cargo.lock",
+          "sha256": "f6b3a64568cd3ebb41063806e6779d50e4ae33b018e98731cad663aa65697d41"
+        },
+        "oracle": {
+          "path": "fixtures/p5_associated_slice_nonempty_negative/fixture.json",
+          "sha256": "13f986a86efff1324705f70e72c8aae3036f55e032ef241c5b3477defc45d57c"
+        }
+      },
+      "paired_with": "p5_associated_slice_nonempty_positive"
+    },
+    {
+      "case_id": "p6_ffi_out_param_positive",
+      "role": "positive",
+      "package_name": "p6_ffi_out_param_positive",
+      "expected_primary_pattern": "pattern6",
+      "expected_rule_id": "P6.ffi_out_param",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 1
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p6_ffi_out_param_positive/Cargo.toml",
+          "sha256": "ad0d4cbbb93e66cb3b4bd0f553950795508d2dd73127f1ef92b6dbb230efa927"
+        },
+        "source": {
+          "path": "fixtures/p6_ffi_out_param_positive/src/lib.rs",
+          "sha256": "8f4c0676a9425b28690ec6be1e043d4df33d5ea106e9fe62df6b4a1ab9698cb8"
+        },
+        "lock": {
+          "path": "fixtures/p6_ffi_out_param_positive/Cargo.lock",
+          "sha256": "ef4c255901f2fde91d02ead5ef75739bd955e2f7aa66ea94e549c9bc13efde92"
+        },
+        "oracle": {
+          "path": "fixtures/p6_ffi_out_param_positive/fixture.json",
+          "sha256": "bfbcdb4191f987df9cc48e60de871a835c7a88aa90e7b6fc8aea584fed96e7ad"
+        }
+      },
+      "paired_with": "p6_ffi_out_param_nonnull_negative"
+    },
+    {
+      "case_id": "p6_ffi_out_param_nonnull_negative",
+      "role": "negative",
+      "package_name": "p6_ffi_out_param_nonnull_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p6_ffi_out_param_nonnull_negative/Cargo.toml",
+          "sha256": "79d66a472340e12ef6204323a200cadcff30d9200f17c0546efbd4dd2b596dae"
+        },
+        "source": {
+          "path": "fixtures/p6_ffi_out_param_nonnull_negative/src/lib.rs",
+          "sha256": "ed1dd5495bde9a8bc8f14170a8aa2b7354124544b471a7ae2b8fb06759281c5f"
+        },
+        "lock": {
+          "path": "fixtures/p6_ffi_out_param_nonnull_negative/Cargo.lock",
+          "sha256": "9c3af3830b9f77d63c7be724721d46ca55cee9d4fb901b0a1673d50a8344ac25"
+        },
+        "oracle": {
+          "path": "fixtures/p6_ffi_out_param_nonnull_negative/fixture.json",
+          "sha256": "2c2f5ad4add8700f38cb1cb6918b1ce54f926b6e0ebb611b86370b18657f60d0"
+        }
+      },
+      "paired_with": "p6_ffi_out_param_positive"
+    },
+    {
+      "case_id": "p6_open_trait_result_positive",
+      "role": "positive",
+      "package_name": "p6_open_trait_result_positive",
+      "expected_primary_pattern": "pattern6",
+      "expected_rule_id": "P6.open_trait_index",
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 1
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p6_open_trait_result_positive/Cargo.toml",
+          "sha256": "69aefade16b417843efb8abc1ef528ad7f1cdca882a4a3c3ff9379fd541565fe"
+        },
+        "source": {
+          "path": "fixtures/p6_open_trait_result_positive/src/lib.rs",
+          "sha256": "1e832bc9bc1b15fae2e0929251a4e6eb3d6d569a7d159fee1745108df651af23"
+        },
+        "lock": {
+          "path": "fixtures/p6_open_trait_result_positive/Cargo.lock",
+          "sha256": "660627e22934a4912ef3bd688352bc56496f6edb96b8cd326c4e56b927e0e401"
+        },
+        "oracle": {
+          "path": "fixtures/p6_open_trait_result_positive/fixture.json",
+          "sha256": "326168a76072ce75e4281828445803dc0bceafd904b194335fdd8b9edf28a0f5"
+        }
+      },
+      "paired_with": "p6_open_trait_result_checked_negative"
+    },
+    {
+      "case_id": "p6_open_trait_result_checked_negative",
+      "role": "negative",
+      "package_name": "p6_open_trait_result_checked_negative",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/p6_open_trait_result_checked_negative/Cargo.toml",
+          "sha256": "e80b6dfbdb4f671b7e019157357e9e00f8ff88ab8d6cef4ad8b8bac48b3da080"
+        },
+        "source": {
+          "path": "fixtures/p6_open_trait_result_checked_negative/src/lib.rs",
+          "sha256": "5182b8e843cf76c74da6319477439978c1c808ee6ec76dc702bfdfe1ed1022db"
+        },
+        "lock": {
+          "path": "fixtures/p6_open_trait_result_checked_negative/Cargo.lock",
+          "sha256": "98f9b5c95bd9b81b2b5e9a1cedf5b25b68cec75e9668e7d6e496a9009c23d576"
+        },
+        "oracle": {
+          "path": "fixtures/p6_open_trait_result_checked_negative/fixture.json",
+          "sha256": "4dbc2e0140a9118303bbd9203b7f50492cbc37e3ab4e55b96c254d50b4865059"
+        }
+      },
+      "paired_with": "p6_open_trait_result_positive"
+    },
+    {
+      "case_id": "all_patterns_checked_noise",
+      "role": "noise",
+      "package_name": "all_patterns_checked_noise",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
+      "expected_pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "files": {
+        "manifest": {
+          "path": "fixtures/all_patterns_checked_noise/Cargo.toml",
+          "sha256": "e4fb8db9a1a45162def484c25dbc5b0481310063517a2bad5cc7b3321fd287fc"
+        },
+        "source": {
+          "path": "fixtures/all_patterns_checked_noise/src/lib.rs",
+          "sha256": "c114ed8768d96e865ae08ae78a26c1af5379ac7593955cf26ba7966a4f1074e5"
+        },
+        "lock": {
+          "path": "fixtures/all_patterns_checked_noise/Cargo.lock",
+          "sha256": "9d34bfb9e3fca13ea14594884f1fbe8edff50d9301545bed560060bab8f5b3e2"
+        },
+        "oracle": {
+          "path": "fixtures/all_patterns_checked_noise/fixture.json",
+          "sha256": "30d7c3712b806c0a45bc2c3800bc8da2c579da8c2408944cd9fdcc607541020a"
+        }
+      }
+    }
+  ]
+}

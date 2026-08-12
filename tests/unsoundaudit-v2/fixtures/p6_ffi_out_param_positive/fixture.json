@@ -1,0 +1,33 @@
+{
+  "case_id": "p6_ffi_out_param_positive",
+  "expected_finding_count": 1,
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 1
+  },
+  "expected_primary_pattern": "pattern6",
+  "expected_rule_id": "P6.ffi_out_param",
+  "family_support": null,
+  "fix_fact": null,
+  "forbidden_extra_patterns": [
+    "pattern1",
+    "pattern2",
+    "pattern3",
+    "pattern4",
+    "pattern5"
+  ],
+  "limitations": "fixture-closed heuristic candidate generator contract",
+  "manifest_relative_path": "Cargo.toml",
+  "obligation": "nonnull",
+  "package_name": "p6_ffi_out_param_positive",
+  "propagation_depth": null,
+  "role": "positive",
+  "schema_version": "unsoundaudit-v2-fixture-v1",
+  "sink": "nonnull_new_unchecked",
+  "source": "ffi_output",
+  "source_relative_path": "src/lib.rs"
+}

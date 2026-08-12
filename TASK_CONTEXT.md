@@ -13,7 +13,10 @@
 - Native arm64 Xcode Command Line Tools, Homebrew LLVM/libclang, Z3, CMake, and pkg-config passed architecture and availability checks.
 - `nightly-2024-10-12` is installed with the required components. Rustc and Cargo commits exactly match the manifest.
 - The exact frozen baseline built successfully with a fresh target, isolated Cargo home, `--locked`, and one Cargo job.
-- Next gate: freeze the 27 v2 fixture oracles, schema, runner, normalizer, and observe the specified first RED result before detector implementation.
+- The 27 v2 fixture oracles, tracked lockfiles, formal schema, stdlib-only fail-closed validator, serial runner, and normalizer are frozen locally.
+- All 27 fixtures pass `cargo check --lib --locked --jobs 1` with a separate fresh target per case.
+- The specified first RED was observed: frozen v1 scanning exits successfully but emits `rap-unit-v1` with only P1–P4; the v2 validator exits nonzero.
+- Next gate: add the structured summary IR and pure Rust unit tests, then replace the detector through MIR facts, calls, SCC convergence, validation, and P1–P6 TDD stages.
 
 ## Decisions
 
@@ -24,12 +27,17 @@
 - Keep project concurrency and Cargo jobs at one. Every build, test, control check, and scan uses a fresh target.
 - Existing shell `RUSTFLAGS` are explicitly cleared. The build shell then sets only the handoff-mandated Z3 native search path.
 - GitHub SSH uses `ssh.github.com:443` for transport while `origin` remains `git@github.com:lwz23/RAPx.git`.
+- `rap-unit-v2.schema.json` is the Stage 1 interface contract. It closes top-level, pattern-count, finding, causal-key, span, source, obligation, validation, and propagation key sets.
+- Finding IDs are canonical causal-key SHA-256 values; the canonical key excludes witness choice and propagation depth.
+- Legacy `Cargo.toml` and `src/lib.rs` files remain byte-identical to the frozen handoff copies. New fixture pairs use the smallest safe construction APIs needed to make private-state roots reachable without changing their source classification.
+- The one-shot fixture generation helper was not retained; the frozen crate sources, oracles, lockfiles, and manifest are the reviewable source of truth.
 
 ## Rejected Alternatives
 
 - No nightly substitution, dependency upgrade, RAP lockfile edit, or source workaround for Mac compatibility.
 - No cross-crate whole-program analysis, unresolved-call speculation, fixed iteration limit, name-based sanitizer, or keyword-only candidate rule.
 - No FFI-return, Iterator, callback, general dynamic-dispatch, raw-reference/slice, `Box::from_raw`, or `set_len` extension in this work package.
+- No permissive JSON Schema library fallback: the tracked standard-library validator enforces the exact contract directly and also audits the formal schema for drift.
 - No Miri, benchmarks, fixture execution, real-project scan, Linux campaign access, coverage-ledger update, or historical-baseline reinterpretation.
 
 ## Verification Invariants

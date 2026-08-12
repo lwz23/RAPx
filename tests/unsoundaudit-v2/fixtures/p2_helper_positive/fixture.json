@@ -1,0 +1,33 @@
+{
+  "case_id": "p2_helper_positive",
+  "expected_finding_count": 1,
+  "expected_pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 1,
+    "pattern3": 0,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "expected_primary_pattern": "pattern2",
+  "expected_rule_id": "P2.get_unchecked",
+  "family_support": null,
+  "fix_fact": null,
+  "forbidden_extra_patterns": [
+    "pattern1",
+    "pattern3",
+    "pattern4",
+    "pattern5",
+    "pattern6"
+  ],
+  "limitations": "fixture-closed heuristic candidate generator contract",
+  "manifest_relative_path": "Cargo.toml",
+  "obligation": "in_bounds",
+  "package_name": "p2_helper_positive",
+  "propagation_depth": "inter_procedural",
+  "role": "positive",
+  "schema_version": "unsoundaudit-v2-fixture-v1",
+  "sink": "get_unchecked",
+  "source": "literal_public_field",
+  "source_relative_path": "src/lib.rs"
+}

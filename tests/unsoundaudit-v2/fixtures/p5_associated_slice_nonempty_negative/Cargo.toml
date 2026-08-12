@@ -1,0 +1,8 @@
+[package]
+name = "p5_associated_slice_nonempty_negative"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"

@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rapx.dev/schemas/rap-unit-v2.schema.json",
+  "title": "RAP UnsoundAudit v2 unit receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project_root",
+    "source",
+    "success",
+    "unit_id",
+    "rustc_invocation_id",
+    "package_id",
+    "package_name",
+    "package_version",
+    "crate_name",
+    "crate_types",
+    "target_kind",
+    "target_triple",
+    "manifest_path",
+    "source_path",
+    "extra_filename",
+    "rustc_path",
+    "cargo_supplied_rustc_path",
+    "cargo_supplied_rustc_commit",
+    "rap_compiler_commit",
+    "rustc_commit",
+    "pattern_counts",
+    "finding_count",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": { "const": "rap-unit-v2" },
+    "project_root": { "type": "string" },
+    "source": { "const": "rap" },
+    "success": { "const": true },
+    "unit_id": { "type": "string" },
+    "rustc_invocation_id": { "type": "string" },
+    "package_id": { "type": "string" },
+    "package_name": { "type": "string" },
+    "package_version": { "type": "string" },
+    "crate_name": { "type": "string" },
+    "crate_types": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "target_kind": { "type": "string" },
+    "target_triple": { "type": "string" },
+    "manifest_path": { "type": "string" },
+    "source_path": { "type": "string" },
+    "extra_filename": { "type": "string" },
+    "rustc_path": { "type": "string" },
+    "cargo_supplied_rustc_path": { "type": "string" },
+    "cargo_supplied_rustc_commit": { "$ref": "#/$defs/commit" },
+    "rap_compiler_commit": { "$ref": "#/$defs/commit" },
+    "rustc_commit": { "$ref": "#/$defs/commit" },
+    "pattern_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pattern1", "pattern2", "pattern3", "pattern4", "pattern5", "pattern6"],
+      "properties": {
+        "pattern1": { "type": "integer", "minimum": 0 },
+        "pattern2": { "type": "integer", "minimum": 0 },
+        "pattern3": { "type": "integer", "minimum": 0 },
+        "pattern4": { "type": "integer", "minimum": 0 },
+        "pattern5": { "type": "integer", "minimum": 0 },
+        "pattern6": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "finding_count": { "type": "integer", "minimum": 0 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "pattern": {
+      "enum": ["pattern1", "pattern2", "pattern3", "pattern4", "pattern5", "pattern6"]
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["line", "column"],
+      "properties": {
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "start", "end"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:[\\\\/]).+"
+        },
+        "start": { "$ref": "#/$defs/position" },
+        "end": { "$ref": "#/$defs/position" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "origin_key", "span"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "public_parameter",
+            "literal_public_field",
+            "internal_unsafe_origin",
+            "internal_derived",
+            "generic_nonempty_capability",
+            "ffi_output",
+            "open_behavior_output"
+          ]
+        },
+        "origin_key": { "type": "string", "minLength": 1 },
+        "span": { "$ref": "#/$defs/span" }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "span"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "span": { "$ref": "#/$defs/span" }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predicates", "subject"],
+      "properties": {
+        "predicates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "valid_for_read",
+              "in_bounds",
+              "non_empty",
+              "range_in_bounds",
+              "nonnull",
+              "referent_outlives_reference",
+              "initialized",
+              "valid_bool",
+              "valid_utf8"
+            ]
+          }
+        },
+        "subject": { "type": "string", "minLength": 1 }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "facts"],
+      "properties": {
+        "status": { "const": "missing" },
+        "facts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "public_root": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["def_path", "span"],
+      "properties": {
+        "def_path": { "type": "string", "minLength": 1 },
+        "span": { "$ref": "#/$defs/span" }
+      }
+    },
+    "witness_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "function", "span"],
+      "properties": {
+        "kind": { "enum": ["entry", "source", "local_call", "scc_cycle", "sink", "exposure"] },
+        "function": { "type": "string", "minLength": 1 },
+        "span": { "$ref": "#/$defs/span" }
+      }
+    },
+    "propagation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["depth", "local_call_count", "boundaries", "witness"],
+      "properties": {
+        "depth": { "enum": ["intra_procedural", "inter_procedural", "recursive"] },
+        "local_call_count": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "null" }
+          ]
+        },
+        "boundaries": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "witness": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/witness_step" }
+        }
+      }
+    },
+    "causal_key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["crate", "public_root", "source_origin", "first_contract_failure", "sink_or_exposure", "canonical_obligation"],
+      "properties": {
+        "crate": { "type": "string", "minLength": 1 },
+        "public_root": { "type": "string", "minLength": 1 },
+        "source_origin": { "type": "string", "minLength": 1 },
+        "first_contract_failure": { "type": "string", "minLength": 1 },
+        "sink_or_exposure": { "type": "string", "minLength": 1 },
+        "canonical_obligation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "causal_key",
+        "primary_pattern",
+        "rule_id",
+        "public_safe_root",
+        "source",
+        "first_contract_failure",
+        "sink",
+        "obligation",
+        "validation_status",
+        "propagation",
+        "secondary_source_kinds",
+        "heuristic_candidate_generator",
+        "limitations"
+      ],
+      "properties": {
+        "finding_id": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "causal_key": { "$ref": "#/$defs/causal_key" },
+        "primary_pattern": { "$ref": "#/$defs/pattern" },
+        "rule_id": {
+          "enum": [
+            "P1.raw_read",
+            "P1.get_unchecked",
+            "P2.raw_read",
+            "P2.get_unchecked",
+            "P3.lifetime_transmute",
+            "P3.assume_init_bool",
+            "P3.unchecked_utf8",
+            "P4.bounds",
+            "P4.offset",
+            "P5.1.nonempty",
+            "P6.ffi_out_param",
+            "P6.open_trait_index"
+          ]
+        },
+        "public_safe_root": { "$ref": "#/$defs/public_root" },
+        "source": { "$ref": "#/$defs/source" },
+        "first_contract_failure": { "$ref": "#/$defs/operation" },
+        "sink": { "$ref": "#/$defs/operation" },
+        "obligation": { "$ref": "#/$defs/obligation" },
+        "validation_status": { "$ref": "#/$defs/validation" },
+        "propagation": { "$ref": "#/$defs/propagation" },
+        "secondary_source_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "heuristic_candidate_generator": { "const": true },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "family_support": { "const": "partial" }
+      }
+    }
+  }
+}

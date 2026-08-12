@@ -1,0 +1,74 @@
+{
+  "schema_version": "unsoundaudit-v2-fixture-contract-receipt-v1",
+  "status": "red_contract_frozen",
+  "baseline_source_commit": "0cf2741f590786eb7022218442e13d13c86259c1",
+  "legacy_provenance": {
+    "checked_files": 31,
+    "hash_and_size_status": "pass",
+    "migrated_cargo_and_source_bytes": "identical"
+  },
+  "fixtures": {
+    "count": 27,
+    "positive": 12,
+    "negative": 14,
+    "noise": 1,
+    "control_check_command": "cargo check --lib --locked --jobs 1",
+    "control_check_passed": 27,
+    "fresh_target_per_case": true,
+    "aggregate_expected_pattern_counts": {
+      "pattern1": 3,
+      "pattern2": 2,
+      "pattern3": 2,
+      "pattern4": 2,
+      "pattern5": 1,
+      "pattern6": 2
+    }
+  },
+  "first_red": {
+    "test": "legacy_p1_param_direct_positive_emits_exact_rap_unit_v2_contract",
+    "scan_exit_code": 0,
+    "validator_exit_code": 1,
+    "expected_schema_version": "rap-unit-v2",
+    "observed_schema_version": "rap-unit-v1",
+    "expected_pattern_keys": [
+      "pattern1",
+      "pattern2",
+      "pattern3",
+      "pattern4",
+      "pattern5",
+      "pattern6"
+    ],
+    "observed_pattern_keys": [
+      "pattern1",
+      "pattern2",
+      "pattern3",
+      "pattern4"
+    ],
+    "validator_error": "receipt.schema_version must be rap-unit-v2",
+    "raw_receipt_sha256": "b2f7fa03b32fb82c6dcc334cce24cb21131f2016bb9b25f18943f8df311489ce",
+    "raw_scan_log_sha256": "d86a8a42425a8c71d37dc2e26ad3311ca7872f2465ebb390cbd91d114cd5fb31",
+    "raw_validator_stderr_sha256": "7cd435a27b27d10aedea3f857da28255645aa4d4a95dd4dde257d1eee93e23dc",
+    "raw_logs_committed": false
+  },
+  "scope": {
+    "contract": "fixture_closed",
+    "p3_registry": [
+      "lifetime_extension_transmute",
+      "maybeuninit_bool_assume_init",
+      "unchecked_utf8"
+    ],
+    "p6_registry": [
+      "ffi_out_pointer_to_nonnull_new_unchecked",
+      "open_trait_usize_index_to_get_unchecked"
+    ],
+    "unsupported_future": [
+      "ffi_return",
+      "iterator_output",
+      "callback_output",
+      "dyn_dispatch_output",
+      "raw_reference_or_slice_origin",
+      "box_from_raw_origin",
+      "set_len_origin"
+    ]
+  }
+}
