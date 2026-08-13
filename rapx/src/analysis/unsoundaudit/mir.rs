@@ -509,8 +509,16 @@ fn out_slot_index(place: &PlaceKey) -> Option<u32> {
 
 #[derive(Clone, Debug)]
 struct ProgramOp {
-    point: ProgramPoint,
+    point: Option<ProgramPoint>,
     kind: ProgramOpKind,
+}
+
+impl ProgramOp {
+    fn semantic_point(&self) -> &ProgramPoint {
+        self.point
+            .as_ref()
+            .expect("semantic MIR operations require a stable source point")
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -789,6 +797,66 @@ pub fn analyze(tcx: TyCtxt<'_>) -> Result<Vec<Finding>, String> {
     Engine::new(tcx).run()
 }
 
+fn normalized_relative_span_path(path: &str) -> Option<PathBuf> {
+    if path.is_empty()
+        || path.contains('\\')
+        || path.contains('\0')
+        || path.starts_with('/')
+        || path.as_bytes().get(1) == Some(&b':')
+        || path
+            .split('/')
+            .any(|component| component.is_empty() || matches!(component, "." | ".."))
+    {
+        return None;
+    }
+    let path = PathBuf::from(path);
+    let normalized = path
+        .components()
+        .all(|component| matches!(component, std::path::Component::Normal(_)));
+    normalized.then_some(path)
+}
+
+fn stable_span_from_locations(
+    project_root: &Path,
+    local_path: Option<&str>,
+    remapped_path: Option<&str>,
+    lo_line: usize,
+    lo_column: usize,
+    hi_line: usize,
+    hi_column: usize,
+) -> Result<StableSpan, String> {
+    let local_relative = local_path.and_then(|local| {
+        Path::new(local)
+            .strip_prefix(project_root)
+            .ok()
+            .and_then(|relative| normalized_relative_span_path(&relative.to_string_lossy()))
+    });
+    let relative = local_relative.or_else(|| remapped_path.and_then(normalized_relative_span_path));
+    let relative = relative.ok_or_else(|| {
+        format!(
+            "UnsoundAudit v2 cannot form a stable repository-relative span path: local={local_path:?}, remapped={remapped_path:?}"
+        )
+    })?;
+    if lo_line == 0 || hi_line < lo_line || lo_column == 0 || hi_column == 0 {
+        return Err(format!(
+            "UnsoundAudit v2 received a zero-based or invalid source range: {lo_line}:{lo_column}..={hi_line}:{hi_column}"
+        ));
+    }
+    let lo_line = u32::try_from(lo_line)
+        .map_err(|_| "UnsoundAudit v2 source start line exceeds u32".to_string())?;
+    let hi_line = u32::try_from(hi_line)
+        .map_err(|_| "UnsoundAudit v2 source end line exceeds u32".to_string())?;
+    let lo_column = u32::try_from(lo_column)
+        .map_err(|_| "UnsoundAudit v2 source start column exceeds u32".to_string())?;
+    let hi_column = u32::try_from(hi_column)
+        .map_err(|_| "UnsoundAudit v2 source end column exceeds u32".to_string())?;
+    Ok(StableSpan::new(
+        relative.to_string_lossy(),
+        StablePosition::new(lo_line, lo_column),
+        StablePosition::new(hi_line, hi_column),
+    ))
+}
+
 impl<'tcx> Engine<'tcx> {
     fn new(tcx: TyCtxt<'tcx>) -> Self {
         let project_root = env::var_os("UNSOUND_SCANNER_PROJECT_ROOT")
@@ -810,7 +878,7 @@ impl<'tcx> Engine<'tcx> {
     fn run(mut self) -> Result<Vec<Finding>, String> {
         let ids = self.local_function_ids();
         self.preopt_transmutes = self.collect_preopt_transmutes(&ids)?;
-        self.collect_bodies(&ids);
+        self.collect_bodies(&ids)?;
         let graph = self.call_graph();
         let must_outputs = self.solve_local_out_must();
         let mut local_outputs = self.local_out_effects(&must_outputs);
@@ -1223,7 +1291,15 @@ impl<'tcx> Engine<'tcx> {
                         block: bb,
                         statement_index,
                     };
-                    let point = self.point(&function, location, statement.source_info.span);
+                    let point = self
+                        .point(&function, location, statement.source_info.span)
+                        .map_err(|error| {
+                            format!(
+                                "{error}; while normalizing pre-optimization {:?} bb{} statement {statement_index}",
+                                function,
+                                bb.index()
+                            )
+                        })?;
                     items.insert(PreoptTransmute {
                         first_failure: Operation {
                             kind: OperationKind::LifetimeTransmute,
@@ -1243,16 +1319,17 @@ impl<'tcx> Engine<'tcx> {
         Ok(result)
     }
 
-    fn collect_bodies(&mut self, ids: &[LocalDefId]) {
+    fn collect_bodies(&mut self, ids: &[LocalDefId]) -> Result<(), String> {
         for id in ids {
             let did = id.to_def_id();
             let body = self.tcx.optimized_mir(did);
             let function = FunctionKey::new(self.tcx.def_path_str(did));
-            let program = self.normalize_body(*id, body, &function);
+            let program = self.normalize_body(*id, body, &function)?;
             let facts = self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
             self.programs.insert(function, program);
             self.bodies.insert(facts.function.clone(), facts);
         }
+        Ok(())
     }
 
     fn extract_program(
@@ -1441,7 +1518,7 @@ impl<'tcx> Engine<'tcx> {
                                     op: *op,
                                     left: left.operand.clone(),
                                     right: right.operand.clone(),
-                                    point: operation.point.clone(),
+                                    point: operation.semantic_point().clone(),
                                 });
                             }
                             _ => {}
@@ -1450,26 +1527,29 @@ impl<'tcx> Engine<'tcx> {
                             record_write(
                                 facts,
                                 destination,
-                                operation.point.clone(),
+                                operation.semantic_point().clone(),
                                 WriteKind::Assignment,
                             );
                         }
                         if let Some(source) = &assignment.raw_read_source {
                             let subject = eval_operand(state, source).value;
                             facts.summary_seed.requirements.insert(ContractRequirement {
-                                seed_id: format!("P1.raw:{}", operation.point.span.token()),
+                                seed_id: format!(
+                                    "P1.raw:{}",
+                                    operation.semantic_point().span.token()
+                                ),
                                 collection: None,
                                 subject,
                                 source_hint: None,
                                 internal_derivation: false,
-                                source_span: operation.point.span.clone(),
+                                source_span: operation.semantic_point().span.clone(),
                                 first_failure: Operation {
                                     kind: OperationKind::RawRead,
-                                    point: operation.point.clone(),
+                                    point: operation.semantic_point().clone(),
                                 },
                                 sink: Operation {
                                     kind: OperationKind::RawRead,
-                                    point: operation.point.clone(),
+                                    point: operation.semantic_point().clone(),
                                 },
                                 predicates: BTreeSet::from([Predicate::ValidForRead]),
                                 access_width: None,
@@ -1507,7 +1587,7 @@ impl<'tcx> Engine<'tcx> {
                             args: args.clone(),
                             arg_values,
                             destination: descriptor.destination.clone(),
-                            point: operation.point.clone(),
+                            point: operation.semantic_point().clone(),
                             destination_is_bool: call.destination_is_bool,
                             access_width: call.access_width,
                         });
@@ -1516,7 +1596,7 @@ impl<'tcx> Engine<'tcx> {
                             facts.summary_seed.calls.insert(CallBoundary {
                                 caller: facts.function.clone(),
                                 callee: callee.clone(),
-                                point: operation.point.clone(),
+                                point: operation.semantic_point().clone(),
                                 mapping,
                             });
                         }
@@ -1524,7 +1604,7 @@ impl<'tcx> Engine<'tcx> {
                             record_edge_write(
                                 facts,
                                 descriptor.destination.clone(),
-                                operation.point.clone(),
+                                operation.semantic_point().clone(),
                                 WriteKind::CallReturn,
                                 normal_successor,
                             );
@@ -1538,7 +1618,7 @@ impl<'tcx> Engine<'tcx> {
                                 record_edge_write(
                                     facts,
                                     target,
-                                    operation.point.clone(),
+                                    operation.semantic_point().clone(),
                                     WriteKind::OpaqueMutable,
                                     normal_successor,
                                 );
@@ -1551,7 +1631,7 @@ impl<'tcx> Engine<'tcx> {
                                 record_edge_write(
                                     facts,
                                     target,
-                                    operation.point.clone(),
+                                    operation.semantic_point().clone(),
                                     WriteKind::ForeignOut,
                                     normal_successor,
                                 );
@@ -1598,7 +1678,7 @@ impl<'tcx> Engine<'tcx> {
                 let point = operations
                     .last()
                     .expect("each MIR block has a terminator operation")
-                    .point
+                    .semantic_point()
                     .clone();
                 facts.branches.push(BranchFact {
                     result: condition.clone(),
@@ -1623,7 +1703,7 @@ impl<'tcx> Engine<'tcx> {
         local_id: LocalDefId,
         body: &Body<'tcx>,
         function: &FunctionKey,
-    ) -> BodyProgram {
+    ) -> Result<BodyProgram, String> {
         let caller = local_id.to_def_id();
         let mut operations = IndexVec::new();
         let mut edges = IndexVec::new();
@@ -1646,16 +1726,23 @@ impl<'tcx> Engine<'tcx> {
         for (block, data) in body.basic_blocks.iter_enumerated() {
             let mut block_ops = Vec::with_capacity(data.statements.len() + 1);
             for (statement_index, statement) in data.statements.iter().enumerate() {
-                let point = self.point(
-                    function,
-                    Location {
-                        block,
-                        statement_index,
-                    },
-                    statement.source_info.span,
-                );
-                let kind = match &statement.kind {
+                let (point, kind) = match &statement.kind {
                     StatementKind::Assign(box (destination, rvalue)) => {
+                        let point = self
+                            .point(
+                                function,
+                                Location {
+                                    block,
+                                    statement_index,
+                                },
+                                statement.source_info.span,
+                            )
+                            .map_err(|error| {
+                                format!(
+                                    "{error}; while normalizing {:?} bb{} statement {statement_index} ({:?})",
+                                    function, block.index(), statement.kind
+                                )
+                            })?;
                         let destination_key = place_key(*destination);
                         let legacy_write = !destination.projection.is_empty()
                             || definition_counts
@@ -1663,35 +1750,49 @@ impl<'tcx> Engine<'tcx> {
                                 .copied()
                                 .unwrap_or(0)
                                 > 1;
-                        ProgramOpKind::Assign(self.normalize_assignment(
-                            body,
-                            *destination,
-                            rvalue,
-                            &point,
-                            legacy_write,
-                        ))
+                        (
+                            Some(point.clone()),
+                            ProgramOpKind::Assign(self.normalize_assignment(
+                                body,
+                                *destination,
+                                rvalue,
+                                &point,
+                                legacy_write,
+                            )),
+                        )
                     }
-                    _ => ProgramOpKind::Nop,
+                    _ => (None, ProgramOpKind::Nop),
                 };
                 block_ops.push(ProgramOp { point, kind });
             }
             let statement_index = data.statements.len();
             let terminator = data.terminator();
-            let point = self.point(
-                function,
-                Location {
-                    block,
-                    statement_index,
-                },
-                terminator.source_info.span,
-            );
-            let kind = match &terminator.kind {
+            let semantic_terminator_point = || {
+                self.point(
+                    function,
+                    Location {
+                        block,
+                        statement_index,
+                    },
+                    terminator.source_info.span,
+                )
+                .map_err(|error| {
+                    format!(
+                        "{error}; while normalizing {:?} bb{} terminator ({:?})",
+                        function,
+                        block.index(),
+                        terminator.kind
+                    )
+                })
+            };
+            let (point, kind) = match &terminator.kind {
                 TerminatorKind::Call {
                     func,
                     args,
                     destination,
                     ..
                 } => {
+                    let point = semantic_terminator_point()?;
                     let destination_key = place_key(*destination);
                     let legacy_write = !destination.projection.is_empty()
                         || definition_counts
@@ -1699,17 +1800,26 @@ impl<'tcx> Engine<'tcx> {
                             .copied()
                             .unwrap_or(0)
                             > 1;
-                    ProgramOpKind::Call(self.normalize_call(
-                        caller,
-                        body,
-                        func,
-                        args,
-                        *destination,
-                        &point,
-                        legacy_write,
-                    ))
+                    (
+                        Some(point.clone()),
+                        ProgramOpKind::Call(self.normalize_call(
+                            caller,
+                            body,
+                            func,
+                            args,
+                            *destination,
+                            &point,
+                            legacy_write,
+                        )),
+                    )
                 }
-                _ => ProgramOpKind::Nop,
+                TerminatorKind::SwitchInt { discr, .. } if discr.place().is_some() => {
+                    (Some(semantic_terminator_point()?), ProgramOpKind::Nop)
+                }
+                TerminatorKind::Assert { cond, .. } if cond.place().is_some() => {
+                    (Some(semantic_terminator_point()?), ProgramOpKind::Nop)
+                }
+                _ => (None, ProgramOpKind::Nop),
             };
             block_ops.push(ProgramOp {
                 point: point.clone(),
@@ -1721,7 +1831,7 @@ impl<'tcx> Engine<'tcx> {
                 TerminatorKind::Call { target, .. } => match kind {
                     ProgramOpKind::Call(call) => EdgeTerm::CallNormal {
                         normal_target: *target,
-                        point,
+                        point: point.expect("normalized calls have stable source points"),
                         call,
                     },
                     _ => unreachable!("a normalized Call has a CallModel"),
@@ -1751,10 +1861,10 @@ impl<'tcx> Engine<'tcx> {
                 _ => EdgeTerm::None,
             });
         }
-        BodyProgram {
+        Ok(BodyProgram {
             def_id: local_id,
             function: function.clone(),
-            root_span: self.stable_span(self.tcx.def_span(caller)),
+            root_span: self.stable_span(self.tcx.def_span(caller))?,
             arg_count: body.arg_count,
             has_self: self
                 .tcx
@@ -1773,7 +1883,7 @@ impl<'tcx> Engine<'tcx> {
             operations,
             edges,
             successors,
-        }
+        })
     }
 
     fn normalize_assignment(
@@ -3123,46 +3233,43 @@ impl<'tcx> Engine<'tcx> {
             )
     }
 
-    fn stable_span(&self, span: Span) -> StableSpan {
+    fn stable_span(&self, span: Span) -> Result<StableSpan, String> {
         let span = span.source_callsite();
         let source_map = self.tcx.sess.source_map();
         let (file, lo_line, lo_column, hi_line, hi_column) = source_map.span_to_location_info(span);
-        let relative = file
-            .as_ref()
-            .and_then(|file| {
-                let local = file
-                    .name
-                    .display(FileNameDisplayPreference::Local)
-                    .to_string();
-                Path::new(&local)
-                    .strip_prefix(&self.project_root)
-                    .ok()
-                    .map(Path::to_path_buf)
-                    .or_else(|| {
-                        let remapped = file
-                            .name
-                            .display(FileNameDisplayPreference::Remapped)
-                            .to_string();
-                        let remapped = PathBuf::from(remapped);
-                        (!remapped.is_absolute()).then_some(remapped)
-                    })
-            })
-            .unwrap_or_else(|| PathBuf::from("src/lib.rs"));
-        let path = relative.to_string_lossy().replace('\\', "/");
-        StableSpan::new(
-            path,
-            StablePosition::new(lo_line.max(1) as u32, lo_column.max(1) as u32),
-            StablePosition::new(hi_line.max(lo_line).max(1) as u32, hi_column.max(1) as u32),
+        let local = file.as_ref().map(|file| {
+            file.name
+                .display(FileNameDisplayPreference::Local)
+                .to_string()
+        });
+        let remapped = file.as_ref().map(|file| {
+            file.name
+                .display(FileNameDisplayPreference::Remapped)
+                .to_string()
+        });
+        stable_span_from_locations(
+            &self.project_root,
+            local.as_deref(),
+            remapped.as_deref(),
+            lo_line,
+            lo_column,
+            hi_line,
+            hi_column,
         )
     }
 
-    fn point(&self, function: &FunctionKey, location: Location, span: Span) -> ProgramPoint {
-        ProgramPoint {
+    fn point(
+        &self,
+        function: &FunctionKey,
+        location: Location,
+        span: Span,
+    ) -> Result<ProgramPoint, String> {
+        Ok(ProgramPoint {
             function: function.clone(),
             block: location.block.index() as u32,
             statement: location.statement_index as u32,
-            span: self.stable_span(span),
-        }
+            span: self.stable_span(span)?,
+        })
     }
 }
 
@@ -5578,7 +5685,7 @@ mod tests {
         statement: u32,
     ) -> ProgramOp {
         ProgramOp {
-            point: point(0, statement),
+            point: Some(point(0, statement)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: PlaceKey::new(destination),
                 value,
@@ -6074,7 +6181,7 @@ mod tests {
 
         let mut operations = IndexVec::new();
         operations.push(vec![ProgramOp {
-            point: point(0, 0),
+            point: Some(point(0, 0)),
             kind: ProgramOpKind::Call(match edge {
                 EdgeTerm::CallNormal { call, .. } => call,
                 _ => unreachable!(),
@@ -6171,7 +6278,7 @@ mod tests {
             },
         );
         let operation = ProgramOp {
-            point: point(0, 0),
+            point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: condition.clone(),
                 value: ValueModel::Compare {
@@ -6195,7 +6302,7 @@ mod tests {
         let index = PlaceKey::new("_2");
         let length = PlaceKey::new("_3");
         let length_op = ProgramOp {
-            point: point(0, 0),
+            point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: length.clone(),
                 value: ValueModel::Length(place_operand(&collection.0)),
@@ -6206,7 +6313,7 @@ mod tests {
             }),
         };
         let compare = |destination: PlaceKey| ProgramOp {
-            point: point(0, 2),
+            point: Some(point(0, 2)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination,
                 value: ValueModel::Compare {
@@ -6358,7 +6465,7 @@ mod tests {
         );
         seed_exact(&mut state, &index);
         let length_op = ProgramOp {
-            point: point(0, 1),
+            point: Some(point(0, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: length.clone(),
                 value: ValueModel::Length(place_operand(&collection.0)),
@@ -6371,7 +6478,7 @@ mod tests {
         apply_program_op(&length_op, BasicBlock::from_usize(0), 1, &mut state);
         assert!(!state.may_values()[&length].havoced);
         let compare = ProgramOp {
-            point: point(0, 2),
+            point: Some(point(0, 2)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: condition.clone(),
                 value: ValueModel::Compare {
@@ -6450,7 +6557,7 @@ mod tests {
             [(binding.clone(), false, binding.storage_places())],
         );
         let operation = ProgramOp {
-            point: point(0, 1),
+            point: Some(point(0, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: copied.clone(),
                 value: ValueModel::Operand(place_operand(&source.0)),
@@ -6540,7 +6647,7 @@ mod tests {
                 );
                 apply_program_op(
                     &ProgramOp {
-                        point: point(block as u32, 0),
+                        point: Some(point(block as u32, 0)),
                         kind: ProgramOpKind::Assign(AssignmentModel {
                             destination: length.clone(),
                             value: ValueModel::Length(place_operand(&slice_temp.0)),
@@ -6556,7 +6663,7 @@ mod tests {
                 );
                 apply_program_op(
                     &ProgramOp {
-                        point: point(block as u32, 1),
+                        point: Some(point(block as u32, 1)),
                         kind: ProgramOpKind::Assign(AssignmentModel {
                             destination: condition.clone(),
                             value: ValueModel::Compare {
@@ -6860,7 +6967,7 @@ mod tests {
         seed_exact(&mut state, &index);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 0),
+                point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&collection.0)),
@@ -6876,7 +6983,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(0, 1),
+                point: Some(point(0, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7003,7 +7110,7 @@ mod tests {
         seed_exact(&mut state, &collection);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 0),
+                point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&collection.0)),
@@ -7030,7 +7137,7 @@ mod tests {
             let mut spelling = state.clone();
             apply_program_op(
                 &ProgramOp {
-                    point: point(0, 1),
+                    point: Some(point(0, 1)),
                     kind: ProgramOpKind::Assign(AssignmentModel {
                         destination: condition.clone(),
                         value: ValueModel::Compare {
@@ -7054,7 +7161,7 @@ mod tests {
         let mut nonzero = state;
         apply_program_op(
             &ProgramOp {
-                point: point(0, 2),
+                point: Some(point(0, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7078,7 +7185,7 @@ mod tests {
         seed_exact(&mut stale, &collection);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 0),
+                point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&collection.0)),
@@ -7112,7 +7219,7 @@ mod tests {
         ambiguous.set_value(length.clone(), joined_length);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 5),
+                point: Some(point(0, 5)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7211,7 +7318,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(1, 1),
+                point: Some(point(1, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: discriminant.clone(),
                     value: ValueModel::Discriminant(place_operand(&branch.0)),
@@ -7236,7 +7343,7 @@ mod tests {
 
         apply_program_op(
             &ProgramOp {
-                point: point(2, 0),
+                point: Some(point(2, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: end.clone(),
                     value: ValueModel::Operand(place_operand(&branch.0)),
@@ -7252,7 +7359,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(2, 1),
+                point: Some(point(2, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&collection.0)),
@@ -7268,7 +7375,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(2, 2),
+                point: Some(point(2, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7296,7 +7403,7 @@ mod tests {
 
         apply_program_op(
             &ProgramOp {
-                point: point(3, 0),
+                point: Some(point(3, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length,
                     value: ValueModel::Length(place_operand("_1")),
@@ -7312,7 +7419,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(3, 1),
+                point: Some(point(3, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7349,7 +7456,7 @@ mod tests {
         state.set_value(collection.clone(), collection_value);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 0),
+                point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&collection.0)),
@@ -7371,7 +7478,7 @@ mod tests {
         state.set_value(limit.clone(), limit_value);
         apply_program_op(
             &ProgramOp {
-                point: point(0, 2),
+                point: Some(point(0, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -7546,7 +7653,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(1, 0),
+                point: Some(point(1, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: borrowed.clone(),
                     value: ValueModel::RefOrRaw(place_operand(&checked.0)),
@@ -8052,7 +8159,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(1, 0),
+                point: Some(point(1, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
                     value: ValueModel::Length(place_operand(&data.0)),
@@ -8068,7 +8175,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
-                point: point(1, 1),
+                point: Some(point(1, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
                     value: ValueModel::Compare {
@@ -8120,7 +8227,7 @@ mod tests {
             destination_out_formal: None,
         };
         let compare = |destination: PlaceKey| ProgramOp {
-            point: point(1, 1),
+            point: Some(point(1, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination,
                 value: ValueModel::Compare {
@@ -8753,5 +8860,56 @@ mod tests {
         let token = scc_cycle_token(&[FunctionKey::new("b"), FunctionKey::new("a")]);
         assert_eq!(token, "scc:[a,b]");
         assert_eq!(cycle_step_function(&token), FunctionKey::new("scc:[a,b]"));
+    }
+
+    #[test]
+    fn task10_stable_span_uses_normalized_paths_and_preserves_one_based_columns() {
+        let project = Path::new("/workspace/project");
+        let local = stable_span_from_locations(
+            project,
+            Some("/workspace/project/src/lib.rs"),
+            None,
+            7,
+            1,
+            7,
+            5,
+        )
+        .expect("a local project path is stable");
+        assert_eq!(local.path, "src/lib.rs");
+        assert_eq!(local.start, StablePosition::new(7, 1));
+        assert_eq!(local.end, StablePosition::new(7, 5));
+
+        let remapped = stable_span_from_locations(
+            project,
+            Some("/outside/generated.rs"),
+            Some("src/generated.rs"),
+            3,
+            3,
+            3,
+            3,
+        )
+        .expect("a normalized repository-relative remap is stable");
+        assert_eq!(remapped.path, "src/generated.rs");
+        assert_eq!(remapped.start.column, 3);
+    }
+
+    #[test]
+    fn task10_unstable_span_identity_fails_closed_without_a_lib_rs_fallback() {
+        let project = Path::new("/workspace/project");
+        for (local, remapped) in [
+            (Some("/outside/generated.rs"), None),
+            (Some("/outside/generated.rs"), Some("/also/outside.rs")),
+            (None, Some("../src/lib.rs")),
+            (None, Some("./src/lib.rs")),
+            (None, Some("src//lib.rs")),
+            (None, Some("C:/src/lib.rs")),
+            (None, Some("src\\lib.rs")),
+        ] {
+            assert!(
+                stable_span_from_locations(project, local, remapped, 1, 1, 1, 2).is_err(),
+                "unstable identity unexpectedly passed: local={local:?}, remapped={remapped:?}"
+            );
+        }
+        assert!(stable_span_from_locations(project, None, Some("src/lib.rs"), 1, 0, 1, 1).is_err());
     }
 }

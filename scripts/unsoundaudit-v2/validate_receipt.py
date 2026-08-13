@@ -198,7 +198,7 @@ def validate_span(value: Any, location: str) -> tuple[str, tuple[int, int], tupl
     require("\\" not in path and "\0" not in path, f"{location}.path must use machine-independent separators")
     pure = PurePosixPath(path)
     require(not pure.is_absolute(), f"{location}.path must be repository-relative")
-    require(not re.match(r"^[A-Za-z]:/", path), f"{location}.path must not be a Windows absolute path")
+    require(not re.match(r"^[A-Za-z]:", path), f"{location}.path must not be a Windows drive path")
     require(
         pure.as_posix() == path and ".." not in pure.parts and "." not in pure.parts,
         f"{location}.path must be normalized exactly",
