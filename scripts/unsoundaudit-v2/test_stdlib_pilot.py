@@ -17,6 +17,7 @@ from validate_receipt import ContractError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
+PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
 
 
 def finding(index: int, rule_id: str, depth: str) -> dict[str, object]:
@@ -77,6 +78,15 @@ class PilotProtocolTests(unittest.TestCase):
         self.assertEqual(value["runs_per_unit"], 2)
         self.assertEqual(value["fresh_targets"], {"control": True, "scan": True})
         self.assertRegex(value["sample_seed"], r"^[A-Za-z0-9._-]+$")
+
+    def test_v2_protocol_changes_only_source_commit_schema_and_seed(self) -> None:
+        first = pilot.load_protocol(PROTOCOL)
+        second = pilot.load_protocol(PROTOCOL_V2)
+        differing = {key for key in first if first[key] != second[key]}
+        self.assertEqual(differing, {"schema_version", "rap_source_commit", "sample_seed"})
+        self.assertEqual(second["schema_version"], "unsoundaudit-v2-stdlib-pilot-protocol-v2")
+        self.assertEqual(second["rap_source_commit"], "2207a5cfa4444c3e58fd127c6b653feea28e3641")
+        self.assertEqual(second["sample_seed"], "unsoundaudit-v2-stdlib-pilot-source-root-v2-2026-08-13")
 
 
 class PilotRunnerTests(unittest.TestCase):

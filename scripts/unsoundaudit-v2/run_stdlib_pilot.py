@@ -20,6 +20,10 @@ from validate_receipt import ContractError, read_json, validate_receipt
 
 
 UNITS = ("core", "alloc", "std")
+PROTOCOL_SCHEMA_VERSIONS = (
+    "unsoundaudit-v2-stdlib-pilot-protocol-v1",
+    "unsoundaudit-v2-stdlib-pilot-protocol-v2",
+)
 
 
 def fail(message: str) -> None:
@@ -53,7 +57,7 @@ def load_protocol(path: Path) -> dict[str, Any]:
     }
     if not isinstance(value, dict) or set(value) != required:
         fail("standard-library pilot protocol keys drifted")
-    if value["schema_version"] != "unsoundaudit-v2-stdlib-pilot-protocol-v1":
+    if value["schema_version"] not in PROTOCOL_SCHEMA_VERSIONS:
         fail("standard-library pilot protocol schema drifted")
     if value["unit_order"] != list(UNITS) or value["cargo_jobs"] != 1 or value["runs_per_unit"] != 2:
         fail("standard-library pilot execution contract drifted")

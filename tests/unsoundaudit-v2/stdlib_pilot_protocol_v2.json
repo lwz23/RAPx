@@ -1,0 +1,90 @@
+{
+  "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+  "cargo_jobs": 1,
+  "fresh_targets": {
+    "control": true,
+    "scan": true
+  },
+  "rap_source_commit": "2207a5cfa4444c3e58fd127c6b653feea28e3641",
+  "review": {
+    "independent_reviewers": 2,
+    "labels": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "U"
+    ],
+    "minimum_cohens_kappa": 0.7
+  },
+  "runs_per_unit": 2,
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "sample_seed": "unsoundaudit-v2-stdlib-pilot-source-root-v2-2026-08-13",
+  "sampling": {
+    "full_review_max_population": 250,
+    "include_all_recursive": true,
+    "interprocedural_full_review_max": 150,
+    "interprocedural_minimum_sample": 150,
+    "minimum_per_nonempty_rule_depth_stratum": 20,
+    "ordering": "sha256(seed||canonical_causal_key_json)"
+  },
+  "schema_version": "unsoundaudit-v2-stdlib-pilot-protocol-v2",
+  "target_triple": "aarch64-apple-darwin",
+  "thresholds": {
+    "early_stop_egregious_count": 3,
+    "early_stop_prefix_size": 20,
+    "max_egregious_point_estimate": 0.03,
+    "max_egregious_wilson95_upper": 0.05,
+    "max_findings_per_kloc": 0.5,
+    "max_unique_findings_total": 500,
+    "minimum_actionable_conservative_lower": 0.6,
+    "minimum_interprocedural_reviewed": 20,
+    "minimum_reviewed_for_precision": 50,
+    "per_rule_max_egregious_rate": 0.1,
+    "per_rule_minimum_actionable_conservative_lower": 0.4,
+    "per_rule_minimum_reviewed": 20,
+    "zero_tolerance": [
+      "nondeterminism",
+      "schema_violation",
+      "duplicate_finding_id",
+      "fabricated_local_edge",
+      "hidden_truncation"
+    ]
+  },
+  "unit_order": [
+    "core",
+    "alloc",
+    "std"
+  ],
+  "units": {
+    "alloc": {
+      "build_std_components": [
+        "core",
+        "alloc"
+      ],
+      "project_root": "library/alloc",
+      "rss_limit_bytes": 17179869184,
+      "wall_time_seconds": 5400
+    },
+    "core": {
+      "build_std_components": [
+        "core"
+      ],
+      "project_root": "library/core",
+      "rss_limit_bytes": 12884901888,
+      "wall_time_seconds": 3600
+    },
+    "std": {
+      "build_std_components": [
+        "core",
+        "alloc",
+        "std",
+        "panic_abort"
+      ],
+      "project_root": "library/std",
+      "rss_limit_bytes": 25769803776,
+      "wall_time_seconds": 10800
+    }
+  }
+}
