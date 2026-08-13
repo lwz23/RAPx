@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
 PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
 PROTOCOL_V3 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v3.json"
+PROTOCOL_V4 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json"
 V3_FAILURE = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/core.v3.failure.json"
 
 
@@ -101,6 +102,32 @@ class PilotProtocolTests(unittest.TestCase):
             third["sample_seed"],
             "unsoundaudit-v2-stdlib-pilot-summary-perf-v3-2026-08-13",
         )
+
+    def test_v4_protocol_closes_optimized_profile_and_release_resource_gates(self) -> None:
+        value = pilot.load_protocol(PROTOCOL_V4)
+        self.assertEqual(value["schema_version"], pilot.PHYSICAL_PROTOCOL_SCHEMA_VERSION)
+        self.assertEqual(
+            value["rap_source_commit"],
+            "a897f162b8d6f443eadaedcd1d1688211725ae04",
+        )
+        self.assertEqual(value["analyzer_profile"], "rapx-perf")
+        expected = {
+            "core": (900, 8 * 1024**3),
+            "alloc": (1800, 10 * 1024**3),
+            "std": (3600, 12 * 1024**3),
+        }
+        for unit, (wall, footprint) in expected.items():
+            row = value["units"][unit]
+            self.assertEqual(row["wall_time_seconds"], wall)
+            self.assertEqual(row["physical_footprint_limit_bytes"], footprint)
+            self.assertNotIn("rss_limit_bytes", row)
+            self.assertEqual(
+                pilot.resource_gate(value, unit),
+                ("physical_footprint", footprint),
+            )
+            arguments = pilot.cargo_arguments(value, unit)
+            self.assertNotIn("--release", arguments)
+            self.assertNotIn("--profile", arguments)
 
 
 class PilotRunnerTests(unittest.TestCase):
