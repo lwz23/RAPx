@@ -39,6 +39,33 @@ struct LengthAtom {
     invalidated: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Utf8Atom {
+    bytes: PlaceKey,
+    definition: StaticWriteToken,
+    captured_versions: BTreeSet<StaticWriteToken>,
+    invalidated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct CheckedEndAtom {
+    offset: PlaceKey,
+    width: u64,
+    definition: StaticWriteToken,
+    captured_versions: BTreeSet<StaticWriteToken>,
+    branch_ready: bool,
+    invalidated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct RangeLimitAtom {
+    collection: PlaceKey,
+    width: u64,
+    definition: StaticWriteToken,
+    captured_versions: BTreeSet<StaticWriteToken>,
+    invalidated: bool,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct ValueFacts {
     value: AbstractValue,
@@ -49,6 +76,14 @@ struct ValueFacts {
     len_of: BTreeSet<PlaceKey>,
     length_atoms: BTreeSet<LengthAtom>,
     length_relation_unknown: bool,
+    utf8_atoms: BTreeSet<Utf8Atom>,
+    utf8_relation_unknown: bool,
+    checked_end_atoms: BTreeSet<CheckedEndAtom>,
+    checked_end_unknown: bool,
+    range_limit_atoms: BTreeSet<RangeLimitAtom>,
+    range_limit_unknown: bool,
+    known_lengths: BTreeSet<u64>,
+    known_length_unknown: bool,
     may_be_non_length: bool,
     range_end: BTreeSet<PlaceKey>,
     pointer_base: BTreeSet<PlaceKey>,
@@ -58,6 +93,61 @@ struct ValueFacts {
     ffi_output: bool,
     open_behavior: bool,
     havoced: bool,
+}
+
+fn merge_checked_end_atoms(
+    current: &mut BTreeSet<CheckedEndAtom>,
+    incoming: &BTreeSet<CheckedEndAtom>,
+) {
+    for atom in incoming {
+        if let Some(existing) = current
+            .iter()
+            .find(|existing| {
+                existing.offset == atom.offset
+                    && existing.width == atom.width
+                    && existing.definition == atom.definition
+                    && existing.branch_ready == atom.branch_ready
+            })
+            .cloned()
+        {
+            current.remove(&existing);
+            let mut merged = existing;
+            merged
+                .captured_versions
+                .extend(atom.captured_versions.iter().copied());
+            merged.invalidated |= atom.invalidated;
+            current.insert(merged);
+        } else {
+            current.insert(atom.clone());
+        }
+    }
+}
+
+fn merge_range_limit_atoms(
+    current: &mut BTreeSet<RangeLimitAtom>,
+    incoming: &BTreeSet<RangeLimitAtom>,
+) {
+    for atom in incoming {
+        if let Some(existing) = current
+            .iter()
+            .find(|existing| {
+                existing.collection == atom.collection
+                    && existing.width == atom.width
+                    && existing.definition == atom.definition
+            })
+            .cloned()
+        {
+            current.remove(&existing);
+            let mut merged = existing;
+            merged
+                .captured_versions
+                .extend(atom.captured_versions.iter().copied());
+            merged.invalidated |= atom.invalidated;
+            current.insert(merged);
+        } else {
+            current.insert(atom.clone());
+        }
+    }
 }
 
 impl MayJoin for ValueFacts {
@@ -92,6 +182,34 @@ impl MayJoin for ValueFacts {
             }
         }
         self.length_relation_unknown |= other.length_relation_unknown;
+        for atom in &other.utf8_atoms {
+            if let Some(current) = self
+                .utf8_atoms
+                .iter()
+                .find(|current| {
+                    current.bytes == atom.bytes && current.definition == atom.definition
+                })
+                .cloned()
+            {
+                self.utf8_atoms.remove(&current);
+                let mut merged = current;
+                merged
+                    .captured_versions
+                    .extend(atom.captured_versions.iter().copied());
+                merged.invalidated |= atom.invalidated;
+                self.utf8_atoms.insert(merged);
+            } else {
+                self.utf8_atoms.insert(atom.clone());
+            }
+        }
+        self.utf8_relation_unknown |= other.utf8_relation_unknown;
+        merge_checked_end_atoms(&mut self.checked_end_atoms, &other.checked_end_atoms);
+        self.checked_end_unknown |= other.checked_end_unknown;
+        merge_range_limit_atoms(&mut self.range_limit_atoms, &other.range_limit_atoms);
+        self.range_limit_unknown |= other.range_limit_unknown;
+        self.known_lengths
+            .extend(other.known_lengths.iter().copied());
+        self.known_length_unknown |= other.known_length_unknown;
         self.may_be_non_length |= other.may_be_non_length;
         self.range_end.extend(other.range_end.iter().cloned());
         self.pointer_base.extend(other.pointer_base.iter().cloned());
@@ -112,9 +230,26 @@ struct ValidationBinding {
     predicate: Predicate,
     subject: PlaceKey,
     collection: Option<PlaceKey>,
+    access_width: Option<u64>,
+    proof_definition: Option<StaticWriteToken>,
 }
 
 impl ValidationBinding {
+    fn range(
+        subject: PlaceKey,
+        collection: Option<PlaceKey>,
+        access_width: u64,
+        proof_definition: Option<StaticWriteToken>,
+    ) -> Self {
+        Self {
+            predicate: Predicate::RangeInBounds,
+            subject,
+            collection,
+            access_width: Some(access_width),
+            proof_definition,
+        }
+    }
+
     fn storage_places(&self) -> Vec<PlaceKey> {
         let mut places = vec![canonical_storage(&self.subject)];
         places.extend(self.collection.iter().map(canonical_storage));
@@ -132,7 +267,6 @@ struct BodyProgram {
     arg_count: usize,
     has_self: bool,
     out_formals: BTreeMap<PlaceKey, u32>,
-    utf8_discharged: BTreeSet<ProgramPoint>,
     operations: IndexVec<BasicBlock, Vec<ProgramOp>>,
     edges: IndexVec<BasicBlock, EdgeTerm>,
     successors: IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
@@ -408,7 +542,12 @@ struct OperandModel {
 #[derive(Clone, Debug)]
 enum ValueModel {
     Operand(OperandModel),
+    Unsize {
+        operand: OperandModel,
+        known_length: Option<u64>,
+    },
     RefOrRaw(OperandModel),
+    Discriminant(OperandModel),
     Length(OperandModel),
     Compare {
         op: BinOp,
@@ -456,6 +595,11 @@ enum RegistryValueModel {
         token: String,
     },
     SaturatingSub(Vec<OperandModel>),
+    CheckedAdd {
+        offset: OperandModel,
+        width: OperandModel,
+    },
+    CheckedTryBranch(OperandModel),
     Constant(u64),
     SlicePrefix {
         base: OperandModel,
@@ -471,8 +615,8 @@ enum RegistryValueModel {
 
 #[derive(Clone, Debug)]
 enum PredicateModel {
-    Utf8Result { bytes: PlaceKey },
-    IsErr { checked: PlaceKey },
+    Utf8Result { bytes: OperandModel },
+    IsErr { checked: OperandModel },
     IsEmpty { slice: PlaceKey },
     IsNull { pointer: PlaceKey },
 }
@@ -537,8 +681,6 @@ struct LengthFact {
 enum PredicateFact {
     IsEmpty { result: PlaceKey, slice: PlaceKey },
     IsNull { result: PlaceKey, pointer: PlaceKey },
-    Utf8Result { result: PlaceKey, bytes: PlaceKey },
-    IsErr { result: PlaceKey, checked: PlaceKey },
 }
 
 #[derive(Clone, Debug)]
@@ -1106,26 +1248,7 @@ impl<'tcx> Engine<'tcx> {
             let did = id.to_def_id();
             let body = self.tcx.optimized_mir(did);
             let function = FunctionKey::new(self.tcx.def_path_str(did));
-            let mut program = self.normalize_body(*id, body, &function);
-            let provisional =
-                self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
-            program.utf8_discharged = provisional
-                .calls
-                .iter()
-                .filter(|call| {
-                    call.raw_def.is_some_and(|raw| {
-                        self.tcx
-                            .is_diagnostic_item(sym::str_from_utf8_unchecked, raw)
-                    }) && !call.args.is_empty()
-                        && self.utf8_discharged(
-                            body,
-                            &provisional,
-                            &call.args[0],
-                            call.point.point_location(),
-                        )
-                })
-                .map(|call| call.point.clone())
-                .collect();
+            let program = self.normalize_body(*id, body, &function);
             let facts = self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
             self.programs.insert(function, program);
             self.bodies.insert(facts.function.clone(), facts);
@@ -1165,6 +1288,10 @@ impl<'tcx> Engine<'tcx> {
                     value_flow: BTreeSet::from([place.clone()]),
                     exact_roots: BTreeSet::from([place]),
                     may_be_non_length: true,
+                    utf8_relation_unknown: true,
+                    checked_end_unknown: true,
+                    range_limit_unknown: true,
+                    known_length_unknown: true,
                     ..ValueFacts::default()
                 },
             );
@@ -1224,9 +1351,17 @@ impl<'tcx> Engine<'tcx> {
             .cloned()
             .collect::<Vec<_>>();
         for requirement in requirements {
-            let Some(predicate) = migrated_validation_predicate(&requirement) else {
+            let mut predicates = requirement.predicates.iter().copied();
+            let Some(predicate) = predicates.next() else {
                 continue;
             };
+            if predicates.next().is_some() {
+                continue;
+            }
+            let policy = validation_contract_policy(predicate);
+            if policy == LocalValidationPolicy::Unsupported {
+                continue;
+            }
             let point = requirement.sink.point.point_location();
             let Some(state) = facts.states.get(&(point.block, point.statement_index)) else {
                 continue;
@@ -1239,6 +1374,9 @@ impl<'tcx> Engine<'tcx> {
             }
             if state_proves_local_binding(state, Some(binding)) {
                 facts.summary_seed.requirements.remove(&requirement);
+                continue;
+            }
+            if policy == LocalValidationPolicy::LocalOnly {
                 continue;
             }
             let subject = entry_formal_slot(facts.arg_count, state, &binding.subject);
@@ -1434,16 +1572,8 @@ impl<'tcx> Engine<'tcx> {
                         if normal_edge_state.is_some() {
                             if let Some(predicate) = &call.predicate {
                                 facts.predicates.push(match predicate {
-                                    PredicateModel::Utf8Result { bytes } => {
-                                        PredicateFact::Utf8Result {
-                                            result: descriptor.destination.clone(),
-                                            bytes: bytes.clone(),
-                                        }
-                                    }
-                                    PredicateModel::IsErr { checked } => PredicateFact::IsErr {
-                                        result: descriptor.destination.clone(),
-                                        checked: checked.clone(),
-                                    },
+                                    PredicateModel::Utf8Result { .. }
+                                    | PredicateModel::IsErr { .. } => continue,
                                     PredicateModel::IsEmpty { slice } => PredicateFact::IsEmpty {
                                         result: descriptor.destination.clone(),
                                         slice: slice.clone(),
@@ -1640,7 +1770,6 @@ impl<'tcx> Engine<'tcx> {
                     )
                 })
                 .collect(),
-            utf8_discharged: BTreeSet::new(),
             operations,
             edges,
             successors,
@@ -1664,7 +1793,18 @@ impl<'tcx> Engine<'tcx> {
                 CastKind::PointerCoercion(ty::adjustment::PointerCoercion::Unsize, _),
                 operand,
                 _,
-            ) => ValueModel::Operand(self.normalize_operand(body, operand, point)),
+            ) => ValueModel::Unsize {
+                operand: self.normalize_operand(body, operand, point),
+                known_length: match operand.ty(&body.local_decls, self.tcx).kind() {
+                    ty::Ref(_, inner, _) => match inner.kind() {
+                        ty::Array(_, length) => {
+                            length.try_eval_target_usize(self.tcx, ty::ParamEnv::empty())
+                        }
+                        _ => None,
+                    },
+                    _ => None,
+                },
+            },
             Rvalue::Cast(_, _, _) => ValueModel::Unknown,
             Rvalue::Ref(_, _, place) | Rvalue::RawPtr(_, place) => {
                 let mut operand = self.normalize_place(body, *place, point);
@@ -1680,6 +1820,9 @@ impl<'tcx> Engine<'tcx> {
                 .place()
                 .map(|place| ValueModel::Length(self.normalize_place(body, place, point)))
                 .unwrap_or(ValueModel::Unknown),
+            Rvalue::Discriminant(place) => {
+                ValueModel::Discriminant(self.normalize_place(body, *place, point))
+            }
             Rvalue::BinaryOp(op, operands) => ValueModel::Compare {
                 op: *op,
                 left: self.normalize_operand(body, &operands.0, point),
@@ -1883,6 +2026,13 @@ impl<'tcx> Engine<'tcx> {
 
             if self.is_saturating_sub(did) && operands.len() >= 2 {
                 value = RegistryValueModel::SaturatingSub(operands.clone());
+            } else if self.is_checked_add(did) && operands.len() >= 2 {
+                value = RegistryValueModel::CheckedAdd {
+                    offset: operands[0].clone(),
+                    width: operands[1].clone(),
+                };
+            } else if self.is_option_try_branch(did) && !operands.is_empty() {
+                value = RegistryValueModel::CheckedTryBranch(operands[0].clone());
             } else if self.tcx.is_diagnostic_item(sym::mem_size_of, did) {
                 if let Ok(layout) = self
                     .tcx
@@ -1910,17 +2060,13 @@ impl<'tcx> Engine<'tcx> {
 
             predicate =
                 if self.tcx.is_diagnostic_item(sym::str_from_utf8, did) && !operands.is_empty() {
-                    operands[0]
-                        .operand
-                        .place()
-                        .cloned()
-                        .map(|bytes| PredicateModel::Utf8Result { bytes })
+                    Some(PredicateModel::Utf8Result {
+                        bytes: operands[0].clone(),
+                    })
                 } else if self.is_result_is_err(did) && !operands.is_empty() {
-                    operands[0]
-                        .operand
-                        .place()
-                        .cloned()
-                        .map(|checked| PredicateModel::IsErr { checked })
+                    Some(PredicateModel::IsErr {
+                        checked: operands[0].clone(),
+                    })
                 } else if self.is_slice_is_empty(did) && !operands.is_empty() {
                     operands[0]
                         .operand
@@ -1963,7 +2109,7 @@ impl<'tcx> Engine<'tcx> {
         }
     }
 
-    fn add_local_requirements(&self, program: &BodyProgram, facts: &mut BodyFacts) {
+    fn add_local_requirements(&self, _program: &BodyProgram, facts: &mut BodyFacts) {
         if let Some(items) = self.preopt_transmutes.get(&facts.function) {
             for item in items {
                 let origin = AbstractOrigin::InternalLocal {
@@ -2032,6 +2178,8 @@ impl<'tcx> Engine<'tcx> {
                             unique_semantic_value(&call.arg_values[0]).map(|collection| {
                                 ValidationBinding {
                                     predicate: Predicate::InBounds,
+                                    access_width: None,
+                                    proof_definition: None,
                                     subject,
                                     collection: Some(collection),
                                 }
@@ -2041,6 +2189,8 @@ impl<'tcx> Engine<'tcx> {
                     (CallOperand::Place(_), _, true) => unique_semantic_value(&call.arg_values[0])
                         .map(|collection| ValidationBinding {
                             predicate: Predicate::NonEmpty,
+                            access_width: None,
+                            proof_definition: None,
                             subject: collection,
                             collection: None,
                         }),
@@ -2112,35 +2262,45 @@ impl<'tcx> Engine<'tcx> {
                 .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
                 && !call.args.is_empty()
             {
-                if !program.utf8_discharged.contains(&call.point) {
-                    let origin = AbstractOrigin::InternalLocal {
-                        function: facts.function.clone(),
-                        place: call.destination.clone(),
-                    };
-                    facts.summary_seed.requirements.insert(ContractRequirement {
-                        seed_id: format!("P3.utf8:{}", call.point.span.token()),
-                        collection: None,
-                        subject: AbstractValue::new([origin.clone()]),
-                        source_hint: Some(SourceKind::InternalUnsafeOrigin),
-                        internal_derivation: false,
-                        source_span: call.point.span.clone(),
-                        first_failure: Operation {
-                            kind: OperationKind::FromUtf8Unchecked,
-                            point: call.point.clone(),
+                if let Some(subject) = call.arg_values.first().and_then(unique_semantic_value) {
+                    facts.local_bindings.insert(
+                        call.point.clone(),
+                        ValidationBinding {
+                            predicate: Predicate::ValidUtf8,
+                            access_width: None,
+                            proof_definition: None,
+                            subject,
+                            collection: None,
                         },
-                        sink: Operation {
-                            kind: OperationKind::InvalidValueExposure,
-                            point: call.point.clone(),
-                        },
-                        predicates: BTreeSet::from([Predicate::ValidUtf8]),
-                        access_width: None,
-                        rule: RuleId::P3UncheckedUtf8,
-                        return_exposure: true,
-                        sink_function: facts.function.clone(),
-                    });
-                    if self.place_reaches_return(facts, &call.destination) {
-                        facts.summary_seed.return_value.origins.insert(origin);
-                    }
+                    );
+                }
+                let origin = AbstractOrigin::InternalLocal {
+                    function: facts.function.clone(),
+                    place: call.destination.clone(),
+                };
+                facts.summary_seed.requirements.insert(ContractRequirement {
+                    seed_id: format!("P3.utf8:{}", call.point.span.token()),
+                    collection: None,
+                    subject: AbstractValue::new([origin.clone()]),
+                    source_hint: Some(SourceKind::InternalUnsafeOrigin),
+                    internal_derivation: false,
+                    source_span: call.point.span.clone(),
+                    first_failure: Operation {
+                        kind: OperationKind::FromUtf8Unchecked,
+                        point: call.point.clone(),
+                    },
+                    sink: Operation {
+                        kind: OperationKind::InvalidValueExposure,
+                        point: call.point.clone(),
+                    },
+                    predicates: BTreeSet::from([Predicate::ValidUtf8]),
+                    access_width: None,
+                    rule: RuleId::P3UncheckedUtf8,
+                    return_exposure: true,
+                    sink_function: facts.function.clone(),
+                });
+                if self.place_reaches_return(facts, &call.destination) {
+                    facts.summary_seed.return_value.origins.insert(origin);
                 }
             } else if self.is_nonnull_new_unchecked(did) && !call.args.is_empty() {
                 let subject = call.arg_values[0].value.clone();
@@ -2156,6 +2316,8 @@ impl<'tcx> Engine<'tcx> {
                                 call.point.clone(),
                                 ValidationBinding {
                                     predicate: Predicate::NonNull,
+                                    access_width: None,
+                                    proof_definition: None,
                                     subject,
                                     collection: None,
                                 },
@@ -2186,6 +2348,13 @@ impl<'tcx> Engine<'tcx> {
                 }
             } else if self.is_read_unaligned(did) && !call.args.is_empty() {
                 let pointer = call.arg_values[0].value.clone();
+                if let (Some(width), Some(pointer_facts)) =
+                    (call.access_width, call.arg_values.first())
+                {
+                    if let Some(binding) = range_binding_for_pointer(pointer_facts, width) {
+                        facts.local_bindings.insert(call.point.clone(), binding);
+                    }
+                }
                 if internal_only_origins(&pointer, facts.has_self) {
                     facts.summary_seed.requirements.insert(ContractRequirement {
                         seed_id: format!("P4.offset:{}", call.point.span.token()),
@@ -2353,7 +2522,13 @@ impl<'tcx> Engine<'tcx> {
         let predicate = requirement.predicates.iter().next().copied();
         if matches!(
             predicate,
-            Some(Predicate::InBounds | Predicate::NonEmpty | Predicate::NonNull)
+            Some(
+                Predicate::InBounds
+                    | Predicate::NonEmpty
+                    | Predicate::NonNull
+                    | Predicate::RangeInBounds
+                    | Predicate::ValidUtf8
+            )
         ) && requirement.sink_function == facts.function
         {
             if let Some(state) = facts.states.get(&(sink.block, sink.statement_index)) {
@@ -2362,6 +2537,13 @@ impl<'tcx> Engine<'tcx> {
                     facts.local_bindings.get(&requirement.sink.point),
                 );
             }
+        }
+        if matches!(
+            predicate,
+            Some(Predicate::RangeInBounds | Predicate::ValidUtf8)
+        ) && requirement.sink_function == facts.function
+        {
+            return false;
         }
         let body = self.tcx.optimized_mir(facts.def_id.to_def_id());
         let subject_places = self.places_for_value(facts, &requirement.subject);
@@ -2396,9 +2578,6 @@ impl<'tcx> Engine<'tcx> {
                     matches!(fact, PredicateFact::IsNull { pointer, .. } if candidate.contains(pointer))
                 },
             ),
-            Some(Predicate::RangeInBounds) => {
-                self.range_validation(body, facts, &subject_places, requirement.access_width, sink)
-            }
             _ => false,
         }
     }
@@ -2488,117 +2667,6 @@ impl<'tcx> Engine<'tcx> {
         false
     }
 
-    fn range_validation(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        pointer_places: &BTreeSet<PlaceKey>,
-        access_width: Option<u64>,
-        sink: Location,
-    ) -> bool {
-        let Some(width) = access_width else {
-            return false;
-        };
-        let offsets = pointer_places
-            .iter()
-            .flat_map(|place| {
-                self.resolve_value(facts, place)
-                    .pointer_offset
-                    .iter()
-                    .cloned()
-            })
-            .flat_map(|place| self.alias_closure(facts, &place))
-            .collect::<BTreeSet<_>>();
-        if offsets.is_empty() {
-            return false;
-        }
-        for compare in &facts.compares {
-            if compare.op != BinOp::Gt
-                || offsets.is_disjoint(&self.operand_places(facts, &compare.left))
-            {
-                continue;
-            }
-            let right_places = self.operand_places(facts, &compare.right);
-            let right_matches = right_places.iter().any(|place| {
-                let value = self.resolve_value(facts, place);
-                value
-                    .dependencies
-                    .iter()
-                    .any(|dependency| !self.resolve_value(facts, dependency).len_of.is_empty())
-                    && value.dependencies.iter().any(|dependency| {
-                        self.resolve_value(facts, dependency)
-                            .value
-                            .origins
-                            .contains(&AbstractOrigin::Constant(width))
-                    })
-            });
-            if right_matches {
-                if let Some(region) = self.validation_branch(
-                    body,
-                    facts,
-                    &compare.result,
-                    compare.point.point_location(),
-                    sink,
-                ) {
-                    let watched = self.range_watched_places(facts, pointer_places, &offsets);
-                    if !self.validation_invalidated(
-                        body,
-                        facts,
-                        &watched,
-                        compare.point.point_location(),
-                        region,
-                        sink,
-                    ) {
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-
-    fn utf8_discharged(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        bytes: &CallOperand,
-        sink: Location,
-    ) -> bool {
-        let candidates = self.operand_places(facts, bytes);
-        for predicate in &facts.predicates {
-            let PredicateFact::IsErr { result, checked } = predicate else {
-                continue;
-            };
-            let checked_aliases = self.alias_closure(facts, checked);
-            let same_bytes = facts.predicates.iter().any(|origin| {
-                matches!(origin, PredicateFact::Utf8Result { result: checked_result, bytes }
-                    if checked_aliases.contains(checked_result)
-                        && !candidates.is_disjoint(&self.alias_closure(facts, bytes)))
-            });
-            if !same_bytes {
-                continue;
-            }
-            let Some(call) = facts.calls.iter().find(|call| call.destination == *result) else {
-                continue;
-            };
-            if let Some(region) =
-                self.validation_branch(body, facts, result, call.point.point_location(), sink)
-            {
-                if !self.validation_invalidated(
-                    body,
-                    facts,
-                    &candidates,
-                    call.point.point_location(),
-                    region,
-                    sink,
-                ) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
     fn validation_branch(
         &self,
         body: &Body<'tcx>,
@@ -2661,23 +2729,6 @@ impl<'tcx> Engine<'tcx> {
         })
     }
 
-    fn range_watched_places(
-        &self,
-        facts: &BodyFacts,
-        pointers: &BTreeSet<PlaceKey>,
-        offsets: &BTreeSet<PlaceKey>,
-    ) -> BTreeSet<PlaceKey> {
-        let mut watched = pointers.clone();
-        watched.extend(offsets.iter().cloned());
-        for pointer in pointers {
-            let value = self.resolve_value(facts, pointer);
-            watched.extend(value.dependencies.iter().cloned());
-            watched.extend(value.pointer_base.iter().cloned());
-            watched.extend(value.pointer_offset.iter().cloned());
-        }
-        watched
-    }
-
     fn call_graph(&self) -> BTreeMap<FunctionKey, BTreeSet<FunctionKey>> {
         self.bodies
             .iter()
@@ -2693,13 +2744,6 @@ impl<'tcx> Engine<'tcx> {
                 )
             })
             .collect()
-    }
-
-    fn resolve_value<'a>(&self, facts: &'a BodyFacts, place: &PlaceKey) -> &'a ValueFacts {
-        facts.values.get(place).unwrap_or_else(|| {
-            static EMPTY: std::sync::OnceLock<ValueFacts> = std::sync::OnceLock::new();
-            EMPTY.get_or_init(ValueFacts::default)
-        })
     }
 
     fn operand_places(&self, facts: &BodyFacts, operand: &CallOperand) -> BTreeSet<PlaceKey> {
@@ -2856,6 +2900,8 @@ impl<'tcx> Engine<'tcx> {
             || self.is_pointer_is_null(did)
             || self.is_result_is_err(did)
             || self.is_saturating_sub(did)
+            || self.is_checked_add(did)
+            || self.is_option_try_branch(did)
             || self.is_slice_prefix_index(did)
             || self.is_slice_as_ptr(did)
             || self.is_wrapping_add(did)
@@ -2948,6 +2994,27 @@ impl<'tcx> Engine<'tcx> {
                     ty::Uint(ty::UintTy::Usize)
                 )
             })
+    }
+
+    fn is_checked_add(&self, did: DefId) -> bool {
+        self.tcx
+            .opt_item_name(did)
+            .is_some_and(|name| name.as_str() == "checked_add")
+            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+                matches!(
+                    self.tcx.type_of(impl_id).skip_binder().kind(),
+                    ty::Uint(ty::UintTy::Usize)
+                )
+            })
+    }
+
+    fn is_option_try_branch(&self, did: DefId) -> bool {
+        // MIR names the `Try::branch` trait method rather than a concrete
+        // `Option` impl method. Relation facts can only reach this call from
+        // the exact `usize::checked_add` model, so the lang item plus the
+        // input fact is the structural gate; other `Try` implementations have
+        // no checked-end atom to propagate.
+        self.tcx.is_lang_item(did, LangItem::TryTraitBranch)
     }
 
     fn is_slice_prefix_index(&self, did: DefId) -> bool {
@@ -3217,6 +3284,12 @@ fn unique_semantic_value(value: &ValueFacts) -> Option<PlaceKey> {
     }
 }
 
+fn unique_place(places: &BTreeSet<PlaceKey>) -> Option<PlaceKey> {
+    let mut places = places.iter();
+    let place = places.next()?.clone();
+    places.next().is_none().then_some(place)
+}
+
 fn length_relation_is_current(
     state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
     value: &ValueFacts,
@@ -3230,6 +3303,183 @@ fn length_relation_is_current(
         && atom.collection == *collection
         && !atom.invalidated
         && atom.captured_versions == current_storage_versions(state, collection)
+}
+
+fn current_length_collection(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    value: &ValueFacts,
+) -> Option<PlaceKey> {
+    let mut collections = value.len_of.iter();
+    let collection = collections.next()?.clone();
+    if collections.next().is_some()
+        || value.may_be_non_length
+        || value.length_relation_unknown
+        || value.havoced
+        || !length_relation_is_current(state, value, &collection)
+    {
+        return None;
+    }
+    Some(collection)
+}
+
+fn current_utf8_bytes(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    value: &ValueFacts,
+) -> Option<PlaceKey> {
+    let mut atoms = value.utf8_atoms.iter();
+    let atom = atoms.next()?;
+    if atoms.next().is_some()
+        || value.utf8_relation_unknown
+        || value.havoced
+        || atom.invalidated
+        || atom.captured_versions != current_storage_versions(state, &atom.bytes)
+    {
+        return None;
+    }
+    Some(atom.bytes.clone())
+}
+
+fn constant_candidates(value: &ValueFacts) -> (BTreeSet<u64>, bool) {
+    let constants = value
+        .value
+        .origins
+        .iter()
+        .filter_map(|origin| match origin {
+            AbstractOrigin::Constant(value) => Some(*value),
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    let unknown = constants.is_empty()
+        || value
+            .value
+            .origins
+            .iter()
+            .any(|origin| !matches!(origin, AbstractOrigin::Constant(_)));
+    (constants, unknown)
+}
+
+fn range_binding_for_pointer(value: &ValueFacts, width: u64) -> Option<ValidationBinding> {
+    Some(ValidationBinding::range(
+        unique_place(&value.pointer_offset)?,
+        Some(unique_place(&value.pointer_base)?),
+        width,
+        None,
+    ))
+}
+
+fn current_checked_end(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    value: &ValueFacts,
+) -> Option<CheckedEndAtom> {
+    let mut atoms = value.checked_end_atoms.iter();
+    let atom = atoms.next()?;
+    if atoms.next().is_some()
+        || value.checked_end_unknown
+        || value.havoced
+        || !atom.branch_ready
+        || atom.invalidated
+        || atom.captured_versions != current_storage_versions(state, &atom.offset)
+    {
+        return None;
+    }
+    Some(atom.clone())
+}
+
+fn current_range_limit(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    value: &ValueFacts,
+) -> Option<RangeLimitAtom> {
+    let mut atoms = value.range_limit_atoms.iter();
+    let atom = atoms.next()?;
+    if atoms.next().is_some()
+        || value.range_limit_unknown
+        || value.havoced
+        || atom.invalidated
+        || atom.captured_versions != current_storage_versions(state, &atom.collection)
+    {
+        return None;
+    }
+    Some(atom.clone())
+}
+
+fn normalized_compare_pending(
+    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    op: BinOp,
+    left: &OperandModel,
+    right: &OperandModel,
+) -> Vec<(ValidationBinding, bool, Vec<PlaceKey>)> {
+    let left_value = eval_operand(state, left);
+    let right_value = eval_operand(state, right);
+
+    if op == BinOp::Gt {
+        if let (Some(end), Some(collection)) = (
+            current_checked_end(state, &left_value),
+            current_length_collection(state, &right_value),
+        ) {
+            let overflow_proof =
+                ValidationBinding::range(end.offset.clone(), None, end.width, Some(end.definition));
+            if state.has_current_validation(&overflow_proof, overflow_proof.storage_places()) {
+                let binding =
+                    ValidationBinding::range(end.offset, Some(collection), end.width, None);
+                return vec![(binding.clone(), false, binding.storage_places())];
+            }
+        }
+        if let (Some(offset), Some(limit)) = (
+            unique_semantic_value(&left_value),
+            current_range_limit(state, &right_value),
+        ) {
+            if !left_value.havoced {
+                let binding =
+                    ValidationBinding::range(offset, Some(limit.collection), limit.width, None);
+                return vec![(binding.clone(), false, binding.storage_places())];
+            }
+        }
+    }
+
+    let in_bounds_polarity = match op {
+        BinOp::Ge => Some(false),
+        BinOp::Lt => Some(true),
+        _ => None,
+    };
+    if let Some(polarity) = in_bounds_polarity {
+        if let (Some(subject), Some(collection)) = (
+            unique_semantic_value(&left_value),
+            current_length_collection(state, &right_value),
+        ) {
+            if !left_value.havoced {
+                let binding = ValidationBinding {
+                    predicate: Predicate::InBounds,
+                    access_width: None,
+                    proof_definition: None,
+                    subject,
+                    collection: Some(collection),
+                };
+                return vec![(binding.clone(), polarity, binding.storage_places())];
+            }
+        }
+    }
+
+    let polarity = match op {
+        BinOp::Eq => false,
+        BinOp::Ne => true,
+        _ => return Vec::new(),
+    };
+    let length_value = match (&left.operand, &right.operand) {
+        (_, CallOperand::Constant(0)) => &left_value,
+        (CallOperand::Constant(0), _) => &right_value,
+        _ => return Vec::new(),
+    };
+    let Some(collection) = current_length_collection(state, length_value) else {
+        return Vec::new();
+    };
+    let binding = ValidationBinding {
+        predicate: Predicate::NonEmpty,
+        access_width: None,
+        proof_definition: None,
+        subject: collection,
+        collection: None,
+    };
+    vec![(binding.clone(), polarity, binding.storage_places())]
 }
 
 fn eval_operand(
@@ -3256,11 +3506,19 @@ fn eval_operand(
             value: AbstractValue::new([AbstractOrigin::Constant(*value)]),
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         CallOperand::Unknown => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
     };
@@ -3289,7 +3547,25 @@ fn eval_value_model(
 ) -> ValueFacts {
     match model {
         ValueModel::Operand(operand) => eval_operand(state, operand),
+        ValueModel::Unsize {
+            operand,
+            known_length,
+        } => {
+            let mut result = eval_operand(state, operand);
+            result.known_lengths.clear();
+            result.known_length_unknown = known_length.is_none();
+            if let Some(length) = known_length {
+                result.known_lengths.insert(*length);
+            }
+            result
+        }
         ValueModel::RefOrRaw(place) => eval_operand(state, place),
+        ValueModel::Discriminant(operand) => {
+            let mut result = eval_operand(state, operand);
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
         ValueModel::Length(collection) => {
             let mut result = eval_operand(state, collection);
             let candidates = semantic_place_candidates(&result);
@@ -3307,6 +3583,12 @@ fn eval_value_model(
             }
             result.exact_roots.clear();
             result.value_flow.clear();
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result.may_be_non_length = false;
             result.havoced = false;
             result
@@ -3319,6 +3601,12 @@ fn eval_value_model(
             result.semantic_unknown = true;
             result.len_of.clear();
             result.length_atoms.clear();
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result.may_be_non_length = true;
             result
         }
@@ -3333,11 +3621,21 @@ fn eval_value_model(
             }
             result.exact_roots.clear();
             result.semantic_unknown = true;
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result
         }
         ValueModel::Unknown => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
     }
@@ -3353,12 +3651,20 @@ fn eval_registry_value(
         RegistryValueModel::Empty => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         RegistryValueModel::MaybeUninit(initialized) => ValueFacts {
             maybe_uninit_initialized: BTreeSet::from([*initialized]),
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         RegistryValueModel::Length(collection) => {
@@ -3378,6 +3684,12 @@ fn eval_registry_value(
             }
             result.exact_roots.clear();
             result.value_flow.clear();
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result.may_be_non_length = false;
             result.havoced = false;
             result
@@ -3390,6 +3702,10 @@ fn eval_registry_value(
             open_behavior: true,
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         RegistryValueModel::GenericCapability { token } => ValueFacts {
@@ -3400,23 +3716,130 @@ fn eval_registry_value(
             generic_capability: true,
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         RegistryValueModel::SaturatingSub(operands) => {
             let mut result =
                 join_value_facts(operands.iter().map(|operand| eval_operand(state, operand)));
+            let length = operands.first().map(|operand| eval_operand(state, operand));
+            let width = operands.get(1).map(|operand| eval_operand(state, operand));
+            let mut relations = BTreeSet::new();
+            let mut relation_unknown = true;
+            if let (Some(length), Some(width)) = (length.as_ref(), width.as_ref()) {
+                let (widths, width_unknown) = constant_candidates(width);
+                relation_unknown = width_unknown
+                    || length.length_relation_unknown
+                    || length.may_be_non_length
+                    || length.havoced
+                    || length.length_atoms.is_empty()
+                    || length.known_lengths.is_empty()
+                    || length.known_length_unknown;
+                for length_atom in &length.length_atoms {
+                    let current = !length_atom.invalidated
+                        && length_atom.captured_versions
+                            == current_storage_versions(state, &length_atom.collection);
+                    relation_unknown |= !current;
+                    if !current {
+                        continue;
+                    }
+                    for width in &widths {
+                        let has_fitting_length = length
+                            .known_lengths
+                            .iter()
+                            .any(|known_length| known_length >= width);
+                        relation_unknown |= length
+                            .known_lengths
+                            .iter()
+                            .any(|known_length| known_length < width);
+                        if has_fitting_length {
+                            relations.insert(RangeLimitAtom {
+                                captured_versions: current_storage_versions(
+                                    state,
+                                    &length_atom.collection,
+                                ),
+                                collection: length_atom.collection.clone(),
+                                width: *width,
+                                definition,
+                                invalidated: false,
+                            });
+                        }
+                    }
+                }
+            }
             result.value_flow.clear();
             result.exact_roots.clear();
             result.semantic_unknown = true;
             result.len_of.clear();
             result.length_atoms.clear();
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_atoms = relations;
+            result.range_limit_unknown = relation_unknown;
             result.may_be_non_length = true;
+            result
+        }
+        RegistryValueModel::CheckedAdd { offset, width } => {
+            let offset = eval_operand(state, offset);
+            let width_value = eval_operand(state, width);
+            let mut result = join_value_facts([offset.clone(), width_value.clone()]);
+            let (widths, width_unknown) = constant_candidates(&width_value);
+            let offsets = semantic_place_candidates(&offset);
+            let relation_unknown =
+                offset.semantic_unknown || offset.havoced || offsets.is_empty() || width_unknown;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = relation_unknown;
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
+            result.len_of.clear();
+            result.length_atoms.clear();
+            result.length_relation_unknown = true;
+            for offset in offsets {
+                for width in &widths {
+                    result.checked_end_atoms.insert(CheckedEndAtom {
+                        captured_versions: current_storage_versions(state, &offset),
+                        offset: offset.clone(),
+                        width: *width,
+                        definition,
+                        branch_ready: false,
+                        invalidated: false,
+                    });
+                }
+            }
+            result.value_flow.clear();
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result.may_be_non_length = true;
+            result
+        }
+        RegistryValueModel::CheckedTryBranch(option) => {
+            let mut result = eval_operand(state, option);
+            result.checked_end_atoms = result
+                .checked_end_atoms
+                .into_iter()
+                .map(|mut atom| {
+                    atom.branch_ready = true;
+                    atom
+                })
+                .collect();
             result
         }
         RegistryValueModel::Constant(value) => ValueFacts {
             value: AbstractValue::new([AbstractOrigin::Constant(*value)]),
             may_be_non_length: true,
             semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         },
         RegistryValueModel::SlicePrefix { base, range } => {
@@ -3425,31 +3848,50 @@ fn eval_registry_value(
             result.range_end.insert(range.clone());
             result.exact_roots.clear();
             result.semantic_unknown = true;
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result
         }
         RegistryValueModel::SliceAsPtr(base) => {
             let mut result = eval_operand(state, base);
-            result.pointer_base.extend(base.operand.place().cloned());
+            result.pointer_base = semantic_place_candidates(&result);
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result
         }
         RegistryValueModel::WrappingAdd { base, offset } => {
             let mut result = eval_operand(state, base);
-            result.pointer_base.extend(base.operand.place().cloned());
-            result
-                .pointer_offset
-                .extend(offset.operand.place().cloned());
-            result
-                .value
-                .origins
-                .extend(eval_operand(state, offset).value.origins);
+            let offset = eval_operand(state, offset);
+            result.pointer_offset = semantic_place_candidates(&offset);
+            result.value.origins.extend(offset.value.origins);
             result.exact_roots.clear();
             result.semantic_unknown = true;
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result
         }
         RegistryValueModel::PointerCast(base) => {
             let mut result = eval_operand(state, base);
             result.exact_roots.clear();
             result.semantic_unknown = true;
+            result.utf8_atoms.clear();
+            result.utf8_relation_unknown = true;
+            result.checked_end_atoms.clear();
+            result.checked_end_unknown = true;
+            result.range_limit_atoms.clear();
+            result.range_limit_unknown = true;
             result
         }
     }
@@ -3478,7 +3920,7 @@ fn state_alias_closure(
         .collect()
 }
 
-fn invalidate_length_evidence(
+fn invalidate_relation_evidence(
     state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
     written_storage: &PlaceKey,
 ) {
@@ -3497,6 +3939,47 @@ fn invalidate_length_evidence(
                 let mut invalidated = atom;
                 invalidated.invalidated = true;
                 updated.length_atoms.insert(invalidated);
+                changed = true;
+            }
+            let utf8_atoms = updated.utf8_atoms.iter().cloned().collect::<Vec<_>>();
+            for atom in utf8_atoms {
+                if canonical_storage(&atom.bytes) != *written_storage || atom.invalidated {
+                    continue;
+                }
+                updated.utf8_atoms.remove(&atom);
+                let mut invalidated = atom;
+                invalidated.invalidated = true;
+                updated.utf8_atoms.insert(invalidated);
+                changed = true;
+            }
+            let checked_atoms = updated
+                .checked_end_atoms
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            for atom in checked_atoms {
+                if canonical_storage(&atom.offset) != *written_storage || atom.invalidated {
+                    continue;
+                }
+                updated.checked_end_atoms.remove(&atom);
+                let mut invalidated = atom;
+                invalidated.invalidated = true;
+                updated.checked_end_atoms.insert(invalidated);
+                changed = true;
+            }
+            let limit_atoms = updated
+                .range_limit_atoms
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>();
+            for atom in limit_atoms {
+                if canonical_storage(&atom.collection) != *written_storage || atom.invalidated {
+                    continue;
+                }
+                updated.range_limit_atoms.remove(&atom);
+                let mut invalidated = atom;
+                invalidated.invalidated = true;
+                updated.range_limit_atoms.insert(invalidated);
                 changed = true;
             }
             changed.then(|| (place.clone(), updated))
@@ -3535,36 +4018,31 @@ fn apply_program_op(
             };
             let mut value = eval_value_model(state, &assignment.value, token);
             let pending = match &assignment.value {
-                ValueModel::Compare {
-                    op: BinOp::Ge,
-                    left,
-                    right,
-                } => {
-                    let right_value = eval_operand(state, right);
-                    let left_value = eval_operand(state, left);
-                    match (
-                        unique_semantic_value(&left_value),
-                        right_value.len_of.iter().next(),
-                    ) {
-                        (Some(subject), Some(collection))
-                            if right_value.len_of.len() == 1
-                                && !right_value.may_be_non_length
-                                && !right_value.length_relation_unknown
-                                && length_relation_is_current(state, &right_value, collection) =>
-                        {
-                            if left_value.havoced || right_value.havoced {
-                                Vec::new()
-                            } else {
-                                let binding = ValidationBinding {
-                                    predicate: Predicate::InBounds,
-                                    subject,
-                                    collection: Some(collection.clone()),
-                                };
-                                vec![(binding.clone(), false, binding.storage_places())]
-                            }
-                        }
-                        _ => Vec::new(),
-                    }
+                ValueModel::Length(_) => current_length_collection(state, &value)
+                    .map(|collection| {
+                        let binding = ValidationBinding {
+                            predicate: Predicate::NonEmpty,
+                            access_width: None,
+                            proof_definition: None,
+                            subject: collection,
+                            collection: None,
+                        };
+                        vec![(binding.clone(), true, binding.storage_places())]
+                    })
+                    .unwrap_or_default(),
+                ValueModel::Discriminant(_) => current_checked_end(state, &value)
+                    .map(|end| {
+                        let binding = ValidationBinding::range(
+                            end.offset,
+                            None,
+                            end.width,
+                            Some(end.definition),
+                        );
+                        vec![(binding.clone(), false, binding.storage_places())]
+                    })
+                    .unwrap_or_default(),
+                ValueModel::Compare { op, left, right } => {
+                    normalized_compare_pending(state, *op, left, right)
                 }
                 _ => copied_pending.unwrap_or_default(),
             };
@@ -3581,6 +4059,7 @@ fn apply_program_op(
                     operand: CallOperand::Constant(_),
                     ..
                 }) | ValueModel::Length(_)
+                    | ValueModel::Discriminant(_)
                     | ValueModel::Compare { .. }
                     | ValueModel::Aggregate { .. }
             );
@@ -3597,7 +4076,7 @@ fn apply_program_op(
             });
             let storage = canonical_storage(&assignment.destination);
             state.record_write(storage.clone(), token);
-            invalidate_length_evidence(state, &storage);
+            invalidate_relation_evidence(state, &storage);
             state.set_value(assignment.destination.clone(), value);
             if let Some((formal_index, output)) = out_value {
                 strong_write_out_formal(state, formal_index, &output, token);
@@ -3636,7 +4115,20 @@ fn apply_program_edge_with_outputs(
         if *normal_target != Some(target) {
             return;
         }
-        let return_value = eval_registry_value(state, &call.value, point);
+        let mut return_value = eval_registry_value(state, &call.value, point);
+        if let Some(PredicateModel::Utf8Result { bytes }) = &call.predicate {
+            let bytes_value = eval_operand(state, bytes);
+            let candidates = semantic_place_candidates(&bytes_value);
+            return_value.utf8_relation_unknown = bytes_value.semantic_unknown;
+            for bytes in candidates {
+                return_value.utf8_atoms.insert(Utf8Atom {
+                    captured_versions: current_storage_versions(state, &bytes),
+                    bytes,
+                    definition: StaticWriteToken::new(point.block, point.statement),
+                    invalidated: false,
+                });
+            }
+        }
         apply_call_side_effects(call, point, state);
         if let Some(outputs) = local_outputs.get(point) {
             apply_local_outputs(state, &outputs.outs);
@@ -3672,8 +4164,27 @@ fn apply_program_edge_with_outputs(
         target: success,
     } = edge
     {
-        let _ = (condition, expected, success, target);
-        // Task 9 owns Assert equivalence; Task 5 intentionally establishes nothing.
+        if target != *success {
+            return;
+        }
+        let bindings = state
+            .pending_must()
+            .get(condition)
+            .into_iter()
+            .flat_map(|facts| facts.keys())
+            .filter(|(binding, polarity)| {
+                binding.predicate == Predicate::InBounds
+                    && *polarity == *expected
+                    && state.pending_is_current(condition, binding, *polarity)
+            })
+            .map(|(binding, _)| binding.clone())
+            .collect::<Vec<_>>();
+        for binding in bindings {
+            state.establish(BoundValidation::new(
+                binding.clone(),
+                binding.storage_places(),
+            ));
+        }
         return;
     }
     let EdgeTerm::Switch {
@@ -3682,7 +4193,6 @@ fn apply_program_edge_with_outputs(
         true_target,
     } = edge
     else {
-        // Task 9 owns Lt equivalence.
         return;
     };
     let truth = if target == *true_target && target != *false_target {
@@ -3789,6 +4299,23 @@ fn migrated_validation_predicate(requirement: &ContractRequirement) -> Option<Pr
         return None;
     }
     Some(predicate)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LocalValidationPolicy {
+    Exportable,
+    LocalOnly,
+    Unsupported,
+}
+
+fn validation_contract_policy(predicate: Predicate) -> LocalValidationPolicy {
+    match predicate {
+        Predicate::InBounds | Predicate::NonEmpty | Predicate::NonNull => {
+            LocalValidationPolicy::Exportable
+        }
+        Predicate::RangeInBounds | Predicate::ValidUtf8 => LocalValidationPolicy::LocalOnly,
+        _ => LocalValidationPolicy::Unsupported,
+    }
 }
 
 fn entry_formal_slot(
@@ -4003,6 +4530,8 @@ fn instantiate_validation_binding(
     }
     Some(ValidationBinding {
         predicate,
+        access_width: None,
+        proof_definition: None,
         subject,
         collection,
     })
@@ -4057,7 +4586,7 @@ fn apply_call_side_effects(
             havoced.havoced = true;
             state.record_may_write(target.clone(), token);
             state.set_value(target.clone(), havoced);
-            invalidate_length_evidence(state, &target);
+            invalidate_relation_evidence(state, &target);
         }
     }
     for actual in &call.ffi_out_actuals {
@@ -4071,7 +4600,7 @@ fn apply_call_side_effects(
             });
             state.record_may_write(target.clone(), token);
             state.set_value(target.clone(), output);
-            invalidate_length_evidence(state, &target);
+            invalidate_relation_evidence(state, &target);
         }
     }
 }
@@ -4089,7 +4618,7 @@ fn apply_call_return(
     value.semantic_unknown = false;
     let storage = canonical_storage(&destination);
     state.record_write(storage.clone(), token);
-    invalidate_length_evidence(state, &storage);
+    invalidate_relation_evidence(state, &storage);
     state.set_value(destination.clone(), value);
     let pending = match &call.predicate {
         Some(PredicateModel::IsEmpty { slice })
@@ -4100,6 +4629,8 @@ fn apply_call_return(
                 .expect("the match guard established one semantic place");
             let binding = ValidationBinding {
                 predicate: Predicate::NonEmpty,
+                access_width: None,
+                proof_definition: None,
                 subject: slice,
                 collection: None,
             };
@@ -4113,10 +4644,27 @@ fn apply_call_return(
                 .expect("the match guard established one semantic place");
             let binding = ValidationBinding {
                 predicate: Predicate::NonNull,
+                access_width: None,
+                proof_definition: None,
                 subject: pointer,
                 collection: None,
             };
             vec![(binding.clone(), false, binding.storage_places())]
+        }
+        Some(PredicateModel::IsErr { checked }) => {
+            let checked = eval_operand(state, checked);
+            current_utf8_bytes(state, &checked)
+                .map(|bytes| {
+                    let binding = ValidationBinding {
+                        predicate: Predicate::ValidUtf8,
+                        access_width: None,
+                        proof_definition: None,
+                        subject: bytes,
+                        collection: None,
+                    };
+                    vec![(binding.clone(), false, binding.storage_places())]
+                })
+                .unwrap_or_default()
         }
         _ => Vec::new(),
     };
@@ -4127,10 +4675,7 @@ fn apply_call_return(
 
 fn predicate_result(predicate: &PredicateFact) -> &PlaceKey {
     match predicate {
-        PredicateFact::IsEmpty { result, .. }
-        | PredicateFact::IsNull { result, .. }
-        | PredicateFact::Utf8Result { result, .. }
-        | PredicateFact::IsErr { result, .. } => result,
+        PredicateFact::IsEmpty { result, .. } | PredicateFact::IsNull { result, .. } => result,
     }
 }
 
@@ -4575,6 +5120,10 @@ mod tests {
     fn exact_value(place: &PlaceKey) -> ValueFacts {
         ValueFacts {
             exact_roots: BTreeSet::from([place.clone()]),
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
             ..ValueFacts::default()
         }
     }
@@ -4651,6 +5200,8 @@ mod tests {
         }
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: subject.clone(),
             collection: Some(collection.clone()),
         };
@@ -4669,6 +5220,8 @@ mod tests {
         }
         let wrong = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: subject.clone(),
             collection: Some(other),
         };
@@ -4691,6 +5244,8 @@ mod tests {
         seed_exact(&mut guarded, &subject);
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: subject.clone(),
             collection: Some(collection.clone()),
         };
@@ -4982,6 +5537,8 @@ mod tests {
         );
         let binding = ValidationBinding {
             predicate: Predicate::NonNull,
+            access_width: None,
+            proof_definition: None,
             subject: referent.clone(),
             collection: None,
         };
@@ -5765,7 +6322,7 @@ mod tests {
         let unchanged = entry.clone();
         let mut written = entry.clone();
         written.record_may_write(canonical_storage(&collection), write);
-        invalidate_length_evidence(&mut written, &canonical_storage(&collection));
+        invalidate_relation_evidence(&mut written, &canonical_storage(&collection));
         assert!(written.may_values()[&length]
             .length_atoms
             .iter()
@@ -5831,7 +6388,7 @@ mod tests {
         apply_program_op(&compare, BasicBlock::from_usize(0), 2, &mut state);
         assert!(state.pending_must().contains_key(&condition));
         state.record_may_write(canonical_storage(&collection), StaticWriteToken::new(0, 3));
-        invalidate_length_evidence(&mut state, &canonical_storage(&collection));
+        invalidate_relation_evidence(&mut state, &canonical_storage(&collection));
         let stale_condition = PlaceKey::new("_5");
         let mut stale_compare = compare;
         if let ProgramOpKind::Assign(assignment) = &mut stale_compare.kind {
@@ -5880,6 +6437,8 @@ mod tests {
     fn copied_condition_preserves_current_pending_and_write_kills_it() {
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: PlaceKey::new("_2"),
             collection: Some(PlaceKey::new("_1")),
         };
@@ -5951,6 +6510,8 @@ mod tests {
         let index = PlaceKey::new("_2");
         let expected = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: index.clone(),
             collection: Some(collection.clone()),
         };
@@ -6048,6 +6609,8 @@ mod tests {
         );
         let sink_binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: unique_semantic_value(&semantic_value_at(&sink, &PlaceKey::new("_18")))
                 .unwrap(),
             collection: Some(
@@ -6131,14 +6694,9 @@ mod tests {
             definition,
         );
         let mut expanded = known.clone();
-        expanded.set_value(
-            source.clone(),
-            ValueFacts {
-                exact_roots: BTreeSet::from([source.clone()]),
-                semantic_unknown: true,
-                ..ValueFacts::default()
-            },
-        );
+        let mut expanded_source = exact_value(&source);
+        expanded_source.semantic_unknown = true;
+        expanded.set_value(source.clone(), expanded_source);
         let expanded_length = eval_value_model(
             &expanded,
             &ValueModel::Length(place_operand(&source.0)),
@@ -6258,6 +6816,8 @@ mod tests {
         let condition = PlaceKey::new("_3");
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: PlaceKey::new("_2"),
             collection: Some(PlaceKey::new("_1")),
         };
@@ -6290,10 +6850,81 @@ mod tests {
     }
 
     #[test]
-    fn assert_plumbing_does_not_establish_task9_validation() {
+    fn task9_lt_true_edge_establishes_only_the_exact_current_bound() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_4");
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &collection);
+        seed_exact(&mut state, &index);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&collection.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 1),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Lt,
+                        left: place_operand(&index.0),
+                        right: place_operand(&length.0),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            1,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
+            subject: index,
+            collection: Some(collection),
+        };
+        assert!(state.pending_is_current(&condition, &binding, true));
+
+        let true_target = BasicBlock::from_usize(1);
+        let false_target = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::Switch {
+            condition,
+            false_target,
+            true_target,
+        };
+        let mut on_true = state.clone();
+        apply_program_edge(&edge, true_target, &mut on_true);
+        assert!(on_true.has_current_validation(&binding, binding.storage_places()));
+        let mut on_false = state;
+        apply_program_edge(&edge, false_target, &mut on_false);
+        assert!(!on_false.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    #[test]
+    fn task9_assert_success_establishes_only_matching_in_bounds_pending() {
         let condition = PlaceKey::new("_3");
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: PlaceKey::new("_2"),
             collection: Some(PlaceKey::new("_1")),
         };
@@ -6305,13 +6936,824 @@ mod tests {
         };
         let mut state = BlockState::empty();
         state.set_pending(
-            condition,
+            condition.clone(),
             [(binding.clone(), true, binding.storage_places())],
         );
-        let before = state.clone();
         apply_program_edge(&edge, target, &mut state);
-        assert_eq!(state, before);
-        assert!(!state.has_current_validation(&binding, binding.storage_places()));
+        assert!(state.has_current_validation(&binding, binding.storage_places()));
+
+        let nonempty = ValidationBinding {
+            predicate: Predicate::NonEmpty,
+            access_width: None,
+            proof_definition: None,
+            subject: PlaceKey::new("_8"),
+            collection: None,
+        };
+        let mut wrong_predicate = BlockState::empty();
+        wrong_predicate.set_pending(
+            condition.clone(),
+            [(nonempty.clone(), true, nonempty.storage_places())],
+        );
+        apply_program_edge(&edge, target, &mut wrong_predicate);
+        assert!(!wrong_predicate.has_current_validation(&nonempty, nonempty.storage_places()));
+
+        let mut wrong_polarity = BlockState::empty();
+        wrong_polarity.set_pending(
+            condition.clone(),
+            [(binding.clone(), false, binding.storage_places())],
+        );
+        apply_program_edge(&edge, target, &mut wrong_polarity);
+        assert!(!wrong_polarity.has_current_validation(&binding, binding.storage_places()));
+
+        let mut false_expected = BlockState::empty();
+        false_expected.set_pending(
+            condition,
+            [(binding.clone(), false, binding.storage_places())],
+        );
+        apply_program_edge(
+            &EdgeTerm::AssertPlumbingOnly {
+                condition: PlaceKey::new("_3"),
+                expected: false,
+                target,
+            },
+            target,
+            &mut false_expected,
+        );
+        assert!(false_expected.has_current_validation(&binding, binding.storage_places()));
+
+        let mut unwind = BlockState::empty();
+        unwind.set_pending(
+            PlaceKey::new("_3"),
+            [(binding.clone(), true, binding.storage_places())],
+        );
+        apply_program_edge(
+            &edge,
+            BasicBlock::from_usize(target.index() + 1),
+            &mut unwind,
+        );
+        assert!(!unwind.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    #[test]
+    fn task9_len_zero_spellings_require_literal_zero_and_one_current_length() {
+        let collection = PlaceKey::new("_1");
+        let length = PlaceKey::new("_2");
+        let condition = PlaceKey::new("_3");
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &collection);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&collection.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::NonEmpty,
+            access_width: None,
+            proof_definition: None,
+            subject: collection.clone(),
+            collection: None,
+        };
+        assert!(state.pending_is_current(&length, &binding, true));
+
+        for (op, polarity) in [(BinOp::Eq, false), (BinOp::Ne, true)] {
+            let mut spelling = state.clone();
+            apply_program_op(
+                &ProgramOp {
+                    point: point(0, 1),
+                    kind: ProgramOpKind::Assign(AssignmentModel {
+                        destination: condition.clone(),
+                        value: ValueModel::Compare {
+                            op,
+                            left: place_operand(&length.0),
+                            right: constant_operand(0),
+                        },
+                        field_origin: None,
+                        raw_read_source: None,
+                        legacy_write: false,
+                        out_formal: None,
+                    }),
+                },
+                BasicBlock::from_usize(0),
+                1,
+                &mut spelling,
+            );
+            assert!(spelling.pending_is_current(&condition, &binding, polarity));
+        }
+
+        let mut nonzero = state;
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 2),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Ne,
+                        left: place_operand(&length.0),
+                        right: constant_operand(1),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            2,
+            &mut nonzero,
+        );
+        assert!(nonzero.pending_must().get(&condition).is_none());
+
+        let mut stale = BlockState::empty();
+        seed_exact(&mut stale, &collection);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&collection.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut stale,
+        );
+        stale.record_may_write(canonical_storage(&collection), StaticWriteToken::new(0, 1));
+        assert!(!stale.pending_is_current(&length, &binding, true));
+
+        let other_collection = PlaceKey::new("_9");
+        let mut ambiguous = BlockState::empty();
+        seed_exact(&mut ambiguous, &collection);
+        seed_exact(&mut ambiguous, &other_collection);
+        let mut joined_length = eval_value_model(
+            &ambiguous,
+            &ValueModel::Length(place_operand(&collection.0)),
+            StaticWriteToken::new(0, 0),
+        );
+        joined_length.join_may(&eval_value_model(
+            &ambiguous,
+            &ValueModel::Length(place_operand(&other_collection.0)),
+            StaticWriteToken::new(0, 4),
+        ));
+        ambiguous.set_value(length.clone(), joined_length);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 5),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Eq,
+                        left: place_operand(&length.0),
+                        right: constant_operand(0),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            5,
+            &mut ambiguous,
+        );
+        assert!(ambiguous.pending_must().get(&condition).is_none());
+    }
+
+    fn task9_checked_add_call(offset: &PlaceKey, width: u64, destination: &PlaceKey) -> CallModel {
+        CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&offset.0), constant_operand(width)],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::CheckedAdd {
+                offset: place_operand(&offset.0),
+                width: constant_operand(width),
+            },
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        }
+    }
+
+    #[test]
+    fn task9_checked_add_requires_success_branch_and_exact_width_binding() {
+        let offset = PlaceKey::new("_2");
+        let collection = PlaceKey::new("_1");
+        let option = PlaceKey::new("_3");
+        let branch = PlaceKey::new("_4");
+        let discriminant = PlaceKey::new("_5");
+        let end = PlaceKey::new("_6");
+        let length = PlaceKey::new("_7");
+        let condition = PlaceKey::new("_8");
+        let normal = BasicBlock::from_usize(1);
+        let continue_block = BasicBlock::from_usize(2);
+        let break_block = BasicBlock::from_usize(3);
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &offset);
+        seed_exact(&mut state, &collection);
+
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: task9_checked_add_call(&offset, 4, &option),
+            },
+            normal,
+            &mut state,
+        );
+        assert!(current_checked_end(&state, &state_value(&state, &option)).is_none());
+        let branch_call = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&option.0)],
+                destination: branch.clone(),
+            },
+            value: RegistryValueModel::CheckedTryBranch(place_operand(&option.0)),
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 0),
+                call: branch_call,
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(1, 1),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: discriminant.clone(),
+                    value: ValueModel::Discriminant(place_operand(&branch.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            normal,
+            1,
+            &mut state,
+        );
+        let switch = EdgeTerm::Switch {
+            condition: discriminant,
+            false_target: continue_block,
+            true_target: break_block,
+        };
+        let mut on_break = state.clone();
+        apply_program_edge(&switch, break_block, &mut on_break);
+        apply_program_edge(&switch, continue_block, &mut state);
+
+        apply_program_op(
+            &ProgramOp {
+                point: point(2, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: end.clone(),
+                    value: ValueModel::Operand(place_operand(&branch.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            continue_block,
+            0,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(2, 1),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&collection.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            continue_block,
+            1,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(2, 2),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Gt,
+                        left: place_operand(&end.0),
+                        right: place_operand(&length.0),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            continue_block,
+            2,
+            &mut state,
+        );
+        let binding = ValidationBinding::range(offset.clone(), Some(collection.clone()), 4, None);
+        assert!(state.pending_is_current(&condition, &binding, false));
+        assert!(!state.pending_is_current(
+            &condition,
+            &ValidationBinding::range(offset.clone(), Some(collection), 8, None),
+            false,
+        ));
+
+        apply_program_op(
+            &ProgramOp {
+                point: point(3, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length,
+                    value: ValueModel::Length(place_operand("_1")),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            break_block,
+            0,
+            &mut on_break,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(3, 1),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Gt,
+                        left: place_operand(&end.0),
+                        right: place_operand("_7"),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            break_block,
+            1,
+            &mut on_break,
+        );
+        assert!(on_break.pending_must().get(&condition).is_none());
+    }
+
+    #[test]
+    fn task9_saturating_limit_requires_known_sufficient_extent_and_current_storage() {
+        let collection = PlaceKey::new("_1");
+        let offset = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let limit = PlaceKey::new("_4");
+        let condition = PlaceKey::new("_5");
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &collection);
+        seed_exact(&mut state, &offset);
+        let mut collection_value = state.may_values()[&collection].clone();
+        collection_value.known_lengths.insert(8);
+        collection_value.known_length_unknown = false;
+        state.set_value(collection.clone(), collection_value);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: length.clone(),
+                    value: ValueModel::Length(place_operand(&collection.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+        let limit_value = eval_registry_value(
+            &state,
+            &RegistryValueModel::SaturatingSub(vec![place_operand(&length.0), constant_operand(4)]),
+            &point(0, 1),
+        );
+        state.set_value(limit.clone(), limit_value);
+        apply_program_op(
+            &ProgramOp {
+                point: point(0, 2),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: condition.clone(),
+                    value: ValueModel::Compare {
+                        op: BinOp::Gt,
+                        left: place_operand(&offset.0),
+                        right: place_operand(&limit.0),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            2,
+            &mut state,
+        );
+        let binding = ValidationBinding::range(offset, Some(collection.clone()), 4, None);
+        assert!(state.pending_is_current(&condition, &binding, false));
+
+        let mut unknown = state.clone();
+        let unknown_limit = eval_registry_value(
+            &unknown,
+            &RegistryValueModel::SaturatingSub(vec![place_operand(&length.0), constant_operand(9)]),
+            &point(0, 3),
+        );
+        unknown.set_value(limit, unknown_limit);
+        assert!(
+            current_range_limit(&unknown, &state_value(&unknown, &PlaceKey::new("_4"))).is_none()
+        );
+
+        let mut mixed_length = state_value(&state, &length);
+        mixed_length.known_length_unknown = true;
+        let mut mixed = state.clone();
+        mixed.set_value(length.clone(), mixed_length);
+        let mixed_limit = eval_registry_value(
+            &mixed,
+            &RegistryValueModel::SaturatingSub(vec![place_operand(&length.0), constant_operand(4)]),
+            &point(0, 4),
+        );
+        assert!(mixed_limit.range_limit_unknown);
+        assert!(current_range_limit(&mixed, &mixed_limit).is_none());
+
+        let written = canonical_storage(&collection);
+        state.record_may_write(written.clone(), StaticWriteToken::new(0, 4));
+        invalidate_relation_evidence(&mut state, &written);
+        assert!(!state.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn task9_range_sink_binding_requires_exact_base_offset_and_width() {
+        let pointer = ValueFacts {
+            pointer_base: BTreeSet::from([PlaceKey::new("_1")]),
+            pointer_offset: BTreeSet::from([PlaceKey::new("_2")]),
+            ..ValueFacts::default()
+        };
+        assert_eq!(
+            range_binding_for_pointer(&pointer, 4),
+            Some(ValidationBinding::range(
+                PlaceKey::new("_2"),
+                Some(PlaceKey::new("_1")),
+                4,
+                None,
+            ))
+        );
+        let mut ambiguous = pointer;
+        ambiguous.pointer_base.insert(PlaceKey::new("_9"));
+        assert!(range_binding_for_pointer(&ambiguous, 4).is_none());
+    }
+
+    #[test]
+    fn task9_relation_joins_are_sticky_commutative_and_idempotent() {
+        let offset = PlaceKey::new("_2");
+        let collection = PlaceKey::new("_1");
+        let checked = CheckedEndAtom {
+            offset: offset.clone(),
+            width: 4,
+            definition: StaticWriteToken::new(1, 0),
+            captured_versions: BTreeSet::new(),
+            branch_ready: true,
+            invalidated: false,
+        };
+        let limit = RangeLimitAtom {
+            collection: collection.clone(),
+            width: 4,
+            definition: StaticWriteToken::new(2, 0),
+            captured_versions: BTreeSet::new(),
+            invalidated: false,
+        };
+        let evidence = ValueFacts {
+            checked_end_atoms: BTreeSet::from([checked]),
+            range_limit_atoms: BTreeSet::from([limit]),
+            ..ValueFacts::default()
+        };
+        let unknown = ValueFacts {
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
+            ..ValueFacts::default()
+        };
+        let mut left = evidence.clone();
+        left.join_may(&unknown);
+        let mut right = unknown;
+        right.join_may(&evidence);
+        assert_eq!(left, right);
+        assert!(!left.join_may(&left.clone()));
+        assert!(current_checked_end(&BlockState::empty(), &left).is_none());
+        assert!(current_range_limit(&BlockState::empty(), &left).is_none());
+    }
+
+    fn task9_utf8_result_call(bytes: &PlaceKey, destination: &PlaceKey) -> CallModel {
+        CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&bytes.0)],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: Some(PredicateModel::Utf8Result {
+                bytes: place_operand(&bytes.0),
+            }),
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        }
+    }
+
+    fn task9_is_err_call(checked: &PlaceKey, destination: &PlaceKey) -> CallModel {
+        CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&checked.0)],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: Some(PredicateModel::IsErr {
+                checked: place_operand(&checked.0),
+            }),
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: true,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        }
+    }
+
+    #[test]
+    fn task9_utf8_same_bytes_false_edge_establishes_exact_local_validation() {
+        let bytes = PlaceKey::new("_1");
+        let checked = PlaceKey::new("_4");
+        let borrowed = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_2");
+        let normal = BasicBlock::from_usize(1);
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &bytes);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: task9_utf8_result_call(&bytes, &checked),
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: point(1, 0),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: borrowed.clone(),
+                    value: ValueModel::RefOrRaw(place_operand(&checked.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            normal,
+            0,
+            &mut state,
+        );
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 1),
+                call: task9_is_err_call(&borrowed, &condition),
+            },
+            normal,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::ValidUtf8,
+            access_width: None,
+            proof_definition: None,
+            subject: bytes,
+            collection: None,
+        };
+        assert!(state.pending_is_current(&condition, &binding, false));
+        apply_program_edge(
+            &EdgeTerm::Switch {
+                condition,
+                false_target: normal,
+                true_target: BasicBlock::from_usize(2),
+            },
+            normal,
+            &mut state,
+        );
+        assert!(state.has_current_validation(&binding, binding.storage_places()));
+    }
+
+    #[test]
+    fn task9_utf8_wrong_bytes_and_wrong_polarity_fail_closed() {
+        let checked_bytes = PlaceKey::new("_1");
+        let wrong_bytes = PlaceKey::new("_5");
+        let checked = PlaceKey::new("_4");
+        let condition = PlaceKey::new("_2");
+        let normal = BasicBlock::from_usize(1);
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &checked_bytes);
+        seed_exact(&mut state, &wrong_bytes);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: task9_utf8_result_call(&checked_bytes, &checked),
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 0),
+                call: task9_is_err_call(&checked, &condition),
+            },
+            normal,
+            &mut state,
+        );
+        let wrong_binding = ValidationBinding {
+            predicate: Predicate::ValidUtf8,
+            access_width: None,
+            proof_definition: None,
+            subject: wrong_bytes,
+            collection: None,
+        };
+        assert!(!state.pending_is_current(&condition, &wrong_binding, false));
+        let checked_binding = ValidationBinding {
+            predicate: Predicate::ValidUtf8,
+            access_width: None,
+            proof_definition: None,
+            subject: checked_bytes,
+            collection: None,
+        };
+        assert!(!state.pending_is_current(&condition, &checked_binding, true));
+    }
+
+    #[test]
+    fn task9_utf8_write_invalidates_old_evidence_but_recheck_restores_it() {
+        let bytes = PlaceKey::new("_1");
+        let checked = PlaceKey::new("_4");
+        let condition = PlaceKey::new("_2");
+        let normal = BasicBlock::from_usize(1);
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &bytes);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: task9_utf8_result_call(&bytes, &checked),
+            },
+            normal,
+            &mut state,
+        );
+        let written = canonical_storage(&bytes);
+        state.record_may_write(written.clone(), StaticWriteToken::new(1, 0));
+        invalidate_relation_evidence(&mut state, &written);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 1),
+                call: task9_is_err_call(&checked, &condition),
+            },
+            normal,
+            &mut state,
+        );
+        assert!(state.pending_must().get(&condition).is_none());
+
+        let rechecked = PlaceKey::new("_5");
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 2),
+                call: task9_utf8_result_call(&bytes, &rechecked),
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 3),
+                call: task9_is_err_call(&rechecked, &condition),
+            },
+            normal,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::ValidUtf8,
+            access_width: None,
+            proof_definition: None,
+            subject: bytes,
+            collection: None,
+        };
+        assert!(state.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn task9_utf8_diamond_requires_the_same_check_on_every_path() {
+        let bytes = PlaceKey::new("_1");
+        let checked = PlaceKey::new("_4");
+        let condition = PlaceKey::new("_2");
+        let normal = BasicBlock::from_usize(1);
+        let mut checked_path = BlockState::empty();
+        seed_exact(&mut checked_path, &bytes);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 0),
+                call: task9_utf8_result_call(&bytes, &checked),
+            },
+            normal,
+            &mut checked_path,
+        );
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(1, 0),
+                call: task9_is_err_call(&checked, &condition),
+            },
+            normal,
+            &mut checked_path,
+        );
+        let unchecked_path = {
+            let mut state = BlockState::empty();
+            seed_exact(&mut state, &bytes);
+            state
+        };
+        let joined = BlockState::join_predecessors([&checked_path, &unchecked_path]).unwrap();
+        assert!(joined.pending_must().get(&condition).is_none());
+
+        let all_checked = BlockState::join_predecessors([&checked_path, &checked_path]).unwrap();
+        let binding = ValidationBinding {
+            predicate: Predicate::ValidUtf8,
+            access_width: None,
+            proof_definition: None,
+            subject: bytes,
+            collection: None,
+        };
+        assert!(all_checked.pending_is_current(&condition, &binding, false));
+    }
+
+    #[test]
+    fn task9_utf8_local_proof_is_consumed_but_never_exported() {
+        assert_eq!(
+            validation_contract_policy(Predicate::ValidUtf8),
+            LocalValidationPolicy::LocalOnly
+        );
+        assert_eq!(
+            validation_contract_policy(Predicate::InBounds),
+            LocalValidationPolicy::Exportable
+        );
+        assert_eq!(
+            validation_contract_policy(Predicate::RangeInBounds),
+            LocalValidationPolicy::LocalOnly
+        );
     }
 
     #[test]
@@ -6491,6 +7933,8 @@ mod tests {
         );
         let binding = ValidationBinding {
             predicate: Predicate::NonNull,
+            access_width: None,
+            proof_definition: None,
             subject: output,
             collection: None,
         };
@@ -6561,6 +8005,8 @@ mod tests {
         );
         let binding = ValidationBinding {
             predicate: Predicate::NonEmpty,
+            access_width: None,
+            proof_definition: None,
             subject: slice,
             collection: None,
         };
@@ -6642,6 +8088,8 @@ mod tests {
         );
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: index,
             collection: Some(data),
         };
@@ -6708,14 +8156,9 @@ mod tests {
         assert!(known.pending_must().contains_key(&known_condition));
 
         let mut unknown = BlockState::empty();
-        unknown.set_value(
-            collection.clone(),
-            ValueFacts {
-                exact_roots: BTreeSet::from([collection.clone()]),
-                semantic_unknown: true,
-                ..ValueFacts::default()
-            },
-        );
+        let mut unknown_collection = exact_value(&collection);
+        unknown_collection.semantic_unknown = true;
+        unknown.set_value(collection.clone(), unknown_collection);
         seed_exact(&mut unknown, &index);
         apply_program_edge(
             &EdgeTerm::CallNormal {
@@ -6780,14 +8223,10 @@ mod tests {
                 ..ValueFacts::default()
             },
         );
-        expanded.set_value(
-            first.clone(),
-            ValueFacts {
-                exact_roots: BTreeSet::from([first.clone(), PlaceKey::new("_9")]),
-                semantic_unknown: true,
-                ..ValueFacts::default()
-            },
-        );
+        let mut expanded_first = exact_value(&first);
+        expanded_first.exact_roots.insert(PlaceKey::new("_9"));
+        expanded_first.semantic_unknown = true;
+        expanded.set_value(first.clone(), expanded_first);
         expanded.set_value(second.clone(), exact_value(&second));
         apply_call_side_effects(&call, &point(0, 3), &mut small);
         apply_call_side_effects(&call, &point(0, 3), &mut expanded);
@@ -6811,6 +8250,8 @@ mod tests {
     fn authoritative_local_binding_rejects_missing_and_wrong_bindings() {
         let binding = ValidationBinding {
             predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
             subject: PlaceKey::new("_2"),
             collection: Some(PlaceKey::new("_1")),
         };
