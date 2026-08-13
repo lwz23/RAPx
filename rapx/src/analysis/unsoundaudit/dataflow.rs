@@ -307,9 +307,60 @@ where
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct DataflowResult<K, V, P> {
     pub(super) entry: IndexVec<BasicBlock, Option<BlockState<K, V, P>>>,
-    pub(super) before: BTreeMap<(BasicBlock, usize), BlockState<K, V, P>>,
     pub(super) exit: IndexVec<BasicBlock, Option<BlockState<K, V, P>>>,
     pub(super) edge: BTreeMap<(BasicBlock, BasicBlock), BlockState<K, V, P>>,
+}
+
+pub(super) fn replay_final_entries<K, V, P, F, O>(
+    entry: &IndexVec<BasicBlock, Option<BlockState<K, V, P>>>,
+    operation_counts: &IndexVec<BasicBlock, usize>,
+    mut transfer: F,
+    mut observe: O,
+) where
+    K: Clone + Ord,
+    V: Clone + Eq + MayJoin,
+    P: Clone + Ord,
+    F: FnMut(BasicBlock, usize, &mut BlockState<K, V, P>),
+    O: FnMut(BasicBlock, usize, &BlockState<K, V, P>),
+{
+    assert_eq!(
+        entry.len(),
+        operation_counts.len(),
+        "CFG entry and operation vectors must agree"
+    );
+    for (block, entry_state) in entry.iter_enumerated() {
+        let Some(mut state) = entry_state.clone() else {
+            continue;
+        };
+        for operation in 0..operation_counts[block] {
+            observe(block, operation, &state);
+            transfer(block, operation, &mut state);
+        }
+    }
+}
+
+#[cfg(test)]
+pub(super) fn replay_before<K, V, P, F>(
+    entry: &IndexVec<BasicBlock, Option<BlockState<K, V, P>>>,
+    operation_counts: &IndexVec<BasicBlock, usize>,
+    transfer: F,
+) -> BTreeMap<(BasicBlock, usize), BlockState<K, V, P>>
+where
+    K: Clone + Ord,
+    V: Clone + Eq + MayJoin,
+    P: Clone + Ord,
+    F: FnMut(BasicBlock, usize, &mut BlockState<K, V, P>),
+{
+    let mut before = BTreeMap::new();
+    replay_final_entries(
+        entry,
+        operation_counts,
+        transfer,
+        |block, operation, state| {
+            before.insert((block, operation), state.clone());
+        },
+    );
+    before
 }
 
 #[cfg(test)]
@@ -439,7 +490,6 @@ where
 
     let mut result = DataflowResult {
         entry: IndexVec::from_elem_n(None, successors.len()),
-        before: BTreeMap::new(),
         exit: IndexVec::from_elem_n(None, successors.len()),
         edge: BTreeMap::new(),
     };
@@ -451,7 +501,6 @@ where
             continue;
         };
         for operation in 0..operation_counts[block] {
-            result.before.insert((block, operation), state.clone());
             transfer(block, operation, &mut state);
         }
         if result.exit[block].as_ref() == Some(&state) {
@@ -510,8 +559,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::{
-        solve_cfg, solve_cfg_with_stats, BlockState, BoundValidation, DataflowResult, MayJoin,
-        SolveCfgStats, StaticWriteToken,
+        replay_before, solve_cfg, solve_cfg_with_stats, BlockState, BoundValidation,
+        DataflowResult, MayJoin, SolveCfgStats, StaticWriteToken,
     };
     use rustc_index::IndexVec;
     use rustc_middle::mir::BasicBlock;
@@ -542,6 +591,7 @@ mod tests {
         mut edge_transfer: E,
     ) -> (
         DataflowResult<String, BTreeSet<String>, String>,
+        BTreeMap<(BasicBlock, usize), State>,
         SolveCfgStats,
     )
     where
@@ -556,10 +606,10 @@ mod tests {
         }
         let mut result = DataflowResult {
             entry: IndexVec::from_elem_n(None, successors.len()),
-            before: BTreeMap::new(),
             exit: IndexVec::from_elem_n(None, successors.len()),
             edge: BTreeMap::new(),
         };
+        let mut before = BTreeMap::new();
         result.entry[block(0)] = Some(entry_seed.clone());
         let mut worklist = BTreeSet::from([block(0)]);
         let mut stats = SolveCfgStats::default();
@@ -568,7 +618,7 @@ mod tests {
                 continue;
             };
             for operation in 0..operation_counts[source] {
-                result.before.insert((source, operation), state.clone());
+                before.insert((source, operation), state.clone());
                 transfer(source, operation, &mut state);
             }
             if result.exit[source].as_ref() == Some(&state) {
@@ -606,7 +656,7 @@ mod tests {
                 }
             }
         }
-        (result, stats)
+        (result, before, stats)
     }
 
     #[test]
@@ -631,7 +681,7 @@ mod tests {
             transfer,
             edge_transfer,
         );
-        let (_, reference_stats) = solve_cfg_reference(
+        let (_, _, reference_stats) = solve_cfg_reference(
             &successors,
             &operations,
             State::empty(),
@@ -670,7 +720,7 @@ mod tests {
             transfer,
             edge_transfer,
         );
-        let (_, reference_stats) = solve_cfg_reference(
+        let (_, _, reference_stats) = solve_cfg_reference(
             &successors,
             &operations,
             State::empty(),
@@ -715,7 +765,7 @@ mod tests {
             }
         };
 
-        let (expected, _) = solve_cfg_reference(
+        let (expected, expected_before, _) = solve_cfg_reference(
             &successors,
             &operations,
             seed.clone(),
@@ -723,7 +773,9 @@ mod tests {
             edge_transfer,
         );
         let actual = solve_cfg(&successors, &operations, seed, transfer, edge_transfer);
+        let actual_before = replay_before(&actual.entry, &operations, transfer);
         assert_eq!(actual, expected);
+        assert_eq!(actual_before, expected_before);
     }
 
     #[test]
@@ -982,7 +1034,11 @@ mod tests {
         let reverse = solve(&[(2, 3), (1, 3), (0, 2), (0, 1)]);
         assert_eq!(forward, reverse);
 
-        let before_keys = forward.before.keys().copied().collect::<Vec<_>>();
+        let operations = IndexVec::from_raw(vec![1, 1, 1, 0]);
+        let before = replay_before(&forward.entry, &operations, |bb, _, state| {
+            state.set_value("seen".into(), BTreeSet::from([bb.index().to_string()]));
+        });
+        let before_keys = before.keys().copied().collect::<Vec<_>>();
         let mut sorted = before_keys.clone();
         sorted.sort();
         assert_eq!(before_keys, sorted);

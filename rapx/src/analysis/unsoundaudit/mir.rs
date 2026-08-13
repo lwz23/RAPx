@@ -1,5 +1,6 @@
 use super::dataflow::{
-    solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin, StaticWriteToken,
+    replay_final_entries, solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin,
+    StaticWriteToken,
 };
 use super::perf_trace::PerfTrace;
 use super::summary::{
@@ -342,9 +343,10 @@ fn out_slot(formal_index: u32) -> PlaceKey {
 fn join_local_outputs(
     current: &mut BTreeMap<FunctionKey, LocalCallOutputs>,
     incoming: &BTreeMap<FunctionKey, LocalCallOutputs>,
-) -> bool {
-    let before = current.clone();
+) -> BTreeSet<FunctionKey> {
+    let mut changed_owners = BTreeSet::new();
     for (function, calls) in incoming {
+        let mut changed = false;
         for (point, outputs) in calls {
             let destination = current
                 .entry(function.clone())
@@ -352,23 +354,35 @@ fn join_local_outputs(
                 .entry(point.clone())
                 .or_default();
             if let Some((place, value)) = &outputs.returned {
-                let returned = destination
-                    .returned
-                    .get_or_insert_with(|| (place.clone(), AbstractValue::default()));
+                let returned = destination.returned.get_or_insert_with(|| {
+                    changed = true;
+                    (place.clone(), AbstractValue::default())
+                });
                 debug_assert_eq!(returned.0, *place);
+                let before = returned.1.origins.len();
                 returned.1.origins.extend(value.origins.iter().cloned());
+                changed |= returned.1.origins.len() != before;
             }
             for (place, value) in &outputs.outs {
-                let output = destination.outs.entry(place.clone()).or_default();
+                let output = destination.outs.entry(place.clone()).or_insert_with(|| {
+                    changed = true;
+                    MappedOutValue::default()
+                });
+                let before = output.value.origins.len();
                 output
                     .value
                     .origins
                     .extend(value.value.origins.iter().cloned());
+                changed |= output.value.origins.len() != before;
+                changed |= !output.may_skip_write && value.may_skip_write;
                 output.may_skip_write |= value.may_skip_write;
             }
         }
+        if changed {
+            changed_owners.insert(function.clone());
+        }
     }
-    *current != before
+    changed_owners
 }
 
 fn map_structured_local_outputs(
@@ -794,6 +808,64 @@ struct CfgPoint {
     statement: u32,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct ValidationSnapshot {
+    current_validations: BTreeSet<ValidationBinding>,
+    entry_formals: BTreeMap<PlaceKey, BoundarySlot>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct BodyValueFacts {
+    value: AbstractValue,
+    value_flow: BTreeSet<PlaceKey>,
+}
+
+impl BodyValueFacts {
+    fn join_value_facts(&mut self, incoming: &ValueFacts) {
+        self.value
+            .origins
+            .extend(incoming.value.origins.iter().cloned());
+        self.value_flow.extend(incoming.value_flow.iter().cloned());
+    }
+}
+
+impl ValidationSnapshot {
+    fn capture(
+        state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+        arg_count: usize,
+    ) -> Self {
+        let current_validations = state
+            .must_validations()
+            .iter()
+            .filter_map(|validation| {
+                let binding = validation.predicate();
+                state
+                    .has_current_validation(binding, binding.storage_places())
+                    .then(|| binding.clone())
+            })
+            .collect();
+        let entry_formals = state
+            .may_values()
+            .keys()
+            .filter_map(|place| {
+                entry_formal_slot(arg_count, state, place).map(|slot| (place.clone(), slot))
+            })
+            .collect();
+        Self {
+            current_validations,
+            entry_formals,
+        }
+    }
+
+    fn proves(&self, binding: &ValidationBinding) -> bool {
+        self.current_validations.contains(binding)
+    }
+
+    fn entry_formal(&self, place: &PlaceKey) -> Option<BoundarySlot> {
+        self.entry_formals.get(place).copied()
+    }
+}
+
 #[derive(Clone, Debug)]
 struct BodyFacts {
     def_id: LocalDefId,
@@ -802,14 +874,14 @@ struct BodyFacts {
     arg_count: usize,
     has_self: bool,
     summary_seed: FunctionSummary,
-    values: BTreeMap<PlaceKey, ValueFacts>,
+    values: BTreeMap<PlaceKey, BodyValueFacts>,
     calls: Vec<CallSite>,
     compares: Vec<CompareFact>,
     lengths: BTreeSet<LengthFact>,
     predicates: Vec<PredicateFact>,
     branches: Vec<BranchFact>,
     writes: Vec<WriteFact>,
-    states: BTreeMap<(BasicBlock, usize), BlockState<PlaceKey, ValueFacts, ValidationBinding>>,
+    validation_snapshots: BTreeMap<(BasicBlock, usize), ValidationSnapshot>,
     local_bindings: BTreeMap<ProgramPoint, ValidationBinding>,
 }
 
@@ -1008,55 +1080,58 @@ impl<'tcx> Engine<'tcx> {
             [("definite_out_count", definite_out_count as u64)],
         )?;
         let mut local_outputs = self.local_out_effects(&must_outputs);
+        let initial_owners = local_outputs
+            .keys()
+            .chain(
+                must_outputs
+                    .iter()
+                    .filter(|(_, outputs)| !outputs.is_empty())
+                    .map(|(function, _)| function),
+            )
+            .cloned()
+            .collect::<BTreeSet<_>>();
         trace.event("initial_rebuild", "begin", [])?;
-        self.rebuild_bodies(&local_outputs, &must_outputs);
+        self.rebuild_body_owners(&initial_owners, &local_outputs, &must_outputs);
         trace.event(
             "initial_rebuild",
             "end",
-            [("body_count", self.bodies.len() as u64)],
+            [("rebuilt_owner_count", initial_owners.len() as u64)],
         )?;
         let mut outer_iteration = 0_u64;
-        let solved = loop {
+        loop {
             outer_iteration += 1;
-            trace.event(
-                "summary_outer_solve",
-                "begin",
-                [("iteration", outer_iteration)],
-            )?;
-            let solved = self.solve_current_summaries(&graph);
-            trace.event(
-                "summary_outer_solve",
-                "end",
-                [
-                    ("iteration", outer_iteration),
-                    ("summary_count", solved.len() as u64),
-                ],
-            )?;
             trace.event("derive_outputs", "begin", [("iteration", outer_iteration)])?;
-            let derived = self.derive_local_outputs(&solved, &must_outputs);
-            let changed = join_local_outputs(&mut local_outputs, &derived);
+            let derived = self.derive_local_outputs(&must_outputs);
+            let changed_owners = join_local_outputs(&mut local_outputs, &derived);
             trace.event(
                 "derive_outputs",
                 "end",
                 [
                     ("iteration", outer_iteration),
-                    ("changed", u64::from(changed)),
+                    ("changed_owner_count", changed_owners.len() as u64),
                 ],
             )?;
-            if !changed {
-                break solved;
+            if changed_owners.is_empty() {
+                break;
             }
             trace.event("output_rebuild", "begin", [("iteration", outer_iteration)])?;
-            self.rebuild_bodies(&local_outputs, &must_outputs);
+            self.rebuild_body_owners(&changed_owners, &local_outputs, &must_outputs);
             trace.event(
                 "output_rebuild",
                 "end",
                 [
                     ("iteration", outer_iteration),
-                    ("body_count", self.bodies.len() as u64),
+                    ("rebuilt_owner_count", changed_owners.len() as u64),
                 ],
             )?;
-        };
+        }
+        trace.event("full_summary_solve", "begin", [])?;
+        let solved = self.solve_current_summaries(&graph);
+        trace.event(
+            "full_summary_solve",
+            "end",
+            [("summary_count", solved.len() as u64)],
+        )?;
         let seeds = self.summary_seeds();
 
         trace.event(
@@ -1275,7 +1350,7 @@ impl<'tcx> Engine<'tcx> {
                         continue;
                     }
                     let callee_route = UnresolvedRouteFact::Conditional(validation.clone());
-                    let Some(state) = caller.states.get(&(
+                    let Some(snapshot) = caller.validation_snapshots.get(&(
                         call.point.point_location().block,
                         call.point.statement as usize,
                     )) else {
@@ -1295,7 +1370,7 @@ impl<'tcx> Engine<'tcx> {
                         call,
                         callee,
                         callee_route,
-                        compose_validation_route(validation, call, state, caller.arg_count),
+                        compose_validation_route_from_snapshot(validation, call, snapshot),
                     );
                 }
                 derived
@@ -1315,7 +1390,6 @@ impl<'tcx> Engine<'tcx> {
 
     fn derive_local_outputs(
         &self,
-        summaries: &BTreeMap<FunctionKey, FunctionSummary>,
         definite_outs: &BTreeMap<FunctionKey, BTreeSet<u32>>,
     ) -> BTreeMap<FunctionKey, LocalCallOutputs> {
         let mut result = BTreeMap::<FunctionKey, LocalCallOutputs>::new();
@@ -1327,7 +1401,7 @@ impl<'tcx> Engine<'tcx> {
                 let Some(callee) = call.callee.as_ref() else {
                     continue;
                 };
-                let Some(summary) = summaries.get(callee) else {
+                let Some(summary) = self.bodies.get(callee).map(|facts| &facts.summary_seed) else {
                     continue;
                 };
                 let Some(boundary) =
@@ -1374,26 +1448,29 @@ impl<'tcx> Engine<'tcx> {
         result
     }
 
-    fn rebuild_bodies(
+    fn rebuild_body_owners(
         &mut self,
+        owners: &BTreeSet<FunctionKey>,
         local_outputs: &BTreeMap<FunctionKey, LocalCallOutputs>,
         definite_outs: &BTreeMap<FunctionKey, BTreeSet<u32>>,
     ) {
-        let inputs = self
-            .programs
+        let empty_outputs = LocalCallOutputs::new();
+        let empty_definite = BTreeSet::new();
+        let rebuilt = owners
             .iter()
-            .map(|(function, program)| (function.clone(), program.clone()))
+            .filter_map(|function| {
+                let program = self.programs.get(function)?;
+                let outputs = local_outputs.get(function).unwrap_or(&empty_outputs);
+                let definite = definite_outs.get(function).unwrap_or(&empty_definite);
+                Some((
+                    function.clone(),
+                    self.extract_program(program, outputs, definite),
+                ))
+            })
             .collect::<Vec<_>>();
-        let mut rebuilt = BTreeMap::new();
-        for (function, program) in inputs {
-            let outputs = local_outputs.get(&function).cloned().unwrap_or_default();
-            let definite = definite_outs.get(&function).cloned().unwrap_or_default();
-            rebuilt.insert(
-                function,
-                self.extract_program(&program, &outputs, &definite),
-            );
+        for (function, facts) in rebuilt {
+            self.bodies.insert(function, facts);
         }
-        self.bodies = rebuilt;
     }
 
     fn local_function_ids(&self) -> Vec<LocalDefId> {
@@ -1528,12 +1605,24 @@ impl<'tcx> Engine<'tcx> {
             predicates: Vec::new(),
             branches: Vec::new(),
             writes: Vec::new(),
-            states: BTreeMap::new(),
+            validation_snapshots: BTreeMap::new(),
             local_bindings: BTreeMap::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
             facts.values.insert(
+                place.clone(),
+                BodyValueFacts {
+                    value: AbstractValue::new([AbstractOrigin::Formal(index as u32)]),
+                    value_flow: BTreeSet::from([place.clone()]),
+                },
+            );
+        }
+        let operation_counts = program.operations.iter().map(Vec::len).collect();
+        let mut entry = BlockState::empty();
+        for index in 1..=program.arg_count {
+            let place = PlaceKey::new(format!("_{index}"));
+            entry.set_value(
                 place.clone(),
                 ValueFacts {
                     value: AbstractValue::new([AbstractOrigin::Formal(index as u32)]),
@@ -1549,11 +1638,6 @@ impl<'tcx> Engine<'tcx> {
                 },
             );
         }
-        let operation_counts = program.operations.iter().map(Vec::len).collect();
-        let mut entry = BlockState::empty();
-        for (place, value) in &facts.values {
-            entry.set_value(place.clone(), value.clone());
-        }
         let solved = solve_cfg(
             &program.successors,
             &operation_counts,
@@ -1565,8 +1649,26 @@ impl<'tcx> Engine<'tcx> {
                 apply_program_edge_with_outputs(&program.edges[block], target, state, local_outputs)
             },
         );
-        facts.states = solved.before.clone();
-        self.materialize_program(&program, &solved, &mut facts);
+        replay_final_entries(
+            &solved.entry,
+            &operation_counts,
+            |block, index, state| {
+                apply_program_op(&program.operations[block][index], block, index, state)
+            },
+            |block, index, state| {
+                if matches!(
+                    program.operations[block][index].kind,
+                    ProgramOpKind::Call(_)
+                ) {
+                    facts.validation_snapshots.insert(
+                        (block, index),
+                        ValidationSnapshot::capture(state, facts.arg_count),
+                    );
+                }
+                self.materialize_operation(program, &solved, block, index, state, &mut facts);
+            },
+        );
+        self.materialize_exits(&solved, &mut facts);
         self.add_local_requirements(program, &mut facts);
         self.partition_validation_contracts(&mut facts);
         for (block, edge) in program.edges.iter_enumerated() {
@@ -1616,7 +1718,10 @@ impl<'tcx> Engine<'tcx> {
                 continue;
             }
             let point = requirement.sink.point.point_location();
-            let Some(state) = facts.states.get(&(point.block, point.statement_index)) else {
+            let Some(snapshot) = facts
+                .validation_snapshots
+                .get(&(point.block, point.statement_index))
+            else {
                 continue;
             };
             let Some(binding) = facts.local_bindings.get(&requirement.sink.point) else {
@@ -1625,17 +1730,17 @@ impl<'tcx> Engine<'tcx> {
             if binding.predicate != predicate {
                 continue;
             }
-            if state_proves_local_binding(state, Some(binding)) {
+            if snapshot.proves(binding) {
                 facts.summary_seed.requirements.remove(&requirement);
                 continue;
             }
             if policy == LocalValidationPolicy::LocalOnly {
                 continue;
             }
-            let subject = entry_formal_slot(facts.arg_count, state, &binding.subject);
+            let subject = snapshot.entry_formal(&binding.subject);
             let collection = match &binding.collection {
                 Some(place) => {
-                    let Some(slot) = entry_formal_slot(facts.arg_count, state, place) else {
+                    let Some(slot) = snapshot.entry_formal(place) else {
                         continue;
                     };
                     Some(slot)
@@ -1656,206 +1761,200 @@ impl<'tcx> Engine<'tcx> {
         }
     }
 
-    fn materialize_program(
+    fn materialize_operation(
         &self,
         program: &BodyProgram,
         solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+        block: BasicBlock,
+        index: usize,
+        state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
         facts: &mut BodyFacts,
     ) {
-        for (block, operations) in program.operations.iter_enumerated() {
-            for (index, operation) in operations.iter().enumerate() {
-                let Some(state) = solved.before.get(&(block, index)) else {
-                    continue;
-                };
-                for (place, value) in state.may_values() {
-                    facts
-                        .values
-                        .entry(place.clone())
-                        .or_default()
-                        .join_may(value);
-                }
-                match &operation.kind {
-                    ProgramOpKind::Assign(assignment) => {
-                        let destination = assignment.destination.clone();
-                        match &assignment.value {
-                            ValueModel::Length(collection) => {
-                                if let Some(collection) =
-                                    unique_semantic_value(&eval_operand(state, collection))
-                                {
-                                    facts.lengths.insert(LengthFact {
-                                        result: destination.clone(),
-                                        collection,
-                                    });
-                                }
-                            }
-                            ValueModel::Compare { op, left, right } => {
-                                facts.compares.push(CompareFact {
-                                    result: destination.clone(),
-                                    op: *op,
-                                    left: left.operand.clone(),
-                                    right: right.operand.clone(),
-                                    point: operation.semantic_point().clone(),
-                                });
-                            }
-                            _ => {}
-                        }
-                        if assignment.legacy_write {
-                            record_write(
-                                facts,
-                                destination,
-                                operation.semantic_point().clone(),
-                                WriteKind::Assignment,
-                            );
-                        }
-                        if let Some(source) = &assignment.raw_read_source {
-                            let subject = eval_operand(state, source).value;
-                            facts.summary_seed.requirements.insert(ContractRequirement {
-                                seed_id: format!(
-                                    "P1.raw:{}",
-                                    operation.semantic_point().span.token()
-                                ),
-                                collection: None,
-                                subject,
-                                source_hint: None,
-                                internal_derivation: false,
-                                source_span: operation.semantic_point().span.clone(),
-                                first_failure: Operation {
-                                    kind: OperationKind::RawRead,
-                                    point: operation.semantic_point().clone(),
-                                },
-                                sink: Operation {
-                                    kind: OperationKind::RawRead,
-                                    point: operation.semantic_point().clone(),
-                                },
-                                predicates: BTreeSet::from([Predicate::ValidForRead]),
-                                access_width: None,
-                                rule: RuleId::P1RawRead,
-                                return_exposure: false,
-                                sink_function: facts.function.clone(),
+        let operation = &program.operations[block][index];
+        for (place, value) in state.may_values() {
+            facts
+                .values
+                .entry(place.clone())
+                .or_default()
+                .join_value_facts(value);
+        }
+        match &operation.kind {
+            ProgramOpKind::Assign(assignment) => {
+                let destination = assignment.destination.clone();
+                match &assignment.value {
+                    ValueModel::Length(collection) => {
+                        if let Some(collection) =
+                            unique_semantic_value(&eval_operand(state, collection))
+                        {
+                            facts.lengths.insert(LengthFact {
+                                result: destination.clone(),
+                                collection,
                             });
                         }
                     }
-                    ProgramOpKind::Call(call) => {
-                        let descriptor = &call.descriptor;
-                        let normal_successor = match &program.edges[block] {
-                            EdgeTerm::CallNormal {
-                                normal_target: Some(target),
-                                ..
-                            } if solved.edge.contains_key(&(block, *target)) => Some(*target),
-                            _ => None,
-                        };
-                        let normal_edge_state =
-                            normal_successor.and_then(|target| solved.edge.get(&(block, target)));
-                        let arg_values = descriptor
-                            .args
-                            .iter()
-                            .map(|operand| eval_operand(state, operand))
-                            .collect::<Vec<_>>();
-                        let args = descriptor
-                            .args
-                            .iter()
-                            .map(|operand| operand.operand.clone())
-                            .collect::<Vec<_>>();
-                        facts.calls.push(CallSite {
-                            callee: descriptor.callee.clone(),
-                            raw_def: descriptor.raw_def,
-                            disposition: descriptor.disposition,
-                            args: args.clone(),
-                            arg_values,
-                            destination: descriptor.destination.clone(),
+                    ValueModel::Compare { op, left, right } => {
+                        facts.compares.push(CompareFact {
+                            result: destination.clone(),
+                            op: *op,
+                            left: left.operand.clone(),
+                            right: right.operand.clone(),
                             point: operation.semantic_point().clone(),
-                            destination_is_bool: call.destination_is_bool,
-                            access_width: call.access_width,
                         });
-                        if let Some(callee) = &descriptor.callee {
-                            let mapping = local_call_boundary_mapping(call, state);
-                            facts.summary_seed.calls.insert(CallBoundary {
-                                caller: facts.function.clone(),
-                                callee: callee.clone(),
-                                point: operation.semantic_point().clone(),
-                                mapping,
-                            });
-                        }
-                        if call.legacy_write && normal_edge_state.is_some() {
-                            record_edge_write(
-                                facts,
-                                descriptor.destination.clone(),
-                                operation.semantic_point().clone(),
-                                WriteKind::CallReturn,
-                                normal_successor,
-                            );
-                        }
-                        if normal_edge_state.is_some() {
-                            for target in call
-                                .mutable_actuals
-                                .iter()
-                                .flat_map(|actual| state_alias_closure(state, actual).into_iter())
-                            {
-                                record_edge_write(
-                                    facts,
-                                    target,
-                                    operation.semantic_point().clone(),
-                                    WriteKind::OpaqueMutable,
-                                    normal_successor,
-                                );
-                            }
-                            for target in call
-                                .ffi_out_actuals
-                                .iter()
-                                .flat_map(|actual| state_alias_closure(state, actual).into_iter())
-                            {
-                                record_edge_write(
-                                    facts,
-                                    target,
-                                    operation.semantic_point().clone(),
-                                    WriteKind::ForeignOut,
-                                    normal_successor,
-                                );
-                            }
-                        }
-                        if normal_edge_state.is_some() {
-                            if let RegistryValueModel::Length(collection) = &call.value {
-                                if let Some(collection) =
-                                    unique_semantic_value(&eval_operand(state, collection))
-                                {
-                                    facts.lengths.insert(LengthFact {
-                                        result: descriptor.destination.clone(),
-                                        collection,
-                                    });
-                                }
-                            }
-                        }
-                        if normal_edge_state.is_some() {
-                            if let Some(predicate) = &call.predicate {
-                                facts.predicates.push(match predicate {
-                                    PredicateModel::Utf8Result { .. }
-                                    | PredicateModel::IsErr { .. } => continue,
-                                    PredicateModel::IsEmpty { slice } => PredicateFact::IsEmpty {
-                                        result: descriptor.destination.clone(),
-                                        slice: slice.clone(),
-                                    },
-                                    PredicateModel::IsNull { pointer } => PredicateFact::IsNull {
-                                        result: descriptor.destination.clone(),
-                                        pointer: pointer.clone(),
-                                    },
-                                });
-                            }
-                        }
                     }
-                    ProgramOpKind::Nop => {}
+                    _ => {}
+                }
+                if assignment.legacy_write {
+                    record_write(
+                        facts,
+                        destination,
+                        operation.semantic_point().clone(),
+                        WriteKind::Assignment,
+                    );
+                }
+                if let Some(source) = &assignment.raw_read_source {
+                    let subject = eval_operand(state, source).value;
+                    facts.summary_seed.requirements.insert(ContractRequirement {
+                        seed_id: format!("P1.raw:{}", operation.semantic_point().span.token()),
+                        collection: None,
+                        subject,
+                        source_hint: None,
+                        internal_derivation: false,
+                        source_span: operation.semantic_point().span.clone(),
+                        first_failure: Operation {
+                            kind: OperationKind::RawRead,
+                            point: operation.semantic_point().clone(),
+                        },
+                        sink: Operation {
+                            kind: OperationKind::RawRead,
+                            point: operation.semantic_point().clone(),
+                        },
+                        predicates: BTreeSet::from([Predicate::ValidForRead]),
+                        access_width: None,
+                        rule: RuleId::P1RawRead,
+                        return_exposure: false,
+                        sink_function: facts.function.clone(),
+                    });
                 }
             }
+            ProgramOpKind::Call(call) => {
+                let descriptor = &call.descriptor;
+                let normal_successor = match &program.edges[block] {
+                    EdgeTerm::CallNormal {
+                        normal_target: Some(target),
+                        ..
+                    } if solved.edge.contains_key(&(block, *target)) => Some(*target),
+                    _ => None,
+                };
+                let normal_edge_state =
+                    normal_successor.and_then(|target| solved.edge.get(&(block, target)));
+                let arg_values = descriptor
+                    .args
+                    .iter()
+                    .map(|operand| eval_operand(state, operand))
+                    .collect::<Vec<_>>();
+                let args = descriptor
+                    .args
+                    .iter()
+                    .map(|operand| operand.operand.clone())
+                    .collect::<Vec<_>>();
+                facts.calls.push(CallSite {
+                    callee: descriptor.callee.clone(),
+                    raw_def: descriptor.raw_def,
+                    disposition: descriptor.disposition,
+                    args: args.clone(),
+                    arg_values,
+                    destination: descriptor.destination.clone(),
+                    point: operation.semantic_point().clone(),
+                    destination_is_bool: call.destination_is_bool,
+                    access_width: call.access_width,
+                });
+                if let Some(callee) = &descriptor.callee {
+                    let mapping = local_call_boundary_mapping(call, state);
+                    facts.summary_seed.calls.insert(CallBoundary {
+                        caller: facts.function.clone(),
+                        callee: callee.clone(),
+                        point: operation.semantic_point().clone(),
+                        mapping,
+                    });
+                }
+                if call.legacy_write && normal_edge_state.is_some() {
+                    record_edge_write(
+                        facts,
+                        descriptor.destination.clone(),
+                        operation.semantic_point().clone(),
+                        WriteKind::CallReturn,
+                        normal_successor,
+                    );
+                }
+                if normal_edge_state.is_some() {
+                    for target in call
+                        .mutable_actuals
+                        .iter()
+                        .flat_map(|actual| state_alias_closure(state, actual).into_iter())
+                    {
+                        record_edge_write(
+                            facts,
+                            target,
+                            operation.semantic_point().clone(),
+                            WriteKind::OpaqueMutable,
+                            normal_successor,
+                        );
+                    }
+                    for target in call
+                        .ffi_out_actuals
+                        .iter()
+                        .flat_map(|actual| state_alias_closure(state, actual).into_iter())
+                    {
+                        record_edge_write(
+                            facts,
+                            target,
+                            operation.semantic_point().clone(),
+                            WriteKind::ForeignOut,
+                            normal_successor,
+                        );
+                    }
+                }
+                if normal_edge_state.is_some() {
+                    if let RegistryValueModel::Length(collection) = &call.value {
+                        if let Some(collection) =
+                            unique_semantic_value(&eval_operand(state, collection))
+                        {
+                            facts.lengths.insert(LengthFact {
+                                result: descriptor.destination.clone(),
+                                collection,
+                            });
+                        }
+                    }
+                }
+                if normal_edge_state.is_some() {
+                    if let Some(predicate) = &call.predicate {
+                        let predicate = match predicate {
+                            PredicateModel::Utf8Result { .. } | PredicateModel::IsErr { .. } => {
+                                None
+                            }
+                            PredicateModel::IsEmpty { slice } => Some(PredicateFact::IsEmpty {
+                                result: descriptor.destination.clone(),
+                                slice: slice.clone(),
+                            }),
+                            PredicateModel::IsNull { pointer } => Some(PredicateFact::IsNull {
+                                result: descriptor.destination.clone(),
+                                pointer: pointer.clone(),
+                            }),
+                        };
+                        facts.predicates.extend(predicate);
+                    }
+                }
+            }
+            ProgramOpKind::Nop => {}
+        }
+        if index + 1 == program.operations[block].len() {
             if let EdgeTerm::Switch {
                 condition,
                 false_target,
                 ..
             } = &program.edges[block]
             {
-                let point = operations
-                    .last()
-                    .expect("each MIR block has a terminator operation")
-                    .semantic_point()
-                    .clone();
+                let point = operation.semantic_point().clone();
                 facts.branches.push(BranchFact {
                     result: condition.clone(),
                     success: *false_target,
@@ -1863,13 +1962,20 @@ impl<'tcx> Engine<'tcx> {
                 });
             }
         }
+    }
+
+    fn materialize_exits(
+        &self,
+        solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+        facts: &mut BodyFacts,
+    ) {
         for state in solved.exit.iter().flatten() {
             for (place, value) in state.may_values() {
                 facts
                     .values
                     .entry(place.clone())
                     .or_default()
-                    .join_may(value);
+                    .join_value_facts(value);
             }
         }
     }
@@ -2817,11 +2923,14 @@ impl<'tcx> Engine<'tcx> {
             )
         ) && requirement.sink_function == facts.function
         {
-            if let Some(state) = facts.states.get(&(sink.block, sink.statement_index)) {
-                return state_proves_local_binding(
-                    state,
-                    facts.local_bindings.get(&requirement.sink.point),
-                );
+            if let Some(snapshot) = facts
+                .validation_snapshots
+                .get(&(sink.block, sink.statement_index))
+            {
+                return facts
+                    .local_bindings
+                    .get(&requirement.sink.point)
+                    .is_some_and(|binding| snapshot.proves(binding));
             }
         }
         if matches!(
@@ -4833,6 +4942,39 @@ fn compose_validation_route(
         )
 }
 
+fn compose_validation_route_from_snapshot(
+    validation: &ValidationFact,
+    call: &CallSite,
+    snapshot: &ValidationSnapshot,
+) -> ValidationRoute {
+    let requirement = validation.instantiate_requirement(
+        &call
+            .arg_values
+            .iter()
+            .map(|value| value.value.clone())
+            .collect::<Vec<_>>(),
+    );
+    let Some(binding) = instantiate_validation_binding(validation, call) else {
+        return ValidationRoute::Hard(requirement);
+    };
+    if snapshot.proves(&binding) {
+        return ValidationRoute::Satisfied;
+    }
+    let subject = snapshot.entry_formal(&binding.subject);
+    let collection = match &binding.collection {
+        Some(place) => match snapshot.entry_formal(place) {
+            Some(slot) => Some(slot),
+            None => return ValidationRoute::Hard(requirement),
+        },
+        None => None,
+    };
+    ValidationFact::export_entry_contract(requirement.clone(), subject, collection, true, true)
+        .map_or(
+            ValidationRoute::Hard(requirement),
+            ValidationRoute::Conditional,
+        )
+}
+
 fn instantiate_validation_binding(
     validation: &ValidationFact,
     call: &CallSite,
@@ -6283,14 +6425,45 @@ mod tests {
             )]),
         )]);
 
-        assert!(join_local_outputs(&mut current, &incoming));
-        assert!(!join_local_outputs(&mut current, &incoming));
+        assert_eq!(
+            join_local_outputs(&mut current, &incoming),
+            BTreeSet::from([function.clone()])
+        );
+        assert!(join_local_outputs(&mut current, &incoming).is_empty());
         let joined = &current[&function][&call_point].outs[&place];
         assert_eq!(
             joined.value,
             AbstractValue::new([AbstractOrigin::Formal(2), AbstractOrigin::Constant(0)])
         );
         assert!(joined.may_skip_write);
+    }
+
+    #[test]
+    fn task12_local_output_join_reports_only_changed_owners() {
+        let unchanged = FunctionKey::new("crate::unchanged");
+        let changed = FunctionKey::new("crate::changed");
+        let point = point(0, 0);
+        let place = PlaceKey::new("_1");
+        let output = |origin| {
+            LocalCallOutputs::from([(
+                point.clone(),
+                MappedCallOutputs {
+                    returned: Some((
+                        place.clone(),
+                        AbstractValue::new([AbstractOrigin::Constant(origin)]),
+                    )),
+                    outs: BTreeMap::new(),
+                },
+            )])
+        };
+        let mut current =
+            BTreeMap::from([(unchanged.clone(), output(1)), (changed.clone(), output(1))]);
+        let incoming = BTreeMap::from([(unchanged, output(1)), (changed.clone(), output(2))]);
+
+        assert_eq!(
+            join_local_outputs(&mut current, &incoming),
+            BTreeSet::from([changed])
+        );
     }
 
     #[test]
@@ -8913,6 +9086,73 @@ mod tests {
             ..binding
         };
         assert!(!state_proves_local_binding(&state, Some(&wrong)));
+    }
+
+    #[test]
+    fn task12_validation_snapshot_matches_full_state_queries_and_fails_closed_after_write() {
+        let collection = PlaceKey::new("_1");
+        let subject = PlaceKey::new("_2");
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
+            subject: subject.clone(),
+            collection: Some(collection.clone()),
+        };
+        let mut state = BlockState::empty();
+        seed_exact(&mut state, &collection);
+        seed_exact(&mut state, &subject);
+        state.establish(BoundValidation::new(
+            binding.clone(),
+            binding.storage_places(),
+        ));
+
+        let snapshot = ValidationSnapshot::capture(&state, 2);
+        assert_eq!(
+            snapshot.proves(&binding),
+            state_proves_local_binding(&state, Some(&binding))
+        );
+        for place in [&collection, &subject] {
+            assert_eq!(
+                snapshot.entry_formal(place),
+                entry_formal_slot(2, &state, place)
+            );
+        }
+
+        state.record_write(subject.clone(), StaticWriteToken::new(0, 1));
+        let stale = ValidationSnapshot::capture(&state, 2);
+        assert_eq!(
+            stale.proves(&binding),
+            state_proves_local_binding(&state, Some(&binding))
+        );
+        assert_eq!(stale.entry_formal(&subject), None);
+        assert_eq!(entry_formal_slot(2, &state, &subject), None);
+    }
+
+    #[test]
+    fn task12_body_value_projection_persists_only_origins_and_value_flow() {
+        let flowed = PlaceKey::new("_7");
+        let mut projected = BodyValueFacts::default();
+        projected.join_value_facts(&ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::Formal(2)]),
+            dependencies: BTreeSet::from([PlaceKey::new("_dependency")]),
+            value_flow: BTreeSet::from([flowed.clone()]),
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: PlaceKey::new("_1"),
+                definition: StaticWriteToken::new(0, 0),
+                captured_versions: BTreeSet::new(),
+                invalidated: false,
+            }]),
+            utf8_relation_unknown: true,
+            havoced: true,
+            ..ValueFacts::default()
+        });
+
+        assert_eq!(
+            projected.value.origins,
+            BTreeSet::from([AbstractOrigin::Formal(2)])
+        );
+        assert_eq!(projected.value_flow, BTreeSet::from([flowed]));
     }
 
     #[test]

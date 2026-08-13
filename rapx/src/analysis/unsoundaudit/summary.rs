@@ -2795,6 +2795,46 @@ mod tests {
     }
 
     #[test]
+    fn fixed_point_propagates_across_sixty_four_calls_without_a_depth_limit() {
+        let nodes = (0..=64)
+            .map(|index| FunctionKey::new(format!("crate::hop_{index:02}")))
+            .collect::<Vec<_>>();
+        let mut graph = BTreeMap::new();
+        for (index, node) in nodes.iter().enumerate() {
+            let callees = nodes
+                .get(index + 1)
+                .cloned()
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+            graph.insert(node.clone(), callees);
+        }
+        let mut seeds = nodes
+            .iter()
+            .cloned()
+            .map(|node| (node.clone(), FunctionSummary::empty(node)))
+            .collect::<BTreeMap<_, _>>();
+        seeds
+            .get_mut(nodes.last().expect("chain has a terminal"))
+            .expect("terminal seed exists")
+            .return_origins
+            .insert(OriginKey::new("terminal"));
+
+        let solved = solve_summaries(&graph, &seeds, |node, current| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            for callee in graph.get(node).into_iter().flatten() {
+                derived
+                    .return_origins
+                    .extend(current[callee].return_origins.iter().cloned());
+            }
+            derived
+        });
+
+        assert!(solved[&nodes[0]]
+            .return_origins
+            .contains(&OriginKey::new("terminal")));
+    }
+
+    #[test]
     fn independent_components_clone_only_their_own_summary_candidates() {
         let nodes = (0..96)
             .map(|index| FunctionKey::new(format!("crate::f{index:03}")))
