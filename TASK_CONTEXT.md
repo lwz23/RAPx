@@ -44,7 +44,9 @@
 - Robustness Task 7 was committed at `2e21df9`. It maps structural local returns and mutable/raw out writes through a two-stage finite analysis: definite out writes are solved first, then frozen while return/out origins are propagated and caller CFGs are re-solved from their normalized body programs.
 - Task 7's final isolated exact-nightly unit gate passed 90 tests. Its metadata-correct 11-case output-mapping subset passed with aggregate `P1=6` and P2–P6 zero; `call_local_out_positive` now emits one P1 while constant-return and all four opaque-boundary cases remain zero.
 - The original frozen 27 fixtures again passed 27/27 with aggregate `3/2/2/2/1/2`; their normalized SHA-256 remained `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`. Two independent read-only Task 7 reviews returned PASS.
-- Robustness Task 8 is next: bind every interprocedural witness to the exact unresolved hard or conditional route that kept its finding, instead of selecting a lexical shortest path from the unconstrained call graph.
+- Robustness Task 8 was committed at `97a47538c9d52c870d4134ae0d8dd275de4d7746`. Each interprocedural finding now selects a witness only from the exact unresolved hard or conditional route that kept the finding; a lexical path in the unconstrained call graph can no longer supply the witness.
+- Task 8's final isolated exact-nightly unit gate passed 105 tests. Its metadata-correct 10-case validation/wrapper/recursion subset passed with aggregate `P1=6` and P2–P6 zero; direct and mutual recursion each retained one stable, real-edge-anchored SCC token. The original frozen 27 fixtures remained 27/27 with aggregate `3/2/2/2/1/2` and normalized SHA-256 `3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa`.
+- Two independent read-only Task 8 reviews returned PASS. The frozen challenge suite does not contain the core adversarial shape of a shorter validated route competing with a longer unresolved route, so that property is supported by production-shaped pure tests rather than claimed as an end-to-end challenge RED/GREEN result.
 
 ## Decisions
 
@@ -75,6 +77,8 @@
 - Local out propagation distinguishes definite writes from may-skip writes. A finite definite-out fixed point is frozen before the origin fixed point, so definite writes replace prior provenance, conditional writes preserve both possibilities, normal and unwind edges remain distinct, and an early approximation cannot leave stale output origins behind.
 - Return and out effects remain separate channels. Normal edges apply mutable havoc, out effects, and the strong return destination in MIR order; opaque and FFI boundaries do not acquire fabricated local output summaries.
 - Task 7 evidence used Cargo commit `15fbd2f607d4defc87053b8b76bf5038f2483cf4` and rustc/RAP compiler commit `1bc403daadbebb553ccc211a0a8eebb73989665f`. An earlier subset setup attempt used a binary without the embedded RAP compiler commit and was rejected before analysis; it is explicitly excluded from semantic evidence.
+- Unresolved witness provenance uses finite one-hop summary edges keyed by the exact hard or conditional route fact. Summary fixed points union only these immediate edges; complete paths, path depths, and preferred witnesses are computed only after convergence and never enter the lattice.
+- Witness selection is validity-neutral. Every exact root route must trace to an exact local seed or the analysis fails closed; only then is the shortest stable unresolved route selected. Recursive witness tokens are derived from route-specific SCCs intersecting that selected route, use a real resolved-local recursive call span, and do not change the finding ID.
 
 ## Rejected Alternatives
 
