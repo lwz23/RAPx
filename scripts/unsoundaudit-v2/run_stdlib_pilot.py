@@ -103,6 +103,20 @@ def cargo_arguments(protocol: dict[str, Any], unit: str) -> list[str]:
     ]
 
 
+def scan_roots(source_root: Path, protocol: dict[str, Any], unit: str) -> tuple[Path, Path]:
+    if unit not in UNITS:
+        fail(f"unsupported standard-library unit: {unit}")
+    canonical_source = canonical_existing(source_root, "standard-library source root")
+    unit_root = canonical_existing(
+        canonical_source / protocol["units"][unit]["project_root"], "unit root"
+    )
+    try:
+        unit_root.relative_to(canonical_source)
+    except ValueError:
+        fail("standard-library unit root escapes the source root")
+    return unit_root, canonical_source
+
+
 def verify_rap_source_commit(repo_root: Path, commit: str) -> None:
     if len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit):
         fail("pilot RAP source commit is invalid")
@@ -314,7 +328,7 @@ def main() -> int:
             fail("pilot protocol toolchain differs from frozen baseline")
         verify_rap_source_commit(repo_root, protocol["rap_source_commit"])
         source_root = stdlib_source_root(rust_sysroot)
-        unit_root = canonical_existing(source_root / protocol["units"][args.unit]["project_root"], "unit root")
+        unit_root, source_root = scan_roots(source_root, protocol, args.unit)
         schema = read_json(schema_path)
         if output_root.exists():
             fail("pilot output root must not already exist")
@@ -342,6 +356,7 @@ def main() -> int:
                         receipt_dir.mkdir()
                         environment["UNSOUND_SCANNER_RAP_JSON_DIR"] = str(receipt_dir)
                         environment["UNSOUND_SCANNER_PROJECT_ROOT"] = str(unit_root)
+                        environment["UNSOUND_SCANNER_SOURCE_ROOT"] = str(source_root)
                         command = [str(cargo_rapx), "rapx", "-unsoundaudit", "--", *arguments]
                     result = run_limited(
                         command, driver, environment, output_root / "logs" / f"{phase}-{run_number}.log",

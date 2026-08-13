@@ -98,6 +98,16 @@ class PilotRunnerTests(unittest.TestCase):
                 self.assertEqual(pilot.cargo_arguments(self.protocol, unit)[-2:], ["--jobs", "1"])
                 self.assertIn(f"build-std={','.join(self.protocol['units'][unit]['build_std_components'])}", pilot.cargo_arguments(self.protocol, unit))
 
+    def test_stdlib_scan_separates_route_root_from_stable_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            for unit in ("core", "alloc", "std"):
+                (source / "library" / unit).mkdir(parents=True)
+            unit_root, source_root = pilot.scan_roots(source, self.protocol, "core")
+            self.assertEqual(unit_root, source.resolve() / "library/core")
+            self.assertEqual(source_root, source.resolve())
+            self.assertNotEqual(unit_root, source_root)
+
     def test_rss_parser_sums_only_the_selected_process_group(self) -> None:
         output = " 10 99 1024\n 11 99 2048\n 12 100 4096\ninvalid\n"
         self.assertEqual(pilot.parse_process_group_rss(output, 99), 3072 * 1024)

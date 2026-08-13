@@ -786,7 +786,7 @@ enum ValidationRoute {
 
 struct Engine<'tcx> {
     tcx: TyCtxt<'tcx>,
-    project_root: PathBuf,
+    source_root: PathBuf,
     crate_name: String,
     bodies: BTreeMap<FunctionKey, BodyFacts>,
     programs: BTreeMap<FunctionKey, BodyProgram>,
@@ -794,7 +794,7 @@ struct Engine<'tcx> {
 }
 
 pub fn analyze(tcx: TyCtxt<'_>) -> Result<Vec<Finding>, String> {
-    Engine::new(tcx).run()
+    Engine::new(tcx)?.run()
 }
 
 fn normalized_relative_span_path(path: &str) -> Option<PathBuf> {
@@ -816,8 +816,35 @@ fn normalized_relative_span_path(path: &str) -> Option<PathBuf> {
     normalized.then_some(path)
 }
 
-fn stable_span_from_locations(
+fn select_source_root(
     project_root: &Path,
+    configured_source_root: Option<PathBuf>,
+) -> Result<PathBuf, String> {
+    let project_root = project_root.canonicalize().map_err(|error| {
+        format!(
+            "UnsoundAudit v2 project root cannot be canonicalized '{}': {error}",
+            project_root.display()
+        )
+    })?;
+    let source_root = configured_source_root.unwrap_or_else(|| project_root.clone());
+    let source_root = source_root.canonicalize().map_err(|error| {
+        format!(
+            "UnsoundAudit v2 source root cannot be canonicalized '{}': {error}",
+            source_root.display()
+        )
+    })?;
+    if !project_root.starts_with(&source_root) {
+        return Err(format!(
+            "UnsoundAudit v2 source root '{}' does not contain project root '{}'",
+            source_root.display(),
+            project_root.display()
+        ));
+    }
+    Ok(source_root)
+}
+
+fn stable_span_from_locations(
+    source_root: &Path,
     local_path: Option<&str>,
     remapped_path: Option<&str>,
     lo_line: usize,
@@ -826,10 +853,12 @@ fn stable_span_from_locations(
     hi_column: usize,
 ) -> Result<StableSpan, String> {
     let local_relative = local_path.and_then(|local| {
-        Path::new(local)
-            .strip_prefix(project_root)
-            .ok()
-            .and_then(|relative| normalized_relative_span_path(&relative.to_string_lossy()))
+        let local = Path::new(local);
+        let relative = match local.canonicalize() {
+            Ok(canonical) => canonical.strip_prefix(source_root).ok().map(PathBuf::from),
+            Err(_) => local.strip_prefix(source_root).ok().map(PathBuf::from),
+        };
+        relative.and_then(|relative| normalized_relative_span_path(&relative.to_string_lossy()))
     });
     let relative = local_relative.or_else(|| remapped_path.and_then(normalized_relative_span_path));
     let relative = relative.ok_or_else(|| {
@@ -863,21 +892,24 @@ fn stable_span_from_locations(
 }
 
 impl<'tcx> Engine<'tcx> {
-    fn new(tcx: TyCtxt<'tcx>) -> Self {
+    fn new(tcx: TyCtxt<'tcx>) -> Result<Self, String> {
         let project_root = env::var_os("UNSOUND_SCANNER_PROJECT_ROOT")
             .map(PathBuf::from)
-            .and_then(|path| path.canonicalize().ok())
             .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        let source_root = select_source_root(
+            &project_root,
+            env::var_os("UNSOUND_SCANNER_SOURCE_ROOT").map(PathBuf::from),
+        )?;
         let crate_name = env::var("UNSOUND_SCANNER_RAP_CRATE_NAME")
             .unwrap_or_else(|_| tcx.crate_name(LOCAL_CRATE).to_string());
-        Self {
+        Ok(Self {
             tcx,
-            project_root,
+            source_root,
             crate_name,
             bodies: BTreeMap::new(),
             programs: BTreeMap::new(),
             preopt_transmutes: BTreeMap::new(),
-        }
+        })
     }
 
     fn run(mut self) -> Result<Vec<Finding>, String> {
@@ -3253,7 +3285,7 @@ impl<'tcx> Engine<'tcx> {
                 .to_string()
         });
         stable_span_from_locations(
-            &self.project_root,
+            &self.source_root,
             local.as_deref(),
             remapped.as_deref(),
             lo_line,
@@ -8917,5 +8949,74 @@ mod tests {
         }
         assert!(stable_span_from_locations(project, None, Some("src/lib.rs"), 1, 0, 1, 1).is_err());
         assert!(stable_span_from_locations(project, None, Some("src/lib.rs"), 1, 2, 1, 1).is_err());
+    }
+
+    #[test]
+    fn stdlib_source_identity_root_can_cover_a_routed_crate_and_sibling_includes() {
+        let temporary = std::env::temp_dir().join(format!(
+            "rapx-unsoundaudit-source-root-{}",
+            std::process::id()
+        ));
+        let source_root = temporary.join("rust-src");
+        let project_root = source_root.join("library/core");
+        let project_source = project_root.join("src/lib.rs");
+        let sibling = source_root.join("library/stdarch/crates/core_arch/src/aarch64/neon/mod.rs");
+        std::fs::create_dir_all(project_source.parent().expect("project source parent"))
+            .expect("create routed core root");
+        std::fs::write(&project_source, "// routed crate source\n").expect("write project source");
+        std::fs::create_dir_all(sibling.parent().expect("sibling parent"))
+            .expect("create sibling root");
+        std::fs::write(&sibling, "// stable sibling include\n").expect("write sibling source");
+
+        let selected = select_source_root(&project_root, Some(source_root.clone()))
+            .expect("the rust-src root contains the routed crate");
+        let span = stable_span_from_locations(
+            &selected,
+            Some(&sibling.to_string_lossy()),
+            None,
+            1,
+            1,
+            1,
+            2,
+        )
+        .expect("a sibling include has a stable rust-src-relative identity");
+        assert_eq!(
+            span.path,
+            "library/stdarch/crates/core_arch/src/aarch64/neon/mod.rs"
+        );
+        assert!(select_source_root(&project_root, Some(temporary.join("outside"))).is_err());
+        assert!(select_source_root(&temporary.join("missing-project"), None).is_err());
+        let default = select_source_root(&project_root, None)
+            .expect("fixtures default stable identities to the routed project root");
+        assert_eq!(
+            default,
+            project_root.canonicalize().expect("canonical project root")
+        );
+        assert_eq!(
+            stable_span_from_locations(
+                &default,
+                Some(&project_source.to_string_lossy()),
+                None,
+                1,
+                1,
+                1,
+                2,
+            )
+            .expect("default fixture identity")
+            .path,
+            "src/lib.rs"
+        );
+        assert!(stable_span_from_locations(
+            &selected,
+            Some("/outside/generated.rs"),
+            None,
+            1,
+            1,
+            1,
+            2,
+        )
+        .is_err());
+
+        std::fs::remove_dir_all(&temporary).expect("remove source-root fixture");
     }
 }
