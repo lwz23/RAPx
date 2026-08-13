@@ -11,11 +11,39 @@ import unittest
 from pathlib import Path, PurePosixPath
 
 import run_stdlib_pilot as pilot
+import review_sample as review
 from validate_receipt import ContractError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
+
+
+def finding(index: int, rule_id: str, depth: str) -> dict[str, object]:
+    key = {
+        "crate": "core",
+        "public_root": f"core::root_{index}",
+        "source_origin": f"_arg{index}",
+        "first_contract_failure": f"core::failure_{index}",
+        "sink_or_exposure": f"core::sink_{index}",
+        "canonical_obligation": "in_bounds",
+    }
+    return {
+        "finding_id": f"{index:064x}",
+        "causal_key": key,
+        "rule_id": rule_id,
+        "propagation": {"depth": depth},
+    }
+
+
+def normalized(findings: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "schema_version": "unsoundaudit-v2-stdlib-unit-v1",
+        "unit": "core",
+        "protocol_sha256": "a" * 64,
+        "finding_count": len(findings),
+        "findings": findings,
+    }
 
 
 class PilotProtocolTests(unittest.TestCase):
@@ -203,6 +231,152 @@ class PilotRunnerTests(unittest.TestCase):
                 ],
             },
         )
+
+
+class PilotReviewTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.protocol = pilot.load_protocol(PROTOCOL)
+
+    def test_full_sample_is_permutation_stable_and_hash_ordered(self) -> None:
+        findings = [finding(index, "P1.get_unchecked", "intra_procedural") for index in range(12)]
+        forward = review.make_sample(normalized(findings), self.protocol, "b" * 64)
+        reverse = review.make_sample(normalized(list(reversed(findings))), self.protocol, "b" * 64)
+        self.assertEqual(forward, reverse)
+        self.assertEqual(forward["population_size"], 12)
+        self.assertEqual(forward["sample_size"], 12)
+        self.assertEqual(
+            [row["selection_hash"] for row in forward["findings"]],
+            sorted(row["selection_hash"] for row in forward["findings"]),
+        )
+        self.assertTrue(all(row["inclusion_probability"] == {"numerator": 1, "denominator": 1} for row in forward["findings"]))
+
+    def test_large_sample_meets_strata_interprocedural_and_recursive_rules(self) -> None:
+        findings = []
+        for index in range(300):
+            findings.append(finding(index, "P1.get_unchecked", "intra_procedural"))
+        for index in range(300, 500):
+            findings.append(finding(index, "P2.raw_read", "inter_procedural"))
+        for index in range(500, 525):
+            findings.append(finding(index, "P3.unchecked_utf8", "recursive"))
+        sample = review.make_sample(normalized(findings), self.protocol, "b" * 64)
+        selected = sample["findings"]
+        by_stratum: dict[str, int] = {}
+        for row in selected:
+            by_stratum[row["stratum"]] = by_stratum.get(row["stratum"], 0) + 1
+        self.assertGreaterEqual(sample["sample_size"], 250)
+        self.assertGreaterEqual(min(by_stratum.values()), 20)
+        self.assertGreaterEqual(by_stratum["P2.raw_read|inter_procedural"], 150)
+        self.assertEqual(by_stratum["P3.unchecked_utf8|recursive"], 25)
+
+    def test_wilson_kappa_and_conflict_adjudication_are_exact(self) -> None:
+        lower, upper = review.wilson95(50, 100)
+        self.assertAlmostEqual(lower, 0.403832, places=6)
+        self.assertAlmostEqual(upper, 0.596168, places=6)
+        self.assertAlmostEqual(review.cohens_kappa(["A", "A", "B", "B"], ["A", "B", "B", "B"]), 0.5)
+        with self.assertRaises(ContractError):
+            review.adjudicated_labels(
+                ["A", "B"], ["A", "C"], None, self.protocol["review"]["labels"],
+            )
+        self.assertEqual(
+            review.adjudicated_labels(["A", "B"], ["A", "C"], [None, "D"], self.protocol["review"]["labels"]),
+            ["A", "D"],
+        )
+        with self.assertRaises(ContractError):
+            review.adjudicated_labels(["X"], ["X"], None, self.protocol["review"]["labels"])
+
+    def test_metrics_treat_unknown_as_failure_and_apply_early_stop(self) -> None:
+        rows = [
+            {
+                "finding_id": f"{index:064x}",
+                "rule_id": "P1.get_unchecked",
+                "depth": "inter_procedural" if index < 20 else "intra_procedural",
+                "selection_hash": f"{index:064x}",
+            }
+            for index in range(60)
+        ]
+        labels = ["D", "E", "D", *("A" for _ in range(27)), *("U" for _ in range(30))]
+        metrics = review.review_metrics(rows, labels, labels, labels, self.protocol)
+        self.assertEqual(metrics["labels"], {"A": 27, "B": 0, "C": 0, "D": 2, "E": 1, "U": 30})
+        self.assertEqual(metrics["early_stop"]["egregious_in_prefix"], 3)
+        self.assertTrue(metrics["early_stop"]["triggered"])
+        self.assertLess(metrics["overall"]["actionable"]["wilson95"]["lower"], 0.6)
+        self.assertEqual(metrics["decision"], "fail")
+
+    def test_label_files_bind_exact_sample_and_require_chain_evidence(self) -> None:
+        findings = [
+            finding(1, "P1.get_unchecked", "intra_procedural"),
+            finding(2, "P2.raw_read", "inter_procedural"),
+        ]
+        sample = review.make_sample(normalized(findings), self.protocol, "b" * 64)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sample_path = root / "sample.json"
+            sample_path.write_bytes(pilot.canonical_json(sample))
+            sample_sha = pilot.sha256(sample_path)
+
+            def labels(reviewer_id: str, experience: bool) -> dict[str, object]:
+                rows = []
+                for row in sample["findings"]:
+                    interprocedural = row["depth"] != "intra_procedural"
+                    rows.append({
+                        "finding_id": row["finding_id"],
+                        "label": "B" if interprocedural else "A",
+                        "rationale": "The structural chain is actionable." if interprocedural else "The local chain is complete.",
+                        "fabricated_local_edge": False,
+                        "chain_audit": {
+                            "public_root": "core::root",
+                            "local_edges": [{"caller": "core::root", "callee": "core::sink", "call_span": "src/lib.rs:1:1"}],
+                            "mappings": [{"call_span": "src/lib.rs:1:1", "kind": "actual_to_formal", "source": "_arg1", "destination": "_1"}],
+                            "sink_provenance": "_1 reaches the raw-read sink",
+                            "cfg_validation": "The sink is reachable without a current validation",
+                            "cycle_evidence": "not_recursive",
+                        } if interprocedural else None,
+                    })
+                return {
+                    "schema_version": "unsoundaudit-v2-stdlib-labels-v1",
+                    "unit": "core",
+                    "sample_sha256": sample_sha,
+                    "reviewer_id": reviewer_id,
+                    "rust_unsafe_contract_experience": experience,
+                    "labels": rows,
+                }
+
+            one = root / "one.json"
+            two = root / "two.json"
+            one.write_bytes(pilot.canonical_json(labels("reviewer-one", True)))
+            two.write_bytes(pilot.canonical_json(labels("reviewer-two", False)))
+            result = review.review_from_files(sample_path, one, two, None, self.protocol)
+            self.assertEqual(result["reviewer_ids"], ["reviewer-one", "reviewer-two"])
+            self.assertEqual(result["cohens_kappa"], 1.0)
+            broken = labels("reviewer-two", False)
+            next(row for row in broken["labels"] if row["chain_audit"] is not None)["chain_audit"] = None
+            two.write_bytes(pilot.canonical_json(broken))
+            with self.assertRaisesRegex(ContractError, "complete chain audit"):
+                review.review_from_files(sample_path, one, two, None, self.protocol)
+
+    def test_empty_population_is_sampleable_but_precision_is_inconclusive(self) -> None:
+        sample = review.make_sample(normalized([]), self.protocol, "b" * 64)
+        self.assertEqual(sample["sample_size"], 0)
+        metrics = review.review_metrics([], [], [], [], self.protocol)
+        self.assertEqual(metrics["decision"], "inconclusive")
+        self.assertIn("P1.raw_read:zero_findings", metrics["inconclusive_dimensions"])
+
+    def test_small_clean_sample_is_inconclusive_not_failed_by_wilson_width(self) -> None:
+        rows = [
+            {
+                "finding_id": f"{index:064x}",
+                "rule_id": "P1.raw_read",
+                "depth": "intra_procedural",
+                "selection_hash": f"{index:064x}",
+            }
+            for index in range(10)
+        ]
+        labels = ["A"] * len(rows)
+        metrics = review.review_metrics(rows, labels, labels, labels, self.protocol)
+        self.assertEqual(metrics["decision"], "inconclusive")
+        self.assertEqual(metrics["failures"], [])
+        self.assertIn("overall_precision_sample_size", metrics["inconclusive_dimensions"])
 
 
 if __name__ == "__main__":
