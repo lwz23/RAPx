@@ -503,6 +503,419 @@ pub fn intersect_validation_paths<'a>(
     common
 }
 
+/// The exact unresolved terminal that keeps one route unsafe.
+///
+/// Hard and conditional terminals intentionally remain distinct even when
+/// they refer to the same instantiated requirement. This lets Task 8 witness
+/// selection follow the route that actually survived validation composition.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UnresolvedRouteFact {
+    Hard(ContractRequirement),
+    Conditional(ValidationFact),
+}
+
+impl UnresolvedRouteFact {
+    pub fn requirement(&self) -> &ContractRequirement {
+        match self {
+            Self::Hard(requirement) => requirement,
+            Self::Conditional(validation) => &validation.requirement,
+        }
+    }
+}
+
+/// One finite caller-to-callee predecessor relation for an unresolved route.
+///
+/// The caller is the owner of the containing `FunctionSummary`; the callee is
+/// explicit. Only one call edge is stored, never an expanded path or depth.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnresolvedPredecessor {
+    pub caller_route: UnresolvedRouteFact,
+    pub callee_route: UnresolvedRouteFact,
+    pub callee: FunctionKey,
+    pub call_point: ProgramPoint,
+}
+
+/// An exact route terminal paired with the summary that owns it.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnresolvedRouteNode {
+    pub owner: FunctionKey,
+    pub route: UnresolvedRouteFact,
+}
+
+/// One selected caller-owned edge. This explicit owner is post-solve witness
+/// state; it is deliberately absent from the per-summary predecessor fact.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UnresolvedRouteStep {
+    pub caller: FunctionKey,
+    pub edge: UnresolvedPredecessor,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct UnresolvedRouteRankStep {
+    callee: FunctionKey,
+    call_span: StableSpan,
+    call_block: u32,
+    call_statement: u32,
+    callee_route: UnresolvedRouteFact,
+    caller: FunctionKey,
+    caller_route: UnresolvedRouteFact,
+}
+
+impl From<&UnresolvedRouteStep> for UnresolvedRouteRankStep {
+    fn from(step: &UnresolvedRouteStep) -> Self {
+        Self {
+            callee: step.edge.callee.clone(),
+            call_span: step.edge.call_point.span.clone(),
+            call_block: step.edge.call_point.block,
+            call_statement: step.edge.call_point.statement,
+            callee_route: step.edge.callee_route.clone(),
+            caller: step.caller.clone(),
+            caller_route: step.edge.caller_route.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SelectedUnresolvedRoute {
+    pub root: UnresolvedRouteNode,
+    pub terminal: UnresolvedRouteNode,
+    pub steps: Vec<UnresolvedRouteStep>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnresolvedRouteCycle {
+    pub nodes: BTreeSet<UnresolvedRouteNode>,
+    pub token: String,
+    pub span: StableSpan,
+}
+
+fn summary_contains_route(summary: &FunctionSummary, route: &UnresolvedRouteFact) -> bool {
+    match route {
+        UnresolvedRouteFact::Hard(requirement) => summary.requirements.contains(requirement),
+        UnresolvedRouteFact::Conditional(validation) => summary.validations.contains(validation),
+    }
+}
+
+/// Selects a deterministic path only after unresolved validity is known.
+///
+/// Search state is finite because each `(summary owner, exact route fact)` is
+/// visited at most once. The frontier ranks paths by edge count, then by the
+/// stable callee def-path and call span/point sequence; exact route facts only
+/// break ties at the same call edge. A terminal must be an exact fact in the
+/// function's local seed summary; failure to find one is fail-closed.
+pub fn select_unresolved_route(
+    root: UnresolvedRouteNode,
+    summaries: &BTreeMap<FunctionKey, FunctionSummary>,
+    seeds: &BTreeMap<FunctionKey, FunctionSummary>,
+) -> Result<SelectedUnresolvedRoute, String> {
+    type Candidate = (
+        usize,
+        Vec<UnresolvedRouteRankStep>,
+        UnresolvedRouteNode,
+        Vec<UnresolvedRouteStep>,
+    );
+    let root_for_error = root.clone();
+    let mut frontier = BTreeSet::<Candidate>::from([(0, Vec::new(), root, Vec::new())]);
+    let mut visited = BTreeSet::<UnresolvedRouteNode>::new();
+    while let Some(candidate) = frontier.iter().next().cloned() {
+        frontier.remove(&candidate);
+        let (_, ranks, node, steps) = candidate;
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        if seeds
+            .get(&node.owner)
+            .is_some_and(|seed| summary_contains_route(seed, &node.route))
+        {
+            return Ok(SelectedUnresolvedRoute {
+                root: root_for_error,
+                terminal: node,
+                steps,
+            });
+        }
+        let Some(summary) = summaries.get(&node.owner) else {
+            continue;
+        };
+        for edge in summary
+            .unresolved_predecessors
+            .iter()
+            .filter(|edge| edge.caller_route == node.route)
+        {
+            if edge.call_point.function != node.owner {
+                return Err(format!(
+                    "unresolved edge owner mismatch: summary '{}', call point '{}'",
+                    node.owner.0, edge.call_point.function.0
+                ));
+            }
+            let step = UnresolvedRouteStep {
+                caller: node.owner.clone(),
+                edge: edge.clone(),
+            };
+            let next = UnresolvedRouteNode {
+                owner: edge.callee.clone(),
+                route: edge.callee_route.clone(),
+            };
+            let mut next_steps = steps.clone();
+            next_steps.push(step);
+            let mut next_ranks = ranks.clone();
+            next_ranks.push(UnresolvedRouteRankStep::from(
+                next_steps
+                    .last()
+                    .expect("an expanded route has one new step"),
+            ));
+            frontier.insert((next_steps.len(), next_ranks, next, next_steps));
+        }
+    }
+    Err(format!(
+        "no exact unresolved terminal for '{}' route {:?}",
+        root_for_error.owner.0, root_for_error.route
+    ))
+}
+
+/// Resolves every exact exported route before selecting the preferred witness.
+///
+/// An untraceable alternative is an analysis-consistency failure, even when a
+/// different alternative reaches a seed. This prevents a traceable guarded
+/// route from hiding an unresolved route whose predecessor chain is missing.
+pub fn select_preferred_unresolved_route(
+    roots: &BTreeSet<UnresolvedRouteNode>,
+    summaries: &BTreeMap<FunctionKey, FunctionSummary>,
+    seeds: &BTreeMap<FunctionKey, FunctionSummary>,
+) -> Result<SelectedUnresolvedRoute, String> {
+    type Ranked = (
+        usize,
+        Vec<UnresolvedRouteRankStep>,
+        UnresolvedRouteNode,
+        UnresolvedRouteNode,
+        Vec<UnresolvedRouteStep>,
+    );
+    let mut candidates = BTreeSet::<Ranked>::new();
+    for root in roots {
+        let selected = select_unresolved_route(root.clone(), summaries, seeds)?;
+        let ranks = selected
+            .steps
+            .iter()
+            .map(UnresolvedRouteRankStep::from)
+            .collect::<Vec<_>>();
+        candidates.insert((
+            selected.steps.len(),
+            ranks,
+            selected.root,
+            selected.terminal,
+            selected.steps,
+        ));
+    }
+    let Some((_, _, root, terminal, steps)) = candidates.into_iter().next() else {
+        return Err("no exact unresolved root route was exported".into());
+    };
+    Ok(SelectedUnresolvedRoute {
+        root,
+        terminal,
+        steps,
+    })
+}
+
+fn route_successors(
+    node: &UnresolvedRouteNode,
+    summaries: &BTreeMap<FunctionKey, FunctionSummary>,
+) -> Result<Vec<(UnresolvedRouteNode, UnresolvedRouteStep)>, String> {
+    let Some(summary) = summaries.get(&node.owner) else {
+        return Ok(Vec::new());
+    };
+    summary
+        .unresolved_predecessors
+        .iter()
+        .filter(|edge| edge.caller_route == node.route)
+        .map(|edge| {
+            if edge.call_point.function != node.owner {
+                return Err(format!(
+                    "unresolved edge owner mismatch: summary '{}', call point '{}'",
+                    node.owner.0, edge.call_point.function.0
+                ));
+            }
+            Ok((
+                UnresolvedRouteNode {
+                    owner: edge.callee.clone(),
+                    route: edge.callee_route.clone(),
+                },
+                UnresolvedRouteStep {
+                    caller: node.owner.clone(),
+                    edge: edge.clone(),
+                },
+            ))
+        })
+        .collect()
+}
+
+fn reachable_route_nodes(
+    start: &UnresolvedRouteNode,
+    adjacency: &BTreeMap<UnresolvedRouteNode, Vec<(UnresolvedRouteNode, UnresolvedRouteStep)>>,
+    allowed: &BTreeSet<UnresolvedRouteNode>,
+) -> BTreeSet<UnresolvedRouteNode> {
+    let mut reached = BTreeSet::new();
+    let mut frontier = BTreeSet::from([start.clone()]);
+    while let Some(node) = frontier.pop_first() {
+        if !allowed.contains(&node) || !reached.insert(node.clone()) {
+            continue;
+        }
+        for (successor, _) in adjacency.get(&node).into_iter().flatten() {
+            if !reached.contains(successor) {
+                frontier.insert(successor.clone());
+            }
+        }
+    }
+    reached
+}
+
+fn route_distance(
+    starts: &BTreeSet<UnresolvedRouteNode>,
+    target: &UnresolvedRouteNode,
+    adjacency: &BTreeMap<UnresolvedRouteNode, Vec<(UnresolvedRouteNode, UnresolvedRouteStep)>>,
+    allowed: &BTreeSet<UnresolvedRouteNode>,
+) -> usize {
+    let mut distance = 0;
+    let mut frontier = starts.clone();
+    let mut visited = BTreeSet::new();
+    loop {
+        if frontier.contains(target) {
+            return distance;
+        }
+        let mut next = BTreeSet::new();
+        for node in frontier {
+            if !visited.insert(node.clone()) {
+                continue;
+            }
+            for (successor, _) in adjacency.get(&node).into_iter().flatten() {
+                if allowed.contains(successor) && !visited.contains(successor) {
+                    next.insert(successor.clone());
+                }
+            }
+        }
+        assert!(
+            !next.is_empty(),
+            "route-cycle candidates are restricted to nodes that reach the terminal"
+        );
+        frontier = next;
+        distance += 1;
+    }
+}
+
+/// Finds a cycle only in the exact unresolved state graph for this witness.
+///
+/// Nodes must be reachable from the selected root and able to reach its exact
+/// terminal. Thus unrelated call-graph recursion cannot mark a finding as
+/// recursive. When several cyclic SCCs remain, the one nearest the terminal
+/// wins, followed by stable exact-node ordering.
+pub fn select_unresolved_route_cycle(
+    selected: &SelectedUnresolvedRoute,
+    summaries: &BTreeMap<FunctionKey, FunctionSummary>,
+) -> Result<Option<UnresolvedRouteCycle>, String> {
+    let mut forward = BTreeSet::from([selected.root.clone()]);
+    let mut adjacency =
+        BTreeMap::<UnresolvedRouteNode, Vec<(UnresolvedRouteNode, UnresolvedRouteStep)>>::new();
+    let mut frontier = BTreeSet::from([selected.root.clone()]);
+    while let Some(node) = frontier.pop_first() {
+        let successors = route_successors(&node, summaries)?;
+        for (successor, _) in &successors {
+            if forward.insert(successor.clone()) {
+                frontier.insert(successor.clone());
+            }
+        }
+        adjacency.insert(node, successors);
+    }
+    if !forward.contains(&selected.terminal) {
+        return Err("selected exact terminal is unreachable from its root".into());
+    }
+
+    let mut can_reach_terminal = BTreeSet::from([selected.terminal.clone()]);
+    loop {
+        let before = can_reach_terminal.len();
+        for (caller, successors) in &adjacency {
+            if successors
+                .iter()
+                .any(|(successor, _)| can_reach_terminal.contains(successor))
+            {
+                can_reach_terminal.insert(caller.clone());
+            }
+        }
+        if can_reach_terminal.len() == before {
+            break;
+        }
+    }
+    let corridor = forward
+        .intersection(&can_reach_terminal)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let mut remaining = corridor.clone();
+    let selected_nodes = std::iter::once(selected.root.clone())
+        .chain(selected.steps.iter().map(|step| UnresolvedRouteNode {
+            owner: step.edge.callee.clone(),
+            route: step.edge.callee_route.clone(),
+        }))
+        .collect::<BTreeSet<_>>();
+    let mut cyclic = Vec::<BTreeSet<UnresolvedRouteNode>>::new();
+    while let Some(root) = remaining.pop_first() {
+        let from_root = reachable_route_nodes(&root, &adjacency, &corridor);
+        let component = from_root
+            .into_iter()
+            .filter(|candidate| {
+                reachable_route_nodes(candidate, &adjacency, &corridor).contains(&root)
+            })
+            .collect::<BTreeSet<_>>();
+        for member in &component {
+            remaining.remove(member);
+        }
+        let self_edge = adjacency
+            .get(&root)
+            .is_some_and(|successors| successors.iter().any(|(successor, _)| successor == &root));
+        if (component.len() > 1 || self_edge) && !component.is_disjoint(&selected_nodes) {
+            cyclic.push(component);
+        }
+    }
+    let Some(component) = cyclic.into_iter().min_by_key(|component| {
+        (
+            route_distance(component, &selected.terminal, &adjacency, &corridor),
+            component.iter().cloned().collect::<Vec<_>>(),
+        )
+    }) else {
+        return Ok(None);
+    };
+    let (_, cycle_edge) = component
+        .iter()
+        .flat_map(|caller| {
+            adjacency
+                .get(caller)
+                .into_iter()
+                .flatten()
+                .filter(|(callee, _)| component.contains(callee))
+                .map(move |(_, step)| {
+                    (
+                        (
+                            step.caller.clone(),
+                            step.edge.callee.clone(),
+                            step.edge.call_point.span.clone(),
+                            step.edge.call_point.block,
+                            step.edge.call_point.statement,
+                            step.edge.caller_route.clone(),
+                            step.edge.callee_route.clone(),
+                        ),
+                        step,
+                    )
+                })
+        })
+        .min_by_key(|(rank, _)| rank.clone())
+        .expect("a cyclic SCC contains a real internal edge");
+    let members = component
+        .iter()
+        .map(|node| node.owner.clone())
+        .collect::<BTreeSet<_>>();
+    Ok(Some(UnresolvedRouteCycle {
+        nodes: component,
+        token: scc_cycle_token(&members.iter().cloned().collect::<Vec<_>>()),
+        span: cycle_edge.edge.call_point.span.clone(),
+    }))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FunctionSummary {
     pub function: FunctionKey,
@@ -516,6 +929,7 @@ pub struct FunctionSummary {
     pub calls: BTreeSet<CallBoundary>,
     pub cycle_tokens: BTreeSet<String>,
     pub requirements: BTreeSet<ContractRequirement>,
+    pub unresolved_predecessors: BTreeSet<UnresolvedPredecessor>,
     pub return_value: AbstractValue,
 }
 
@@ -533,6 +947,7 @@ impl FunctionSummary {
             calls: BTreeSet::new(),
             cycle_tokens: BTreeSet::new(),
             requirements: BTreeSet::new(),
+            unresolved_predecessors: BTreeSet::new(),
             return_value: AbstractValue::default(),
         }
     }
@@ -556,6 +971,8 @@ impl FunctionSummary {
         self.calls.extend(other.calls.iter().cloned());
         self.cycle_tokens.extend(other.cycle_tokens.iter().cloned());
         self.requirements.extend(other.requirements.iter().cloned());
+        self.unresolved_predecessors
+            .extend(other.unresolved_predecessors.iter().cloned());
         self.return_value
             .origins
             .extend(other.return_value.origins.iter().cloned());
@@ -1217,11 +1634,12 @@ mod tests {
             sink: operation.clone(),
             obligation,
         });
-        summary.validations.insert(ValidationFact {
+        let validation = ValidationFact {
             requirement: requirement.clone(),
             subject: BoundarySlot::Formal(ordinal),
             collection: None,
-        });
+        };
+        summary.validations.insert(validation.clone());
         summary.writes.insert(WriteEffect {
             place: PlaceKey::new(tag),
             point: operation.point.clone(),
@@ -1235,6 +1653,14 @@ mod tests {
             }]),
         });
         summary.cycle_tokens.insert(tag.to_owned());
+        summary
+            .unresolved_predecessors
+            .insert(UnresolvedPredecessor {
+                caller_route: UnresolvedRouteFact::Hard(requirement.clone()),
+                callee_route: UnresolvedRouteFact::Conditional(validation),
+                callee: FunctionKey::new(tag),
+                call_point: operation.point.clone(),
+            });
         summary.requirements.insert(requirement);
         summary
             .return_value
@@ -1259,6 +1685,9 @@ mod tests {
         assert!(before.calls.is_subset(&left.calls));
         assert!(before.cycle_tokens.is_subset(&left.cycle_tokens));
         assert!(before.requirements.is_subset(&left.requirements));
+        assert!(before
+            .unresolved_predecessors
+            .is_subset(&left.unresolved_predecessors));
         assert!(before
             .return_value
             .origins
@@ -1341,6 +1770,13 @@ mod tests {
             vec!["a", "z"]
         );
         assert_eq!(
+            left.unresolved_predecessors
+                .iter()
+                .map(|fact| fact.callee.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["a", "z"]
+        );
+        assert_eq!(
             left.return_value.origins.iter().collect::<Vec<_>>(),
             vec![&AbstractOrigin::Constant(1), &AbstractOrigin::Constant(2)]
         );
@@ -1366,6 +1802,540 @@ mod tests {
             return_exposure: false,
             sink_function: FunctionKey::new("crate::sink"),
         }
+    }
+
+    #[test]
+    fn task8_hard_and_conditional_routes_keep_distinct_terminal_identity() {
+        let requirement = bounds_requirement("same-terminal");
+        let validation = ValidationFact::export_entry_contract(
+            requirement.clone(),
+            Some(BoundarySlot::Formal(2)),
+            Some(BoundarySlot::Formal(1)),
+            true,
+            true,
+        )
+        .unwrap();
+        let hard = UnresolvedRouteFact::Hard(requirement.clone());
+        let conditional = UnresolvedRouteFact::Conditional(validation);
+
+        assert_eq!(hard.requirement(), &requirement);
+        assert_eq!(conditional.requirement(), &requirement);
+        assert_ne!(hard, conditional);
+        assert_eq!(BTreeSet::from([hard, conditional]).len(), 2);
+    }
+
+    #[test]
+    fn task8_unresolved_predecessors_join_by_finite_stable_union() {
+        let function = FunctionKey::new("crate::caller");
+        let requirement = bounds_requirement("route");
+        let hard = UnresolvedRouteFact::Hard(requirement.clone());
+        let conditional = UnresolvedRouteFact::Conditional(
+            ValidationFact::export_entry_contract(
+                requirement,
+                Some(BoundarySlot::Formal(2)),
+                Some(BoundarySlot::Formal(1)),
+                true,
+                true,
+            )
+            .unwrap(),
+        );
+        let earlier = UnresolvedPredecessor {
+            caller_route: hard.clone(),
+            callee_route: hard,
+            callee: FunctionKey::new("crate::a"),
+            call_point: point("crate::caller", 1, 0),
+        };
+        let later = UnresolvedPredecessor {
+            caller_route: conditional.clone(),
+            callee_route: conditional,
+            callee: FunctionKey::new("crate::z"),
+            call_point: point("crate::caller", 2, 0),
+        };
+        let mut left = FunctionSummary::empty(function.clone());
+        left.unresolved_predecessors.insert(later.clone());
+        let mut right = FunctionSummary::empty(function);
+        right.unresolved_predecessors.insert(earlier.clone());
+
+        let before = left.clone();
+        assert!(left.join(&right));
+        assert!(before
+            .unresolved_predecessors
+            .is_subset(&left.unresolved_predecessors));
+        assert_eq!(
+            left.unresolved_predecessors.iter().collect::<Vec<_>>(),
+            vec![&earlier, &later]
+        );
+        let joined = left.clone();
+        assert!(!left.join(&right));
+        assert_eq!(left, joined);
+    }
+
+    fn task8_edge(
+        caller: &str,
+        caller_route: UnresolvedRouteFact,
+        callee_route: UnresolvedRouteFact,
+        callee: &str,
+        line: u32,
+    ) -> UnresolvedPredecessor {
+        UnresolvedPredecessor {
+            caller_route,
+            callee_route,
+            callee: FunctionKey::new(callee),
+            call_point: point(caller, line, 0),
+        }
+    }
+
+    fn task8_seed(owner: &str, route: UnresolvedRouteFact) -> FunctionSummary {
+        let mut seed = FunctionSummary::empty(FunctionKey::new(owner));
+        match route {
+            UnresolvedRouteFact::Hard(requirement) => {
+                seed.requirements.insert(requirement);
+            }
+            UnresolvedRouteFact::Conditional(validation) => {
+                seed.validations.insert(validation);
+            }
+        }
+        seed
+    }
+
+    #[test]
+    fn task8_selector_ignores_a_short_satisfied_route_and_uses_the_long_unresolved_route() {
+        let root = FunctionKey::new("crate::root");
+        let middle = FunctionKey::new("crate::middle");
+        let sink = FunctionKey::new("crate::sink");
+        let root_route = UnresolvedRouteFact::Hard(bounds_requirement("root"));
+        let middle_route = UnresolvedRouteFact::Hard(bounds_requirement("middle"));
+        let sink_route = UnresolvedRouteFact::Hard(bounds_requirement("sink"));
+        let first = task8_edge(
+            &root.0,
+            root_route.clone(),
+            middle_route.clone(),
+            &middle.0,
+            9,
+        );
+        let second = task8_edge(
+            &middle.0,
+            middle_route.clone(),
+            sink_route.clone(),
+            &sink.0,
+            10,
+        );
+        let mut root_summary = FunctionSummary::empty(root.clone());
+        root_summary.unresolved_predecessors.insert(first);
+        let mut middle_summary = FunctionSummary::empty(middle.clone());
+        middle_summary.unresolved_predecessors.insert(second);
+        // The lexical-short guarded call intentionally has no unresolved edge.
+        let summaries = BTreeMap::from([
+            (root.clone(), root_summary),
+            (middle.clone(), middle_summary),
+            (sink.clone(), FunctionSummary::empty(sink.clone())),
+        ]);
+        let seeds = BTreeMap::from([(sink.clone(), task8_seed(&sink.0, sink_route))]);
+
+        let selected = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: root,
+                route: root_route,
+            },
+            &summaries,
+            &seeds,
+        )
+        .unwrap();
+        assert_eq!(selected.steps.len(), 2);
+        assert_eq!(
+            selected
+                .steps
+                .iter()
+                .map(|step| step.edge.callee.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["crate::middle", "crate::sink"]
+        );
+    }
+
+    #[test]
+    fn task8_selector_never_crosses_route_variant_or_subject_identity() {
+        let root = FunctionKey::new("crate::root");
+        let sink = FunctionKey::new("crate::sink");
+        let requirement = bounds_requirement("same");
+        let hard = UnresolvedRouteFact::Hard(requirement.clone());
+        let conditional = UnresolvedRouteFact::Conditional(
+            ValidationFact::export_entry_contract(
+                requirement.clone(),
+                Some(BoundarySlot::Formal(2)),
+                Some(BoundarySlot::Formal(1)),
+                true,
+                true,
+            )
+            .unwrap(),
+        );
+        let mut other_requirement = requirement;
+        other_requirement.subject = AbstractValue::new([AbstractOrigin::Formal(3)]);
+        let other_subject = UnresolvedRouteFact::Hard(other_requirement.clone());
+        let exact_terminal = UnresolvedRouteFact::Hard(bounds_requirement("exact-terminal"));
+        let mut summary = FunctionSummary::empty(root.clone());
+        summary.unresolved_predecessors.extend([
+            task8_edge(
+                &root.0,
+                conditional.clone(),
+                conditional.clone(),
+                &sink.0,
+                1,
+            ),
+            task8_edge(
+                &root.0,
+                other_subject.clone(),
+                other_subject.clone(),
+                &sink.0,
+                2,
+            ),
+            task8_edge(&root.0, hard.clone(), exact_terminal.clone(), &sink.0, 3),
+        ]);
+        let summaries = BTreeMap::from([
+            (root.clone(), summary),
+            (sink.clone(), FunctionSummary::empty(sink.clone())),
+        ]);
+        let seeds = BTreeMap::from([(sink.clone(), {
+            let mut seed = task8_seed(&sink.0, conditional);
+            seed.requirements.insert(other_requirement);
+            seed.requirements
+                .insert(exact_terminal.requirement().clone());
+            seed
+        })]);
+
+        let selected = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: root,
+                route: hard,
+            },
+            &summaries,
+            &seeds,
+        )
+        .unwrap();
+        assert_eq!(selected.steps.len(), 1);
+        assert_eq!(selected.terminal.route, exact_terminal);
+    }
+
+    #[test]
+    fn task8_selector_fails_closed_when_no_exact_seed_terminal_exists() {
+        let root = FunctionKey::new("crate::root");
+        let route = UnresolvedRouteFact::Hard(bounds_requirement("missing"));
+        assert!(select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: root.clone(),
+                route,
+            },
+            &BTreeMap::from([(root.clone(), FunctionSummary::empty(root))]),
+            &BTreeMap::new(),
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn task8_selector_rejects_a_predecessor_not_owned_by_its_summary() {
+        let root = FunctionKey::new("crate::root");
+        let sink = FunctionKey::new("crate::sink");
+        let route = UnresolvedRouteFact::Hard(bounds_requirement("owner"));
+        let mut summary = FunctionSummary::empty(root.clone());
+        summary.unresolved_predecessors.insert(task8_edge(
+            "crate::wrong",
+            route.clone(),
+            route.clone(),
+            &sink.0,
+            1,
+        ));
+        let error = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: root.clone(),
+                route: route.clone(),
+            },
+            &BTreeMap::from([(root, summary)]),
+            &BTreeMap::from([(sink.clone(), task8_seed(&sink.0, route))]),
+        )
+        .unwrap_err();
+        assert!(error.contains("owner mismatch"));
+    }
+
+    #[test]
+    fn task8_selector_terminates_on_direct_and_mutual_route_cycles() {
+        let a = FunctionKey::new("crate::a");
+        let b = FunctionKey::new("crate::b");
+        let start = UnresolvedRouteFact::Hard(bounds_requirement("start"));
+        let through_b = UnresolvedRouteFact::Hard(bounds_requirement("through-b"));
+        let terminal = UnresolvedRouteFact::Hard(bounds_requirement("terminal"));
+        let mut a_summary = FunctionSummary::empty(a.clone());
+        a_summary.unresolved_predecessors.extend([
+            task8_edge(&a.0, start.clone(), start.clone(), &a.0, 1),
+            task8_edge(&a.0, start.clone(), through_b.clone(), &b.0, 2),
+        ]);
+        let mut b_summary = FunctionSummary::empty(b.clone());
+        b_summary.unresolved_predecessors.insert(task8_edge(
+            &b.0,
+            through_b,
+            terminal.clone(),
+            &a.0,
+            3,
+        ));
+        let summaries = BTreeMap::from([(a.clone(), a_summary), (b.clone(), b_summary)]);
+        let seeds = BTreeMap::from([(a.clone(), task8_seed(&a.0, terminal.clone()))]);
+
+        let selected = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: a,
+                route: start,
+            },
+            &summaries,
+            &seeds,
+        )
+        .unwrap();
+        assert_eq!(selected.steps.len(), 2);
+        assert_eq!(selected.terminal.route, terminal);
+    }
+
+    #[test]
+    fn task8_selector_equal_length_choice_is_lexical_and_insertion_order_independent() {
+        let root = FunctionKey::new("crate::root");
+        let a = FunctionKey::new("crate::a");
+        let z = FunctionKey::new("crate::z");
+        let start = UnresolvedRouteFact::Hard(bounds_requirement("start-order"));
+        // Deliberately oppose semantic route ordering and call-edge ordering:
+        // the `a` callee must win even though its terminal route sorts later.
+        let terminal_a = UnresolvedRouteFact::Hard(bounds_requirement("z-route"));
+        let terminal_z = UnresolvedRouteFact::Hard(bounds_requirement("a-route"));
+        let to_a = task8_edge(&root.0, start.clone(), terminal_a.clone(), &a.0, 9);
+        let to_z = task8_edge(&root.0, start.clone(), terminal_z.clone(), &z.0, 1);
+        let seeds = BTreeMap::from([
+            (a.clone(), task8_seed(&a.0, terminal_a)),
+            (z.clone(), task8_seed(&z.0, terminal_z)),
+        ]);
+        let select = |edges: [UnresolvedPredecessor; 2]| {
+            let mut summary = FunctionSummary::empty(root.clone());
+            summary.unresolved_predecessors.extend(edges);
+            select_unresolved_route(
+                UnresolvedRouteNode {
+                    owner: root.clone(),
+                    route: start.clone(),
+                },
+                &BTreeMap::from([(root.clone(), summary)]),
+                &seeds,
+            )
+            .unwrap()
+        };
+
+        let forward = select([to_z.clone(), to_a.clone()]);
+        let reverse = select([to_a, to_z]);
+        assert_eq!(forward, reverse);
+        assert_eq!(forward.steps[0].edge.callee, a);
+    }
+
+    #[test]
+    fn task8_preferred_selector_requires_every_exact_start_to_reach_a_seed() {
+        let root = FunctionKey::new("crate::root");
+        let middle = FunctionKey::new("crate::middle");
+        let sink = FunctionKey::new("crate::sink");
+        let requirement = bounds_requirement("shared-root-requirement");
+        let hard = UnresolvedRouteFact::Hard(requirement.clone());
+        let conditional = UnresolvedRouteFact::Conditional(
+            ValidationFact::export_entry_contract(
+                requirement,
+                Some(BoundarySlot::Formal(2)),
+                Some(BoundarySlot::Formal(1)),
+                true,
+                true,
+            )
+            .unwrap(),
+        );
+        let hard_middle = UnresolvedRouteFact::Hard(bounds_requirement("hard-middle"));
+        let hard_terminal = UnresolvedRouteFact::Hard(bounds_requirement("hard-terminal"));
+        let conditional_terminal =
+            UnresolvedRouteFact::Hard(bounds_requirement("conditional-terminal"));
+        let mut root_summary = FunctionSummary::empty(root.clone());
+        root_summary.unresolved_predecessors.extend([
+            task8_edge(&root.0, hard.clone(), hard_middle.clone(), &middle.0, 1),
+            task8_edge(
+                &root.0,
+                conditional.clone(),
+                conditional_terminal.clone(),
+                &sink.0,
+                2,
+            ),
+        ]);
+        let mut middle_summary = FunctionSummary::empty(middle.clone());
+        middle_summary.unresolved_predecessors.insert(task8_edge(
+            &middle.0,
+            hard_middle,
+            hard_terminal.clone(),
+            &sink.0,
+            3,
+        ));
+        let summaries = BTreeMap::from([
+            (root.clone(), root_summary),
+            (middle, middle_summary),
+            (sink.clone(), FunctionSummary::empty(sink.clone())),
+        ]);
+        let roots = BTreeSet::from([
+            UnresolvedRouteNode {
+                owner: root.clone(),
+                route: hard,
+            },
+            UnresolvedRouteNode {
+                owner: root,
+                route: conditional,
+            },
+        ]);
+        let complete_seeds = BTreeMap::from([(sink.clone(), {
+            let mut seed = task8_seed(&sink.0, hard_terminal);
+            seed.requirements
+                .insert(conditional_terminal.requirement().clone());
+            seed
+        })]);
+        let selected =
+            select_preferred_unresolved_route(&roots, &summaries, &complete_seeds).unwrap();
+        assert_eq!(selected.steps.len(), 1);
+        assert_eq!(selected.terminal.route, conditional_terminal);
+
+        let missing_one_seed = BTreeMap::from([(
+            sink.clone(),
+            task8_seed(&sink.0, selected.terminal.route.clone()),
+        )]);
+        assert!(select_preferred_unresolved_route(&roots, &summaries, &missing_one_seed).is_err());
+    }
+
+    #[test]
+    fn task8_route_cycle_uses_only_exact_corridor_scc_and_a_real_recursive_edge() {
+        let a = FunctionKey::new("crate::a");
+        let b = FunctionKey::new("crate::b");
+        let sink = FunctionKey::new("crate::sink");
+        let r1 = UnresolvedRouteFact::Hard(bounds_requirement("r1"));
+        let r2 = UnresolvedRouteFact::Hard(bounds_requirement("r2"));
+        let r3 = UnresolvedRouteFact::Hard(bounds_requirement("r3"));
+        let r4 = UnresolvedRouteFact::Hard(bounds_requirement("r4"));
+        let terminal = UnresolvedRouteFact::Hard(bounds_requirement("terminal-cycle"));
+        let unrelated = UnresolvedRouteFact::Hard(bounds_requirement("unrelated-cycle"));
+        let mut a_summary = FunctionSummary::empty(a.clone());
+        a_summary.unresolved_predecessors.extend([
+            task8_edge(&a.0, r1.clone(), r2.clone(), &b.0, 30),
+            task8_edge(&a.0, r3.clone(), r4.clone(), &b.0, 10),
+            task8_edge(&a.0, unrelated.clone(), unrelated.clone(), &a.0, 1),
+        ]);
+        let mut b_summary = FunctionSummary::empty(b.clone());
+        b_summary.unresolved_predecessors.extend([
+            task8_edge(&b.0, r2, r3.clone(), &a.0, 40),
+            task8_edge(&b.0, r4.clone(), r3, &a.0, 20),
+            task8_edge(&b.0, r4, terminal.clone(), &sink.0, 50),
+        ]);
+        let summaries = BTreeMap::from([
+            (a.clone(), a_summary),
+            (b.clone(), b_summary),
+            (sink.clone(), FunctionSummary::empty(sink.clone())),
+        ]);
+        let selected = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: a.clone(),
+                route: r1,
+            },
+            &summaries,
+            &BTreeMap::from([(sink.clone(), task8_seed(&sink.0, terminal))]),
+        )
+        .unwrap();
+        let cycle = select_unresolved_route_cycle(&selected, &summaries)
+            .unwrap()
+            .unwrap();
+        assert_eq!(cycle.token, "scc:[crate::a,crate::b]");
+        assert_eq!(cycle.span.start.line, 11);
+        assert_eq!(cycle.nodes.len(), 2);
+        assert!(!cycle.nodes.iter().any(|node| node.route == unrelated));
+    }
+
+    #[test]
+    fn task8_route_cycle_detects_direct_recursion_but_not_an_unrelated_branch() {
+        let root = FunctionKey::new("crate::root");
+        let route = UnresolvedRouteFact::Hard(bounds_requirement("direct-cycle"));
+        let unrelated = UnresolvedRouteFact::Hard(bounds_requirement("unrelated-direct"));
+        let selected = SelectedUnresolvedRoute {
+            root: UnresolvedRouteNode {
+                owner: root.clone(),
+                route: route.clone(),
+            },
+            terminal: UnresolvedRouteNode {
+                owner: root.clone(),
+                route: route.clone(),
+            },
+            steps: Vec::new(),
+        };
+        let mut direct = FunctionSummary::empty(root.clone());
+        direct.unresolved_predecessors.insert(task8_edge(
+            &root.0,
+            route.clone(),
+            route,
+            &root.0,
+            7,
+        ));
+        let cycle =
+            select_unresolved_route_cycle(&selected, &BTreeMap::from([(root.clone(), direct)]))
+                .unwrap()
+                .unwrap();
+        assert_eq!(cycle.token, "scc:[crate::root]");
+        assert_eq!(cycle.span.start.line, 8);
+
+        let mut unrelated_only = FunctionSummary::empty(root.clone());
+        unrelated_only.unresolved_predecessors.insert(task8_edge(
+            &root.0,
+            unrelated.clone(),
+            unrelated,
+            &root.0,
+            3,
+        ));
+        assert_eq!(
+            select_unresolved_route_cycle(&selected, &BTreeMap::from([(root, unrelated_only)]),)
+                .unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn task8_recursive_detour_does_not_mark_the_preferred_direct_route() {
+        let root = FunctionKey::new("crate::root");
+        let detour = FunctionKey::new("crate::detour");
+        let sink = FunctionKey::new("crate::sink");
+        let start = UnresolvedRouteFact::Hard(bounds_requirement("detour-start"));
+        let recursive = UnresolvedRouteFact::Hard(bounds_requirement("detour-cycle"));
+        let terminal = UnresolvedRouteFact::Hard(bounds_requirement("detour-terminal"));
+        let mut root_summary = FunctionSummary::empty(root.clone());
+        root_summary.unresolved_predecessors.extend([
+            task8_edge(&root.0, start.clone(), terminal.clone(), &sink.0, 1),
+            task8_edge(&root.0, start.clone(), recursive.clone(), &detour.0, 2),
+        ]);
+        let mut detour_summary = FunctionSummary::empty(detour.clone());
+        detour_summary.unresolved_predecessors.extend([
+            task8_edge(
+                &detour.0,
+                recursive.clone(),
+                recursive.clone(),
+                &detour.0,
+                3,
+            ),
+            task8_edge(&detour.0, recursive, terminal.clone(), &sink.0, 4),
+        ]);
+        let summaries = BTreeMap::from([
+            (root.clone(), root_summary),
+            (detour, detour_summary),
+            (sink.clone(), FunctionSummary::empty(sink.clone())),
+        ]);
+        let selected = select_unresolved_route(
+            UnresolvedRouteNode {
+                owner: root,
+                route: start,
+            },
+            &summaries,
+            &BTreeMap::from([(sink.clone(), task8_seed(&sink.0, terminal))]),
+        )
+        .unwrap();
+        assert_eq!(selected.steps.len(), 1);
+        assert_eq!(selected.terminal.owner, sink);
+        assert_eq!(
+            select_unresolved_route_cycle(&selected, &summaries).unwrap(),
+            None
+        );
     }
 
     #[test]

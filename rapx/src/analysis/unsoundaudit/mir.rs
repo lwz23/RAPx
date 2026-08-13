@@ -3,11 +3,13 @@ use super::dataflow::{
 };
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
-    scc_cycle_token, solve_summaries, AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary,
-    CallMapping, CanonicalWitness, ContractRequirement, FailureClass, Finding, FunctionKey,
-    FunctionSummary, Obligation, Operation, OperationKind, OriginKey, OutDependency, Pattern,
-    PlaceKey, Predicate, ProgramPoint, RuleId, SinkObligation, Source, SourceKind, StablePosition,
-    StableSpan, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
+    select_preferred_unresolved_route, select_unresolved_route_cycle, solve_summaries,
+    AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary, CallMapping, CanonicalWitness,
+    ContractRequirement, FailureClass, Finding, FunctionKey, FunctionSummary, Obligation,
+    Operation, OperationKind, OriginKey, OutDependency, Pattern, PlaceKey, Predicate, ProgramPoint,
+    RuleId, SelectedUnresolvedRoute, SinkObligation, Source, SourceKind, StablePosition,
+    StableSpan, UnresolvedPredecessor, UnresolvedRouteCycle, UnresolvedRouteFact,
+    UnresolvedRouteNode, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
 use rustc_hir::{
     def::DefKind,
@@ -679,26 +681,7 @@ impl<'tcx> Engine<'tcx> {
             }
             self.rebuild_bodies(&local_outputs, &must_outputs);
         };
-
-        let components = super::summary::strongly_connected_components(&graph);
-        let recursive = components
-            .iter()
-            .filter(|component| {
-                component.len() > 1
-                    || component.first().is_some_and(|node| {
-                        graph
-                            .get(node)
-                            .is_some_and(|callees| callees.contains(node))
-                    })
-            })
-            .flat_map(|component| {
-                let token = scc_cycle_token(component);
-                component
-                    .iter()
-                    .cloned()
-                    .map(move |node| (node, token.clone()))
-            })
-            .collect::<BTreeMap<_, _>>();
+        let seeds = self.summary_seeds();
 
         let mut findings = Vec::new();
         for (root, facts) in &self.bodies {
@@ -708,7 +691,6 @@ impl<'tcx> Engine<'tcx> {
             let Some(summary) = solved.get(root) else {
                 continue;
             };
-            let paths = self.shortest_paths(root, &graph, &recursive);
             let unresolved = summary
                 .requirements
                 .iter()
@@ -735,7 +717,16 @@ impl<'tcx> Engine<'tcx> {
                 if self.is_discharged(facts, requirement) {
                     continue;
                 }
-                let witness = self.build_witness(facts, requirement, &paths, &recursive);
+                let roots = unresolved_routes_for_requirement(root, summary, requirement);
+                let selected_route = select_preferred_unresolved_route(&roots, &solved, &seeds)?;
+                let cycle = select_unresolved_route_cycle(&selected_route, &solved)?;
+                let witness = build_unresolved_witness(
+                    facts.function.clone(),
+                    facts.root_span.clone(),
+                    requirement,
+                    &selected_route,
+                    cycle.as_ref(),
+                );
                 let selected = SelectedRequirement {
                     requirement: requirement.clone(),
                     source,
@@ -847,17 +838,20 @@ impl<'tcx> Engine<'tcx> {
         &self,
         graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
     ) -> BTreeMap<FunctionKey, FunctionSummary> {
-        let seeds = self
-            .bodies
-            .iter()
-            .map(|(key, facts)| (key.clone(), facts.summary_seed.clone()))
-            .collect::<BTreeMap<_, _>>();
+        let seeds = self.summary_seeds();
         solve_summaries(graph, &seeds, |node, current| {
             let mut derived = FunctionSummary::empty(node.clone());
             let Some(caller) = self.bodies.get(node) else {
                 return derived;
             };
             for call in &caller.calls {
+                if call.disposition != BoundaryDisposition::ResolvedLocal {
+                    continue;
+                }
+                assert_eq!(
+                    call.point.function, *node,
+                    "a local call point must be owned by its containing summary"
+                );
                 let Some(callee) = &call.callee else {
                     continue;
                 };
@@ -874,36 +868,49 @@ impl<'tcx> Engine<'tcx> {
                     if requirement.return_exposure && !reaches_return {
                         continue;
                     }
-                    let mut requirement = requirement.clone();
-                    requirement.subject = requirement.subject.substitute(&actuals);
-                    requirement.collection = requirement
+                    let callee_route = UnresolvedRouteFact::Hard(requirement.clone());
+                    let mut caller_requirement = requirement.clone();
+                    caller_requirement.subject = caller_requirement.subject.substitute(&actuals);
+                    caller_requirement.collection = caller_requirement
                         .collection
                         .as_ref()
                         .map(|value| value.substitute(&actuals));
-                    derived.requirements.insert(requirement);
+                    propagate_unresolved_route(
+                        &mut derived,
+                        node,
+                        call,
+                        callee,
+                        UnresolvedRouteFact::Hard(caller_requirement),
+                        callee_route,
+                    );
                 }
                 for validation in &callee_summary.validations {
                     if validation.requirement.return_exposure && !reaches_return {
                         continue;
                     }
+                    let callee_route = UnresolvedRouteFact::Conditional(validation.clone());
                     let Some(state) = caller.states.get(&(
                         call.point.point_location().block,
                         call.point.statement as usize,
                     )) else {
-                        derived
-                            .requirements
-                            .insert(validation.instantiate_requirement(&actuals));
+                        propagate_unresolved_route(
+                            &mut derived,
+                            node,
+                            call,
+                            callee,
+                            UnresolvedRouteFact::Hard(validation.instantiate_requirement(&actuals)),
+                            callee_route,
+                        );
                         continue;
                     };
-                    match compose_validation_route(validation, call, state, caller.arg_count) {
-                        ValidationRoute::Satisfied => {}
-                        ValidationRoute::Conditional(validation) => {
-                            derived.validations.insert(validation);
-                        }
-                        ValidationRoute::Hard(requirement) => {
-                            derived.requirements.insert(requirement);
-                        }
-                    }
+                    propagate_validation_route(
+                        &mut derived,
+                        node,
+                        call,
+                        callee,
+                        callee_route,
+                        compose_validation_route(validation, call, state, caller.arg_count),
+                    );
                 }
                 derived
                     .cycle_tokens
@@ -911,6 +918,13 @@ impl<'tcx> Engine<'tcx> {
             }
             derived
         })
+    }
+
+    fn summary_seeds(&self) -> BTreeMap<FunctionKey, FunctionSummary> {
+        self.bodies
+            .iter()
+            .map(|(key, facts)| (key.clone(), facts.summary_seed.clone()))
+            .collect()
     }
 
     fn derive_local_outputs(
@@ -2664,97 +2678,6 @@ impl<'tcx> Engine<'tcx> {
         watched
     }
 
-    fn shortest_paths(
-        &self,
-        root: &FunctionKey,
-        graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
-        _recursive: &BTreeMap<FunctionKey, String>,
-    ) -> BTreeMap<FunctionKey, Vec<CallSite>> {
-        let mut paths: BTreeMap<FunctionKey, Vec<CallSite>> =
-            BTreeMap::from([(root.clone(), Vec::new())]);
-        loop {
-            let snapshot = paths.clone();
-            let mut changed = false;
-            for (node, path) in snapshot {
-                let Some(facts) = self.bodies.get(&node) else {
-                    continue;
-                };
-                for call in &facts.calls {
-                    let Some(callee) = &call.callee else {
-                        continue;
-                    };
-                    if path.iter().any(|step| step.callee.as_ref() == Some(callee)) {
-                        continue;
-                    }
-                    let mut candidate = path.clone();
-                    candidate.push(call.clone());
-                    let prefer = paths.get(callee).is_none_or(|current| {
-                        candidate.len() < current.len()
-                            || (candidate.len() == current.len()
-                                && path_token(&candidate) < path_token(current))
-                    });
-                    if prefer {
-                        paths.insert(callee.clone(), candidate);
-                        changed = true;
-                    }
-                }
-            }
-            if !changed {
-                break;
-            }
-        }
-        let _ = graph;
-        paths
-    }
-
-    fn build_witness(
-        &self,
-        root: &BodyFacts,
-        requirement: &ContractRequirement,
-        paths: &BTreeMap<FunctionKey, Vec<CallSite>>,
-        recursive: &BTreeMap<FunctionKey, String>,
-    ) -> CanonicalWitness {
-        let mut steps = vec![WitnessStep {
-            kind: WitnessStepKind::Entry,
-            function: root.function.clone(),
-            span: root.root_span.clone(),
-        }];
-        let path = paths
-            .get(&requirement.sink_function)
-            .cloned()
-            .unwrap_or_default();
-        let mut boundaries = Vec::new();
-        for call in &path {
-            let callee = call
-                .callee
-                .clone()
-                .unwrap_or_else(|| requirement.sink_function.clone());
-            boundaries.push(callee.clone());
-            steps.push(WitnessStep {
-                kind: WitnessStepKind::LocalCall,
-                function: callee,
-                span: call.point.span.clone(),
-            });
-        }
-        if let Some(cycle_token) = recursive.get(&requirement.sink_function) {
-            steps.push(WitnessStep {
-                kind: WitnessStepKind::SccCycle,
-                function: cycle_step_function(cycle_token),
-                span: requirement.sink.point.span.clone(),
-            });
-        }
-        steps.push(WitnessStep {
-            kind: if requirement.sink.kind == OperationKind::InvalidValueExposure {
-                WitnessStepKind::Exposure
-            } else {
-                WitnessStepKind::Sink
-            },
-            function: requirement.sink_function.clone(),
-            span: requirement.sink.point.span.clone(),
-        });
-        CanonicalWitness::new(steps, boundaries)
-    }
-
     fn call_graph(&self) -> BTreeMap<FunctionKey, BTreeSet<FunctionKey>> {
         self.bodies
             .iter()
@@ -3892,6 +3815,141 @@ fn entry_formal_slot(
     Some(BoundarySlot::Formal(index))
 }
 
+fn unresolved_routes_for_requirement(
+    owner: &FunctionKey,
+    summary: &FunctionSummary,
+    requirement: &ContractRequirement,
+) -> BTreeSet<UnresolvedRouteNode> {
+    let mut roots = BTreeSet::new();
+    if summary.requirements.contains(requirement) {
+        roots.insert(UnresolvedRouteNode {
+            owner: owner.clone(),
+            route: UnresolvedRouteFact::Hard(requirement.clone()),
+        });
+    }
+    roots.extend(
+        summary
+            .validations
+            .iter()
+            .filter(|validation| validation.requirement == *requirement)
+            .cloned()
+            .map(|validation| UnresolvedRouteNode {
+                owner: owner.clone(),
+                route: UnresolvedRouteFact::Conditional(validation),
+            }),
+    );
+    roots
+}
+
+fn build_unresolved_witness(
+    root: FunctionKey,
+    root_span: StableSpan,
+    requirement: &ContractRequirement,
+    route: &SelectedUnresolvedRoute,
+    cycle: Option<&UnresolvedRouteCycle>,
+) -> CanonicalWitness {
+    let mut steps = vec![WitnessStep {
+        kind: WitnessStepKind::Entry,
+        function: root,
+        span: root_span,
+    }];
+    let mut boundaries = BTreeSet::new();
+    let mut emitted_cycle = false;
+    if let Some(cycle) = cycle.filter(|cycle| cycle.nodes.contains(&route.root)) {
+        steps.push(WitnessStep {
+            kind: WitnessStepKind::SccCycle,
+            function: cycle_step_function(&cycle.token),
+            span: cycle.span.clone(),
+        });
+        emitted_cycle = true;
+    }
+    for route_step in &route.steps {
+        let callee = route_step.edge.callee.clone();
+        boundaries.insert(callee.clone());
+        steps.push(WitnessStep {
+            kind: WitnessStepKind::LocalCall,
+            function: callee.clone(),
+            span: route_step.edge.call_point.span.clone(),
+        });
+        let callee_node = UnresolvedRouteNode {
+            owner: callee,
+            route: route_step.edge.callee_route.clone(),
+        };
+        if !emitted_cycle && cycle.is_some_and(|cycle| cycle.nodes.contains(&callee_node)) {
+            let cycle = cycle.expect("cycle evidence was just matched");
+            steps.push(WitnessStep {
+                kind: WitnessStepKind::SccCycle,
+                function: cycle_step_function(&cycle.token),
+                span: cycle.span.clone(),
+            });
+            emitted_cycle = true;
+        }
+    }
+    assert!(
+        cycle.is_none() || emitted_cycle,
+        "route cycle must intersect the selected route"
+    );
+    steps.push(WitnessStep {
+        kind: if requirement.sink.kind == OperationKind::InvalidValueExposure {
+            WitnessStepKind::Exposure
+        } else {
+            WitnessStepKind::Sink
+        },
+        function: requirement.sink_function.clone(),
+        span: requirement.sink.point.span.clone(),
+    });
+    CanonicalWitness::new(steps, boundaries.into_iter().collect())
+}
+
+fn propagate_unresolved_route(
+    derived: &mut FunctionSummary,
+    caller: &FunctionKey,
+    call: &CallSite,
+    callee: &FunctionKey,
+    caller_route: UnresolvedRouteFact,
+    callee_route: UnresolvedRouteFact,
+) {
+    if call.disposition != BoundaryDisposition::ResolvedLocal {
+        return;
+    }
+    assert_eq!(
+        call.point.function, *caller,
+        "an unresolved predecessor must be owned by the caller summary"
+    );
+    match &caller_route {
+        UnresolvedRouteFact::Hard(requirement) => {
+            derived.requirements.insert(requirement.clone());
+        }
+        UnresolvedRouteFact::Conditional(validation) => {
+            derived.validations.insert(validation.clone());
+        }
+    }
+    derived
+        .unresolved_predecessors
+        .insert(UnresolvedPredecessor {
+            caller_route,
+            callee_route,
+            callee: callee.clone(),
+            call_point: call.point.clone(),
+        });
+}
+
+fn propagate_validation_route(
+    derived: &mut FunctionSummary,
+    caller: &FunctionKey,
+    call: &CallSite,
+    callee: &FunctionKey,
+    callee_route: UnresolvedRouteFact,
+    route: ValidationRoute,
+) {
+    let caller_route = match route {
+        ValidationRoute::Satisfied => return,
+        ValidationRoute::Conditional(validation) => UnresolvedRouteFact::Conditional(validation),
+        ValidationRoute::Hard(requirement) => UnresolvedRouteFact::Hard(requirement),
+    };
+    propagate_unresolved_route(derived, caller, call, callee, caller_route, callee_route);
+}
+
 fn compose_validation_route(
     validation: &ValidationFact,
     call: &CallSite,
@@ -4463,22 +4521,6 @@ fn adjusted_rule(original: RuleId, primary: Pattern) -> RuleId {
     }
 }
 
-fn path_token(path: &[CallSite]) -> String {
-    path.iter()
-        .map(|call| {
-            format!(
-                "{}@{}",
-                call.callee
-                    .as_ref()
-                    .map(|callee| callee.0.as_str())
-                    .unwrap_or("opaque"),
-                call.point.span.token()
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("|")
-}
-
 fn location_precedes(left: Location, right: Location, body: &Body<'_>) -> bool {
     if left.block == right.block {
         return left.statement_index <= right.statement_index;
@@ -4490,6 +4532,7 @@ fn location_precedes(left: Location, right: Location, body: &Body<'_>) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::super::summary::scc_cycle_token;
     use super::*;
 
     fn span() -> StableSpan {
@@ -4674,6 +4717,252 @@ mod tests {
             ValidationRoute::Hard(_)
         ));
         assert_eq!(entry_formal_slot(2, &unguarded, &subject), None);
+    }
+
+    #[test]
+    fn task8_production_route_propagation_keeps_exact_variants_and_skips_satisfied() {
+        let caller = FunctionKey::new("crate::f");
+        let callee = FunctionKey::new("crate::sink");
+        let collection = PlaceKey::new("_1");
+        let subject = PlaceKey::new("_2");
+        let call = task6_call(&collection, &subject);
+        let validation = task6_contract();
+        let callee_route = UnresolvedRouteFact::Conditional(validation.clone());
+        let mut derived = FunctionSummary::empty(caller.clone());
+
+        propagate_validation_route(
+            &mut derived,
+            &caller,
+            &call,
+            &callee,
+            callee_route.clone(),
+            ValidationRoute::Satisfied,
+        );
+        assert!(derived.requirements.is_empty());
+        assert!(derived.validations.is_empty());
+        assert!(derived.unresolved_predecessors.is_empty());
+
+        propagate_validation_route(
+            &mut derived,
+            &caller,
+            &call,
+            &callee,
+            callee_route.clone(),
+            ValidationRoute::Conditional(validation.clone()),
+        );
+        propagate_validation_route(
+            &mut derived,
+            &caller,
+            &call,
+            &callee,
+            callee_route.clone(),
+            ValidationRoute::Hard(validation.requirement.clone()),
+        );
+        assert!(derived.validations.contains(&validation));
+        assert!(derived.requirements.contains(&validation.requirement));
+        assert_eq!(derived.unresolved_predecessors.len(), 2);
+        assert!(derived
+            .unresolved_predecessors
+            .contains(&UnresolvedPredecessor {
+                caller_route: UnresolvedRouteFact::Conditional(validation.clone()),
+                callee_route: callee_route.clone(),
+                callee: callee.clone(),
+                call_point: call.point.clone(),
+            }));
+        assert!(derived
+            .unresolved_predecessors
+            .contains(&UnresolvedPredecessor {
+                caller_route: UnresolvedRouteFact::Hard(validation.requirement.clone()),
+                callee_route,
+                callee: callee.clone(),
+                call_point: call.point.clone(),
+            }));
+
+        let mut opaque_call = call;
+        opaque_call.disposition = BoundaryDisposition::OpaqueDirect;
+        let before = derived.clone();
+        propagate_unresolved_route(
+            &mut derived,
+            &caller,
+            &opaque_call,
+            &callee,
+            UnresolvedRouteFact::Hard(validation.requirement.clone()),
+            UnresolvedRouteFact::Conditional(validation),
+        );
+        assert_eq!(derived, before);
+    }
+
+    #[test]
+    fn task8_mutual_cycle_witness_keeps_exact_sink_anchor_and_one_real_cycle() {
+        let root = FunctionKey::new("crate::read");
+        let right = FunctionKey::new("crate::right");
+        let left = FunctionKey::new("crate::left");
+        let start = UnresolvedRouteFact::Hard(task6_contract().requirement);
+        let middle = UnresolvedRouteFact::Hard({
+            let mut requirement = start.requirement().clone();
+            requirement.seed_id = "middle".into();
+            requirement
+        });
+        let terminal = UnresolvedRouteFact::Hard({
+            let mut requirement = start.requirement().clone();
+            requirement.seed_id = "terminal".into();
+            requirement.sink_function = left.clone();
+            requirement
+        });
+        let first = UnresolvedPredecessor {
+            caller_route: start.clone(),
+            callee_route: middle.clone(),
+            callee: right.clone(),
+            call_point: ProgramPoint {
+                function: root.clone(),
+                block: 1,
+                statement: 0,
+                span: StableSpan::new(
+                    "src/lib.rs",
+                    StablePosition::new(10, 1),
+                    StablePosition::new(10, 2),
+                ),
+            },
+        };
+        let second = UnresolvedPredecessor {
+            caller_route: middle.clone(),
+            callee_route: terminal.clone(),
+            callee: left.clone(),
+            call_point: ProgramPoint {
+                function: right.clone(),
+                block: 2,
+                statement: 0,
+                span: StableSpan::new(
+                    "src/lib.rs",
+                    StablePosition::new(20, 1),
+                    StablePosition::new(20, 2),
+                ),
+            },
+        };
+        let route = SelectedUnresolvedRoute {
+            root: UnresolvedRouteNode {
+                owner: root.clone(),
+                route: start,
+            },
+            terminal: UnresolvedRouteNode {
+                owner: left.clone(),
+                route: terminal.clone(),
+            },
+            steps: vec![
+                super::super::summary::UnresolvedRouteStep {
+                    caller: root.clone(),
+                    edge: first,
+                },
+                super::super::summary::UnresolvedRouteStep {
+                    caller: right.clone(),
+                    edge: second,
+                },
+            ],
+        };
+        let cycle_span = StableSpan::new(
+            "src/lib.rs",
+            StablePosition::new(20, 1),
+            StablePosition::new(20, 2),
+        );
+        let cycle = UnresolvedRouteCycle {
+            nodes: BTreeSet::from([
+                UnresolvedRouteNode {
+                    owner: right,
+                    route: middle,
+                },
+                UnresolvedRouteNode {
+                    owner: left.clone(),
+                    route: terminal.clone(),
+                },
+            ]),
+            token: "scc:[crate::left,crate::right]".into(),
+            span: cycle_span.clone(),
+        };
+        let witness =
+            build_unresolved_witness(root, span(), terminal.requirement(), &route, Some(&cycle));
+        assert_eq!(
+            witness
+                .steps
+                .iter()
+                .filter(|step| step.kind == WitnessStepKind::SccCycle)
+                .count(),
+            1
+        );
+        assert!(witness
+            .steps
+            .iter()
+            .any(|step| { step.kind == WitnessStepKind::SccCycle && step.span == cycle_span }));
+        let last_local = witness
+            .steps
+            .iter()
+            .rev()
+            .find(|step| step.kind == WitnessStepKind::LocalCall)
+            .unwrap();
+        assert_eq!(last_local.function, left);
+        assert_eq!(witness.steps.last().unwrap().function, last_local.function);
+        assert_eq!(
+            witness.boundaries,
+            vec![
+                FunctionKey::new("crate::left"),
+                FunctionKey::new("crate::right")
+            ]
+        );
+        let kinds = witness
+            .steps
+            .iter()
+            .map(|step| step.kind)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            kinds,
+            vec![
+                WitnessStepKind::Entry,
+                WitnessStepKind::LocalCall,
+                WitnessStepKind::SccCycle,
+                WitnessStepKind::LocalCall,
+                WitnessStepKind::Sink,
+            ]
+        );
+    }
+
+    #[test]
+    fn task8_root_cycle_token_is_anchored_immediately_after_entry() {
+        let root = FunctionKey::new("crate::direct");
+        let route_fact = UnresolvedRouteFact::Hard(task6_contract().requirement);
+        let route = SelectedUnresolvedRoute {
+            root: UnresolvedRouteNode {
+                owner: root.clone(),
+                route: route_fact.clone(),
+            },
+            terminal: UnresolvedRouteNode {
+                owner: root.clone(),
+                route: route_fact.clone(),
+            },
+            steps: Vec::new(),
+        };
+        let cycle = UnresolvedRouteCycle {
+            nodes: BTreeSet::from([route.root.clone()]),
+            token: "scc:[crate::direct]".into(),
+            span: StableSpan::new(
+                "src/lib.rs",
+                StablePosition::new(30, 1),
+                StablePosition::new(30, 2),
+            ),
+        };
+        let witness =
+            build_unresolved_witness(root, span(), route_fact.requirement(), &route, Some(&cycle));
+        assert_eq!(
+            witness
+                .steps
+                .iter()
+                .map(|step| step.kind)
+                .collect::<Vec<_>>(),
+            vec![
+                WitnessStepKind::Entry,
+                WitnessStepKind::SccCycle,
+                WitnessStepKind::Sink,
+            ]
+        );
+        assert_eq!(witness.steps[1].span, cycle.span);
     }
 
     #[test]
