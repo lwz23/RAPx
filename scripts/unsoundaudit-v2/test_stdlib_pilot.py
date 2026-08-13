@@ -19,6 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
 PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
 PROTOCOL_V3 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v3.json"
+V3_FAILURE = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/core.v3.failure.json"
 
 
 def finding(index: int, rule_id: str, depth: str) -> dict[str, object]:
@@ -121,6 +122,103 @@ class PilotRunnerTests(unittest.TestCase):
                 self.assertEqual(pilot.cargo_arguments(self.protocol, unit)[-2:], ["--jobs", "1"])
                 self.assertIn(f"build-std={','.join(self.protocol['units'][unit]['build_std_components'])}", pilot.cargo_arguments(self.protocol, unit))
 
+    def test_rapx_perf_profile_is_closed_and_target_cargo_stays_dev_check(self) -> None:
+        expected_profile = {
+            "profile": "rapx-perf",
+            "opt_level": 3,
+            "debug": 1,
+            "debug_assertions": True,
+            "overflow_checks": True,
+            "incremental": False,
+            "target_cargo_profile": "dev",
+        }
+        self.assertEqual(pilot.cargo_profile_contract(REPO_ROOT / "rapx/Cargo.toml"), expected_profile)
+        for unit in ("core", "alloc", "std"):
+            arguments = pilot.cargo_arguments(self.protocol, unit)
+            self.assertNotIn("--release", arguments)
+            self.assertNotIn("--profile", arguments)
+            self.assertNotIn("-r", arguments)
+
+    def test_binary_profile_sidecar_is_closed_and_binds_actual_binary_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cargo_rapx = root / "cargo-rapx"
+            rapx = root / "rapx"
+            cargo_rapx.write_bytes(b"cargo-rapx optimized")
+            rapx.write_bytes(b"rapx optimized")
+            value = {
+                "schema_version": "unsoundaudit-v2-rap-binary-profile-v1",
+                "profile": "rapx-perf",
+                "opt_level": 3,
+                "debug": 1,
+                "debug_assertions": True,
+                "overflow_checks": True,
+                "incremental": False,
+                "target_cargo_profile": "dev",
+                "cargo_rapx_sha256": pilot.sha256(cargo_rapx),
+                "rapx_sha256": pilot.sha256(rapx),
+            }
+            (root / pilot.ANALYZER_PROFILE_SIDECAR).write_bytes(pilot.canonical_json(value))
+            self.assertEqual(pilot.load_analyzer_profile(root, cargo_rapx, rapx), value)
+            self.assertEqual(
+                pilot.analyzer_profile_for_protocol(
+                    {"analyzer_profile": "rapx-perf"},
+                    REPO_ROOT / "rapx/Cargo.toml",
+                    root,
+                    cargo_rapx,
+                    rapx,
+                ),
+                value,
+            )
+
+            for mutation, message in (
+                ({"unexpected": True}, "keys drifted"),
+                ({"cargo_rapx_sha256": "0" * 64}, "hash differs"),
+                ({"profile": "debug"}, "contract drifted"),
+            ):
+                changed = value | mutation
+                (root / pilot.ANALYZER_PROFILE_SIDECAR).write_bytes(pilot.canonical_json(changed))
+                with self.assertRaisesRegex(ContractError, message):
+                    pilot.load_analyzer_profile(root, cargo_rapx, rapx)
+
+            (root / pilot.ANALYZER_PROFILE_SIDECAR).unlink()
+            with self.assertRaisesRegex(ContractError, "sidecar is missing"):
+                pilot.load_analyzer_profile(root, cargo_rapx, rapx)
+
+    def test_frozen_v1_v2_v3_protocols_do_not_retroactively_require_profile_sidecars(self) -> None:
+        missing = Path("/definitely/missing")
+        for path in (PROTOCOL, PROTOCOL_V2, PROTOCOL_V3):
+            protocol = pilot.load_protocol(path)
+            self.assertIsNone(
+                pilot.analyzer_profile_for_protocol(protocol, missing, missing, missing, missing)
+            )
+
+    def test_legacy_rss_and_future_physical_resource_gates_are_distinct_and_closed(self) -> None:
+        for path in (PROTOCOL, PROTOCOL_V2, PROTOCOL_V3):
+            protocol = pilot.load_protocol(path)
+            self.assertEqual(
+                pilot.resource_gate(protocol, "core"),
+                ("rss", protocol["units"]["core"]["rss_limit_bytes"]),
+            )
+
+        future = json.loads(PROTOCOL_V3.read_text(encoding="utf-8"))
+        future["schema_version"] = pilot.PHYSICAL_PROTOCOL_SCHEMA_VERSION
+        future["analyzer_profile"] = "rapx-perf"
+        for row in future["units"].values():
+            row["physical_footprint_limit_bytes"] = row.pop("rss_limit_bytes")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "future.json"
+            path.write_bytes(pilot.canonical_json(future))
+            loaded = pilot.load_protocol(path)
+            self.assertEqual(
+                pilot.resource_gate(loaded, "core"),
+                ("physical_footprint", future["units"]["core"]["physical_footprint_limit_bytes"]),
+            )
+            future["units"]["core"]["rss_limit_bytes"] = 1
+            path.write_bytes(pilot.canonical_json(future))
+            with self.assertRaisesRegex(ContractError, "resource contract drifted"):
+                pilot.load_protocol(path)
+
     def test_stdlib_scan_separates_route_root_from_stable_source_root(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory)
@@ -131,26 +229,140 @@ class PilotRunnerTests(unittest.TestCase):
             self.assertEqual(source_root, source.resolve())
             self.assertNotEqual(unit_root, source_root)
 
-    def test_rss_parser_sums_only_the_selected_process_group(self) -> None:
-        output = " 10 99 1024\n 11 99 2048\n 12 100 4096\ninvalid\n"
-        self.assertEqual(pilot.parse_process_group_rss(output, 99), 3072 * 1024)
+    def test_process_group_footprint_aggregates_and_keeps_rss_secondary(self) -> None:
+        output = " 10 99 1024\n 11 99 2048\n 12 100 4096\n"
+        footprints = {10: 4 * 1024**2, 11: 7 * 1024**2}
+        usage = pilot.aggregate_process_group_usage(output, 99, footprints.__getitem__)
+        self.assertEqual(usage.physical_footprint_bytes, 11 * 1024**2)
+        self.assertEqual(usage.rss_bytes, 3072 * 1024)
+        self.assertEqual(usage.sampled_processes, 2)
+
+    def test_process_group_footprint_ignores_only_disappearing_children(self) -> None:
+        output = " 10 99 1024\n 11 99 2048\n"
+
+        def sample(pid: int) -> int:
+            if pid == 11:
+                raise pilot.ProcessDisappeared(pid)
+            return 4096
+
+        usage = pilot.aggregate_process_group_usage(output, 99, sample)
+        self.assertEqual(usage.physical_footprint_bytes, 4096)
+        self.assertEqual(usage.rss_bytes, 3072 * 1024)
+        self.assertEqual(usage.sampled_processes, 1)
+
+    def test_footprint_monitor_fails_closed_on_unsupported_permission_and_parse(self) -> None:
+        with self.assertRaisesRegex(pilot.PilotFailure, "unsupported"):
+            pilot.DarwinPhysicalFootprint(platform="linux")
+
+        def unavailable_library(*_args: object, **_kwargs: object) -> object:
+            raise OSError("missing libproc")
+
+        with self.assertRaisesRegex(pilot.PilotFailure, "unavailable"):
+            pilot.DarwinPhysicalFootprint(platform="darwin", library_loader=unavailable_library)
+
+        with self.assertRaisesRegex(pilot.PilotFailure, "permission"):
+            pilot.aggregate_process_group_usage(
+                " 10 99 1024\n", 99, lambda _pid: (_ for _ in ()).throw(PermissionError())
+            )
+        with self.assertRaisesRegex(pilot.PilotFailure, "parse"):
+            pilot.aggregate_process_group_usage("not ps output\n", 99, lambda _pid: 1)
+        with self.assertRaisesRegex(pilot.PilotFailure, "sampling failed"):
+            pilot.aggregate_process_group_usage(
+                " 10 99 1024\n", 99, lambda _pid: (_ for _ in ()).throw(OSError("sample failed"))
+            )
+
+    def test_proc_pid_rusage_adapter_reads_current_physical_footprint_and_errno(self) -> None:
+        class Function:
+            def __init__(self, result: int, error_number: int = 0) -> None:
+                self.result = result
+                self.error_number = error_number
+
+            def __call__(self, _pid: int, flavor: int, pointer: object) -> int:
+                self.asserted_flavor = flavor
+                if self.result == 0:
+                    usage = pilot.ctypes.cast(
+                        pointer, pilot.ctypes.POINTER(pilot.RusageInfoV4)
+                    ).contents
+                    usage.ri_phys_footprint = 123456
+                else:
+                    pilot.ctypes.set_errno(self.error_number)
+                return self.result
+
+        class Library:
+            def __init__(self, function: Function) -> None:
+                self.proc_pid_rusage = function
+
+        success = Function(0)
+        sampler = pilot.DarwinPhysicalFootprint(
+            platform="darwin", library_loader=lambda *_args, **_kwargs: Library(success)
+        )
+        self.assertEqual(sampler(17), 123456)
+        self.assertEqual(success.asserted_flavor, pilot.RUSAGE_INFO_V4)
+
+        vanished = Function(-1, pilot.errno.ESRCH)
+        sampler = pilot.DarwinPhysicalFootprint(
+            platform="darwin", library_loader=lambda *_args, **_kwargs: Library(vanished)
+        )
+        with self.assertRaises(pilot.ProcessDisappeared):
+            sampler(18)
 
     def test_resource_runner_classifies_success_timeout_and_memory(self) -> None:
         environment = os.environ.copy()
+        usage = pilot.ProcessGroupUsage(physical_footprint_bytes=4096, rss_bytes=8192, sampled_processes=1)
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             success = pilot.run_limited(
                 ["/bin/sh", "-c", "exit 0"], root, environment, root / "success.log", 2, 1024**3,
+                usage_reader=lambda _pid: usage,
             )
             timeout = pilot.run_limited(
                 ["/bin/sh", "-c", "sleep 5"], root, environment, root / "timeout.log", 0.05, 1024**3,
+                usage_reader=lambda _pid: usage,
             )
             memory = pilot.run_limited(
                 ["/bin/sh", "-c", "sleep 5"], root, environment, root / "memory.log", 2, 1,
+                usage_reader=lambda _pid: usage,
             )
         self.assertEqual(success.classification, "success")
         self.assertEqual(timeout.classification, "timeout")
         self.assertEqual(memory.classification, "memory_limit")
+        self.assertEqual(memory.max_physical_footprint_bytes, 4096)
+        self.assertEqual(memory.max_rss_bytes, 8192)
+
+    def test_legacy_rss_gate_does_not_reinterpret_the_limit_as_footprint(self) -> None:
+        usage = pilot.ProcessGroupUsage(physical_footprint_bytes=4096, rss_bytes=1, sampled_processes=1)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            result = pilot.run_limited(
+                ["/bin/sh", "-c", "sleep 5"], root, os.environ.copy(), root / "legacy.log",
+                0.05, 2, memory_limit_metric="rss", usage_reader=lambda _pid: usage,
+            )
+        self.assertEqual(result.classification, "timeout")
+        record = pilot.process_result_record("scan", 1, result, "rss")
+        self.assertEqual(record["memory_limit_metric"], "rss")
+        self.assertEqual(record["max_physical_footprint_bytes"], 4096)
+        self.assertEqual(record["max_rss_bytes"], 1)
+
+    def test_legacy_rss_gate_never_initializes_the_darwin_footprint_api(self) -> None:
+        original_sampler = pilot.DarwinPhysicalFootprint
+        original_reader = pilot.process_group_rss_usage
+        pilot.DarwinPhysicalFootprint = lambda: (_ for _ in ()).throw(
+            AssertionError("legacy RSS gate initialized the macOS-only footprint API")
+        )
+        pilot.process_group_rss_usage = lambda _pid: pilot.ProcessGroupUsage(0, 4096, 1)
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                result = pilot.run_limited(
+                    ["/bin/sh", "-c", "sleep 5"], root, os.environ.copy(), root / "legacy.log",
+                    2, 1, memory_limit_metric="rss",
+                )
+        finally:
+            pilot.DarwinPhysicalFootprint = original_sampler
+            pilot.process_group_rss_usage = original_reader
+        self.assertEqual(result.classification, "memory_limit")
+        self.assertEqual(result.max_physical_footprint_bytes, 0)
+        self.assertEqual(result.max_rss_bytes, 4096)
 
     def test_normalized_output_drops_machine_paths_and_resource_noise(self) -> None:
         receipt = {
@@ -181,7 +393,7 @@ class PilotRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ContractError, "launch preflight failed"):
             pilot.verify_rap_binary_launch(Path("/usr/bin/false"))
 
-    def test_rss_monitor_failure_is_not_treated_as_zero_usage(self) -> None:
+    def test_process_group_monitor_failure_is_not_treated_as_zero_usage(self) -> None:
         original = pilot.subprocess.run
 
         def failed_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
@@ -189,23 +401,56 @@ class PilotRunnerTests(unittest.TestCase):
 
         pilot.subprocess.run = failed_run
         try:
-            with self.assertRaisesRegex(pilot.PilotFailure, "RSS monitor failed"):
-                pilot.process_group_rss(123)
+            with self.assertRaisesRegex(pilot.PilotFailure, "process-group monitor failed"):
+                pilot.process_group_usage(123, lambda _pid: 1)
         finally:
             pilot.subprocess.run = original
 
-    def test_running_process_missing_from_rss_monitor_fails_closed(self) -> None:
-        original = pilot.process_group_rss
-        pilot.process_group_rss = lambda _pid: 0
-        try:
-            with tempfile.TemporaryDirectory() as directory:
-                root = Path(directory)
-                with self.assertRaisesRegex(pilot.PilotFailure, "absent from RSS monitor"):
-                    pilot.run_limited(
-                        ["/bin/sh", "-c", "sleep 5"], root, os.environ.copy(), root / "rss.log", 2, 1024**3,
-                    )
-        finally:
-            pilot.process_group_rss = original
+    def test_running_process_missing_from_footprint_monitor_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with self.assertRaisesRegex(pilot.PilotFailure, "absent from footprint monitor"):
+                pilot.run_limited(
+                    ["/bin/sh", "-c", "sleep 5"], root, os.environ.copy(), root / "footprint.log", 2, 1024**3,
+                    usage_reader=lambda _pid: pilot.ProcessGroupUsage(0, 0, 0),
+                )
+
+    def test_v3_timeout_failure_metadata_is_exact_and_all_later_stages_are_closed(self) -> None:
+        value = json.loads(V3_FAILURE.read_text(encoding="utf-8"))
+        self.assertEqual(
+            set(value),
+            {
+                "alloc", "binary_sha256", "classification", "continuation_allowed",
+                "control", "failure", "harness_commit", "precision_review",
+                "protocol_sha256", "rap_source_commit", "raw_logs_committed",
+                "resource_monitoring_note", "sampling", "scan_2", "schema_version",
+                "status", "std", "toolchain", "unit",
+            },
+        )
+        self.assertEqual(value["schema_version"], "unsoundaudit-v2-stdlib-gate-failure-v1")
+        self.assertEqual(value["status"], "failure")
+        self.assertEqual(value["classification"], "timeout")
+        self.assertFalse(value["continuation_allowed"])
+        self.assertEqual(value["harness_commit"], "8df9c1e0814b8ffd2599ad13abc628d4e67ab95a")
+        self.assertEqual(value["protocol_sha256"], "1f31b245d25f5915108910c0d25348b9fa5ef360dd9407e07b83531a41b883e6")
+        self.assertEqual(value["rap_source_commit"], "5481d617ee69cce0bf9e95c8ee248f29ef463387")
+        self.assertEqual(
+            value["binary_sha256"],
+            {
+                "cargo_rapx": "f84d912e42bd9e580d3da73863f52bc66e94a063846255e3ad92eebf30a704fa",
+                "rapx": "41da7c742c1e074b1d028754a01044125129d3fc8a33cdb240141eda8b0b4e30",
+            },
+        )
+        self.assertEqual(value["control"]["log_sha256"], "06087da947dc773edb0dd06418636ed5bc4f7e33ec76ce3117518828ff1503e6")
+        self.assertEqual(value["failure"]["log_sha256"], "8fb8dad96d828c7544de545d539d1b9d3ce460a721da9848842dc7900bc6a7e6")
+        self.assertEqual(value["failure"]["rap_unit_v2_receipt_count"], 0)
+        self.assertEqual(value["failure"]["skip_receipt_count"], 1)
+        self.assertEqual(value["failure"]["skip_receipt_sha256"], "d1a874007dc7d13724291ce00e47f6031d91cc37a64119aa8356aba01eb619ff")
+        self.assertEqual(value["failure"]["wall_time_limit_seconds"], 3600)
+        self.assertEqual(
+            {key: value[key] for key in ("scan_2", "alloc", "std", "sampling", "precision_review")},
+            {key: "not_started" for key in ("scan_2", "alloc", "std", "sampling", "precision_review")},
+        )
 
     def test_units_have_exact_routes_and_frozen_limits(self) -> None:
         value = json.loads(PROTOCOL.read_text(encoding="utf-8"))

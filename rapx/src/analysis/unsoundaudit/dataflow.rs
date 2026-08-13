@@ -312,6 +312,37 @@ pub(super) struct DataflowResult<K, V, P> {
     pub(super) edge: BTreeMap<(BasicBlock, BasicBlock), BlockState<K, V, P>>,
 }
 
+#[cfg(test)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct SolveCfgStats {
+    successor_entry_recomputations: BTreeMap<(BasicBlock, BasicBlock), usize>,
+    predecessor_inputs: usize,
+    predecessor_input_clones: usize,
+    join_accumulator_clones: usize,
+}
+
+#[cfg(test)]
+impl SolveCfgStats {
+    fn successor_entry_recomputed(&mut self, from: BasicBlock, to: BasicBlock) {
+        *self
+            .successor_entry_recomputations
+            .entry((from, to))
+            .or_default() += 1;
+    }
+
+    fn predecessor_input_seen(&mut self) {
+        self.predecessor_inputs += 1;
+    }
+
+    fn predecessor_input_cloned(&mut self) {
+        self.predecessor_input_clones += 1;
+    }
+
+    fn join_accumulator_cloned(&mut self) {
+        self.join_accumulator_clones += 1;
+    }
+}
+
 /// Solves a finite forward CFG lattice to equality in deterministic block order.
 ///
 /// Both transfer functions must be deterministic and monotone over `BlockState`.
@@ -322,8 +353,61 @@ pub(super) fn solve_cfg<K, V, P, F, E>(
     successors: &IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
     operation_counts: &IndexVec<BasicBlock, usize>,
     entry_seed: BlockState<K, V, P>,
+    transfer: F,
+    edge_transfer: E,
+) -> DataflowResult<K, V, P>
+where
+    K: Clone + Ord,
+    V: Clone + Eq + MayJoin,
+    P: Clone + Ord,
+    F: FnMut(BasicBlock, usize, &mut BlockState<K, V, P>),
+    E: FnMut(BasicBlock, BasicBlock, &mut BlockState<K, V, P>),
+{
+    solve_cfg_internal(
+        successors,
+        operation_counts,
+        entry_seed,
+        transfer,
+        edge_transfer,
+        #[cfg(test)]
+        None,
+    )
+}
+
+#[cfg(test)]
+fn solve_cfg_with_stats<K, V, P, F, E>(
+    successors: &IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+    operation_counts: &IndexVec<BasicBlock, usize>,
+    entry_seed: BlockState<K, V, P>,
+    transfer: F,
+    edge_transfer: E,
+) -> (DataflowResult<K, V, P>, SolveCfgStats)
+where
+    K: Clone + Ord,
+    V: Clone + Eq + MayJoin,
+    P: Clone + Ord,
+    F: FnMut(BasicBlock, usize, &mut BlockState<K, V, P>),
+    E: FnMut(BasicBlock, BasicBlock, &mut BlockState<K, V, P>),
+{
+    let mut stats = SolveCfgStats::default();
+    let result = solve_cfg_internal(
+        successors,
+        operation_counts,
+        entry_seed,
+        transfer,
+        edge_transfer,
+        Some(&mut stats),
+    );
+    (result, stats)
+}
+
+fn solve_cfg_internal<K, V, P, F, E>(
+    successors: &IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+    operation_counts: &IndexVec<BasicBlock, usize>,
+    entry_seed: BlockState<K, V, P>,
     mut transfer: F,
     mut edge_transfer: E,
+    #[cfg(test)] mut stats: Option<&mut SolveCfgStats>,
 ) -> DataflowResult<K, V, P>
 where
     K: Clone + Ord,
@@ -380,20 +464,39 @@ where
                 .clone()
                 .expect("a processed reachable block has an exit state");
             edge_transfer(block, *target, &mut outgoing);
-            let edge_changed = result.edge.get(&(block, *target)) != Some(&outgoing);
-            if edge_changed {
-                result.edge.insert((block, *target), outgoing);
+            if result.edge.get(&(block, *target)) == Some(&outgoing) {
+                continue;
+            }
+            result.edge.insert((block, *target), outgoing);
+            #[cfg(test)]
+            if let Some(stats) = stats.as_deref_mut() {
+                stats.successor_entry_recomputed(block, *target);
             }
             let mut incoming = Vec::new();
             if *target == START_BLOCK {
-                incoming.push(entry_seed.clone());
+                #[cfg(test)]
+                if let Some(stats) = stats.as_deref_mut() {
+                    stats.predecessor_input_seen();
+                }
+                incoming.push(&entry_seed);
             }
-            incoming.extend(
-                predecessors[*target]
-                    .iter()
-                    .filter_map(|predecessor| result.edge.get(&(*predecessor, *target)).cloned()),
-            );
-            let next_entry = BlockState::join_predecessors(incoming.iter());
+            for predecessor in &predecessors[*target] {
+                let Some(state) = result.edge.get(&(*predecessor, *target)) else {
+                    continue;
+                };
+                #[cfg(test)]
+                if let Some(stats) = stats.as_deref_mut() {
+                    stats.predecessor_input_seen();
+                }
+                incoming.push(state);
+            }
+            if !incoming.is_empty() {
+                #[cfg(test)]
+                if let Some(stats) = stats.as_deref_mut() {
+                    stats.join_accumulator_cloned();
+                }
+            }
+            let next_entry = BlockState::join_predecessors(incoming);
             if result.entry[*target] != next_entry {
                 result.entry[*target] = next_entry;
                 worklist.insert(*target);
@@ -406,7 +509,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{solve_cfg, BlockState, BoundValidation, MayJoin, StaticWriteToken};
+    use super::{
+        solve_cfg, solve_cfg_with_stats, BlockState, BoundValidation, DataflowResult, MayJoin,
+        SolveCfgStats, StaticWriteToken,
+    };
     use rustc_index::IndexVec;
     use rustc_middle::mir::BasicBlock;
     use std::collections::{BTreeMap, BTreeSet};
@@ -426,6 +532,198 @@ mod tests {
             graph[block(*from)].insert(block(*to));
         }
         graph
+    }
+
+    fn solve_cfg_reference<F, E>(
+        successors: &IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
+        operation_counts: &IndexVec<BasicBlock, usize>,
+        entry_seed: State,
+        mut transfer: F,
+        mut edge_transfer: E,
+    ) -> (
+        DataflowResult<String, BTreeSet<String>, String>,
+        SolveCfgStats,
+    )
+    where
+        F: FnMut(BasicBlock, usize, &mut State),
+        E: FnMut(BasicBlock, BasicBlock, &mut State),
+    {
+        let mut predecessors = IndexVec::from_elem_n(BTreeSet::new(), successors.len());
+        for (source, targets) in successors.iter_enumerated() {
+            for target in targets {
+                predecessors[*target].insert(source);
+            }
+        }
+        let mut result = DataflowResult {
+            entry: IndexVec::from_elem_n(None, successors.len()),
+            before: BTreeMap::new(),
+            exit: IndexVec::from_elem_n(None, successors.len()),
+            edge: BTreeMap::new(),
+        };
+        result.entry[block(0)] = Some(entry_seed.clone());
+        let mut worklist = BTreeSet::from([block(0)]);
+        let mut stats = SolveCfgStats::default();
+        while let Some(source) = worklist.pop_first() {
+            let Some(mut state) = result.entry[source].clone() else {
+                continue;
+            };
+            for operation in 0..operation_counts[source] {
+                result.before.insert((source, operation), state.clone());
+                transfer(source, operation, &mut state);
+            }
+            if result.exit[source].as_ref() == Some(&state) {
+                continue;
+            }
+            result.exit[source] = Some(state);
+            for target in &successors[source] {
+                let mut outgoing = result.exit[source].clone().unwrap();
+                edge_transfer(source, *target, &mut outgoing);
+                if result.edge.get(&(source, *target)) != Some(&outgoing) {
+                    result.edge.insert((source, *target), outgoing);
+                }
+                stats.successor_entry_recomputed(source, *target);
+                let mut incoming = Vec::new();
+                if *target == block(0) {
+                    stats.predecessor_input_seen();
+                    stats.predecessor_input_cloned();
+                    incoming.push(entry_seed.clone());
+                }
+                for predecessor in &predecessors[*target] {
+                    let Some(state) = result.edge.get(&(*predecessor, *target)) else {
+                        continue;
+                    };
+                    stats.predecessor_input_seen();
+                    stats.predecessor_input_cloned();
+                    incoming.push(state.clone());
+                }
+                if !incoming.is_empty() {
+                    stats.join_accumulator_cloned();
+                }
+                let next_entry = BlockState::join_predecessors(incoming.iter());
+                if result.entry[*target] != next_entry {
+                    result.entry[*target] = next_entry;
+                    worklist.insert(*target);
+                }
+            }
+        }
+        (result, stats)
+    }
+
+    #[test]
+    fn unchanged_edge_does_not_recompute_its_successor_entry() {
+        let successors = graph(4, &[(0, 1), (0, 2), (2, 1), (1, 3)]);
+        let operations = IndexVec::from_raw(vec![0, 0, 1, 0]);
+        let transfer = |bb: BasicBlock, _: usize, state: &mut State| {
+            state.set_value(
+                "input".into(),
+                BTreeSet::from([format!("from{}", bb.index())]),
+            );
+        };
+        let edge_transfer = |from: BasicBlock, to: BasicBlock, state: &mut State| {
+            if from == block(1) && to == block(3) {
+                state.set_value("input".into(), BTreeSet::from(["stable".into()]));
+            }
+        };
+        let (_, stats) = solve_cfg_with_stats(
+            &successors,
+            &operations,
+            State::empty(),
+            transfer,
+            edge_transfer,
+        );
+        let (_, reference_stats) = solve_cfg_reference(
+            &successors,
+            &operations,
+            State::empty(),
+            transfer,
+            edge_transfer,
+        );
+
+        assert_eq!(
+            stats
+                .successor_entry_recomputations
+                .get(&(block(1), block(3))),
+            Some(&1),
+            "an unchanged outgoing edge cannot change the joined successor entry"
+        );
+        assert_eq!(
+            reference_stats
+                .successor_entry_recomputations
+                .get(&(block(1), block(3))),
+            Some(&2),
+            "the reference solver records the redundant recomputation"
+        );
+    }
+
+    #[test]
+    fn predecessor_join_borrows_inputs_and_clones_only_the_accumulator() {
+        let successors = graph(4, &[(0, 1), (0, 2), (1, 3), (2, 3)]);
+        let operations = IndexVec::from_raw(vec![0, 1, 1, 0]);
+        let transfer = |bb: BasicBlock, _: usize, state: &mut State| {
+            state.set_value("seen".into(), BTreeSet::from([bb.index().to_string()]));
+        };
+        let edge_transfer = |_: BasicBlock, _: BasicBlock, _: &mut State| {};
+        let (_, stats) = solve_cfg_with_stats(
+            &successors,
+            &operations,
+            State::empty(),
+            transfer,
+            edge_transfer,
+        );
+        let (_, reference_stats) = solve_cfg_reference(
+            &successors,
+            &operations,
+            State::empty(),
+            transfer,
+            edge_transfer,
+        );
+
+        assert!(stats.predecessor_inputs > 0);
+        assert_eq!(stats.predecessor_input_clones, 0);
+        assert_eq!(
+            reference_stats.predecessor_input_clones,
+            reference_stats.predecessor_inputs
+        );
+        assert!(reference_stats.predecessor_input_clones > 0);
+        assert_eq!(
+            stats.join_accumulator_clones,
+            stats.successor_entry_recomputations.values().sum::<usize>()
+        );
+    }
+
+    #[test]
+    fn optimized_solver_matches_reference_for_seed_must_loop_and_edges() {
+        let successors = graph(5, &[(0, 1), (0, 2), (1, 3), (2, 3), (3, 0), (3, 3), (3, 4)]);
+        let operations = IndexVec::from_raw(vec![0, 1, 1, 1, 0]);
+        let mut seed = State::empty();
+        seed.set_value("seed".into(), BTreeSet::from(["formal".into()]));
+        let transfer = |bb: BasicBlock, _: usize, state: &mut State| {
+            state.set_value("seen".into(), BTreeSet::from([format!("bb{}", bb.index())]));
+            if bb == block(1) || bb == block(2) {
+                state.establish(BoundValidation::new(
+                    "in-bounds".into(),
+                    ["index".into(), "slice".into()],
+                ));
+            }
+            if bb == block(3) {
+                state.record_may_write("loop".into(), StaticWriteToken::new(bb.index() as u32, 0));
+            }
+        };
+        let edge_transfer = |from: BasicBlock, to: BasicBlock, state: &mut State| {
+            if from == block(0) && to == block(2) {
+                state.set_value("edge".into(), BTreeSet::from(["right".into()]));
+            }
+        };
+
+        let (expected, _) = solve_cfg_reference(
+            &successors,
+            &operations,
+            seed.clone(),
+            transfer,
+            edge_transfer,
+        );
+        let actual = solve_cfg(&successors, &operations, seed, transfer, edge_transfer);
+        assert_eq!(actual, expected);
     }
 
     #[test]

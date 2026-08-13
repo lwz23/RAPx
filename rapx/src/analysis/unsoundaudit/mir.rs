@@ -1,6 +1,7 @@
 use super::dataflow::{
     solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin, StaticWriteToken,
 };
+use super::perf_trace::PerfTrace;
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
     select_preferred_unresolved_route, select_unresolved_route_cycle, solve_summaries,
@@ -95,21 +96,32 @@ struct ValueFacts {
     havoced: bool,
 }
 
-fn merge_checked_end_atoms(
-    current: &mut BTreeSet<CheckedEndAtom>,
-    incoming: &BTreeSet<CheckedEndAtom>,
-) {
+fn extend_fact_set<T: Clone + Ord>(current: &mut BTreeSet<T>, incoming: &BTreeSet<T>) -> bool {
+    let before = current.len();
+    current.extend(incoming.iter().cloned());
+    current.len() != before
+}
+
+fn join_fact_flag(current: &mut bool, incoming: bool) -> bool {
+    let changed = incoming && !*current;
+    *current |= incoming;
+    changed
+}
+
+fn merge_length_atoms(current: &mut BTreeSet<LengthAtom>, incoming: &BTreeSet<LengthAtom>) -> bool {
+    let mut changed = false;
     for atom in incoming {
-        if let Some(existing) = current
-            .iter()
-            .find(|existing| {
-                existing.offset == atom.offset
-                    && existing.width == atom.width
-                    && existing.definition == atom.definition
-                    && existing.branch_ready == atom.branch_ready
-            })
-            .cloned()
-        {
+        if let Some(existing) = current.iter().find(|existing| {
+            existing.collection == atom.collection && existing.definition == atom.definition
+        }) {
+            if atom
+                .captured_versions
+                .is_subset(&existing.captured_versions)
+                && (!atom.invalidated || existing.invalidated)
+            {
+                continue;
+            }
+            let existing = existing.clone();
             current.remove(&existing);
             let mut merged = existing;
             merged
@@ -117,26 +129,98 @@ fn merge_checked_end_atoms(
                 .extend(atom.captured_versions.iter().copied());
             merged.invalidated |= atom.invalidated;
             current.insert(merged);
+            changed = true;
         } else {
-            current.insert(atom.clone());
+            changed |= current.insert(atom.clone());
         }
     }
+    changed
+}
+
+fn merge_utf8_atoms(current: &mut BTreeSet<Utf8Atom>, incoming: &BTreeSet<Utf8Atom>) -> bool {
+    let mut changed = false;
+    for atom in incoming {
+        if let Some(existing) = current
+            .iter()
+            .find(|existing| existing.bytes == atom.bytes && existing.definition == atom.definition)
+        {
+            if atom
+                .captured_versions
+                .is_subset(&existing.captured_versions)
+                && (!atom.invalidated || existing.invalidated)
+            {
+                continue;
+            }
+            let existing = existing.clone();
+            current.remove(&existing);
+            let mut merged = existing;
+            merged
+                .captured_versions
+                .extend(atom.captured_versions.iter().copied());
+            merged.invalidated |= atom.invalidated;
+            current.insert(merged);
+            changed = true;
+        } else {
+            changed |= current.insert(atom.clone());
+        }
+    }
+    changed
+}
+
+fn merge_checked_end_atoms(
+    current: &mut BTreeSet<CheckedEndAtom>,
+    incoming: &BTreeSet<CheckedEndAtom>,
+) -> bool {
+    let mut changed = false;
+    for atom in incoming {
+        if let Some(existing) = current.iter().find(|existing| {
+            existing.offset == atom.offset
+                && existing.width == atom.width
+                && existing.definition == atom.definition
+                && existing.branch_ready == atom.branch_ready
+        }) {
+            if atom
+                .captured_versions
+                .is_subset(&existing.captured_versions)
+                && (!atom.invalidated || existing.invalidated)
+            {
+                continue;
+            }
+            let existing = existing.clone();
+            current.remove(&existing);
+            let mut merged = existing;
+            merged
+                .captured_versions
+                .extend(atom.captured_versions.iter().copied());
+            merged.invalidated |= atom.invalidated;
+            current.insert(merged);
+            changed = true;
+        } else {
+            changed |= current.insert(atom.clone());
+        }
+    }
+    changed
 }
 
 fn merge_range_limit_atoms(
     current: &mut BTreeSet<RangeLimitAtom>,
     incoming: &BTreeSet<RangeLimitAtom>,
-) {
+) -> bool {
+    let mut changed = false;
     for atom in incoming {
-        if let Some(existing) = current
-            .iter()
-            .find(|existing| {
-                existing.collection == atom.collection
-                    && existing.width == atom.width
-                    && existing.definition == atom.definition
-            })
-            .cloned()
-        {
+        if let Some(existing) = current.iter().find(|existing| {
+            existing.collection == atom.collection
+                && existing.width == atom.width
+                && existing.definition == atom.definition
+        }) {
+            if atom
+                .captured_versions
+                .is_subset(&existing.captured_versions)
+                && (!atom.invalidated || existing.invalidated)
+            {
+                continue;
+            }
+            let existing = existing.clone();
             current.remove(&existing);
             let mut merged = existing;
             merged
@@ -144,84 +228,49 @@ fn merge_range_limit_atoms(
                 .extend(atom.captured_versions.iter().copied());
             merged.invalidated |= atom.invalidated;
             current.insert(merged);
+            changed = true;
         } else {
-            current.insert(atom.clone());
+            changed |= current.insert(atom.clone());
         }
     }
+    changed
 }
 
 impl MayJoin for ValueFacts {
     fn join_may(&mut self, other: &Self) -> bool {
-        let before = self.clone();
-        self.value
-            .origins
-            .extend(other.value.origins.iter().cloned());
-        self.dependencies.extend(other.dependencies.iter().cloned());
-        self.value_flow.extend(other.value_flow.iter().cloned());
-        self.exact_roots.extend(other.exact_roots.iter().cloned());
-        self.semantic_unknown |= other.semantic_unknown;
-        self.len_of.extend(other.len_of.iter().cloned());
-        for atom in &other.length_atoms {
-            if let Some(current) = self
-                .length_atoms
-                .iter()
-                .find(|current| {
-                    current.collection == atom.collection && current.definition == atom.definition
-                })
-                .cloned()
-            {
-                self.length_atoms.remove(&current);
-                let mut merged = current;
-                merged
-                    .captured_versions
-                    .extend(atom.captured_versions.iter().copied());
-                merged.invalidated |= atom.invalidated;
-                self.length_atoms.insert(merged);
-            } else {
-                self.length_atoms.insert(atom.clone());
-            }
-        }
-        self.length_relation_unknown |= other.length_relation_unknown;
-        for atom in &other.utf8_atoms {
-            if let Some(current) = self
-                .utf8_atoms
-                .iter()
-                .find(|current| {
-                    current.bytes == atom.bytes && current.definition == atom.definition
-                })
-                .cloned()
-            {
-                self.utf8_atoms.remove(&current);
-                let mut merged = current;
-                merged
-                    .captured_versions
-                    .extend(atom.captured_versions.iter().copied());
-                merged.invalidated |= atom.invalidated;
-                self.utf8_atoms.insert(merged);
-            } else {
-                self.utf8_atoms.insert(atom.clone());
-            }
-        }
-        self.utf8_relation_unknown |= other.utf8_relation_unknown;
-        merge_checked_end_atoms(&mut self.checked_end_atoms, &other.checked_end_atoms);
-        self.checked_end_unknown |= other.checked_end_unknown;
-        merge_range_limit_atoms(&mut self.range_limit_atoms, &other.range_limit_atoms);
-        self.range_limit_unknown |= other.range_limit_unknown;
-        self.known_lengths
-            .extend(other.known_lengths.iter().copied());
-        self.known_length_unknown |= other.known_length_unknown;
-        self.may_be_non_length |= other.may_be_non_length;
-        self.range_end.extend(other.range_end.iter().cloned());
-        self.pointer_base.extend(other.pointer_base.iter().cloned());
-        self.pointer_offset
-            .extend(other.pointer_offset.iter().cloned());
-        self.maybe_uninit_initialized
-            .extend(other.maybe_uninit_initialized.iter().copied());
-        self.generic_capability |= other.generic_capability;
-        self.ffi_output |= other.ffi_output;
-        self.open_behavior |= other.open_behavior;
-        self.havoced |= other.havoced;
-        *self != before
+        let mut changed = false;
+        changed |= extend_fact_set(&mut self.value.origins, &other.value.origins);
+        changed |= extend_fact_set(&mut self.dependencies, &other.dependencies);
+        changed |= extend_fact_set(&mut self.value_flow, &other.value_flow);
+        changed |= extend_fact_set(&mut self.exact_roots, &other.exact_roots);
+        changed |= join_fact_flag(&mut self.semantic_unknown, other.semantic_unknown);
+        changed |= extend_fact_set(&mut self.len_of, &other.len_of);
+        changed |= merge_length_atoms(&mut self.length_atoms, &other.length_atoms);
+        changed |= join_fact_flag(
+            &mut self.length_relation_unknown,
+            other.length_relation_unknown,
+        );
+        changed |= merge_utf8_atoms(&mut self.utf8_atoms, &other.utf8_atoms);
+        changed |= join_fact_flag(&mut self.utf8_relation_unknown, other.utf8_relation_unknown);
+        changed |= merge_checked_end_atoms(&mut self.checked_end_atoms, &other.checked_end_atoms);
+        changed |= join_fact_flag(&mut self.checked_end_unknown, other.checked_end_unknown);
+        changed |= merge_range_limit_atoms(&mut self.range_limit_atoms, &other.range_limit_atoms);
+        changed |= join_fact_flag(&mut self.range_limit_unknown, other.range_limit_unknown);
+        changed |= extend_fact_set(&mut self.known_lengths, &other.known_lengths);
+        changed |= join_fact_flag(&mut self.known_length_unknown, other.known_length_unknown);
+        changed |= join_fact_flag(&mut self.may_be_non_length, other.may_be_non_length);
+        changed |= extend_fact_set(&mut self.range_end, &other.range_end);
+        changed |= extend_fact_set(&mut self.pointer_base, &other.pointer_base);
+        changed |= extend_fact_set(&mut self.pointer_offset, &other.pointer_offset);
+        changed |= extend_fact_set(
+            &mut self.maybe_uninit_initialized,
+            &other.maybe_uninit_initialized,
+        );
+        changed |= join_fact_flag(&mut self.generic_capability, other.generic_capability);
+        changed |= join_fact_flag(&mut self.ffi_output, other.ffi_output);
+        changed |= join_fact_flag(&mut self.open_behavior, other.open_behavior);
+        changed |= join_fact_flag(&mut self.havoced, other.havoced);
+        changed
     }
 }
 
@@ -793,8 +842,8 @@ struct Engine<'tcx> {
     preopt_transmutes: BTreeMap<FunctionKey, BTreeSet<PreoptTransmute>>,
 }
 
-pub fn analyze(tcx: TyCtxt<'_>) -> Result<Vec<Finding>, String> {
-    Engine::new(tcx)?.run()
+pub fn analyze(tcx: TyCtxt<'_>, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
+    Engine::new(tcx)?.run(trace)
 }
 
 fn normalized_relative_span_path(path: &str) -> Option<PathBuf> {
@@ -912,24 +961,109 @@ impl<'tcx> Engine<'tcx> {
         })
     }
 
-    fn run(mut self) -> Result<Vec<Finding>, String> {
+    fn run(mut self, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
+        trace.event("collect_ids", "begin", [])?;
         let ids = self.local_function_ids();
+        trace.event("collect_ids", "end", [("function_count", ids.len() as u64)])?;
+        trace.event("preopt", "begin", [])?;
         self.preopt_transmutes = self.collect_preopt_transmutes(&ids)?;
+        trace.event(
+            "preopt",
+            "end",
+            [("function_count", self.preopt_transmutes.len() as u64)],
+        )?;
+        trace.event("collect_bodies", "begin", [])?;
         self.collect_bodies(&ids)?;
+        let program_point_count = self
+            .programs
+            .values()
+            .flat_map(|program| program.operations.iter())
+            .map(Vec::len)
+            .sum::<usize>();
+        trace.event(
+            "collect_bodies",
+            "end",
+            [
+                ("body_count", self.bodies.len() as u64),
+                ("program_point_count", program_point_count as u64),
+            ],
+        )?;
+        trace.event("call_graph", "begin", [])?;
         let graph = self.call_graph();
+        let call_edge_count = graph.values().map(BTreeSet::len).sum::<usize>();
+        trace.event(
+            "call_graph",
+            "end",
+            [
+                ("function_count", graph.len() as u64),
+                ("call_edge_count", call_edge_count as u64),
+            ],
+        )?;
+        trace.event("out_must", "begin", [])?;
         let must_outputs = self.solve_local_out_must();
+        let definite_out_count = must_outputs.values().map(BTreeSet::len).sum::<usize>();
+        trace.event(
+            "out_must",
+            "end",
+            [("definite_out_count", definite_out_count as u64)],
+        )?;
         let mut local_outputs = self.local_out_effects(&must_outputs);
+        trace.event("initial_rebuild", "begin", [])?;
         self.rebuild_bodies(&local_outputs, &must_outputs);
+        trace.event(
+            "initial_rebuild",
+            "end",
+            [("body_count", self.bodies.len() as u64)],
+        )?;
+        let mut outer_iteration = 0_u64;
         let solved = loop {
+            outer_iteration += 1;
+            trace.event(
+                "summary_outer_solve",
+                "begin",
+                [("iteration", outer_iteration)],
+            )?;
             let solved = self.solve_current_summaries(&graph);
+            trace.event(
+                "summary_outer_solve",
+                "end",
+                [
+                    ("iteration", outer_iteration),
+                    ("summary_count", solved.len() as u64),
+                ],
+            )?;
+            trace.event("derive_outputs", "begin", [("iteration", outer_iteration)])?;
             let derived = self.derive_local_outputs(&solved, &must_outputs);
-            if !join_local_outputs(&mut local_outputs, &derived) {
+            let changed = join_local_outputs(&mut local_outputs, &derived);
+            trace.event(
+                "derive_outputs",
+                "end",
+                [
+                    ("iteration", outer_iteration),
+                    ("changed", u64::from(changed)),
+                ],
+            )?;
+            if !changed {
                 break solved;
             }
+            trace.event("output_rebuild", "begin", [("iteration", outer_iteration)])?;
             self.rebuild_bodies(&local_outputs, &must_outputs);
+            trace.event(
+                "output_rebuild",
+                "end",
+                [
+                    ("iteration", outer_iteration),
+                    ("body_count", self.bodies.len() as u64),
+                ],
+            )?;
         };
         let seeds = self.summary_seeds();
 
+        trace.event(
+            "finding_materialize",
+            "begin",
+            [("body_count", self.bodies.len() as u64)],
+        )?;
         let mut findings = Vec::new();
         for (root, facts) in &self.bodies {
             if !self.is_public_safe_root(facts.def_id) {
@@ -982,6 +1116,11 @@ impl<'tcx> Engine<'tcx> {
                 findings.push(self.finding(root, facts, selected));
             }
         }
+        trace.event(
+            "finding_materialize",
+            "end",
+            [("finding_count", findings.len() as u64)],
+        )?;
         Ok(findings)
     }
 
@@ -4064,6 +4203,40 @@ fn state_alias_closure(
         .collect()
 }
 
+fn has_relation_evidence_for_storage(value: &ValueFacts, written_storage: &PlaceKey) -> bool {
+    value
+        .length_atoms
+        .iter()
+        .any(|atom| !atom.invalidated && canonical_storage(&atom.collection) == *written_storage)
+        || value
+            .utf8_atoms
+            .iter()
+            .any(|atom| !atom.invalidated && canonical_storage(&atom.bytes) == *written_storage)
+        || value
+            .checked_end_atoms
+            .iter()
+            .any(|atom| !atom.invalidated && canonical_storage(&atom.offset) == *written_storage)
+        || value.range_limit_atoms.iter().any(|atom| {
+            !atom.invalidated && canonical_storage(&atom.collection) == *written_storage
+        })
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static RELATION_INVALIDATION_CLONE_COUNT: std::cell::Cell<usize> =
+        std::cell::Cell::new(0);
+}
+
+#[cfg(test)]
+fn record_relation_invalidation_clone() {
+    RELATION_INVALIDATION_CLONE_COUNT.with(|count| count.set(count.get() + 1));
+}
+
+#[cfg(test)]
+fn take_relation_invalidation_clone_count() -> usize {
+    RELATION_INVALIDATION_CLONE_COUNT.with(|count| count.replace(0))
+}
+
 fn invalidate_relation_evidence(
     state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
     written_storage: &PlaceKey,
@@ -4072,6 +4245,11 @@ fn invalidate_relation_evidence(
         .may_values()
         .iter()
         .filter_map(|(place, value)| {
+            if !has_relation_evidence_for_storage(value, written_storage) {
+                return None;
+            }
+            #[cfg(test)]
+            record_relation_invalidation_clone();
             let mut updated = value.clone();
             let mut changed = false;
             let atoms = updated.length_atoms.iter().cloned().collect::<Vec<_>>();
@@ -7624,6 +7802,330 @@ mod tests {
         assert!(!left.join_may(&left.clone()));
         assert!(current_checked_end(&BlockState::empty(), &left).is_none());
         assert!(current_range_limit(&BlockState::empty(), &left).is_none());
+    }
+
+    #[test]
+    fn task12_value_join_reports_every_field_growth_then_idempotence() {
+        let place = PlaceKey::new("_1");
+        let definition = StaticWriteToken::new(1, 0);
+        let cases = vec![
+            ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Constant(1)]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                dependencies: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                value_flow: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                exact_roots: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                semantic_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                len_of: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                length_atoms: BTreeSet::from([LengthAtom {
+                    collection: place.clone(),
+                    definition,
+                    captured_versions: BTreeSet::new(),
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                length_relation_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                utf8_atoms: BTreeSet::from([Utf8Atom {
+                    bytes: place.clone(),
+                    definition,
+                    captured_versions: BTreeSet::new(),
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                utf8_relation_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                checked_end_atoms: BTreeSet::from([CheckedEndAtom {
+                    offset: place.clone(),
+                    width: 4,
+                    definition,
+                    captured_versions: BTreeSet::new(),
+                    branch_ready: true,
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                checked_end_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                range_limit_atoms: BTreeSet::from([RangeLimitAtom {
+                    collection: place.clone(),
+                    width: 4,
+                    definition,
+                    captured_versions: BTreeSet::new(),
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                range_limit_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                known_lengths: BTreeSet::from([4]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                known_length_unknown: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                may_be_non_length: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                range_end: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                pointer_base: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                pointer_offset: BTreeSet::from([place.clone()]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                maybe_uninit_initialized: BTreeSet::from([true]),
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                generic_capability: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                ffi_output: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                open_behavior: true,
+                ..ValueFacts::default()
+            },
+            ValueFacts {
+                havoced: true,
+                ..ValueFacts::default()
+            },
+        ];
+
+        for (index, incoming) in cases.into_iter().enumerate() {
+            let mut current = ValueFacts::default();
+            assert!(
+                current.join_may(&incoming),
+                "field case {index} did not grow"
+            );
+            assert!(
+                !current.join_may(&incoming),
+                "field case {index} was not idempotent"
+            );
+        }
+    }
+
+    #[test]
+    fn task12_relation_join_reports_growth_inside_stable_atom_keys() {
+        let place = PlaceKey::new("_1");
+        let definition = StaticWriteToken::new(1, 0);
+        let first = StaticWriteToken::new(2, 0);
+        let second = StaticWriteToken::new(3, 0);
+        let facts = |version, invalidated| ValueFacts {
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: place.clone(),
+                definition,
+                captured_versions: BTreeSet::from([version]),
+                invalidated,
+            }]),
+            utf8_atoms: BTreeSet::from([Utf8Atom {
+                bytes: place.clone(),
+                definition,
+                captured_versions: BTreeSet::from([version]),
+                invalidated,
+            }]),
+            checked_end_atoms: BTreeSet::from([CheckedEndAtom {
+                offset: place.clone(),
+                width: 4,
+                definition,
+                captured_versions: BTreeSet::from([version]),
+                branch_ready: true,
+                invalidated,
+            }]),
+            range_limit_atoms: BTreeSet::from([RangeLimitAtom {
+                collection: place.clone(),
+                width: 4,
+                definition,
+                captured_versions: BTreeSet::from([version]),
+                invalidated,
+            }]),
+            ..ValueFacts::default()
+        };
+        let mut current = facts(first, false);
+        let version_growth = facts(second, false);
+        let invalidation_growth = facts(first, true);
+
+        assert!(current.join_may(&version_growth));
+        assert_eq!(current.length_atoms.len(), 1);
+        assert_eq!(current.utf8_atoms.len(), 1);
+        assert_eq!(current.checked_end_atoms.len(), 1);
+        assert_eq!(current.range_limit_atoms.len(), 1);
+        for (versions, invalidated) in [
+            current
+                .length_atoms
+                .iter()
+                .next()
+                .map(|atom| (&atom.captured_versions, atom.invalidated)),
+            current
+                .utf8_atoms
+                .iter()
+                .next()
+                .map(|atom| (&atom.captured_versions, atom.invalidated)),
+            current
+                .checked_end_atoms
+                .iter()
+                .next()
+                .map(|atom| (&atom.captured_versions, atom.invalidated)),
+            current
+                .range_limit_atoms
+                .iter()
+                .next()
+                .map(|atom| (&atom.captured_versions, atom.invalidated)),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            assert_eq!(versions, &BTreeSet::from([first, second]));
+            assert!(!invalidated);
+        }
+
+        assert!(current.join_may(&invalidation_growth));
+        assert_eq!(current.length_atoms.len(), 1);
+        assert_eq!(current.utf8_atoms.len(), 1);
+        assert_eq!(current.checked_end_atoms.len(), 1);
+        assert_eq!(current.range_limit_atoms.len(), 1);
+        assert!([
+            current.length_atoms.iter().all(|atom| atom.invalidated),
+            current.utf8_atoms.iter().all(|atom| atom.invalidated),
+            current
+                .checked_end_atoms
+                .iter()
+                .all(|atom| atom.invalidated),
+            current
+                .range_limit_atoms
+                .iter()
+                .all(|atom| atom.invalidated),
+        ]
+        .into_iter()
+        .all(|invalidated| invalidated));
+        assert!(!current.join_may(&version_growth));
+        assert!(!current.join_may(&invalidation_growth));
+    }
+
+    #[test]
+    fn task12_value_join_is_commutative_associative_and_idempotent() {
+        let collection = PlaceKey::new("_1");
+        let definition = StaticWriteToken::new(1, 0);
+        let facts = |origin, version, invalidated| ValueFacts {
+            value: AbstractValue::new([AbstractOrigin::Constant(origin)]),
+            length_atoms: BTreeSet::from([LengthAtom {
+                collection: collection.clone(),
+                definition,
+                captured_versions: BTreeSet::from([StaticWriteToken::new(version, 0)]),
+                invalidated,
+            }]),
+            semantic_unknown: invalidated,
+            ..ValueFacts::default()
+        };
+        let first = facts(1, 2, false);
+        let second = facts(2, 3, false);
+        let third = facts(3, 4, true);
+
+        let mut first_second = first.clone();
+        assert!(first_second.join_may(&second));
+        let mut second_first = second.clone();
+        assert!(second_first.join_may(&first));
+        assert_eq!(first_second, second_first);
+
+        let mut left_associative = first_second;
+        assert!(left_associative.join_may(&third));
+        let mut second_third = second;
+        assert!(second_third.join_may(&third));
+        let mut right_associative = first.clone();
+        assert!(right_associative.join_may(&second_third));
+        assert_eq!(left_associative, right_associative);
+
+        let mut idempotent = first.clone();
+        assert!(!idempotent.join_may(&first));
+        assert_eq!(idempotent, first);
+    }
+
+    #[test]
+    fn task12_relation_invalidation_clones_only_relevant_values() {
+        let written = PlaceKey::new("_1");
+        let unrelated = PlaceKey::new("_9");
+        let mut state = BlockState::empty();
+        state.set_value(
+            PlaceKey::new("_length"),
+            ValueFacts {
+                length_atoms: BTreeSet::from([LengthAtom {
+                    collection: written.clone(),
+                    definition: StaticWriteToken::new(0, 0),
+                    captured_versions: BTreeSet::new(),
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+        );
+        state.set_value(
+            PlaceKey::new("_utf8"),
+            ValueFacts {
+                utf8_atoms: BTreeSet::from([Utf8Atom {
+                    bytes: unrelated,
+                    definition: StaticWriteToken::new(0, 1),
+                    captured_versions: BTreeSet::new(),
+                    invalidated: false,
+                }]),
+                ..ValueFacts::default()
+            },
+        );
+
+        let _ = take_relation_invalidation_clone_count();
+        invalidate_relation_evidence(&mut state, &written);
+        assert_eq!(take_relation_invalidation_clone_count(), 1);
+        assert!(state.may_values()[&PlaceKey::new("_length")]
+            .length_atoms
+            .iter()
+            .all(|atom| atom.invalidated));
+        assert!(state.may_values()[&PlaceKey::new("_utf8")]
+            .utf8_atoms
+            .iter()
+            .all(|atom| !atom.invalidated));
+
+        invalidate_relation_evidence(&mut state, &PlaceKey::new("_never"));
+        assert_eq!(take_relation_invalidation_clone_count(), 0);
     }
 
     fn task9_utf8_result_call(bytes: &PlaceKey, destination: &PlaceKey) -> CallModel {

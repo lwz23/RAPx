@@ -45,3 +45,11 @@ full_analyses = []
 
 [package.metadata.rust-analyzer]
 rustc_private = true
+
+[profile.rapx-perf]
+inherits = "release"
+opt-level = 3
+debug = 1
+debug-assertions = true
+overflow-checks = true
+incremental = false

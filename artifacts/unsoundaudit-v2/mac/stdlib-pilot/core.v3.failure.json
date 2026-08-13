@@ -1,0 +1,49 @@
+{
+  "alloc": "not_started",
+  "binary_sha256": {
+    "cargo_rapx": "f84d912e42bd9e580d3da73863f52bc66e94a063846255e3ad92eebf30a704fa",
+    "rapx": "41da7c742c1e074b1d028754a01044125129d3fc8a33cdb240141eda8b0b4e30"
+  },
+  "classification": "timeout",
+  "continuation_allowed": false,
+  "control": {
+    "log_sha256": "06087da947dc773edb0dd06418636ed5bc4f7e33ec76ce3117518828ff1503e6",
+    "status": "pass"
+  },
+  "failure": {
+    "diagnostic_class": "wall_time_limit",
+    "finding_count": null,
+    "log_sha256": "8fb8dad96d828c7544de545d539d1b9d3ce460a721da9848842dc7900bc6a7e6",
+    "rap_unit_v2_receipt_count": 0,
+    "raw_failure_receipt_sha256": "332958ebe838bb7e04a2bfed0e422426ecc438e58105338905cd90f3b2d16cba",
+    "runner_log_sha256": "62f1beb7e773ef796bafbc393385d9019e2cd9adb361add3529250c7784778f3",
+    "skip_receipt_count": 1,
+    "skip_receipt_sha256": "d1a874007dc7d13724291ce00e47f6031d91cc37a64119aa8356aba01eb619ff",
+    "stage": "scan_1",
+    "wall_time_limit_seconds": 3600
+  },
+  "harness_commit": "8df9c1e0814b8ffd2599ad13abc628d4e67ab95a",
+  "precision_review": "not_started",
+  "protocol_sha256": "1f31b245d25f5915108910c0d25348b9fa5ef360dd9407e07b83531a41b883e6",
+  "rap_source_commit": "5481d617ee69cce0bf9e95c8ee248f29ef463387",
+  "raw_logs_committed": false,
+  "resource_monitoring_note": {
+    "diagnostic_sample_command_log_sha256": "3d7fdb3813749a5e5526356a7a485d3b75cca76e11d4b0da27134c8aa1f162d2",
+    "diagnostic_sample_physical_footprint": "5.8G",
+    "diagnostic_sample_sha256": "e34888ba1c03f30fc1bca12accd7bdd2a430851a9272f7b39f0ae1f94a6b568d",
+    "protocol_metric": "ps_process_group_rss",
+    "protocol_rss_limit_bytes": 12884901888,
+    "status": "measurement_risk_not_a_retrospective_gate_change"
+  },
+  "sampling": "not_started",
+  "scan_2": "not_started",
+  "schema_version": "unsoundaudit-v2-stdlib-gate-failure-v1",
+  "status": "failure",
+  "std": "not_started",
+  "toolchain": {
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "unit": "core"
+}

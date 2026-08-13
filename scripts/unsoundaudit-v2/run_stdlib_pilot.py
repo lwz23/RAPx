@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
 import hashlib
 import json
 import os
@@ -11,20 +13,41 @@ import signal
 import subprocess
 import tempfile
 import time
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from run_fixture_suite import baseline_toolchain, canonical_existing, verify_environment
 from validate_receipt import ContractError, read_json, validate_receipt
 
 
 UNITS = ("core", "alloc", "std")
-PROTOCOL_SCHEMA_VERSIONS = (
+LEGACY_PROTOCOL_SCHEMA_VERSIONS = (
     "unsoundaudit-v2-stdlib-pilot-protocol-v1",
     "unsoundaudit-v2-stdlib-pilot-protocol-v2",
     "unsoundaudit-v2-stdlib-pilot-protocol-v3",
 )
+PHYSICAL_PROTOCOL_SCHEMA_VERSION = "unsoundaudit-v2-stdlib-pilot-protocol-v4"
+PROTOCOL_SCHEMA_VERSIONS = (*LEGACY_PROTOCOL_SCHEMA_VERSIONS, PHYSICAL_PROTOCOL_SCHEMA_VERSION)
+ANALYZER_PROFILE = "rapx-perf"
+ANALYZER_PROFILE_SIDECAR = "rapx-build-profile.json"
+ANALYZER_PROFILE_CONTRACT = {
+    "profile": ANALYZER_PROFILE,
+    "opt_level": 3,
+    "debug": 1,
+    "debug_assertions": True,
+    "overflow_checks": True,
+    "incremental": False,
+    "target_cargo_profile": "dev",
+}
+ANALYZER_PROFILE_SIDECAR_KEYS = {
+    "schema_version",
+    *ANALYZER_PROFILE_CONTRACT,
+    "cargo_rapx_sha256",
+    "rapx_sha256",
+}
+RUSAGE_INFO_V4 = 4
 
 
 def fail(message: str) -> None:
@@ -56,16 +79,33 @@ def load_protocol(path: Path) -> dict[str, Any]:
         "target_triple", "unit_order", "sample_seed", "cargo_jobs",
         "runs_per_unit", "fresh_targets", "units", "sampling", "review", "thresholds",
     }
-    if not isinstance(value, dict) or set(value) != required:
-        fail("standard-library pilot protocol keys drifted")
-    if value["schema_version"] not in PROTOCOL_SCHEMA_VERSIONS:
+    if not isinstance(value, dict) or value.get("schema_version") not in PROTOCOL_SCHEMA_VERSIONS:
         fail("standard-library pilot protocol schema drifted")
+    if value["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION:
+        required.add("analyzer_profile")
+    if set(value) != required:
+        fail("standard-library pilot protocol keys drifted")
     if value["unit_order"] != list(UNITS) or value["cargo_jobs"] != 1 or value["runs_per_unit"] != 2:
         fail("standard-library pilot execution contract drifted")
     if value["fresh_targets"] != {"control": True, "scan": True}:
         fail("standard-library pilot requires fresh control and scan targets")
     if set(value["units"]) != set(UNITS):
         fail("standard-library pilot unit set drifted")
+    memory_key = (
+        "physical_footprint_limit_bytes"
+        if value["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION
+        else "rss_limit_bytes"
+    )
+    if value.get("analyzer_profile") not in (None, ANALYZER_PROFILE):
+        fail("standard-library pilot analyzer profile drifted")
+    for unit in UNITS:
+        row = value["units"][unit]
+        if not isinstance(row, dict) or set(row) != {
+            "wall_time_seconds", memory_key, "build_std_components", "project_root",
+        }:
+            fail("standard-library pilot unit resource contract drifted")
+        if not isinstance(row[memory_key], int) or row[memory_key] <= 0:
+            fail("standard-library pilot memory limit is invalid")
     return value
 
 
@@ -106,6 +146,70 @@ def cargo_arguments(protocol: dict[str, Any], unit: str) -> list[str]:
         "--target", protocol["target_triple"],
         "--lib", "--locked", "--jobs", "1",
     ]
+
+
+def cargo_profile_contract(manifest_path: Path) -> dict[str, Any]:
+    try:
+        manifest = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        fail(f"RAP analyzer profile manifest is unreadable: {error}")
+    expected = {
+        "inherits": "release",
+        "opt-level": ANALYZER_PROFILE_CONTRACT["opt_level"],
+        "debug": ANALYZER_PROFILE_CONTRACT["debug"],
+        "debug-assertions": ANALYZER_PROFILE_CONTRACT["debug_assertions"],
+        "overflow-checks": ANALYZER_PROFILE_CONTRACT["overflow_checks"],
+        "incremental": ANALYZER_PROFILE_CONTRACT["incremental"],
+    }
+    if manifest.get("profile", {}).get(ANALYZER_PROFILE) != expected:
+        fail("RAP analyzer profile contract drifted")
+    return ANALYZER_PROFILE_CONTRACT.copy()
+
+
+def load_analyzer_profile(binary_directory: Path, cargo_rapx: Path, rapx: Path) -> dict[str, Any]:
+    sidecar = binary_directory / ANALYZER_PROFILE_SIDECAR
+    if not sidecar.is_file():
+        fail("RAP analyzer build-profile sidecar is missing")
+    value = read_json(sidecar)
+    if not isinstance(value, dict) or set(value) != ANALYZER_PROFILE_SIDECAR_KEYS:
+        fail("RAP analyzer build-profile sidecar keys drifted")
+    expected = {
+        "schema_version": "unsoundaudit-v2-rap-binary-profile-v1",
+        **ANALYZER_PROFILE_CONTRACT,
+    }
+    if any(value[key] != expected[key] for key in expected):
+        fail("RAP analyzer build-profile contract drifted")
+    if value["cargo_rapx_sha256"] != sha256(cargo_rapx) or value["rapx_sha256"] != sha256(rapx):
+        fail("RAP analyzer binary hash differs from build-profile sidecar")
+    return value
+
+
+def analyzer_profile_for_protocol(
+    protocol: dict[str, Any],
+    manifest_path: Path,
+    binary_directory: Path,
+    cargo_rapx: Path,
+    rapx: Path,
+) -> dict[str, Any] | None:
+    required_profile = protocol.get("analyzer_profile")
+    if required_profile is None:
+        return None
+    if required_profile != ANALYZER_PROFILE:
+        fail("pilot analyzer profile contract drifted")
+    cargo_profile_contract(manifest_path)
+    return load_analyzer_profile(binary_directory, cargo_rapx, rapx)
+
+
+def resource_gate(protocol: dict[str, Any], unit: str) -> tuple[str, int]:
+    limits = protocol["units"][unit]
+    if protocol["schema_version"] in LEGACY_PROTOCOL_SCHEMA_VERSIONS:
+        return "rss", limits["rss_limit_bytes"]
+    if (
+        protocol["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION
+        and protocol.get("analyzer_profile") == ANALYZER_PROFILE
+    ):
+        return "physical_footprint", limits["physical_footprint_limit_bytes"]
+    fail("standard-library pilot resource gate is not closed")
 
 
 def scan_roots(source_root: Path, protocol: dict[str, Any], unit: str) -> tuple[Path, Path]:
@@ -163,19 +267,147 @@ class ProcessResult:
     classification: str
     returncode: int | None
     elapsed_seconds: float
+    max_physical_footprint_bytes: int
     max_rss_bytes: int
 
 
-def parse_process_group_rss(output: str, process_group: int) -> int:
-    total_kib = 0
+@dataclass(frozen=True)
+class ProcessGroupUsage:
+    physical_footprint_bytes: int
+    rss_bytes: int
+    sampled_processes: int
+
+
+class ProcessDisappeared(ProcessLookupError):
+    pass
+
+
+class RusageInfoV4(ctypes.Structure):
+    _fields_ = [
+        ("ri_uuid", ctypes.c_uint8 * 16),
+        ("ri_user_time", ctypes.c_uint64),
+        ("ri_system_time", ctypes.c_uint64),
+        ("ri_pkg_idle_wkups", ctypes.c_uint64),
+        ("ri_interrupt_wkups", ctypes.c_uint64),
+        ("ri_pageins", ctypes.c_uint64),
+        ("ri_wired_size", ctypes.c_uint64),
+        ("ri_resident_size", ctypes.c_uint64),
+        ("ri_phys_footprint", ctypes.c_uint64),
+        ("ri_proc_start_abstime", ctypes.c_uint64),
+        ("ri_proc_exit_abstime", ctypes.c_uint64),
+        ("ri_child_user_time", ctypes.c_uint64),
+        ("ri_child_system_time", ctypes.c_uint64),
+        ("ri_child_pkg_idle_wkups", ctypes.c_uint64),
+        ("ri_child_interrupt_wkups", ctypes.c_uint64),
+        ("ri_child_pageins", ctypes.c_uint64),
+        ("ri_child_elapsed_abstime", ctypes.c_uint64),
+        ("ri_diskio_bytesread", ctypes.c_uint64),
+        ("ri_diskio_byteswritten", ctypes.c_uint64),
+        ("ri_cpu_time_qos_default", ctypes.c_uint64),
+        ("ri_cpu_time_qos_maintenance", ctypes.c_uint64),
+        ("ri_cpu_time_qos_background", ctypes.c_uint64),
+        ("ri_cpu_time_qos_utility", ctypes.c_uint64),
+        ("ri_cpu_time_qos_legacy", ctypes.c_uint64),
+        ("ri_cpu_time_qos_user_initiated", ctypes.c_uint64),
+        ("ri_cpu_time_qos_user_interactive", ctypes.c_uint64),
+        ("ri_billed_system_time", ctypes.c_uint64),
+        ("ri_serviced_system_time", ctypes.c_uint64),
+        ("ri_logical_writes", ctypes.c_uint64),
+        ("ri_lifetime_max_phys_footprint", ctypes.c_uint64),
+        ("ri_instructions", ctypes.c_uint64),
+        ("ri_cycles", ctypes.c_uint64),
+        ("ri_billed_energy", ctypes.c_uint64),
+        ("ri_serviced_energy", ctypes.c_uint64),
+        ("ri_interval_max_phys_footprint", ctypes.c_uint64),
+        ("ri_runnable_time", ctypes.c_uint64),
+    ]
+
+
+class DarwinPhysicalFootprint:
+    def __init__(
+        self,
+        *,
+        platform: str = os.sys.platform,
+        library_loader: Callable[..., Any] = ctypes.CDLL,
+    ) -> None:
+        if platform != "darwin":
+            raise PilotFailure("route_failure", "physical footprint sampling is unsupported")
+        try:
+            library = library_loader("/usr/lib/libproc.dylib", use_errno=True)
+            function = library.proc_pid_rusage
+            function.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
+            function.restype = ctypes.c_int
+        except (AttributeError, OSError) as error:
+            raise PilotFailure("route_failure", "physical footprint sampling API is unavailable") from error
+        self._function = function
+
+    def __call__(self, pid: int) -> int:
+        usage = RusageInfoV4()
+        ctypes.set_errno(0)
+        if self._function(pid, RUSAGE_INFO_V4, ctypes.byref(usage)) != 0:
+            error_number = ctypes.get_errno()
+            if error_number == errno.ESRCH:
+                raise ProcessDisappeared(pid)
+            if error_number in (errno.EACCES, errno.EPERM):
+                raise PermissionError(error_number, os.strerror(error_number), pid)
+            raise OSError(error_number, os.strerror(error_number), pid)
+        return int(usage.ri_phys_footprint)
+
+
+def parse_process_group_rows(output: str) -> list[tuple[int, int, int]]:
+    rows = []
     for line in output.splitlines():
+        if not line.strip():
+            continue
         fields = line.split()
-        if len(fields) == 3 and fields[1].isdigit() and fields[2].isdigit() and int(fields[1]) == process_group:
-            total_kib += int(fields[2])
-    return total_kib * 1024
+        try:
+            if len(fields) != 3:
+                raise ValueError
+            pid, process_group, rss_kib = (int(field) for field in fields)
+            if pid <= 0 or process_group <= 0 or rss_kib < 0:
+                raise ValueError
+        except ValueError as error:
+            raise PilotFailure("route_failure", "process-group monitor output parse failed") from error
+        rows.append((pid, process_group, rss_kib))
+    return rows
 
 
-def process_group_rss(pid: int) -> int:
+def aggregate_process_group_usage(
+    output: str,
+    process_group: int,
+    footprint_reader: Callable[[int], int],
+) -> ProcessGroupUsage:
+    selected = [row for row in parse_process_group_rows(output) if row[1] == process_group]
+    if not selected:
+        return ProcessGroupUsage(0, 0, 0)
+    footprint = 0
+    sampled = 0
+    for pid, _, _ in selected:
+        try:
+            current = footprint_reader(pid)
+            if current < 0:
+                raise ValueError("negative physical footprint")
+        except ProcessDisappeared:
+            continue
+        except PermissionError as error:
+            raise PilotFailure("route_failure", "physical footprint sampling permission failure") from error
+        except PilotFailure:
+            raise
+        except (OSError, ValueError) as error:
+            raise PilotFailure("route_failure", "physical footprint sampling failed") from error
+        footprint += current
+        sampled += 1
+    return ProcessGroupUsage(
+        physical_footprint_bytes=footprint,
+        rss_bytes=sum(row[2] for row in selected) * 1024,
+        sampled_processes=sampled,
+    )
+
+
+def process_group_usage(
+    pid: int,
+    footprint_reader: Callable[[int], int] | None = None,
+) -> ProcessGroupUsage:
     result = subprocess.run(
         ["ps", "-axo", "pid=,pgid=,rss="],
         stdin=subprocess.DEVNULL,
@@ -185,8 +417,28 @@ def process_group_rss(pid: int) -> int:
         check=False,
     )
     if result.returncode != 0:
-        raise PilotFailure("route_failure", "process-group RSS monitor failed")
-    return parse_process_group_rss(result.stdout, pid)
+        raise PilotFailure("route_failure", "process-group monitor failed")
+    reader = footprint_reader if footprint_reader is not None else DarwinPhysicalFootprint()
+    return aggregate_process_group_usage(result.stdout, pid, reader)
+
+
+def process_group_rss_usage(pid: int) -> ProcessGroupUsage:
+    result = subprocess.run(
+        ["ps", "-axo", "pid=,pgid=,rss="],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise PilotFailure("route_failure", "process-group monitor failed")
+    selected = [row for row in parse_process_group_rows(result.stdout) if row[1] == pid]
+    return ProcessGroupUsage(
+        physical_footprint_bytes=0,
+        rss_bytes=sum(row[2] for row in selected) * 1024,
+        sampled_processes=len(selected),
+    )
 
 
 def terminate_group(pid: int) -> None:
@@ -207,10 +459,24 @@ def run_limited(
     environment: dict[str, str],
     log_path: Path,
     wall_time_seconds: float,
-    rss_limit_bytes: int,
+    memory_limit_bytes: int,
+    *,
+    memory_limit_metric: str = "physical_footprint",
+    usage_reader: Callable[[int], ProcessGroupUsage] | None = None,
 ) -> ProcessResult:
+    if memory_limit_metric not in ("physical_footprint", "rss"):
+        raise PilotFailure("route_failure", "unsupported process-group memory metric")
     start = time.monotonic()
-    maximum = 0
+    maximum_footprint = 0
+    maximum_rss = 0
+    if usage_reader is None:
+        if memory_limit_metric == "physical_footprint":
+            footprint_reader = DarwinPhysicalFootprint()
+            read_usage = lambda pid: process_group_usage(pid, footprint_reader)
+        else:
+            read_usage = process_group_rss_usage
+    else:
+        read_usage = usage_reader
     with log_path.open("wb") as log:
         process = subprocess.Popen(
             command,
@@ -229,20 +495,22 @@ def run_limited(
                 if returncode is not None:
                     classification = "success" if returncode == 0 else "compiler_failure"
                     break
-                current_rss = process_group_rss(process.pid)
-                if current_rss <= 0:
+                current = read_usage(process.pid)
+                if current.sampled_processes <= 0:
                     returncode = process.poll()
                     if returncode is not None:
                         classification = "success" if returncode == 0 else "compiler_failure"
                         break
-                    raise PilotFailure("route_failure", "running process group was absent from RSS monitor")
-                maximum = max(maximum, current_rss)
+                    raise PilotFailure("route_failure", "running process group was absent from footprint monitor")
+                maximum_footprint = max(maximum_footprint, current.physical_footprint_bytes)
+                maximum_rss = max(maximum_rss, current.rss_bytes)
                 if elapsed > wall_time_seconds:
                     classification = "timeout"
                     terminate_group(process.pid)
                     returncode = process.wait()
                     break
-                if maximum > rss_limit_bytes:
+                measured = maximum_footprint if memory_limit_metric == "physical_footprint" else maximum_rss
+                if measured > memory_limit_bytes:
                     classification = "memory_limit"
                     terminate_group(process.pid)
                     returncode = process.wait()
@@ -252,7 +520,31 @@ def run_limited(
             if process.poll() is None:
                 terminate_group(process.pid)
                 process.wait()
-    return ProcessResult(classification, returncode, time.monotonic() - start, maximum)
+    return ProcessResult(
+        classification,
+        returncode,
+        time.monotonic() - start,
+        maximum_footprint,
+        maximum_rss,
+    )
+
+
+def process_result_record(
+    phase: str,
+    run_number: int,
+    result: ProcessResult,
+    memory_limit_metric: str,
+) -> dict[str, Any]:
+    return {
+        "phase": phase,
+        "run": run_number,
+        "classification": result.classification,
+        "returncode": result.returncode,
+        "elapsed_seconds": round(result.elapsed_seconds, 3),
+        "memory_limit_metric": memory_limit_metric,
+        "max_physical_footprint_bytes": result.max_physical_footprint_bytes,
+        "max_rss_bytes": result.max_rss_bytes,
+    }
 
 
 def stdlib_source_root(rust_sysroot: Path) -> Path:
@@ -318,6 +610,8 @@ def main() -> int:
     args = parser.parse_args()
     output_root = args.output_root.expanduser().resolve()
     output_created = False
+    analyzer: dict[str, Any] | None = None
+    executions: list[dict[str, Any]] = []
     try:
         repo_root = canonical_existing(args.repo_root, "repository root")
         protocol_path = canonical_existing(args.protocol, "pilot protocol")
@@ -325,9 +619,12 @@ def main() -> int:
         cargo = canonical_existing(args.cargo, "Cargo")
         rap_bin_dir = canonical_existing(args.rap_bin_dir, "RAP binary directory")
         rust_sysroot = canonical_existing(args.rust_sysroot, "rust sysroot")
-        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir)
+        cargo_rapx, rapx = verify_environment(repo_root, cargo, rap_bin_dir)
         verify_rap_binary_launch(cargo_rapx)
         protocol = load_protocol(protocol_path)
+        analyzer = analyzer_profile_for_protocol(
+            protocol, repo_root / "rapx/Cargo.toml", rap_bin_dir, cargo_rapx, rapx
+        )
         cargo_commit, rustc_commit = baseline_toolchain(repo_root)
         if protocol["cargo_commit"] != cargo_commit or protocol["rustc_commit"] != rustc_commit:
             fail("pilot protocol toolchain differs from frozen baseline")
@@ -342,12 +639,12 @@ def main() -> int:
         (output_root / "logs").mkdir()
         (output_root / "receipts").mkdir()
         limits = protocol["units"][args.unit]
-        executions: list[dict[str, Any]] = []
         semantic_runs: list[bytes] = []
         with tempfile.TemporaryDirectory(prefix=f"rapx-stdlib-driver-{args.unit}.") as driver_text:
             driver = Path(driver_text).resolve()
             write_driver(driver, args.unit)
             arguments = cargo_arguments(protocol, args.unit)
+            memory_metric, memory_limit = resource_gate(protocol, args.unit)
             for phase, run_number in [("control", 0), ("scan", 1), ("scan", 2)]:
                 with tempfile.TemporaryDirectory(prefix=f"rapx-stdlib-{args.unit}-{phase}.") as target_text:
                     target = Path(target_text).resolve()
@@ -365,13 +662,10 @@ def main() -> int:
                         command = [str(cargo_rapx), "rapx", "-unsoundaudit", "--", *arguments]
                     result = run_limited(
                         command, driver, environment, output_root / "logs" / f"{phase}-{run_number}.log",
-                        limits["wall_time_seconds"], limits["rss_limit_bytes"],
+                        limits["wall_time_seconds"], memory_limit,
+                        memory_limit_metric=memory_metric,
                     )
-                    executions.append({
-                        "phase": phase, "run": run_number, "classification": result.classification,
-                        "returncode": result.returncode, "elapsed_seconds": round(result.elapsed_seconds, 3),
-                        "max_rss_bytes": result.max_rss_bytes,
-                    })
+                    executions.append(process_result_record(phase, run_number, result, memory_metric))
                     if result.classification != "success":
                         raise PilotFailure(result.classification, f"{phase} {run_number} failed")
                     if phase == "scan":
@@ -384,25 +678,33 @@ def main() -> int:
         if len(semantic_runs) != 2 or semantic_runs[0] != semantic_runs[1]:
             raise PilotFailure("route_failure", "nondeterminism: normalized receipts differ")
         (output_root / f"{args.unit}.normalized.json").write_bytes(semantic_runs[0])
-        (output_root / f"{args.unit}.execution.json").write_bytes(canonical_json({
+        execution = {
             "schema_version": "unsoundaudit-v2-stdlib-execution-v1",
             "unit": args.unit,
             "status": "success",
             "protocol_sha256": sha256(protocol_path),
             "executions": executions,
             "raw_logs_committed": False,
-        }))
+        }
+        if analyzer is not None:
+            execution["analyzer"] = analyzer
+        (output_root / f"{args.unit}.execution.json").write_bytes(canonical_json(execution))
         return 0
     except (ContractError, OSError, ValueError) as error:
         if output_created and output_root.is_dir() and not (output_root / f"{args.unit}.normalized.json").exists():
             classification = error.classification if isinstance(error, PilotFailure) else "route_failure"
-            (output_root / f"{args.unit}.failure.json").write_bytes(canonical_json({
+            failure = {
                 "schema_version": "unsoundaudit-v2-stdlib-failure-v1",
                 "unit": args.unit,
                 "status": "failure",
                 "classification": classification,
                 "raw_logs_committed": False,
-            }))
+            }
+            if executions:
+                failure["executions"] = executions
+            if analyzer is not None:
+                failure["analyzer"] = analyzer
+            (output_root / f"{args.unit}.failure.json").write_bytes(canonical_json(failure))
         print(f"standard-library pilot error: {error}", file=os.sys.stderr)
         return 1
 

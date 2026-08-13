@@ -1,11 +1,13 @@
 mod dataflow;
 mod mir;
+mod perf_trace;
 mod summary;
 
 use crate::utils::unit_output::{
     atomic_write, build_verification_receipt_from_environment, embedded_rap_compiler_commit,
     validate_commit_hash,
 };
+use perf_trace::PerfTrace;
 use rustc_middle::ty::TyCtxt;
 use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
@@ -46,11 +48,38 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 
     pub fn start(&mut self) {
-        let result =
-            mir::analyze(self.tcx).and_then(|findings| self.maybe_write_json_summary(findings));
+        let result = self.analyze_and_write();
         if let Err(error) = result {
             crate::utils::log::rap_error_and_exit(error);
         }
+    }
+
+    fn analyze_and_write(&self) -> Result<(), String> {
+        let mut trace = PerfTrace::from_environment()?;
+        trace.event("analysis", "begin", [])?;
+        let findings = match mir::analyze(self.tcx, &mut trace) {
+            Ok(findings) => {
+                trace.event(
+                    "analysis",
+                    "end",
+                    [("success", 1), ("finding_count", findings.len() as u64)],
+                )?;
+                findings
+            }
+            Err(error) => {
+                trace.event("analysis", "end", [("success", 0)])?;
+                return Err(error);
+            }
+        };
+        trace.event("receipt", "begin", [])?;
+        match self.maybe_write_json_summary(findings) {
+            Ok(()) => trace.event("receipt", "end", [("success", 1)]),
+            Err(error) => {
+                trace.event("receipt", "end", [("success", 0)])?;
+                Err(error)
+            }
+        }?;
+        trace.finish()
     }
 
     fn maybe_write_json_summary(&self, findings: Vec<Finding>) -> Result<(), String> {
