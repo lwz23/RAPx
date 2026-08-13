@@ -126,6 +126,19 @@ def verify_rap_source_commit(repo_root: Path, commit: str) -> None:
         fail("current RAP source differs from the pre-registered pilot source commit")
 
 
+def verify_rap_binary_launch(cargo_rapx: Path) -> None:
+    result = subprocess.run(
+        [str(cargo_rapx), "rapx", "--help"],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        check=False,
+        text=True,
+    )
+    if result.returncode != 0:
+        fail(f"RAP binary launch preflight failed with exit {result.returncode}")
+
+
 @dataclass(frozen=True)
 class ProcessResult:
     classification: str
@@ -294,6 +307,7 @@ def main() -> int:
         rap_bin_dir = canonical_existing(args.rap_bin_dir, "RAP binary directory")
         rust_sysroot = canonical_existing(args.rust_sysroot, "rust sysroot")
         cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir)
+        verify_rap_binary_launch(cargo_rapx)
         protocol = load_protocol(protocol_path)
         cargo_commit, rustc_commit = baseline_toolchain(repo_root)
         if protocol["cargo_commit"] != cargo_commit or protocol["rustc_commit"] != rustc_commit:

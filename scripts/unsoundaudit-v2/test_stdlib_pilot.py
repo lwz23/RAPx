@@ -143,6 +143,11 @@ class PilotRunnerTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             pilot.driver_files("other")
 
+    def test_rap_binary_launch_preflight_fails_before_a_scan(self) -> None:
+        pilot.verify_rap_binary_launch(Path("/usr/bin/true"))
+        with self.assertRaisesRegex(ContractError, "launch preflight failed"):
+            pilot.verify_rap_binary_launch(Path("/usr/bin/false"))
+
     def test_rss_monitor_failure_is_not_treated_as_zero_usage(self) -> None:
         original = pilot.subprocess.run
 
