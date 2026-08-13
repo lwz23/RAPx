@@ -1,0 +1,99 @@
+{
+  "schema_version": "unsoundaudit-v2-stdlib-performance-v4-sha256-manifest-v1",
+  "algorithm": "sha256",
+  "status": "performance_and_determinism_pass_precision_review_paused",
+  "tested_source_commit": "a897f162b8d6f443eadaedcd1d1688211725ae04",
+  "tested_source_tree": "c4f63cdc274e974264baacf50b709ec559211138",
+  "protocol_commit": "7af0edd982db2d056a99798b5089c13e4c48f4d8",
+  "branch": "feature/unsoundaudit-v2-p1-p6",
+  "entries": [
+    {
+      "path": "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json",
+      "role": "formal_performance_protocol",
+      "size": 2406,
+      "sha256": "059aab4702760ea500fe5d56ede6d57c9aa8e2019c7c4ed2155fec03f76d5877"
+    },
+    {
+      "path": "tests/unsoundaudit-v2/rap-unit-v2.schema.json",
+      "role": "closed_receipt_schema",
+      "size": 16822,
+      "sha256": "7fa374f7ddff0799fec22cb098b0525d2ca87cab5d623a304b6ebd45b166418c"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/core.execution.json",
+      "role": "core_resource_execution",
+      "size": 1529,
+      "sha256": "05e8208d74728deb8a66ca55b74c25557f122e64a49d9e9f7c59af442edae2e6"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/core.normalized.json",
+      "role": "core_deterministic_population",
+      "size": 1286658,
+      "sha256": "27dca139986fa55673ce1869da439fb1241c01214bae2a8975b950202d2dd38d"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/core.sample.json",
+      "role": "core_frozen_review_sample",
+      "size": 1519798,
+      "sha256": "322fd42dbda792ade222034446759b5ec8b494a198b8d1badffdeb36fcbae8f6"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/alloc.execution.json",
+      "role": "alloc_resource_execution",
+      "size": 1524,
+      "sha256": "899f8f7900db2fe308aecf2db31538245a1f657dcda7bc82b14bdb102dbd0cfc"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/alloc.normalized.json",
+      "role": "alloc_deterministic_population",
+      "size": 3396705,
+      "sha256": "82b8e405d40baf62a443bee953d7d55d4fca7bc5be4814d2bae2831b2bdcaae9"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/alloc.sample.json",
+      "role": "alloc_frozen_review_sample",
+      "size": 2001695,
+      "sha256": "c197fa6c64662946c1db31c14061bb3fe00022059272fabb3957e3c1d336b2e3"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/std.execution.json",
+      "role": "std_resource_execution",
+      "size": 1522,
+      "sha256": "a26566b647442c4bd3e0ee1a8652aefe92e465677829010920c8af0063129a2c"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/std.normalized.json",
+      "role": "std_deterministic_population",
+      "size": 535684,
+      "sha256": "84da88c52c5cf4a139bfc6f37a8602125a5c2f86b9906a8a78243ac7f5b80e3f"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/std.sample.json",
+      "role": "std_frozen_review_sample",
+      "size": 675361,
+      "sha256": "83c6ccc45631f34b8108e447ac547b63e9e081550e42b8701614a94f0737765b"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/summary.json",
+      "role": "performance_and_precision_pause_summary",
+      "size": 7686,
+      "sha256": "1cce7d88362514541cfcf2e666547696f1c2e45478cebac82759278c1301b50e"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/STDLIB_PERFORMANCE_V4.md",
+      "role": "bounded_performance_report",
+      "size": 5249,
+      "sha256": "5482b4e003c00d5f825df73006feee9bd3ecaef684cd84b61656d7b5d442d3c3"
+    },
+    {
+      "path": "TASK_CONTEXT.md",
+      "role": "cross_session_source_of_truth",
+      "size": 42161,
+      "sha256": "c23597a86f4f250263eb16d572d9b271d6b679fd336b4f408f01c02e4a5a3d08"
+    }
+  ],
+  "raw_logs_committed": false,
+  "raw_receipts_committed": false,
+  "targets_or_binaries_committed": false,
+  "self_excluded": true
+}

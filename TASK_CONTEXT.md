@@ -9,7 +9,7 @@
 
 ## Status
 
-- Formal checkout is on `feature/unsoundaudit-v2-p1-p6`; the tested implementation commit is `f5988cb156f6f3d8cda59b03ac085607156e6acc`.
+- Formal checkout is on `feature/unsoundaudit-v2-p1-p6`. The original fixture implementation was tested at `f5988cb156f6f3d8cda59b03ac085607156e6acc`; the current formal performance source is `a897f162b8d6f443eadaedcd1d1688211725ae04`, with protocol v4 frozen at `7af0edd982db2d056a99798b5089c13e4c48f4d8`.
 - Baseline tag and commit, restricted source diff, source-tree hash, and `unsoundaudit.rs` hash all passed.
 - Native arm64 Xcode Command Line Tools, Homebrew LLVM/libclang, Z3, CMake, and pkg-config passed architecture and availability checks.
 - `nightly-2024-10-12` is installed with the required components. Rustc and Cargo commits exactly match the manifest.
@@ -79,6 +79,9 @@
 - Development scans bound to performance source commit `a897f162b8d6f443eadaedcd1d1688211725ae04` all passed the new hard gates on their first and only scan. `core` completed in 140.940 seconds with peak physical footprint 2,121,436,928 bytes; `alloc` completed in 73.532 seconds with 811,256,424 bytes; `std` completed in 122.884 seconds with 810,912,360 bytes. Each run used a fresh control and scan target, the `rapx-perf` analyzer, ordinary dev `cargo check`, trace disabled, physical footprint as the primary metric, and produced exactly one selected unit receipt. These are development performance results, not formal deterministic two-run or precision evidence.
 - Because all three development units passed with substantial headroom, the conditional PlaceId, relation-watcher, and dirty-caller-cone refactors were deliberately not implemented. The approved stop condition prefers the smaller, already-equivalent implementation over speculative additional optimization.
 - Formal protocol v4 is `tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json`, binds RAP source `a897f162b8d6f443eadaedcd1d1688211725ae04`, requires `rapx-perf`, and sets physical-footprint/wall gates of 8 GiB/900 seconds for `core`, 10 GiB/1,800 seconds for `alloc`, and 12 GiB/3,600 seconds for `std`. Its canonical SHA-256 is `059aab4702760ea500fe5d56ede6d57c9aa8e2019c7c4ed2155fec03f76d5877`; the no-build pilot suite passed 32/32 tests. The target Cargo profile remains dev/check and tracing is absent from the formal protocol.
+- The formal v4 campaign passed every performance and determinism gate. `core` scans completed in 141.705/134.516 seconds with 2,108,051,200/2,066,796,240-byte peak physical footprint; `alloc` completed in 75.283/69.354 seconds with 816,695,936/810,879,568 bytes; `std` completed in 125.173/122.410 seconds with 810,158,696/813,075,048 bytes. Each scan emitted exactly one selected unit receipt, and each unit's two path/resource-free normalized outputs were byte-identical.
+- Formal normalized SHA-256 values are `27dca139986fa55673ce1869da439fb1241c01214bae2a8975b950202d2dd38d` for `core`, `82b8e405d40baf62a443bee953d7d55d4fca7bc5be4814d2bae2831b2bdcaae9` for `alloc`, and `84da88c52c5cf4a139bfc6f37a8602125a5c2f86b9906a8a78243ac7f5b80e3f` for `std`. The frozen sample SHA-256 values are respectively `322fd42dbda792ade222034446759b5ec8b494a198b8d1badffdeb36fcbae8f6`, `c197fa6c64662946c1db31c14061bb3fe00022059272fabb3957e3c1d336b2e3`, and `83c6ccc45631f34b8108e447ac547b63e9e081550e42b8701614a94f0737765b`.
+- Performance success does not imply precision success. The three formal populations contain 269, 501, and 106 findings: 876 total over 394.765 KLoC, or 2.219042 findings/KLoC. This exceeds both pre-registered pause lines (`>500` total and `>0.5` findings/KLoC), so independent human labeling/adjudication has not started and no standard-library precision claim is made. The deterministic samples are frozen before labels so any later noise-root review remains auditable.
 
 ## Decisions
 
@@ -126,6 +129,7 @@
 - The canonical finding set, rather than the complete witness-bearing receipt, is the cross-version semantic equality contract for the performance repair. Witnesses may change only to another deterministic route through real unresolved edges and must remain schema-valid.
 - Analyzer optimization and target compilation profiles are separate contracts. `rapx-perf` inherits release optimization while retaining debug assertions and overflow checks; the analyzed crate continues to use ordinary development `cargo check`. A closed build-profile sidecar binds the declared analyzer profile to both actual binary SHA-256 values before a physical-footprint protocol may create output.
 - macOS physical-footprint gating uses `proc_pid_rusage(RUSAGE_INFO_V4)` for every process-group member at each sample. Disappearing processes are ignored; API, permission, parse, and other sampling failures fail closed. RSS remains a secondary recorded metric. Historical v1–v3 protocols never initialize this API and continue to interpret their original `rss_limit_bytes` field as RSS.
+- The v4 15/30/60-minute and 8/10/12-GiB gates are release performance gates, while the inherited 500-finding and 0.5-findings/KLoC lines are precision-campaign pause gates. Passing the former does not override the latter. The next permitted precision step is noise-root analysis of the already frozen samples, not a registry/rule change or a relabeled performance pass.
 
 ## Rejected Alternatives
 
@@ -133,7 +137,7 @@
 - No cross-crate whole-program analysis, unresolved-call speculation, fixed iteration limit, name-based sanitizer, or keyword-only candidate rule.
 - No FFI-return, Iterator, callback, general dynamic-dispatch, raw-reference/slice, `Box::from_raw`, or `set_len` extension in this work package.
 - No permissive JSON Schema library fallback: the tracked standard-library validator enforces the exact contract directly and also audits the formal schema for drift.
-- No Miri, benchmarks, fixture execution, real-project scan, Linux campaign access, coverage-ledger update, or historical-baseline reinterpretation.
+- No Miri, target-code execution, Linux campaign access, coverage-ledger update, or historical-baseline reinterpretation. The separately approved static standard-library performance scans are the only real-project scans in scope.
 
 ## Verification Invariants
 

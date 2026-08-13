@@ -1,0 +1,217 @@
+{
+  "schema_version": "unsoundaudit-v2-stdlib-performance-v4-summary-v1",
+  "status": "performance_and_determinism_pass_precision_review_paused",
+  "tested_source": {
+    "commit": "a897f162b8d6f443eadaedcd1d1688211725ae04",
+    "tree": "c4f63cdc274e974264baacf50b709ec559211138"
+  },
+  "protocol": {
+    "commit": "7af0edd982db2d056a99798b5089c13e4c48f4d8",
+    "path": "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json",
+    "sha256": "059aab4702760ea500fe5d56ede6d57c9aa8e2019c7c4ed2155fec03f76d5877"
+  },
+  "toolchain": {
+    "channel": "nightly-2024-10-12",
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "fresh_unit_gate": {
+    "passed": 136,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 0,
+    "cargo_jobs": 1,
+    "isolated_cargo_home": true,
+    "fresh_target": true,
+    "log_sha256": "6b54e125de884053c67fd03ff403c68ebb6d29e58fafe17d523c5774d33099f5"
+  },
+  "fresh_binary_gate": {
+    "profile": "rapx-perf",
+    "target_cargo_profile": "dev",
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "build_log_sha256": "cd398c16576bfa3c88b70e21e53642b53478a1fa720647096616ee5ee0af8b9f",
+    "cargo_rapx_sha256": "79387f9f96ab06f5416a635dff69c66d128031f0784bc12af92b5910251b2ff1",
+    "rapx_sha256": "1d050abf73e2461a3f22675cd9852b836e73fce88c5fd67052ade16e17df7899",
+    "profile_sidecar_sha256": "371dffbb2061063f839837bb346ffdafc251ad874d0878d753d97e68f4b077e9"
+  },
+  "no_build_runner_gate": {
+    "passed": 32,
+    "failed": 0,
+    "python_bytecode_disabled": true,
+    "log_sha256": "47e772ac06541f37ef9a6eecadf706bcb9775afeea19899ea7735095db1443da"
+  },
+  "synthetic_equivalence": {
+    "challenge": {
+      "runs": 2,
+      "case_count": 27,
+      "normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
+      "byte_identical": true
+    },
+    "original": {
+      "runs": 2,
+      "case_count": 27,
+      "normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+      "byte_identical": true
+    },
+    "profile_equivalence": {
+      "profiles": [
+        "debug",
+        "release",
+        "rapx-perf"
+      ],
+      "canonical_finding_sets_equal": true,
+      "stock_release_role": "diagnostic_only"
+    }
+  },
+  "formal_units": {
+    "core": {
+      "wall_time_limit_seconds": 900,
+      "physical_footprint_limit_bytes": 8589934592,
+      "control": {
+        "elapsed_seconds": 31.923,
+        "max_physical_footprint_bytes": 797656696,
+        "max_rss_bytes": 850493440
+      },
+      "scan_1": {
+        "elapsed_seconds": 141.705,
+        "max_physical_footprint_bytes": 2108051200,
+        "max_rss_bytes": 1933295616,
+        "selected_receipt_sha256": "bf88efbdfff6f7a3bbb0f00428845f328c252bad1c174e7828aed1694e5d5983"
+      },
+      "scan_2": {
+        "elapsed_seconds": 134.516,
+        "max_physical_footprint_bytes": 2066796240,
+        "max_rss_bytes": 1855356928,
+        "selected_receipt_sha256": "a87bf74b661bc2a5c44a536ea47436efd0d0ea87aadcffec9a89adc0d2533997"
+      },
+      "rap_unit_receipts_per_scan": 1,
+      "skip_receipts_per_scan": 4,
+      "normalized_sha256": "27dca139986fa55673ce1869da439fb1241c01214bae2a8975b950202d2dd38d",
+      "execution_sha256": "05e8208d74728deb8a66ca55b74c25557f122e64a49d9e9f7c59af442edae2e6",
+      "sample_sha256": "322fd42dbda792ade222034446759b5ec8b494a198b8d1badffdeb36fcbae8f6",
+      "source_census": {
+        "rust_file_count": 400,
+        "rust_line_count": 169027,
+        "rust_kloc": 169.027
+      },
+      "finding_count": 269,
+      "sample_size": 250,
+      "findings_per_kloc": 1.591462,
+      "pattern_counts": {
+        "pattern1": 10,
+        "pattern2": 197,
+        "pattern3": 0,
+        "pattern4": 62,
+        "pattern5": 0,
+        "pattern6": 0
+      }
+    },
+    "alloc": {
+      "wall_time_limit_seconds": 1800,
+      "physical_footprint_limit_bytes": 10737418240,
+      "control": {
+        "elapsed_seconds": 33.133,
+        "max_physical_footprint_bytes": 796296824,
+        "max_rss_bytes": 839925760
+      },
+      "scan_1": {
+        "elapsed_seconds": 75.283,
+        "max_physical_footprint_bytes": 816695936,
+        "max_rss_bytes": 852180992,
+        "selected_receipt_sha256": "36cdcd7d6c09f78c735c4d1997564da5c0120010c533a34859cc707b0c97a907"
+      },
+      "scan_2": {
+        "elapsed_seconds": 69.354,
+        "max_physical_footprint_bytes": 810879568,
+        "max_rss_bytes": 865386496,
+        "selected_receipt_sha256": "ebdf4a9aeca806a10e5bb8fc5f062dc6636122bcf5baf2c1a3ccfa4373cd4202"
+      },
+      "rap_unit_receipts_per_scan": 1,
+      "skip_receipts_per_scan": 5,
+      "normalized_sha256": "82b8e405d40baf62a443bee953d7d55d4fca7bc5be4814d2bae2831b2bdcaae9",
+      "execution_sha256": "899f8f7900db2fe308aecf2db31538245a1f657dcda7bc82b14bdb102dbd0cfc",
+      "sample_sha256": "c197fa6c64662946c1db31c14061bb3fe00022059272fabb3957e3c1d336b2e3",
+      "source_census": {
+        "rust_file_count": 110,
+        "rust_line_count": 68839,
+        "rust_kloc": 68.839
+      },
+      "finding_count": 501,
+      "sample_size": 250,
+      "findings_per_kloc": 7.277851,
+      "pattern_counts": {
+        "pattern1": 8,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 493,
+        "pattern5": 0,
+        "pattern6": 0
+      }
+    },
+    "std": {
+      "wall_time_limit_seconds": 3600,
+      "physical_footprint_limit_bytes": 12884901888,
+      "control": {
+        "elapsed_seconds": 69.79,
+        "max_physical_footprint_bytes": 797247096,
+        "max_rss_bytes": 818806784
+      },
+      "scan_1": {
+        "elapsed_seconds": 125.173,
+        "max_physical_footprint_bytes": 810158696,
+        "max_rss_bytes": 889012224,
+        "selected_receipt_sha256": "ab834c7d9e0b2f2f8223a70a4e46fdf2a8e9c86facc68f9b956169b7ec0dc7ab"
+      },
+      "scan_2": {
+        "elapsed_seconds": 122.41,
+        "max_physical_footprint_bytes": 813075048,
+        "max_rss_bytes": 896040960,
+        "selected_receipt_sha256": "9d65de9c8ecc47eb64aa95af32eb848b0428fc002b85a92f31d24eb6ed701ffd"
+      },
+      "rap_unit_receipts_per_scan": 1,
+      "skip_receipts_per_scan": 25,
+      "normalized_sha256": "84da88c52c5cf4a139bfc6f37a8602125a5c2f86b9906a8a78243ac7f5b80e3f",
+      "execution_sha256": "a26566b647442c4bd3e0ee1a8652aefe92e465677829010920c8af0063129a2c",
+      "sample_sha256": "83c6ccc45631f34b8108e447ac547b63e9e081550e42b8701614a94f0737765b",
+      "source_census": {
+        "rust_file_count": 611,
+        "rust_line_count": 156899,
+        "rust_kloc": 156.899
+      },
+      "finding_count": 106,
+      "sample_size": 106,
+      "findings_per_kloc": 0.675594,
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 106,
+        "pattern5": 0,
+        "pattern6": 0
+      }
+    }
+  },
+  "population_gate": {
+    "total_findings": 876,
+    "total_rust_kloc": 394.765,
+    "findings_per_kloc": 2.219042,
+    "max_unique_findings_total": 500,
+    "max_findings_per_kloc": 0.5,
+    "status": "pause_for_noise_root_analysis"
+  },
+  "precision_review": {
+    "samples_frozen_before_labels": true,
+    "reviewer_labels_committed": false,
+    "adjudication_committed": false,
+    "status": "not_started",
+    "precision_claim": "not_made"
+  },
+  "local_evidence": {
+    "raw_receipts_committed": false,
+    "raw_logs_committed": false,
+    "targets_committed": false,
+    "note": "The committed normalized populations, execution summaries, and samples contain no absolute machine paths. Raw receipts and logs remain local and are bound by the hashes above."
+  }
+}
