@@ -4,8 +4,14 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path, PurePosixPath
+
+import run_stdlib_pilot as pilot
+from validate_receipt import ContractError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -43,6 +49,97 @@ class PilotProtocolTests(unittest.TestCase):
         self.assertEqual(value["runs_per_unit"], 2)
         self.assertEqual(value["fresh_targets"], {"control": True, "scan": True})
         self.assertRegex(value["sample_seed"], r"^[A-Za-z0-9._-]+$")
+
+
+class PilotRunnerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.protocol = pilot.load_protocol(PROTOCOL)
+
+    def test_driver_is_minimal_untracked_and_has_no_build_script(self) -> None:
+        for unit in ("core", "alloc", "std"):
+            with self.subTest(unit=unit), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                pilot.write_driver(root, unit)
+                self.assertEqual(
+                    sorted(path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()),
+                    ["Cargo.lock", "Cargo.toml", "src/lib.rs"],
+                )
+                self.assertFalse((root / "build.rs").exists())
+                self.assertIn("--locked", pilot.cargo_arguments(self.protocol, unit))
+                self.assertEqual(pilot.cargo_arguments(self.protocol, unit)[-2:], ["--jobs", "1"])
+                self.assertIn(f"build-std={','.join(self.protocol['units'][unit]['build_std_components'])}", pilot.cargo_arguments(self.protocol, unit))
+
+    def test_rss_parser_sums_only_the_selected_process_group(self) -> None:
+        output = " 10 99 1024\n 11 99 2048\n 12 100 4096\ninvalid\n"
+        self.assertEqual(pilot.parse_process_group_rss(output, 99), 3072 * 1024)
+
+    def test_resource_runner_classifies_success_timeout_and_memory(self) -> None:
+        environment = os.environ.copy()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            success = pilot.run_limited(
+                ["/bin/sh", "-c", "exit 0"], root, environment, root / "success.log", 2, 1024**3,
+            )
+            timeout = pilot.run_limited(
+                ["/bin/sh", "-c", "sleep 5"], root, environment, root / "timeout.log", 0.05, 1024**3,
+            )
+            memory = pilot.run_limited(
+                ["/bin/sh", "-c", "sleep 5"], root, environment, root / "memory.log", 2, 1,
+            )
+        self.assertEqual(success.classification, "success")
+        self.assertEqual(timeout.classification, "timeout")
+        self.assertEqual(memory.classification, "memory_limit")
+
+    def test_normalized_output_drops_machine_paths_and_resource_noise(self) -> None:
+        receipt = {
+            "cargo_supplied_rustc_commit": "a" * 40,
+            "rap_compiler_commit": "a" * 40,
+            "rustc_commit": "a" * 40,
+            "finding_count": 0,
+            "pattern_counts": {f"pattern{number}": 0 for number in range(1, 7)},
+            "findings": [],
+            "project_root": "/private/machine",
+        }
+        normalized = pilot.normalized_unit("core", receipt, "b" * 64, {"rust_file_count": 1, "rust_line_count": 2, "rust_kloc": 0.002})
+        encoded = pilot.canonical_json(normalized)
+        self.assertNotIn(b"/private", encoded)
+        self.assertNotIn(b"elapsed", encoded)
+
+    def test_nonempty_driver_and_unsupported_unit_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "occupied").write_text("x", encoding="utf-8")
+            with self.assertRaises(ContractError):
+                pilot.write_driver(root, "core")
+        with self.assertRaises(ContractError):
+            pilot.driver_files("other")
+
+    def test_rss_monitor_failure_is_not_treated_as_zero_usage(self) -> None:
+        original = pilot.subprocess.run
+
+        def failed_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+            return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="monitor failed")
+
+        pilot.subprocess.run = failed_run
+        try:
+            with self.assertRaisesRegex(pilot.PilotFailure, "RSS monitor failed"):
+                pilot.process_group_rss(123)
+        finally:
+            pilot.subprocess.run = original
+
+    def test_running_process_missing_from_rss_monitor_fails_closed(self) -> None:
+        original = pilot.process_group_rss
+        pilot.process_group_rss = lambda _pid: 0
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                with self.assertRaisesRegex(pilot.PilotFailure, "absent from RSS monitor"):
+                    pilot.run_limited(
+                        ["/bin/sh", "-c", "sleep 5"], root, os.environ.copy(), root / "rss.log", 2, 1024**3,
+                    )
+        finally:
+            pilot.process_group_rss = original
 
     def test_units_have_exact_routes_and_frozen_limits(self) -> None:
         value = json.loads(PROTOCOL.read_text(encoding="utf-8"))
