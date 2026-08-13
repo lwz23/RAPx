@@ -957,7 +957,20 @@ impl FunctionSummary {
             self.function, other.function,
             "summaries for different functions cannot be joined"
         );
-        let before = self.clone();
+        let before = (
+            self.sources.len(),
+            self.flows.len(),
+            self.return_origins.len(),
+            self.out_dependencies.len(),
+            self.sink_obligations.len(),
+            self.validations.len(),
+            self.writes.len(),
+            self.calls.len(),
+            self.cycle_tokens.len(),
+            self.requirements.len(),
+            self.unresolved_predecessors.len(),
+            self.return_value.origins.len(),
+        );
         self.sources.extend(other.sources.iter().cloned());
         self.flows.extend(other.flows.iter().cloned());
         self.return_origins
@@ -976,7 +989,21 @@ impl FunctionSummary {
         self.return_value
             .origins
             .extend(other.return_value.origins.iter().cloned());
-        *self != before
+        before
+            != (
+                self.sources.len(),
+                self.flows.len(),
+                self.return_origins.len(),
+                self.out_dependencies.len(),
+                self.sink_obligations.len(),
+                self.validations.len(),
+                self.writes.len(),
+                self.calls.len(),
+                self.cycle_tokens.len(),
+                self.requirements.len(),
+                self.unresolved_predecessors.len(),
+                self.return_value.origins.len(),
+            )
     }
 }
 
@@ -1424,7 +1451,41 @@ fn callee_first_components(
 pub fn solve_summaries<F>(
     graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
     seeds: &BTreeMap<FunctionKey, FunctionSummary>,
+    transfer: F,
+) -> BTreeMap<FunctionKey, FunctionSummary>
+where
+    F: FnMut(&FunctionKey, &BTreeMap<FunctionKey, FunctionSummary>) -> FunctionSummary,
+{
+    solve_summaries_internal(graph, seeds, transfer, None)
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct SummarySolveStats {
+    component_rounds: usize,
+    summary_candidate_clones: usize,
+}
+
+#[cfg(test)]
+fn solve_summaries_with_stats<F>(
+    graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
+    seeds: &BTreeMap<FunctionKey, FunctionSummary>,
+    transfer: F,
+) -> (BTreeMap<FunctionKey, FunctionSummary>, SummarySolveStats)
+where
+    F: FnMut(&FunctionKey, &BTreeMap<FunctionKey, FunctionSummary>) -> FunctionSummary,
+{
+    let mut stats = SummarySolveStats::default();
+    let solved = solve_summaries_internal(graph, seeds, transfer, Some(&mut stats));
+    (solved, stats)
+}
+
+fn solve_summaries_internal<F>(
+    graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
+    seeds: &BTreeMap<FunctionKey, FunctionSummary>,
     mut transfer: F,
+    #[cfg(test)] mut stats: Option<&mut SummarySolveStats>,
+    #[cfg(not(test))] _stats: Option<&mut ()>,
 ) -> BTreeMap<FunctionKey, FunctionSummary>
 where
     F: FnMut(&FunctionKey, &BTreeMap<FunctionKey, FunctionSummary>) -> FunctionSummary,
@@ -1452,7 +1513,6 @@ where
             (node.clone(), summary)
         })
         .collect::<BTreeMap<_, _>>();
-
     for component_index in order {
         let component = &components[component_index];
         let recursive = component.len() > 1
@@ -1462,29 +1522,35 @@ where
                 .unwrap_or(false);
         let cycle_token = recursive.then(|| scc_cycle_token(component));
         loop {
-            let snapshot = solved.clone();
-            let mut changed = false;
+            #[cfg(test)]
+            if let Some(stats) = stats.as_deref_mut() {
+                stats.component_rounds += 1;
+            }
+            let mut updates = Vec::new();
             for node in component {
-                let mut next = snapshot[node].clone();
-                if let Some(seed) = seeds.get(node) {
-                    next.join(seed);
+                let mut next = solved[node].clone();
+                #[cfg(test)]
+                if let Some(stats) = stats.as_deref_mut() {
+                    stats.summary_candidate_clones += 1;
                 }
-                let derived = transfer(node, &snapshot);
+                let derived = transfer(node, &solved);
                 assert_eq!(
                     derived.function, *node,
                     "transfer summary key must match function"
                 );
-                next.join(&derived);
+                let mut changed = next.join(&derived);
                 if let Some(token) = &cycle_token {
-                    next.cycle_tokens.insert(token.clone());
+                    changed |= next.cycle_tokens.insert(token.clone());
                 }
-                if next != solved[node] {
-                    solved.insert(node.clone(), next);
-                    changed = true;
+                if changed {
+                    updates.push((node.clone(), next));
                 }
             }
-            if !changed {
+            if updates.is_empty() {
                 break;
+            }
+            for (node, next) in updates {
+                solved.insert(node, next);
             }
         }
     }
@@ -2726,6 +2792,141 @@ mod tests {
         }
         assert_eq!(solved[&a].cycle_tokens, solved[&b].cycle_tokens);
         assert_ne!(solved[&a].cycle_tokens, solved[&c].cycle_tokens);
+    }
+
+    #[test]
+    fn independent_components_clone_only_their_own_summary_candidates() {
+        let nodes = (0..96)
+            .map(|index| FunctionKey::new(format!("crate::f{index:03}")))
+            .collect::<Vec<_>>();
+        let graph = nodes
+            .iter()
+            .cloned()
+            .map(|node| (node, BTreeSet::new()))
+            .collect::<BTreeMap<_, _>>();
+        let seeds = nodes
+            .iter()
+            .cloned()
+            .map(|node| (node.clone(), FunctionSummary::empty(node)))
+            .collect::<BTreeMap<_, _>>();
+        let (solved, stats) = solve_summaries_with_stats(&graph, &seeds, |node, _| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            derived.return_origins.insert(OriginKey::new("grown"));
+            derived
+        });
+
+        assert_eq!(solved.len(), nodes.len());
+        assert!(solved
+            .values()
+            .all(|summary| summary.return_origins.contains(&OriginKey::new("grown"))));
+        assert_eq!(stats.component_rounds, nodes.len() * 2);
+        assert_eq!(stats.summary_candidate_clones, nodes.len() * 2);
+    }
+
+    #[test]
+    fn staged_component_updates_match_the_reference_jacobi_solver_exactly() {
+        fn reference<F>(
+            graph: &BTreeMap<FunctionKey, BTreeSet<FunctionKey>>,
+            seeds: &BTreeMap<FunctionKey, FunctionSummary>,
+            mut transfer: F,
+        ) -> BTreeMap<FunctionKey, FunctionSummary>
+        where
+            F: FnMut(&FunctionKey, &BTreeMap<FunctionKey, FunctionSummary>) -> FunctionSummary,
+        {
+            let mut complete_graph = graph.clone();
+            for node in seeds.keys() {
+                complete_graph.entry(node.clone()).or_default();
+            }
+            for callee in graph.values().flatten() {
+                complete_graph.entry(callee.clone()).or_default();
+            }
+            let components = strongly_connected_components(&complete_graph);
+            let order = callee_first_components(&complete_graph, &components);
+            let mut solved = complete_graph
+                .keys()
+                .map(|node| {
+                    (
+                        node.clone(),
+                        seeds
+                            .get(node)
+                            .cloned()
+                            .unwrap_or_else(|| FunctionSummary::empty(node.clone())),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            for component_index in order {
+                let component = &components[component_index];
+                let recursive = component.len() > 1
+                    || component
+                        .first()
+                        .is_some_and(|node| complete_graph[node].contains(node));
+                let cycle_token = recursive.then(|| scc_cycle_token(component));
+                loop {
+                    let snapshot = solved.clone();
+                    let mut changed = false;
+                    for node in component {
+                        let mut next = snapshot[node].clone();
+                        if let Some(seed) = seeds.get(node) {
+                            next.join(seed);
+                        }
+                        next.join(&transfer(node, &snapshot));
+                        if let Some(token) = &cycle_token {
+                            next.cycle_tokens.insert(token.clone());
+                        }
+                        if next != solved[node] {
+                            solved.insert(node.clone(), next);
+                            changed = true;
+                        }
+                    }
+                    if !changed {
+                        break;
+                    }
+                }
+            }
+            solved
+        }
+
+        let a = FunctionKey::new("crate::a");
+        let b = FunctionKey::new("crate::b");
+        let c = FunctionKey::new("crate::c");
+        let d = FunctionKey::new("crate::d");
+        let graph = BTreeMap::from([
+            (a.clone(), BTreeSet::from([b.clone(), c.clone()])),
+            (b.clone(), BTreeSet::from([c.clone()])),
+            (c.clone(), BTreeSet::from([b.clone(), d.clone()])),
+            (d.clone(), BTreeSet::from([d.clone()])),
+        ]);
+        let mut seeds = graph
+            .keys()
+            .cloned()
+            .map(|node| (node.clone(), FunctionSummary::empty(node)))
+            .collect::<BTreeMap<_, _>>();
+        seeds
+            .get_mut(&d)
+            .expect("d seed exists")
+            .return_origins
+            .insert(OriginKey::new("seed::d"));
+        seeds
+            .get_mut(&b)
+            .expect("b seed exists")
+            .cycle_tokens
+            .insert("seed-token".to_owned());
+        let transfer = |node: &FunctionKey, current: &BTreeMap<FunctionKey, FunctionSummary>| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            for callee in graph.get(node).into_iter().flatten() {
+                derived
+                    .return_origins
+                    .extend(current[callee].return_origins.iter().cloned());
+                derived
+                    .cycle_tokens
+                    .extend(current[callee].cycle_tokens.iter().cloned());
+            }
+            derived
+        };
+
+        let expected = reference(&graph, &seeds, transfer);
+        let actual = solve_summaries(&graph, &seeds, transfer);
+        assert_eq!(actual, expected);
     }
 
     #[test]
