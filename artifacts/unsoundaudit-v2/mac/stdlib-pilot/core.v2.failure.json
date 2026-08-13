@@ -1,0 +1,41 @@
+{
+  "binary_sha256": {
+    "cargo_rapx": "2e0d5206bc70fa6fb4b4034a6ba89f728b28611ffd6050077b57aaf6fd10aabd",
+    "rapx": "bad0e4c1f4c2a78eb3f02bc8425c1e72ce08b6ba4fad86ab87c831d425b755c3"
+  },
+  "classification": "timeout",
+  "continuation_allowed": false,
+  "control": {
+    "log_sha256": "202d29b16a346f50bfd6f5a230590952aed79fc5800a986f06fa51d5ae7df210",
+    "status": "pass"
+  },
+  "failure": {
+    "diagnostic_class": "wall_time_limit",
+    "finding_count": null,
+    "log_sha256": "f8791095224ddd8020ca3726fc478475a39c1679d875db2d5790338c196b5477",
+    "rap_unit_v2_receipt_count": 0,
+    "skip_receipt_count": 1,
+    "stage": "scan_1",
+    "wall_time_limit_seconds": 3600
+  },
+  "harness_commit": "424498ea961c86200190205fdf77a0ac6f1abd58",
+  "precision_review": "not_started",
+  "protocol_sha256": "429fd45b496470e85b9e5e8c255fd3da858feec55725c8fdd0ddb66bbb21993b",
+  "rap_source_commit": "2207a5cfa4444c3e58fd127c6b653feea28e3641",
+  "raw_logs_committed": false,
+  "resource_monitoring_note": {
+    "macos_sample_physical_footprint_peak": "35.2G",
+    "protocol_metric": "ps_process_group_rss",
+    "protocol_rss_limit_bytes": 12884901888,
+    "status": "measurement_risk_not_a_retrospective_gate_change"
+  },
+  "scan_2": "not_started",
+  "schema_version": "unsoundaudit-v2-stdlib-gate-failure-v1",
+  "status": "failure",
+  "toolchain": {
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "unit": "core"
+}
