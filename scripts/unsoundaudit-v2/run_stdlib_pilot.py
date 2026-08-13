@@ -23,6 +23,7 @@ UNITS = ("core", "alloc", "std")
 PROTOCOL_SCHEMA_VERSIONS = (
     "unsoundaudit-v2-stdlib-pilot-protocol-v1",
     "unsoundaudit-v2-stdlib-pilot-protocol-v2",
+    "unsoundaudit-v2-stdlib-pilot-protocol-v3",
 )
 
 

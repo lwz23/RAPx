@@ -18,6 +18,7 @@ from validate_receipt import ContractError
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
 PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
+PROTOCOL_V3 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v3.json"
 
 
 def finding(index: int, rule_id: str, depth: str) -> dict[str, object]:
@@ -87,6 +88,18 @@ class PilotProtocolTests(unittest.TestCase):
         self.assertEqual(second["schema_version"], "unsoundaudit-v2-stdlib-pilot-protocol-v2")
         self.assertEqual(second["rap_source_commit"], "2207a5cfa4444c3e58fd127c6b653feea28e3641")
         self.assertEqual(second["sample_seed"], "unsoundaudit-v2-stdlib-pilot-source-root-v2-2026-08-13")
+
+    def test_v3_protocol_changes_only_source_commit_schema_and_seed(self) -> None:
+        second = pilot.load_protocol(PROTOCOL_V2)
+        third = pilot.load_protocol(PROTOCOL_V3)
+        differing = {key for key in second if second[key] != third[key]}
+        self.assertEqual(differing, {"schema_version", "rap_source_commit", "sample_seed"})
+        self.assertEqual(third["schema_version"], "unsoundaudit-v2-stdlib-pilot-protocol-v3")
+        self.assertEqual(third["rap_source_commit"], "5481d617ee69cce0bf9e95c8ee248f29ef463387")
+        self.assertEqual(
+            third["sample_seed"],
+            "unsoundaudit-v2-stdlib-pilot-summary-perf-v3-2026-08-13",
+        )
 
 
 class PilotRunnerTests(unittest.TestCase):
