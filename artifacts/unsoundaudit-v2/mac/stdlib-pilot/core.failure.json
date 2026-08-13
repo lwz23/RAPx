@@ -1,0 +1,34 @@
+{
+  "binary_sha256": {
+    "cargo_rapx": "ba48f1629899f3593514a94014b40063311276d0f9a12f2510c7dc235ab55725",
+    "rapx": "c54e74d2ec877da1447d3de4f04b7a33096b0432717c2e97b62d699872f6e4f9"
+  },
+  "classification": "compiler_failure",
+  "continuation_allowed": false,
+  "control": {
+    "log_sha256": "a2625f0d5fb9c98f71f56658939d959ae3caa08a314ce8c682819a9e1f24ed5c",
+    "status": "pass"
+  },
+  "failure": {
+    "diagnostic_class": "unstable_source_identity_outside_analysis_root",
+    "diagnostic_source": "rust-src/library/stdarch/crates/core_arch/src/aarch64/neon/mod.rs",
+    "finding_count": null,
+    "log_sha256": "979abe6204b9b64f8fe145deba288098946362434c37458f699aa1ef4bf7fa68",
+    "receipt_count": 0,
+    "stage": "scan_1"
+  },
+  "harness_commit": "88e5cfae2b2c5bd5b60772110c4f04a3a6130229",
+  "precision_review": "not_started",
+  "protocol_sha256": "e7305b6be3d01ddf20dd2b3bc4e8a0034a390a0a0fa404f194050eb00c99aaea",
+  "rap_source_commit": "fd0a64cc794fb94f4b54022f8b8917b90cfb1e9c",
+  "raw_logs_committed": false,
+  "scan_2": "not_started",
+  "schema_version": "unsoundaudit-v2-stdlib-gate-failure-v1",
+  "status": "failure",
+  "toolchain": {
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "unit": "core"
+}
