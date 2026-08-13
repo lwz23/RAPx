@@ -837,7 +837,12 @@ fn stable_span_from_locations(
             "UnsoundAudit v2 cannot form a stable repository-relative span path: local={local_path:?}, remapped={remapped_path:?}"
         )
     })?;
-    if lo_line == 0 || hi_line < lo_line || lo_column == 0 || hi_column == 0 {
+    if lo_line == 0
+        || hi_line < lo_line
+        || lo_column == 0
+        || hi_column == 0
+        || (hi_line == lo_line && hi_column < lo_column)
+    {
         return Err(format!(
             "UnsoundAudit v2 received a zero-based or invalid source range: {lo_line}:{lo_column}..={hi_line}:{hi_column}"
         ));
@@ -8911,5 +8916,6 @@ mod tests {
             );
         }
         assert!(stable_span_from_locations(project, None, Some("src/lib.rs"), 1, 0, 1, 1).is_err());
+        assert!(stable_span_from_locations(project, None, Some("src/lib.rs"), 1, 2, 1, 1).is_err());
     }
 }

@@ -7,6 +7,7 @@ import copy
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -120,8 +121,10 @@ class ReceiptTamperTests(unittest.TestCase):
         self.assert_rejected(receipt)
 
     def test_noncanonical_span_is_rejected(self) -> None:
+        schema_pattern = self.schema["$defs"]["span"]["properties"]["path"]["pattern"]
         for invalid in ("src//lib.rs", "./src/lib.rs", "C:/src/lib.rs", "C:src/lib.rs"):
             with self.subTest(path=invalid):
+                self.assertIsNone(re.fullmatch(schema_pattern, invalid))
                 receipt = valid_receipt()
                 receipt["findings"][0]["public_safe_root"]["span"]["path"] = invalid
                 self.assert_rejected(receipt)
