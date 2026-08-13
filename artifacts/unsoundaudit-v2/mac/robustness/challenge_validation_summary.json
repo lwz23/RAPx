@@ -1,8 +1,8 @@
 {
   "schema_version": "rap-unsoundaudit-v2-robustness-green-v1",
   "status": "green",
-  "tested_commit": "e1e37afe6eb47f5c61ecd92c79676cd7cf2f1dce",
-  "tested_tree": "e18a805f24246beb24535a07600f5d155001a76f",
+  "tested_commit": "fd0a64cc794fb94f4b54022f8b8917b90cfb1e9c",
+  "tested_tree": "815ba8687e6a512653b911d368f3e1818b8671fe",
   "toolchain": {
     "channel": "nightly-2024-10-12",
     "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
@@ -15,14 +15,14 @@
     "cargo_jobs": 1,
     "isolated_cargo_home": true,
     "fresh_target": true,
-    "log_sha256": "d5851bce2664ac14e6457f07534cad5e520cc1aec89c9d4eb08214dd7fe21a20"
+    "log_sha256": "091c39cbd8fb6fe3a858a249e0056a061f2255b7e80b8b4bfd5acedd32022339"
   },
   "fresh_binary_gate": {
     "cargo_jobs": 1,
     "fresh_target": true,
-    "build_log_sha256": "d6998e68f87a1814a1d69d92b606591438ad45d5a0649c2b2b56a88d6c311cb3",
-    "cargo_rapx_sha256": "dbc2871479121c3e81316bd83f64f949def6b560fabdd93af978b31d0ce80dcf",
-    "rapx_sha256": "f8f76a5612334269112f1f552b2f85ddea45aebc067bd970ced4b5e239eb94ee"
+    "build_log_sha256": "d4aa9eb17ea5091c963ecb60d98b601bf49f57f367da52a84b53b073d81c3b02",
+    "cargo_rapx_sha256": "ba48f1629899f3593514a94014b40063311276d0f9a12f2510c7dc235ab55725",
+    "rapx_sha256": "c54e74d2ec877da1447d3de4f04b7a33096b0432717c2e97b62d699872f6e4f9"
   },
   "challenge": {
     "case_count": 27,
@@ -36,7 +36,7 @@
       "pattern6": 0
     },
     "manifest_sha256": "5fa4ece56bde89258919fc64e35a6cec1f081ffc7efa9e396d5edea83f491f1a",
-    "receipt_schema_sha256": "e3cb0cce0b9c47fcb13004b05bb88195bd9f9e9b0c9d26e56a0618787776f200",
+    "receipt_schema_sha256": "7fa374f7ddff0799fec22cb098b0525d2ca87cab5d623a304b6ebd45b166418c",
     "run_1_normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
     "run_2_normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
     "byte_identical": true
