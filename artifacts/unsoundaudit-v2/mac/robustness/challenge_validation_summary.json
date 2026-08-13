@@ -1,0 +1,72 @@
+{
+  "schema_version": "rap-unsoundaudit-v2-robustness-green-v1",
+  "status": "green",
+  "tested_commit": "e1e37afe6eb47f5c61ecd92c79676cd7cf2f1dce",
+  "tested_tree": "e18a805f24246beb24535a07600f5d155001a76f",
+  "toolchain": {
+    "channel": "nightly-2024-10-12",
+    "cargo_commit_hash": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit_hash": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "fresh_unit_gate": {
+    "passed": 118,
+    "failed": 0,
+    "ignored": 0,
+    "cargo_jobs": 1,
+    "isolated_cargo_home": true,
+    "fresh_target": true,
+    "log_sha256": "d5851bce2664ac14e6457f07534cad5e520cc1aec89c9d4eb08214dd7fe21a20"
+  },
+  "fresh_binary_gate": {
+    "cargo_jobs": 1,
+    "fresh_target": true,
+    "build_log_sha256": "d6998e68f87a1814a1d69d92b606591438ad45d5a0649c2b2b56a88d6c311cb3",
+    "cargo_rapx_sha256": "dbc2871479121c3e81316bd83f64f949def6b560fabdd93af978b31d0ce80dcf",
+    "rapx_sha256": "f8f76a5612334269112f1f552b2f85ddea45aebc067bd970ced4b5e239eb94ee"
+  },
+  "challenge": {
+    "case_count": 27,
+    "oracle_pass_count": 27,
+    "aggregate_pattern_counts": {
+      "pattern1": 13,
+      "pattern2": 0,
+      "pattern3": 0,
+      "pattern4": 0,
+      "pattern5": 0,
+      "pattern6": 0
+    },
+    "manifest_sha256": "5fa4ece56bde89258919fc64e35a6cec1f081ffc7efa9e396d5edea83f491f1a",
+    "receipt_schema_sha256": "e3cb0cce0b9c47fcb13004b05bb88195bd9f9e9b0c9d26e56a0618787776f200",
+    "run_1_normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
+    "run_2_normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
+    "byte_identical": true
+  },
+  "original_fixture_regression": {
+    "case_count": 27,
+    "oracle_pass_count": 27,
+    "aggregate_pattern_counts": {
+      "pattern1": 3,
+      "pattern2": 2,
+      "pattern3": 2,
+      "pattern4": 2,
+      "pattern5": 1,
+      "pattern6": 2
+    },
+    "run_1_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "run_2_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "byte_identical": true
+  },
+  "local_raw_evidence": {
+    "committed": false,
+    "challenge_run_1_receipt_count": 27,
+    "challenge_run_2_receipt_count": 27,
+    "original_run_1_receipt_count": 27,
+    "original_run_2_receipt_count": 27,
+    "note": "Raw receipts, logs, Cargo caches, and target directories remain local and are not part of this evidence commit."
+  },
+  "scope": {
+    "registry_changed": false,
+    "cross_crate_propagation_added": false,
+    "claim": "Deterministic GREEN evidence for the frozen synthetic challenge and original fixture contracts only; real-project precision remains unmeasured until the separately gated standard-library pilot."
+  }
+}

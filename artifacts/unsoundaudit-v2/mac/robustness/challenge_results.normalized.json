@@ -1,0 +1,2570 @@
+{
+  "aggregate_pattern_counts": {
+    "pattern1": 13,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 0,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "cases": [
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_constant_return_negative",
+      "crate_name": "unsoundaudit_v2_challenge_call_constant_return_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_call_constant_return_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_guard_in_middle_negative",
+      "crate_name": "unsoundaudit_v2_challenge_call_guard_in_middle_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_call_guard_in_middle_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_guard_in_sink_negative",
+      "crate_name": "unsoundaudit_v2_challenge_call_guard_in_sink_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_call_guard_in_sink_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_local_out_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_local_out_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_local_out_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:11:15-11:44",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:11:15-11:44",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:8:1-8:46"
+          },
+          "finding_id": "189205be504ebe39fdc8dd422dd0ed4d1209451e51a1b6c0d1b70960b530617e",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 11
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 44,
+                    "line": 11
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 11
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 8
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 11
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 8
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_local_out_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_wrappers_0_hop_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_wrappers_0_hop_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_wrappers_0_hop_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:4:15-4:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:4:15-4:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:3:1-3:46"
+          },
+          "finding_id": "72ce9b1b7c00cbbc78bd0e30d4b61a498bf8d6dcd5977c19ecff048762eef819",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 4
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 4
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 4
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 4
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 4
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 4
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_0_hop_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_wrappers_1_hop_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_wrappers_1_hop_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_wrappers_1_hop_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:8:1-8:46"
+          },
+          "finding_id": "ce9244dd8912562f5e302d8e5dcc35c9ff85ba9978ea2822f4c0133122a81ba3",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 1,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 23,
+                    "line": 9
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 9
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 8
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 8
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 8
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_1_hop_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_wrappers_3_hop_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_wrappers_3_hop_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_wrappers_3_hop_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:14:1-14:46"
+          },
+          "finding_id": "19a0661b278b1a0fd2052ea824950093d8d94df5ccd153a63f4f3f7c2220484d",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "hop1",
+              "hop2",
+              "hop3",
+              "sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 4,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 14
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 14
+                  }
+                }
+              },
+              {
+                "function": "hop1",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 23,
+                    "line": 15
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 15
+                  }
+                }
+              },
+              {
+                "function": "hop2",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 12
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 12
+                  }
+                }
+              },
+              {
+                "function": "hop3",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 10
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 14
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 14
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 14
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 14
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_3_hop_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_wrappers_5_hop_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_wrappers_5_hop_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_wrappers_5_hop_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:18:1-18:46"
+          },
+          "finding_id": "e353fd4f1cc9d3cf4d67ccd4792d2f7b2e749a6860010c122c4f43ee8041c08c",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "hop1",
+              "hop2",
+              "hop3",
+              "hop4",
+              "hop5",
+              "sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 6,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 18
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 18
+                  }
+                }
+              },
+              {
+                "function": "hop1",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 23,
+                    "line": 19
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 19
+                  }
+                }
+              },
+              {
+                "function": "hop2",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 16
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 16
+                  }
+                }
+              },
+              {
+                "function": "hop3",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 14
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 14
+                  }
+                }
+              },
+              {
+                "function": "hop4",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 12
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 12
+                  }
+                }
+              },
+              {
+                "function": "hop5",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 10
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 63,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 45,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 18
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 18
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 18
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 18
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_wrappers_5_hop_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "call_wrong_value_guard_positive",
+      "crate_name": "unsoundaudit_v2_challenge_call_wrong_value_guard_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_call_wrong_value_guard_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:5:15-5:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:16:1-16:62"
+          },
+          "finding_id": "14dbeb893a8b57d86b2a113514ebeb2df62862d888e42cd1bc256f561413a70f",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "guard_other_value",
+              "sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 2,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 62,
+                    "line": 16
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 16
+                  }
+                }
+              },
+              {
+                "function": "guard_other_value",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 45,
+                    "line": 17
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 17
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 23,
+                    "line": 13
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 13
+                  }
+                }
+              },
+              {
+                "function": "sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 5
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 62,
+                "line": 16
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 16
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 5
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 62,
+                "line": 16
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 16
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_call_wrong_value_guard_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "cfg_diamond_all_paths_guard_negative",
+      "crate_name": "unsoundaudit_v2_challenge_cfg_diamond_all_paths_guard_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_cfg_diamond_all_paths_guard_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "cfg_diamond_one_branch_guard_positive",
+      "crate_name": "unsoundaudit_v2_challenge_cfg_diamond_one_branch_guard_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_cfg_diamond_one_branch_guard_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:11:15-11:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:11:15-11:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:3:1-3:64"
+          },
+          "finding_id": "be93cdb348980b18cf02033ff1498a3276929858794b91a3650603c5174d4094",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 11
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 64,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 11
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 11
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 64,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 11
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 11
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 64,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_cfg_diamond_one_branch_guard_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "cfg_guard_then_one_path_write_positive",
+      "crate_name": "unsoundaudit_v2_challenge_cfg_guard_then_one_path_write_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:1",
+            "crate": "unsoundaudit_v2_challenge_cfg_guard_then_one_path_write_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:10:15-10:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:10:15-10:41",
+            "source_origin": "public_parameter:arg:1@src/lib.rs:3:1-3:65"
+          },
+          "finding_id": "e8ba61e395f1a6f0f0221a62a802d8b3fae527ce257a217cf1940b4782613b00",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:1"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 65,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 10
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 10
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 65,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 10
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 10
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:1",
+            "span": {
+              "end": {
+                "column": 65,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_cfg_guard_then_one_path_write_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "cfg_loop_invariant_guard_negative",
+      "crate_name": "unsoundaudit_v2_challenge_cfg_loop_invariant_guard_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_cfg_loop_invariant_guard_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "cfg_loop_reassignment_positive",
+      "crate_name": "unsoundaudit_v2_challenge_cfg_loop_reassignment_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:1",
+            "crate": "unsoundaudit_v2_challenge_cfg_loop_reassignment_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:12:15-12:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:12:15-12:41",
+            "source_origin": "public_parameter:arg:1@src/lib.rs:3:1-3:65"
+          },
+          "finding_id": "54039a5e33d7c4d99e71960e3fb179c13d13f862db119cf4054ad902aadf7136",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 12
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 12
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:1"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 65,
+                    "line": 3
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 3
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 12
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 12
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 65,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 12
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 15,
+                "line": 12
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:1",
+            "span": {
+              "end": {
+                "column": 65,
+                "line": 3
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 3
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_cfg_loop_reassignment_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "guard_bounds_assert_negative",
+      "crate_name": "unsoundaudit_v2_challenge_guard_bounds_assert_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_guard_bounds_assert_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "guard_bounds_lt_negative",
+      "crate_name": "unsoundaudit_v2_challenge_guard_bounds_lt_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_guard_bounds_lt_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "guard_nonempty_len_negative",
+      "crate_name": "unsoundaudit_v2_challenge_guard_nonempty_len_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_guard_nonempty_len_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "guard_nonnull_match_negative",
+      "crate_name": "unsoundaudit_v2_challenge_guard_nonnull_match_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_guard_nonnull_match_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "guard_range_checked_add_negative",
+      "crate_name": "unsoundaudit_v2_challenge_guard_range_checked_add_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_guard_range_checked_add_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "opaque_closure_negative",
+      "crate_name": "unsoundaudit_v2_challenge_opaque_closure_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_opaque_closure_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "opaque_dyn_negative",
+      "crate_name": "unsoundaudit_v2_challenge_opaque_dyn_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_opaque_dyn_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "opaque_external_negative",
+      "crate_name": "unsoundaudit_v2_challenge_opaque_external_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_opaque_external_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "opaque_fn_pointer_negative",
+      "crate_name": "unsoundaudit_v2_challenge_opaque_fn_pointer_negative",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 0,
+      "findings": [],
+      "package_name": "unsoundaudit_v2_challenge_opaque_fn_pointer_negative",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 0,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "recursion_direct_positive",
+      "crate_name": "unsoundaudit_v2_challenge_recursion_direct_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_recursion_direct_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:6:19-6:45",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:6:19-6:45",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:12:1-12:60"
+          },
+          "finding_id": "16c1e4fceda7abaa861354ffc6f25153d0ef94bed7ca2bdd1e9b2f525b8c038c",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 45,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 6
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "descend"
+            ],
+            "depth": "recursive",
+            "local_call_count": null,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 60,
+                    "line": 12
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 12
+                  }
+                }
+              },
+              {
+                "function": "descend",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 33,
+                    "line": 13
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 13
+                  }
+                }
+              },
+              {
+                "function": "scc:[descend]",
+                "kind": "scc_cycle",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 9,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "descend",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 45,
+                    "line": 6
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 19,
+                    "line": 6
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 60,
+                "line": 12
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 12
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 45,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 6
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 60,
+                "line": 12
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 12
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_recursion_direct_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "recursion_mutual_positive",
+      "crate_name": "unsoundaudit_v2_challenge_recursion_mutual_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_recursion_mutual_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:6:19-6:45",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:6:19-6:45",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:17:1-17:60"
+          },
+          "finding_id": "88bb8f729225aa312cd24084cf4783e00ec7993ffc4288d4c7cc225527dd0cd1",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 45,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 6
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "left",
+              "right"
+            ],
+            "depth": "recursive",
+            "local_call_count": null,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 60,
+                    "line": 17
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 17
+                  }
+                }
+              },
+              {
+                "function": "right",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 31,
+                    "line": 18
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 18
+                  }
+                }
+              },
+              {
+                "function": "scc:[left,right]",
+                "kind": "scc_cycle",
+                "span": {
+                  "end": {
+                    "column": 39,
+                    "line": 8
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 9,
+                    "line": 8
+                  }
+                }
+              },
+              {
+                "function": "left",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 30,
+                    "line": 14
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 14
+                  }
+                }
+              },
+              {
+                "function": "left",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 45,
+                    "line": 6
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 19,
+                    "line": 6
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 60,
+                "line": 17
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 17
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 45,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 19,
+                "line": 6
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 60,
+                "line": 17
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 17
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_recursion_mutual_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "span_include_stable_positive",
+      "crate_name": "unsoundaudit_v2_challenge_span_include_stable_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_span_include_stable_positive",
+            "first_contract_failure": "get_unchecked@src/included_sink.rs:3:15-3:41",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/included_sink.rs:3:15-3:41",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:5:1-5:46"
+          },
+          "finding_id": "908fea03dc86a07d629fb813def24d4c8524eadab8fa6141e6781d5f7de4329e",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 3
+              },
+              "path": "src/included_sink.rs",
+              "start": {
+                "column": 15,
+                "line": 3
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [
+              "included_sink"
+            ],
+            "depth": "inter_procedural",
+            "local_call_count": 1,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 5
+                  }
+                }
+              },
+              {
+                "function": "included_sink",
+                "kind": "local_call",
+                "span": {
+                  "end": {
+                    "column": 32,
+                    "line": 6
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 6
+                  }
+                }
+              },
+              {
+                "function": "included_sink",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 41,
+                    "line": 3
+                  },
+                  "path": "src/included_sink.rs",
+                  "start": {
+                    "column": 15,
+                    "line": 3
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 5
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 41,
+                "line": 3
+              },
+              "path": "src/included_sink.rs",
+              "start": {
+                "column": 15,
+                "line": 3
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 5
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_span_include_stable_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    },
+    {
+      "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "case_id": "span_macro_stable_positive",
+      "crate_name": "unsoundaudit_v2_challenge_span_macro_stable_positive",
+      "crate_types": [
+        "lib"
+      ],
+      "finding_count": 1,
+      "findings": [
+        {
+          "causal_key": {
+            "canonical_obligation": "in_bounds:arg:2",
+            "crate": "unsoundaudit_v2_challenge_span_macro_stable_positive",
+            "first_contract_failure": "get_unchecked@src/lib.rs:6:5-6:34",
+            "public_root": "read",
+            "sink_or_exposure": "get_unchecked@src/lib.rs:6:5-6:34",
+            "source_origin": "public_parameter:arg:2@src/lib.rs:5:1-5:46"
+          },
+          "finding_id": "39d2ddbdfa2d65d7dcffb06dee2bb6ec49985ed63c80a25b121da0106f28f188",
+          "first_contract_failure": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 34,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 6
+              }
+            }
+          },
+          "heuristic_candidate_generator": true,
+          "limitations": [
+            "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+          ],
+          "obligation": {
+            "predicates": [
+              "in_bounds"
+            ],
+            "subject": "arg:2"
+          },
+          "primary_pattern": "pattern1",
+          "propagation": {
+            "boundaries": [],
+            "depth": "intra_procedural",
+            "local_call_count": 0,
+            "witness": [
+              {
+                "function": "read",
+                "kind": "entry",
+                "span": {
+                  "end": {
+                    "column": 46,
+                    "line": 5
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 1,
+                    "line": 5
+                  }
+                }
+              },
+              {
+                "function": "read",
+                "kind": "sink",
+                "span": {
+                  "end": {
+                    "column": 34,
+                    "line": 6
+                  },
+                  "path": "src/lib.rs",
+                  "start": {
+                    "column": 5,
+                    "line": 6
+                  }
+                }
+              }
+            ]
+          },
+          "public_safe_root": {
+            "def_path": "read",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 5
+              }
+            }
+          },
+          "rule_id": "P1.get_unchecked",
+          "secondary_source_kinds": [],
+          "sink": {
+            "kind": "get_unchecked",
+            "span": {
+              "end": {
+                "column": 34,
+                "line": 6
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 5,
+                "line": 6
+              }
+            }
+          },
+          "source": {
+            "kind": "public_parameter",
+            "origin_key": "arg:2",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 5
+              },
+              "path": "src/lib.rs",
+              "start": {
+                "column": 1,
+                "line": 5
+              }
+            }
+          },
+          "validation_status": {
+            "facts": [],
+            "status": "missing"
+          }
+        }
+      ],
+      "package_name": "unsoundaudit_v2_challenge_span_macro_stable_positive",
+      "package_version": "0.1.0",
+      "pattern_counts": {
+        "pattern1": 1,
+        "pattern2": 0,
+        "pattern3": 0,
+        "pattern4": 0,
+        "pattern5": 0,
+        "pattern6": 0
+      },
+      "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_kind": "lib",
+      "target_triple": ""
+    }
+  ],
+  "challenge_count": 27,
+  "schema_version": "rap-challenge-suite-v1"
+}
