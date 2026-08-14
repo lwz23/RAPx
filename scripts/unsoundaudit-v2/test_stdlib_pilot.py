@@ -21,6 +21,7 @@ PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol.json"
 PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
 PROTOCOL_V3 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v3.json"
 PROTOCOL_V4 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json"
+PROTOCOL_V5 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v5.json"
 V3_FAILURE = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/core.v3.failure.json"
 V4_ROOT = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4"
 SUPPRESSION_ALLOWLIST = V4_ROOT / "noise-audit/suppression_allowlist.json"
@@ -201,7 +202,20 @@ class PilotProtocolTests(unittest.TestCase):
             self.assertNotIn("--profile", arguments)
 
     def test_v5_protocol_adds_only_the_closed_suppression_contract(self) -> None:
-        value = v5_protocol()
+        value = pilot.load_protocol(PROTOCOL_V5)
+        previous = pilot.load_protocol(PROTOCOL_V4)
+        self.assertEqual(
+            {key for key in value if previous.get(key) != value[key]},
+            {"schema_version", "rap_source_commit", "sample_seed", "suppression"},
+        )
+        self.assertEqual(
+            value["rap_source_commit"],
+            "470b650897d77fa60b3ff4afa07b905dd2d52f14",
+        )
+        self.assertEqual(
+            value["sample_seed"],
+            "unsoundaudit-v2-stdlib-suppression-v5-2026-08-14",
+        )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "v5.json"
             path.write_bytes(pilot.canonical_json(value))
