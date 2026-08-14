@@ -1,0 +1,3226 @@
+{
+  "candidate_family_count": 41,
+  "changed_source_file_count": 484,
+  "classification_boundary": "pending/not_reviewed/not_reaudited are prioritization states, not safety classifications",
+  "current_family_count": 41,
+  "current_finding_count": 207,
+  "high_value_signal_count": 0,
+  "historical_family_count": 41,
+  "historical_finding_count": 269,
+  "new_family_count": 38,
+  "next_units": {
+    "alloc": "not_started",
+    "std": "not_started"
+  },
+  "not_reaudited_family_ids": [],
+  "not_reviewed_feasibility_budget": [
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs",
+        "library/core/src/io/impls.rs"
+      ],
+      "family_id": "070a9cd3092fce95c2e973104f770454f9cdab49cdb4f01c0347f349b2451c03",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 267
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 18,
+              "line": 267
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 267
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 18,
+              "line": 267
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 5,
+      "finding_ids": [
+        "1672f6e46ef75241ba1ba42712fd2b84379b71f756cc74465df40fb25b6c5e75",
+        "3342b858a15becbd4ae19389a79fd8122ccfa655ddaaa75e1cbff9e9b41b7469",
+        "412799542ceb4572958ecb7ff57b5b52fddf110077df29e72b7e4bb26c855226",
+        "8b60b290663ebacdc296b39450c1ae0cae121d65b51db439cca061b03e57b063",
+        "8da4c43cf13d500091bb609ea9a6feb86e6adcc4b871b6437f17249348fbcdbb"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedCursor::<'a, T>::append",
+        "io::impls::<impl io::write::Write for io::borrowed_buf::BorrowedCursor<'a, u8>>::write",
+        "io::impls::<impl io::write::Write for io::borrowed_buf::BorrowedCursor<'a, u8>>::write_all",
+        "io::impls::<impl io::write::Write for io::borrowed_buf::BorrowedCursor<'a, u8>>::write_all_vectored",
+        "io::impls::<impl io::write::Write for io::borrowed_buf::BorrowedCursor<'a, u8>>::write_vectored"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "070a9cd3092fce95c2e973104f770454f9cdab49cdb4f01c0347f349b2451c03"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs",
+        "library/core/src/io/impls.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "185ba7b2312ac77e0257abe33029cb6e6d7650b34df5bb7aeafe4c8cbf47ed04",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 74,
+              "line": 75
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 27,
+              "line": 75
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 74,
+              "line": 75
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 27,
+              "line": 75
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "8b5ff93bd211d7cf9aa2b07f11a63f0dad1b12423f86022b0a6f23b3689359a4"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<io::borrowed_buf::BorrowedBuf<'data, T> as convert::From<io::borrowed_buf::BorrowedCursor<'data, T>>>::from"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "185ba7b2312ac77e0257abe33029cb6e6d7650b34df5bb7aeafe4c8cbf47ed04"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "1a599009f291ac5d809f92356fddad5cb3828d7558e4fccd8b58bd8488a35c7e",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 129
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 129
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 129
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 129
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "5fe9c7307174168e9845fa257e607bcce6beef46fb87303ef86cf177bdc544ef"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedBuf::<'data, T>::into_filled"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "1a599009f291ac5d809f92356fddad5cb3828d7558e4fccd8b58bd8488a35c7e"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "3dd65d9ad3bd5089810ab7b87e740b886c6a74196695c003339d2df20dc26992",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 82,
+              "line": 366
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 33,
+              "line": 366
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 82,
+              "line": 366
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 33,
+              "line": 366
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "42abd2a36f2d4ce39bc6e34246a85bafe25af587fc9df45ee733487b2dc8f876"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedCursor::<'a, T>::ensure_init"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "3dd65d9ad3bd5089810ab7b87e740b886c6a74196695c003339d2df20dc26992"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "family_id": "53c1778aee9be1665220de49306a3aff7c376fb0bf5b07946b9d1acd6b7b281b",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 50,
+              "line": 813
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 17,
+              "line": 813
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 50,
+              "line": 813
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 17,
+              "line": 813
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:fmt::num_buffer::NumBuffer::buf",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "0a56e1afcae86746a214be196e7cb77ae747286e30407ccc2ce3dbe1f478728b"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "fmt::num::<impl i128>::format_into"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "53c1778aee9be1665220de49306a3aff7c376fb0bf5b07946b9d1acd6b7b281b"
+      ],
+      "source_paths": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/iter/adapters/array_chunks.rs",
+        "library/core/src/ops/index_range.rs"
+      ],
+      "family_id": "5a4e9bea0717b0286543dffa8c31da04bf0af280f15ce11b6b4e58aa0e83861e",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 72,
+              "line": 185
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 185
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 72,
+              "line": 185
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 185
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:ops::index_range::IndexRange::end",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 4,
+      "finding_ids": [
+        "0f6a0b7ef27cf6d0fdfc45bae2a9738cf5d9d35cf704a5ee52bde73ae4136b6d",
+        "cbeb527fbc6ae103d37349bd914512505d540e9cacb6599ac7dfcd27a0a0ca49",
+        "edcc2285b269c8567f5ae3395a68e93b7a2334533daff0705c8e25c1079947b9",
+        "f3ba4167bb6a7f3895dc5f0a9cdc8f71db41e9f3839ad7fedbae56a25d4e62bc"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<iter::adapters::array_chunks::ArrayChunks<I, N> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "<iter::adapters::array_chunks::ArrayChunks<I, N> as iter::traits::double_ended::DoubleEndedIterator>::rfold",
+        "<iter::adapters::array_chunks::ArrayChunks<I, N> as iter::traits::double_ended::DoubleEndedIterator>::try_rfold",
+        "array::iter::IntoIter::<T, N>::as_mut_slice"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "5a4e9bea0717b0286543dffa8c31da04bf0af280f15ce11b6b4e58aa0e83861e"
+      ],
+      "source_paths": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/iter/adapters/array_chunks.rs",
+        "library/core/src/ops/index_range.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "60c271d50db1d38b02226a0ceb5166dd10c746de621b9357c0e475689e70b71b",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 74,
+              "line": 75
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 27,
+              "line": 75
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 74,
+              "line": 75
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 27,
+              "line": 75
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "714d26f0b7813cde9dca91e2a2b0305e4787695859c82ed3486fc4bf3f64196d"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedCursor::<'a, T>::with_unfilled_buf"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "60c271d50db1d38b02226a0ceb5166dd10c746de621b9357c0e475689e70b71b"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/ops/index_range.rs"
+      ],
+      "family_id": "6b5435a6903210393438c4a7a57c3a5682a8bdcfb6bb2acd691986aff95fb8b9",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 68,
+              "line": 175
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 175
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 68,
+              "line": 175
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 175
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:ops::index_range::IndexRange::end",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 2,
+      "finding_ids": [
+        "328d6b6a05f9f266da2ca310e1eba22c4e4cffa95a5641e3165ad2e92593ea55",
+        "4534bdf673c36126559cd199a3af124915fe38b93a18882e5b9dd444c3fb9c49"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<array::iter::IntoIter<T, N> as fmt::Debug>::fmt",
+        "array::iter::IntoIter::<T, N>::as_slice"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "6b5435a6903210393438c4a7a57c3a5682a8bdcfb6bb2acd691986aff95fb8b9"
+      ],
+      "source_paths": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/ops/index_range.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "83f16b5ccd36f97da26626cea6fbcd5538f597844e4ba7412c7055fc6b9f8f7f",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 119
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 119
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 119
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 119
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "eda13ec393da65a3e100d2bc72747863efc0ef407d6ba694367870b7b9fed54e"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedBuf::<'data, T>::filled_mut"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "83f16b5ccd36f97da26626cea6fbcd5538f597844e4ba7412c7055fc6b9f8f7f"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "family_id": "859abbeb3319f2ae329feef86f85856fda5a3cb7aacef7700d95c065574c1d74",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 115
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 28,
+              "line": 115
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 115
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 28,
+              "line": 115
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:fmt::num_buffer::NumBuffer::buf",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 11,
+      "finding_ids": [
+        "19e20abacdde2b040bc7c4cbb6895e823fbf0ff95cf62b4afcf890b231e3b706",
+        "6b1f4423ba38c3f42edc1abc1015c9c7d3e724951840a48cb64721d9c749efda",
+        "8c5eabf30bad8a4f5ddae61f7dadcc20df5a635d04a162dc5a1c36109df66b64",
+        "8ffbb19f833f7d14a7949679e2b7655102acfffffcef7755a77b1b5dce2a1ea6",
+        "905903d6eace4165ce7ceaf3593254b1aecbd67dfb348c746ee7b080d04a0e43",
+        "9bfef4e1b1e356e315dd0549162b7df5bae899578c0158a5e4dcf38ace6dc4b2",
+        "c74e1aa19658480d02fa7979fe9edf8ead555ed941308c6bb708c64ab488282b",
+        "d12c931a846dc53b95104cad9e65d8a515a6e70e9a7f9481e6a8a34f8bde3cc4",
+        "dfa0fd69baeba1aa396da1f87425a6279e19768d076a362e6ddab356ff7a6629",
+        "e557d72151685f8f76f8a5e26bb9674ec87cd74b43b3b598a1c7b75f0648e6ca",
+        "ee1fbec8e1034650cb906fff4fa96b73ec3449711e1c26dece3cf4878b4af71a"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "fmt::num::<impl i128>::format_into",
+        "fmt::num::imp::<impl i16>::format_into",
+        "fmt::num::imp::<impl i32>::format_into",
+        "fmt::num::imp::<impl i64>::format_into",
+        "fmt::num::imp::<impl i8>::format_into",
+        "fmt::num::imp::<impl isize>::format_into",
+        "fmt::num::imp::<impl u16>::format_into",
+        "fmt::num::imp::<impl u32>::format_into",
+        "fmt::num::imp::<impl u64>::format_into",
+        "fmt::num::imp::<impl u8>::format_into",
+        "fmt::num::imp::<impl usize>::format_into"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "859abbeb3319f2ae329feef86f85856fda5a3cb7aacef7700d95c065574c1d74"
+      ],
+      "source_paths": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "8cd27d35ae9037279eb72048cd68be99675bfcdfdd2a554fa77c32bcc32df135",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 109
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 109
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 109
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 109
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "523a23ecb55140bbd91e3df5f7679c9aa5815f6f2d1d1278e59de864a96e07ff"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedBuf::<'data, T>::filled"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "8cd27d35ae9037279eb72048cd68be99675bfcdfdd2a554fa77c32bcc32df135"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "family_id": "92bf25d67eb8dac0c680daebcc218cec18a053eb82d13c3b4b3fb96b331162f0",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 139
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 139
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 64,
+              "line": 139
+            },
+            "path": "library/core/src/io/borrowed_buf.rs",
+            "start": {
+              "column": 23,
+              "line": 139
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::borrowed_buf::BorrowedBuf::filled",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "8fcb48530a41e9179045c7c6d5e0f6e3075642f3b67e9e3dd03c1f6fb21c5bf5"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::borrowed_buf::BorrowedBuf::<'data, T>::into_filled_mut"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "92bf25d67eb8dac0c680daebcc218cec18a053eb82d13c3b4b3fb96b331162f0"
+      ],
+      "source_paths": [
+        "library/core/src/io/borrowed_buf.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/hash/sip.rs"
+      ],
+      "family_id": "c72a9be1ae763a8fc1dd7775e08f1ed1088381baa082325cfac1a69082499385",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 139
+            },
+            "path": "library/core/src/hash/sip.rs",
+            "start": {
+              "column": 27,
+              "line": 139
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 55,
+              "line": 139
+            },
+            "path": "library/core/src/hash/sip.rs",
+            "start": {
+              "column": 27,
+              "line": 139
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:hash::sip::Hasher::ntail",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 4,
+      "finding_ids": [
+        "295e2509f9f7331fc60b26538e0efcabbac7b345836fa33e1acd403723819e76",
+        "4d9fbd8e9e71cf7e5becf962abe89fb25188ac29d99316ad2069014eeddfdee1",
+        "9adf8da8e4ae9e938845386989c6035b527467f6130bd579b015c6784dc5b2be",
+        "d444756461aabd39bedd690353e27138c3648b90842674b761268dbdd8242596"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<hash::sip::SipHasher as hash::Hasher>::write",
+        "<hash::sip::SipHasher as hash::Hasher>::write_str",
+        "<hash::sip::SipHasher13 as hash::Hasher>::write",
+        "<hash::sip::SipHasher13 as hash::Hasher>::write_str"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "c72a9be1ae763a8fc1dd7775e08f1ed1088381baa082325cfac1a69082499385"
+      ],
+      "source_paths": [
+        "library/core/src/hash/sip.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "family_id": "efc0d6e0d22104830c383528b381795d3be688044411093709d9a3412ba19235",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 61,
+              "line": 772
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 28,
+              "line": 772
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 61,
+              "line": 772
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 28,
+              "line": 772
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:fmt::num_buffer::NumBuffer::buf",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "f23f01abb6cfd76ea3d5619edceb06300dd9b8332729efcf83bc1aef8154f896"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "fmt::num::<impl u128>::format_into"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "efc0d6e0d22104830c383528b381795d3be688044411093709d9a3412ba19235"
+      ],
+      "source_paths": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/array/mod.rs",
+        "library/core/src/char/methods.rs",
+        "library/core/src/option.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "family_id": "f2e1107bd1a431c7fa7fb3e46816b0523580315691b3cf7c1ef57e0375bd94e0",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 63,
+              "line": 954
+            },
+            "path": "library/core/src/array/mod.rs",
+            "start": {
+              "column": 13,
+              "line": 954
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 63,
+              "line": 954
+            },
+            "path": "library/core/src/array/mod.rs",
+            "start": {
+              "column": 13,
+              "line": 954
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:array::Guard::initialized",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 42,
+      "finding_ids": [
+        "00cbfc4aa1628b27a006bf01779bdaedb470427c68752d2e7b6f95578effb235",
+        "15728d6014d6e44ca14088a9fcff7c7a901af7832716407f180d87f65360134d",
+        "1d2840a74e986b5c33189ac728927157cfa7d350116e0ab288e0cddcbc517e05",
+        "21056010cda0697b548ea882809044ae8254af63e5ccd2991195dc0f5cc01f89",
+        "29201bc7e660d25e4301baec528ef9d1da7a97fa53bbad9862fddb10936231b4",
+        "2b38f6150a8190607525a2b9d79d23f01babcb2e844f7aff8da973509fe11a60",
+        "3937ef54e8ff2d3af3043265c53147cb174ee218fc0fcb287243c59754b12501",
+        "42654f0740f5b07676584be7ba69c724e1450979ded1df16a9a672d71831dcf5",
+        "5227e7cb1c96efb0c1d4108db390c1b2b0e05cc5b4756f4cf57f6bf8ce61db6e",
+        "5e01f948717a25b6f030f68ac7e5560f80a76318feb7c6250e552c5d323b5856",
+        "5f23919055424f668e949015398712987fe2a14d8db7530642cbd5c74ba1c24d",
+        "647c868432baa82893305bc4391cd275f4ab5acbffabfba0b8ffb2e73ce70652",
+        "64a34b760f04a360111745f770cc8976492ff706075c72d27004592704e5e6c9",
+        "671c9d3143f5cb9eb878b3aa6e0426a2a78e4a44f3ab6493c1e3806fd4d0d0fe",
+        "690642340b9377b81554b4948e8a9d47c7708733f5a82b4fbf2c2269b0813f93",
+        "6dc0d3248a5592eda5cb70dec640f8ffeb9bf387bf32bf69bdf1f555f58b22fd",
+        "816050199bb4fe863071a4127f24f0d0f57f9d374d5d01d48a479388948c9616",
+        "8e3350fee8c05a44a212938d1a021ba0fef000106870b19f455b8750ba681309",
+        "9183adc0c0e20f42643e6591e7e5b5af3dfd7604a05f6e931c338f281e96767c",
+        "95965c702680fe72b4594dc62ec316a3b3d012b1049bd80a21299b2c7588741d",
+        "976a7e49d38d7892953efcb86d9bae757e5b987397a83acfbaf5c716d1aed192",
+        "9d1b69ce0e710298073ef5627611b8e67c973665b4da2358a0060eca4e7190c9",
+        "9e88c63649f1b7811a12117a63de7a6b2003179df1df100a29991d77e40c7018",
+        "ac45127cc96d878cf99625fce309acbac0d4e751ed503cbad8a21ba7193704c6",
+        "afa4c15129eeb697613d773124af9302b61c59f37728d9171972b01410227b18",
+        "b2a27f8d06871ea0773df2f9b33235cdc2335765094fcb752e95ca592a3206e2",
+        "ba93b0061c2a6c8828615f4910a1756083f48cdaa6f346ced9789c3a30b45d54",
+        "be5a0283dd1ec4c37766205fb0c20c7bcc086ea0400ee3c41d2aac255764c4b2",
+        "bef4a5205741c19802ff54cc670e3f12b7dfc54aefbe9dfa45356a80ec20f889",
+        "c253c264d7af5622183152c887f05ffb0094de8a802232710f8aa588d13adcaa",
+        "c563659d2ea6c33c356aa00784c0bb78da53d74ec3ca8b6d3ad5047913f4fab0",
+        "c5d6aa81c1eb58569e8b9e017ee87e8baeb495151911c4415aeb387c3b6bd3cb",
+        "ccf280d7b8ae54db3de5f5070002e9632634a97563713459ee559a961788d03e",
+        "cf653261ab94b1ec88993dad01c99057e51f98950d622854b5596fe95058f1ac",
+        "d221a447e936b660a2f8cbd29c60da32413241fc503e7e240c71f681dc57792a",
+        "d9e9bc12502b41c69bceeba18f427e8cfb241055a0cb91e035cf7c859f6950cb",
+        "de3851b4b42d67c90abe13aa4f30e6c682a073e4481f02a162aea9c946803a1a",
+        "e1ba4129486be58bdf80a966b607d7995a79e817f9f55dfd9d98bf3677936ae7",
+        "e1f83f49067515561e757cd2b62efec47e92e720b9d0c21d47899311b6114618",
+        "ef76f8be974c9a5b5a632cd0bef8a7e6a3c53b5727827d303a75b197ba18e5a6",
+        "f3ba25ec3f58b3b0f10b022b8f7cc8c7583a21201784e47fbc65d3871ce81286",
+        "fd2b37c3b1fc63110fde4670eaf60f8515491dd03f39c60a5b9e61433ef8baa9"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<[option::Option<T>; N]>::transpose",
+        "<core_arch::aarch64::neon::float64x1_t as fmt::Debug>::fmt",
+        "<core_arch::aarch64::neon::float64x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::float16x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::float16x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::float32x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::float32x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int16x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int16x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int32x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int32x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int64x1_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int64x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int8x16_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::int8x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly16x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly16x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly64x1_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly64x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly8x16_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::poly8x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint16x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint16x8_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint32x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint32x4_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint64x1_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint64x2_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint8x16_t as fmt::Debug>::fmt",
+        "<core_arch::arm_shared::neon::uint8x8_t as fmt::Debug>::fmt",
+        "array::<impl [T; N]>::map",
+        "array::<impl [T; N]>::try_map",
+        "array::from_fn",
+        "array::repeat",
+        "array::try_from_fn",
+        "char::methods::<impl char>::to_casefold_unnormalized",
+        "char::methods::<impl char>::to_lowercase",
+        "char::methods::<impl char>::to_titlecase",
+        "char::methods::<impl char>::to_uppercase",
+        "unicode::unicode_data::conversions::to_casefold",
+        "unicode::unicode_data::conversions::to_lower",
+        "unicode::unicode_data::conversions::to_title",
+        "unicode::unicode_data::conversions::to_upper"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "f2e1107bd1a431c7fa7fb3e46816b0523580315691b3cf7c1ef57e0375bd94e0"
+      ],
+      "source_paths": [
+        "library/core/src/array/mod.rs",
+        "library/core/src/char/methods.rs",
+        "library/core/src/option.rs",
+        "library/core/src/unicode/unicode_data.rs",
+        "library/stdarch/crates/core_arch/src/aarch64/neon/mod.rs",
+        "library/stdarch/crates/core_arch/src/arm_shared/neon/mod.rs",
+        "library/stdarch/crates/core_arch/src/simd.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "family_id": "faf29e8715fffaa34ed57b8137409f5d97bc8b0dd6d9936713ff168ed09a47bc",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 86,
+              "line": 805
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 53,
+              "line": 805
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 86,
+              "line": 805
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 53,
+              "line": 805
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:fmt::num_buffer::NumBuffer::buf",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "db606358ac419ad2239bfb4711cea1876670109e42aab609cdb168fb9b47fbfa"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "fmt::num::<impl i128>::format_into"
+      ],
+      "review_rank": [
+        0,
+        "P4.bounds",
+        "faf29e8715fffaa34ed57b8137409f5d97bc8b0dd6d9936713ff168ed09a47bc"
+      ],
+      "source_paths": [
+        "library/core/src/fmt/num.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/any.rs"
+      ],
+      "family_id": "c5a386761278be60cee602b29b3d126d6f2f7df26331262ec1c95f5da4076294",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "read_unaligned",
+          "span": {
+            "end": {
+              "column": 92,
+              "line": 863
+            },
+            "path": "library/core/src/any.rs",
+            "start": {
+              "column": 22,
+              "line": 863
+            }
+          }
+        },
+        "predicates": [
+          "range_in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.offset",
+        "sink": {
+          "kind": "read_unaligned",
+          "span": {
+            "end": {
+              "column": 92,
+              "line": 863
+            },
+            "path": "library/core/src/any.rs",
+            "start": {
+              "column": 22,
+              "line": 863
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:any::TypeId::data",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "6079262a58047ca98c11a3f0a8a93b88fc62fa69f369cadaf66c3ef3eddce3b9"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<any::TypeId as hash::Hash>::hash"
+      ],
+      "review_rank": [
+        0,
+        "P4.offset",
+        "c5a386761278be60cee602b29b3d126d6f2f7df26331262ec1c95f5da4076294"
+      ],
+      "source_paths": [
+        "library/core/src/any.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/any.rs",
+        "library/core/src/mem/type_info.rs"
+      ],
+      "family_id": "c9d3fc8106c52bbf3c197466956671f82aa087e5b340d1662ec5f75a06f131c8",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "read_unaligned",
+          "span": {
+            "end": {
+              "column": 92,
+              "line": 863
+            },
+            "path": "library/core/src/any.rs",
+            "start": {
+              "column": 22,
+              "line": 863
+            }
+          }
+        },
+        "predicates": [
+          "range_in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.offset",
+        "sink": {
+          "kind": "read_unaligned",
+          "span": {
+            "end": {
+              "column": 92,
+              "line": 863
+            },
+            "path": "library/core/src/any.rs",
+            "start": {
+              "column": 22,
+              "line": 863
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:any::TypeId::data",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "4c1a38d5e331c8f68a607ac3de1e9d179e7ac36d2fc437f976acd800fad0ff4a"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<mem::type_info::FieldId as hash::Hash>::hash"
+      ],
+      "review_rank": [
+        0,
+        "P4.offset",
+        "c9d3fc8106c52bbf3c197466956671f82aa087e5b340d1662ec5f75a06f131c8"
+      ],
+      "source_paths": [
+        "library/core/src/any.rs",
+        "library/core/src/mem/type_info.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/quicksort.rs"
+      ],
+      "family_id": "15d89540648c85711045d4d0545116d15dd6481dacbed48528748c6800800fa2",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "recursive",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:slice::sort::stable::drift::DriftsortRun::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "16c1e84251bd9db14eeec9391fcbba5e714671c38a63a6a7d0a326193c41219a"
+      ],
+      "new_family": false,
+      "public_roots": [
+        "slice::sort::stable::quicksort::quicksort"
+      ],
+      "review_rank": [
+        2,
+        "P4.bounds",
+        "15d89540648c85711045d4d0545116d15dd6481dacbed48528748c6800800fa2"
+      ],
+      "source_paths": [
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/quicksort.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/mod.rs"
+      ],
+      "family_id": "2db0f64524bf2b071dff2d8b2427f94eb3207c1026aaa5ab5a106b4c9a6f9173",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:slice::sort::stable::drift::DriftsortRun::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "4f94d9ab26938b370470da9c5fe4fdb9f78dcb20be3d6f7a2013e2c8c2c4205a"
+      ],
+      "new_family": false,
+      "public_roots": [
+        "slice::sort::stable::sort"
+      ],
+      "review_rank": [
+        2,
+        "P4.bounds",
+        "2db0f64524bf2b071dff2d8b2427f94eb3207c1026aaa5ab5a106b4c9a6f9173"
+      ],
+      "source_paths": [
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/mod.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/slice/sort/stable/drift.rs"
+      ],
+      "family_id": "6c13690f011ac9c2037143433aae9b8aab888a8b3b76afe498fcd871d1e2c229",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 81,
+              "line": 93
+            },
+            "path": "library/core/src/slice/sort/stable/drift.rs",
+            "start": {
+              "column": 35,
+              "line": 93
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:slice::sort::stable::drift::DriftsortRun::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "582105389407b349e8af95acee51ffbc18b495e5ceed6f4e67e4f3f7644a961d"
+      ],
+      "new_family": false,
+      "public_roots": [
+        "slice::sort::stable::drift::sort"
+      ],
+      "review_rank": [
+        2,
+        "P4.bounds",
+        "6c13690f011ac9c2037143433aae9b8aab888a8b3b76afe498fcd871d1e2c229"
+      ],
+      "source_paths": [
+        "library/core/src/slice/sort/stable/drift.rs"
+      ],
+      "status": "not_reviewed_feasibility_budget"
+    }
+  ],
+  "poc_status": "not_started_no_remaining_hypothesis",
+  "proof_groups": {
+    "array_into_iter_alive_range": {
+      "bounds_or_initialization_proof": "PolymorphicIter maintains start <= end <= N and exactly data[alive] initialized. take_prefix and take_suffix return subsets of that same alive range before the unchecked drop; their lengths are min(n, old_len), so n - returned_len cannot underflow.",
+      "callback_and_mutation_proof": "The alive range is updated before element drop glue can run. Character case iterators only delegate to the same private IntoIter state.",
+      "safe_public_boundary": "Safe array IntoIterator construction initializes all N elements and sets alive to 0..N. The partial-array constructor remains unsafe and is outside the safe-public claim.",
+      "same_object_proof": "The returned IndexRange and the unchecked slice are both derived from the same private PolymorphicIter data array.",
+      "source_locations": [
+        "library/core/src/array/iter.rs:44-77",
+        "library/core/src/array/iter/iter_inner.rs:30-80",
+        "library/core/src/array/iter/iter_inner.rs:230-242",
+        "library/core/src/array/iter/iter_inner.rs:288-300",
+        "library/core/src/ops/index_range.rs:79-117"
+      ],
+      "unwind_proof": "Removing the selected region from alive before assume_init_drop means an element destructor panic leaves the iterator owning only the disjoint remaining initialized region; iterator drop cannot double-drop the removed region."
+    },
+    "ascii_fixed_chunks": {
+      "bounds_or_initialization_proof": "as_chunks::<64> and as_chunks::<16> yield references to exact-size initialized arrays. The four NEON loads are at offsets 0, 16, 32, and 48 of a 64-byte array; the tail load starts at an exact 16-byte array.",
+      "callback_and_mutation_proof": "The checks contain no user callback and operate through an immutable byte slice for the duration of all loads.",
+      "safe_public_boundary": "The public array, slice, str, and Wtf8 ASCII predicates pass valid immutable byte slices; as_ascii performs the predicate before the representation-preserving cast.",
+      "same_object_proof": "Every SIMD pointer is obtained directly from the fixed chunk returned from the exact input slice.",
+      "source_locations": [
+        "library/core/src/array/ascii.rs:18-43",
+        "library/core/src/slice/ascii.rs:10-50",
+        "library/core/src/slice/ascii.rs:603-642"
+      ],
+      "unwind_proof": "The intrinsic loads and integer reductions do not invoke user code or destructors; a failed ASCII test returns before any unsafe ASCII reference is constructed."
+    },
+    "binary_search_indices": {
+      "bounds_or_initialization_proof": "slice::binary_search_by returns Ok(idx) only for an element selected inside the searched slice. Both unchecked LUT accesses consume that exact Ok index; the preceding l1_luts access is safe and may return early. The generic binary search maintains mid < self.len().",
+      "callback_and_mutation_proof": "The Unicode comparator closes over immutable scalar input and static tables. It cannot resize, relocate, or mutate the searched slice.",
+      "safe_public_boundary": "All conversion roots accept a valid char and query immutable generated Unicode tables.",
+      "same_object_proof": "Each Ok index is returned by binary_search on the same singles or multis slice subsequently indexed unchecked.",
+      "source_locations": [
+        "library/core/src/slice/mod.rs:2984-3020",
+        "library/core/src/unicode/unicode_data.rs:937-984",
+        "library/core/src/unicode/unicode_data.rs:998-1033"
+      ],
+      "unwind_proof": "A comparator panic unwinds out of binary_search before it returns Ok, so neither unchecked access is reached."
+    },
+    "initialized_value_moves": {
+      "bounds_or_initialization_proof": "mem::replace reads through an exclusive reference to an initialized T and immediately writes the initialized replacement without a panic point. mem::take delegates to replace. ManuallyDrop::into_inner consumes a valid ManuallyDrop<T>. IoSlice removal counts cannot exceed the slice length, rotations assert their split and operate within the original slice, and RangeFrom replaces its valid start value.",
+      "callback_and_mutation_proof": "No user callback runs between the raw read and replacement write. Rotation performs raw moves without invoking T::Drop; IoSlice advance checks precede mutation.",
+      "safe_public_boundary": "The scoped roots receive safe references or owned valid Rust values. Producing an invalid T, invalid reference, or invalid ManuallyDrop<T> would already require violating an unsafe caller obligation.",
+      "same_object_proof": "Every raw read is from the exact referenced or owned storage being consumed or immediately replaced; slice and IoSlice state updates derive from that same storage.",
+      "source_locations": [
+        "library/core/src/io/io_slice.rs:121-140",
+        "library/core/src/io/io_slice.rs:279-300",
+        "library/core/src/io/write.rs:278-292",
+        "library/core/src/mem/manually_drop.rs:186-204",
+        "library/core/src/mem/mod.rs:894-895",
+        "library/core/src/mem/mod.rs:961-978",
+        "library/core/src/slice/mod.rs:1994-1999",
+        "library/core/src/slice/mod.rs:3903-3958",
+        "library/core/src/slice/rotate.rs:117-157"
+      ],
+      "unwind_proof": "replace has no operation that can unwind between read and write. Slice state is narrowed before later fallible work, and rotation performs no panic-capable user operation while a temporary owns a moved element."
+    },
+    "integer_format_buffer": {
+      "bounds_or_initialization_proof": "NumBuffer<i128/u128> has a closed primitive-specific buffer size. enc_16lsd is called only with offsets whose 16-byte region fits, and quad_index in 1..4 selects four disjoint four-byte subranges inside that region. The remainder is below 10,000 before write_quad.",
+      "callback_and_mutation_proof": "Formatting arithmetic and fixed-table copies invoke no user callback while the buffer is partially initialized.",
+      "safe_public_boundary": "format_into accepts only NumBuffer for the concrete primitive; downstream code cannot provide a smaller buffer implementation for i128 or u128.",
+      "same_object_proof": "All subranges are taken from the same primitive-specific NumBuffer passed to _fmt_inner and enc_16lsd.",
+      "source_locations": [
+        "library/core/src/fmt/num.rs:614-705",
+        "library/core/src/fmt/num.rs:743-817",
+        "library/core/src/fmt/num.rs:825-885",
+        "library/core/src/fmt/num_buffer.rs:14-39",
+        "library/core/src/fmt/num_buffer.rs:58-78"
+      ],
+      "unwind_proof": "The integer operations and MaybeUninit writes do not call user code; an assertion failure occurs before the corresponding unchecked range and no partially initialized buffer is exposed."
+    },
+    "stable_sort_pivot": {
+      "bounds_or_initialization_proof": "Stable sort reaches quicksort only for a non-ZST slice above the small-sort threshold. choose_pivot requires len >= 8 and returns an index within the same slice; ptr::read reads one initialized element as MaybeUninit<T>.",
+      "callback_and_mutation_proof": "A temporary pivot reference is created only when T has no direct interior mutability. For non-Freeze T, pivot_ref is None, preventing comparator-driven mutation from making the copied pivot stale or duplicating ownership.",
+      "safe_public_boundary": "The public stable sort roots start from an exclusive initialized slice and a safe comparison callback; comparator inconsistency may make order unspecified but does not relax memory-safety invariants.",
+      "same_object_proof": "choose_pivot samples and returns an offset within the exact v slice from which pivot_copy is read.",
+      "source_locations": [
+        "library/core/src/slice/sort/shared/pivot.rs:13-44",
+        "library/core/src/slice/sort/stable/mod.rs:29-39",
+        "library/core/src/slice/sort/stable/mod.rs:77-84",
+        "library/core/src/slice/sort/stable/quicksort.rs:16-80",
+        "library/core/src/slice/sort/stable/quicksort.rs:237-257"
+      ],
+      "unwind_proof": "pivot_copy is MaybeUninit<T> and is not dropped as a duplicate T. Comparator panic unwinds while the original slice remains initialized; the temporary copy does not escape."
+    },
+    "str_range_normalization": {
+      "bounds_or_initialization_proof": "Safe get/get_mut paths require start <= end <= len and both UTF-8 boundaries before unchecked slicing. Panicking index paths perform the same checks. Inclusive endpoints require end < len before end + 1; arbitrary Bound pairs are normalized with checked overflow and bounds handling.",
+      "callback_and_mutation_proof": "Range-bound methods finish before unchecked access. The shared or exclusive string borrow prevents safe relocation or mutation of its byte length between check and access.",
+      "safe_public_boundary": "Only the safe SliceIndex get/get_mut/index/index_mut roots are classified here; direct get_unchecked remains an unsafe caller contract.",
+      "same_object_proof": "The range checks and the unchecked slice operate on the same str and its exact byte length.",
+      "source_locations": [
+        "library/core/src/slice/index.rs:944-1024",
+        "library/core/src/str/traits.rs:121-147",
+        "library/core/src/str/traits.rs:187-348",
+        "library/core/src/str/traits.rs:365-400",
+        "library/core/src/str/traits.rs:617-767"
+      ],
+      "unwind_proof": "Overflow, invalid order, out-of-bounds, or non-boundary inputs return None or panic before unchecked slicing; no destructor or callback runs after validation and before the sink."
+    },
+    "two_way_string_search": {
+      "bounds_or_initialization_proof": "Empty needles use a separate EmptyNeedle state. For a nonempty needle, each forward search iteration first proves position + needle.len() - 1 < haystack.len(); loop indices are at most that last index. Reverse search first proves end >= needle.len() and end - needle.len() < haystack.len(), while i < needle.len() and end <= haystack.len().",
+      "callback_and_mutation_proof": "The algorithm reads immutable haystack and needle bytes only. Every position/end mutation either returns or continues to the loop head, which re-establishes the bound before another unchecked access.",
+      "safe_public_boundary": "StrSearcher::new separates empty needles and receives valid immutable UTF-8 haystack and needle references from safe Pattern APIs.",
+      "same_object_proof": "The guard and each unchecked access use the exact same haystack slice and needle length held by the searcher.",
+      "source_locations": [
+        "library/core/src/str/pattern.rs:1064-1111",
+        "library/core/src/str/pattern.rs:1463-1542",
+        "library/core/src/str/pattern.rs:1558-1640"
+      ],
+      "unwind_proof": "The byte comparisons invoke no user code; there is no unwind point between the top-of-iteration bound check and the unchecked byte access."
+    }
+  },
+  "review_budget": 20,
+  "review_queue": [
+    {
+      "changed_source_files": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/char/mod.rs"
+      ],
+      "family_id": "52ab9c7370d08f6f2d7d708c376d8861bf2a2526a1084cbbb42d992e89dfe29d",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 296
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 296
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P1.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 296
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 296
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:2",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 5,
+      "finding_ids": [
+        "0f8c305d753dd27ecad4ca403715ca89ccb45c07fa8b343a25013968b174de47",
+        "1320f7af3bf799d237e0e933786027b01dffec136ad25822efdcd677c8249c95",
+        "2dbec5721e59f04de170add8e1db6acddf8d2cc40fceb190d82fcc9ae739c6f4",
+        "40f1885998e42ed72d5a6ea6fd316fee741818f3efa75142c59c47ffd0e9332d",
+        "eb1a938f723490d02db660600fa967d8e91a1b2bad65b4eb3c4e275356b6f17e"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "<char::ToCasefold as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "<char::ToLowercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "<char::ToTitlecase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "<char::ToUppercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by"
+      ],
+      "review_rank": [
+        0,
+        "P1.get_unchecked",
+        "52ab9c7370d08f6f2d7d708c376d8861bf2a2526a1084cbbb42d992e89dfe29d"
+      ],
+      "source_paths": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/char/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/char/mod.rs"
+      ],
+      "family_id": "cbe409c7ac82d0151a62b788dd3ebb0f8c70f27237b9590ceb83f5a46c55cf7c",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 238
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 238
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P1.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 67,
+              "line": 238
+            },
+            "path": "library/core/src/array/iter/iter_inner.rs",
+            "start": {
+              "column": 25,
+              "line": 238
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:2",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 5,
+      "finding_ids": [
+        "01d9e28d33f1b40d8a1e6c290d988a695031f705b951ba2a6a64d5601cda190b",
+        "11d5cf45229cae0810566dd7ae580c5878635c756f78f89a4cefbd4e5ba21516",
+        "523755cf90d454ed03574a53ca994aae9c0d0b75b316ab09cbc722ae0f9edd00",
+        "8d82d1bd07c5dab2419b4907f9beb6a3c50178ae3d136b387fe5806301506fd9",
+        "acd81db912baaac6e53049b707606156faa0d09fe62905b9fa7975fa7d0484f3"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+        "<char::ToCasefold as iter::traits::iterator::Iterator>::advance_by",
+        "<char::ToLowercase as iter::traits::iterator::Iterator>::advance_by",
+        "<char::ToTitlecase as iter::traits::iterator::Iterator>::advance_by",
+        "<char::ToUppercase as iter::traits::iterator::Iterator>::advance_by"
+      ],
+      "review_rank": [
+        0,
+        "P1.get_unchecked",
+        "cbe409c7ac82d0151a62b788dd3ebb0f8c70f27237b9590ceb83f5a46c55cf7c"
+      ],
+      "source_paths": [
+        "library/core/src/array/iter.rs",
+        "library/core/src/array/iter/iter_inner.rs",
+        "library/core/src/char/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/io_slice.rs",
+        "library/core/src/mem/mod.rs"
+      ],
+      "family_id": "98d9caa1aa47804056833acfc8d36daf6a29d717d827a37d1ce5343ccdd5975e",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P1.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:1",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 3,
+      "finding_ids": [
+        "0d26a15371ff78367c5f5954bfb30e2a4213e0c378ebb12b076a7b3516e9a207",
+        "574a34eea1e94e355a022b58e8157938f1c3e352be3ea35a65bf3d336dd409b1",
+        "dc5724c185c1e86c42937a470f30208958a8f4ff166c460959d787aa67cc9762"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::io_slice::IoSlice::<'a>::advance_slices",
+        "io::io_slice::IoSliceMut::<'a>::advance_slices",
+        "mem::take"
+      ],
+      "review_rank": [
+        0,
+        "P1.raw_read",
+        "98d9caa1aa47804056833acfc8d36daf6a29d717d827a37d1ce5343ccdd5975e"
+      ],
+      "source_paths": [
+        "library/core/src/io/io_slice.rs",
+        "library/core/src/mem/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/mem/mod.rs"
+      ],
+      "family_id": "ad3449b26821a704e8cdaf8d3fed30b94262769214a6e985d7bc807ea8e77c90",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P1.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:1",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "46d872de5c67178175afa32b40a166575939562fecb7201f73af5e6b2483d84e"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "mem::replace"
+      ],
+      "review_rank": [
+        0,
+        "P1.raw_read",
+        "ad3449b26821a704e8cdaf8d3fed30b94262769214a6e985d7bc807ea8e77c90"
+      ],
+      "source_paths": [
+        "library/core/src/mem/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/mem/manually_drop.rs",
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs"
+      ],
+      "family_id": "b2f97cca2185be4198bb4ca709767fe24897555646bcc5fffd9e3baa47da7693",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P1.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:1",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "26e92f0d3f9ff23abb840e8801b9464c1f2185e26fb85fe70dc2c47f48b62319"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "mem::manually_drop::ManuallyDrop::<T>::into_inner"
+      ],
+      "review_rank": [
+        0,
+        "P1.raw_read",
+        "b2f97cca2185be4198bb4ca709767fe24897555646bcc5fffd9e3baa47da7693"
+      ],
+      "source_paths": [
+        "library/core/src/mem/manually_drop.rs",
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/io_slice.rs",
+        "library/core/src/io/write.rs",
+        "library/core/src/mem/mod.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/ptr/mut_ptr.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/slice/rotate.rs"
+      ],
+      "family_id": "bfebffc15f105d63053ad783dd9d27d33cb0648d48fe03c66b33ffd25c9fd37e",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P1.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "source_kind": "public_parameter",
+        "subject": "arg:2",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 3,
+      "finding_ids": [
+        "3f12f9ccdcf9b2463b67cc638affaa97fcfba100b0659530dd1b9fd25e3dd472",
+        "daaca283488316868754d34b8a82a2ec0b6d2451ace5d247266be9d9cdec19b0",
+        "e490ac643e62bb92362932c0b1a76f758ec81a56e4652566de3519b0aa7ea3c2"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::write::Write::write_all_vectored",
+        "slice::<impl [T]>::rotate_left",
+        "slice::<impl [T]>::rotate_right"
+      ],
+      "review_rank": [
+        0,
+        "P1.raw_read",
+        "bfebffc15f105d63053ad783dd9d27d33cb0648d48fe03c66b33ffd25c9fd37e"
+      ],
+      "source_paths": [
+        "library/core/src/io/io_slice.rs",
+        "library/core/src/io/write.rs",
+        "library/core/src/mem/mod.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/ptr/mut_ptr.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/slice/rotate.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "family_id": "2a1f1a0dba47dcc492bf7503130215c0307d1390b855a9ce047711a3ec1a102c",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 1622
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1622
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 1622
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1622
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 2,
+      "finding_ids": [
+        "89ffe383a6afb9b134ebc1a12f5b2e30a5faf0623796694591a5199a70e1ba9f",
+        "e5bd6d2d7c70a3f7ae89856f9a5af5b2c4e10bba8f891b0e68482c754ecc1a8c"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::ReverseSearcher<'a>>::next_back",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::ReverseSearcher<'a>>::next_match_back"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "2a1f1a0dba47dcc492bf7503130215c0307d1390b855a9ce047711a3ec1a102c"
+      ],
+      "source_paths": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "family_id": "331ea39d01f7a5b5d04689d79f988d20e7d78be3c37e8a836e5f5c1d2449313e",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 78,
+              "line": 1030
+            },
+            "path": "library/core/src/unicode/unicode_data.rs",
+            "start": {
+              "column": 46,
+              "line": 1030
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 78,
+              "line": 1030
+            },
+            "path": "library/core/src/unicode/unicode_data.rs",
+            "start": {
+              "column": 46,
+              "line": 1030
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:result::Result::Ok::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 8,
+      "finding_ids": [
+        "0f8057eab33f8dce1fa98d06a8b5a04ba3ac651f33c49d5ed5d95da50d4976bc",
+        "45ed8a426387eb194302cfd203d790d9c75921cd871adac388ce87a610dcd953",
+        "789c85f0526dbdc818e71c7bddc37f24080b62c6709103b861c06a8ba286b239",
+        "bae1c3011e5b00b6e5108a67f8ac644d237bf01073bac3e64a9940c9bf7a84ca",
+        "c1deb4e64dc8460497df2fa0889cd821fc46695f7eb681d2c5dcaab5e252d91b",
+        "da66d43ee0838d5c2794ddbd70c0b3c68f0dd56a86b0db185c5b64616001f4f9",
+        "f6375df6aa7077b2cf0f24cc17df0748bbe6ea75b52d752f7c574ecf06ecbc69",
+        "fc3e7c3a2a96eac65410797ca861717993ce1f9601e0d5282276af5818b2352b"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "char::methods::<impl char>::to_casefold_unnormalized",
+        "char::methods::<impl char>::to_lowercase",
+        "char::methods::<impl char>::to_titlecase",
+        "char::methods::<impl char>::to_uppercase",
+        "unicode::unicode_data::conversions::to_casefold",
+        "unicode::unicode_data::conversions::to_lower",
+        "unicode::unicode_data::conversions::to_title",
+        "unicode::unicode_data::conversions::to_upper"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "331ea39d01f7a5b5d04689d79f988d20e7d78be3c37e8a836e5f5c1d2449313e"
+      ],
+      "source_paths": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "family_id": "5fae4b25b5667e30ef16141d4191865ecfa768b4959228c65159b185d4eef2d6",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1505
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1505
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1505
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1505
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 5,
+      "finding_ids": [
+        "1a3cf4a0fadb13a028f4e6d779ca50b5691d11b19ebeffb82efaa5c859245156",
+        "443fe3851deaddad8d5c6a6fb6c22c0b88c33d4eae17a23beb268dacb40edad2",
+        "64c37bbc1386b59be0fa720be01115263047654cb7476941f7a07eddc6faa06d",
+        "84c3112caa0302fc71c1de7608ea935ef8ab8e0f4252610472c9b5f701cb47ce",
+        "b9162e63a45f9b502e602215a9092a5e5f65fa8a7fe22255275df571ab3767b0"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<&'b str as str::pattern::Pattern>::is_contained_in",
+        "<&'c &'b str as str::pattern::Pattern>::is_contained_in",
+        "<char as str::pattern::Pattern>::is_contained_in",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::Searcher<'a>>::next",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::Searcher<'a>>::next_match"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "5fae4b25b5667e30ef16141d4191865ecfa768b4959228c65159b185d4eef2d6"
+      ],
+      "source_paths": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "family_id": "8f94765b1ab5a80277672260cd2401e423390538c1c06d6bd64e8b95b6d3f206",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1018
+            },
+            "path": "library/core/src/unicode/unicode_data.rs",
+            "start": {
+              "column": 51,
+              "line": 1018
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1018
+            },
+            "path": "library/core/src/unicode/unicode_data.rs",
+            "start": {
+              "column": 51,
+              "line": 1018
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:result::Result::Ok::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 8,
+      "finding_ids": [
+        "2f5b0433f35a7fede74f489caa2ac1825977c58a1ac4999187470dd774b4fbc4",
+        "474fb5aa047ff587e0a08d41907e6fb60b51787e8b7014f893e08a923a116465",
+        "5514dfa86dd9d51f9800ba243a827e2fce4a79997087664f3a6e34cd03d866ec",
+        "a297b47ca4888e809f27e4cb34d8714cbff3992d4f9e917428a2cc01d38cdec9",
+        "b18ba0fa02efba4cae4027cb1b763ec754c713946ff5a207a5ecc227ca374d64",
+        "b4e1d137e43dd66650bc5c73f521154309f57fbd771d6947ba6f1fc203398bbc",
+        "c41a8b0dbc529749a33215d5d519fa045ece8f5df72f06b40728bb6487e67e4d",
+        "cc11f1471a81020e3a4b05b64f4b6189ffc5393d26b306d0f5aeb4e02e1f0118"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "char::methods::<impl char>::to_casefold_unnormalized",
+        "char::methods::<impl char>::to_lowercase",
+        "char::methods::<impl char>::to_titlecase",
+        "char::methods::<impl char>::to_uppercase",
+        "unicode::unicode_data::conversions::to_casefold",
+        "unicode::unicode_data::conversions::to_lower",
+        "unicode::unicode_data::conversions::to_title",
+        "unicode::unicode_data::conversions::to_upper"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "8f94765b1ab5a80277672260cd2401e423390538c1c06d6bd64e8b95b6d3f206"
+      ],
+      "source_paths": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/fmt/num.rs",
+        "library/core/src/num/niche_types.rs",
+        "library/core/src/sync/atomic.rs"
+      ],
+      "family_id": "a2d4a489e76919539129c86869ed931a73077569a7c00f8fac319bb9a2140741",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 875
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 17,
+              "line": 875
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 875
+            },
+            "path": "library/core/src/fmt/num.rs",
+            "start": {
+              "column": 17,
+              "line": 875
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 10,
+      "finding_ids": [
+        "2f9f9ea7a4116cb606e64b61dee814098e6b75e2a5087da3cc928e9a6a70d1b8",
+        "3c1035cdcaa7f62b023224a4015786cac9924341dc32fd8cd12e977fd6bec518",
+        "518f9bc78886e6bd376982cff088ad02bd882b5c96ded2f9859789dfb13015c5",
+        "61f1c06a57ddca780adea291f88cd6ad66c2dbefbfb311f158f3f7df9cd29b07",
+        "644f225b5aae0691ce518d60ea5cd4154592e38ae05242f80042a6e726aab3e9",
+        "86ea762d8602d33fa37852be3268947b18eedd275487a76c7f6f77f9fd19acc4",
+        "885bbf7edc2439fd70deb9c4adcb6929d14501e0cc791c79c6dbd1fdd7fdba86",
+        "9400b78725fc3e4a18ffbd609ab654cbf5bdd213f5a0815153ae319e9eab0549",
+        "a1c73397ffdf6bc8c34313e901bd00e106a839e36f9a9e62a7048fe4caa131a9",
+        "dd4c72d190a0d75bdeec1da4b63bae9a3486a4de1e7c58297630ffd903bf987d"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<num::niche_types::NonZeroI128Inner as fmt::Debug>::fmt",
+        "<num::niche_types::NonZeroU128Inner as fmt::Debug>::fmt",
+        "<sync::atomic::Atomic<i128> as fmt::Debug>::fmt",
+        "<sync::atomic::Atomic<u128> as fmt::Debug>::fmt",
+        "fmt::num::<impl fmt::Debug for i128>::fmt",
+        "fmt::num::<impl fmt::Debug for u128>::fmt",
+        "fmt::num::<impl fmt::Display for i128>::fmt",
+        "fmt::num::<impl fmt::Display for u128>::fmt",
+        "fmt::num::<impl i128>::format_into",
+        "fmt::num::<impl u128>::format_into"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "a2d4a489e76919539129c86869ed931a73077569a7c00f8fac319bb9a2140741"
+      ],
+      "source_paths": [
+        "library/core/src/fmt/num.rs",
+        "library/core/src/num/niche_types.rs",
+        "library/core/src/sync/atomic.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "family_id": "a6183627cf1cf3015e7dc768b27f06d3c3ddf72527b16ec7901a146ca266bb03",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 57,
+              "line": 3005
+            },
+            "path": "library/core/src/slice/mod.rs",
+            "start": {
+              "column": 34,
+              "line": 3005
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 57,
+              "line": 3005
+            },
+            "path": "library/core/src/slice/mod.rs",
+            "start": {
+              "column": 34,
+              "line": 3005
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 8,
+      "finding_ids": [
+        "8b11c46aa4ae0acb60d03c86434f8f56fb87d80d696974e4fd9afb0749f062e1",
+        "9d66828f0e43a004094cdc72900f10f3b01afb1a64b88e57ea03f52457a7e0ab",
+        "9f3a1fd8b3ef67b7da3e7609f3e0c761f4c88098c010902b4f25af84680bf5cc",
+        "9f96a73a51094b09d4437bbc8a4567b095ad906188906abb886e015a434bba55",
+        "c1d6dbb0561e2868191e5ba66424c3fa2327132aeac445f368ed2c7ff8cde58d",
+        "cbd94fe06d7a7ce102f217653286050f8c59ba2945650744babe6bc631f3b3c3",
+        "f6cfd3055a31cc7fe3981b0815f1471c2d8bd9be15c23f84c23a4f7718719123",
+        "f9482840b549b5f438bfcde2a3796b9fd34019e59711fb1cb59a9f3021db4dc2"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "char::methods::<impl char>::to_casefold_unnormalized",
+        "char::methods::<impl char>::to_lowercase",
+        "char::methods::<impl char>::to_titlecase",
+        "char::methods::<impl char>::to_uppercase",
+        "unicode::unicode_data::conversions::to_casefold",
+        "unicode::unicode_data::conversions::to_lower",
+        "unicode::unicode_data::conversions::to_title",
+        "unicode::unicode_data::conversions::to_upper"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "a6183627cf1cf3015e7dc768b27f06d3c3ddf72527b16ec7901a146ca266bb03"
+      ],
+      "source_paths": [
+        "library/core/src/char/methods.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/unicode/unicode_data.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "family_id": "c3c494facb181e38c8b4bf8793791d8c9f06819374b87ef5869bfb527a194ba0",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1523
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1523
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 84,
+              "line": 1523
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1523
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 5,
+      "finding_ids": [
+        "3ffd40eb0c88092ec08a0eb273f7f4f5e0be3f90d6b7a9159afe52a94ebfe4f9",
+        "731bd1dfe3cbcc9f2df13580b2d8822b69fea4392dc91deb1378d82706425611",
+        "a8eff63ee2819cd1346a79ccff8731b1586c975f1fdf9316b5556ad22a6bba1d",
+        "abc799985b4ebb4e9d074d2138e0bb617c956ef62a5989d754a8b17fbb9bf135",
+        "d604eaad2de41806b19023ee9c3c2ea5505feb5fb3ea72c5ad8e93b7c49ece2d"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<&'b str as str::pattern::Pattern>::is_contained_in",
+        "<&'c &'b str as str::pattern::Pattern>::is_contained_in",
+        "<char as str::pattern::Pattern>::is_contained_in",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::Searcher<'a>>::next",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::Searcher<'a>>::next_match"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "c3c494facb181e38c8b4bf8793791d8c9f06819374b87ef5869bfb527a194ba0"
+      ],
+      "source_paths": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "family_id": "f5e3374d1ce6042fb025b09e47341518ccc361192d7fe5fbcebea5943e5c3ae7",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 1605
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1605
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.get_unchecked",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 94,
+              "line": 1605
+            },
+            "path": "library/core/src/str/pattern.rs",
+            "start": {
+              "column": 43,
+              "line": 1605
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 2,
+      "finding_ids": [
+        "889f0ab315d58d437d0c6e954595eec431de29c45764a9282aa449bfe204c536",
+        "9503028f510b732dc50cdf9b8fe118c8cc5476a5096f0cd6537145f637ed7d46"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::ReverseSearcher<'a>>::next_back",
+        "<str::pattern::StrSearcher<'a, 'b> as str::pattern::ReverseSearcher<'a>>::next_match_back"
+      ],
+      "review_rank": [
+        0,
+        "P2.get_unchecked",
+        "f5e3374d1ce6042fb025b09e47341518ccc361192d7fe5fbcebea5943e5c3ae7"
+      ],
+      "source_paths": [
+        "library/core/src/str/pattern.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/str/traits.rs"
+      ],
+      "family_id": "155a69422bb64ffb0b786f486267af89424fd0977d177cf672f8e2121b2befab",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:range::Range::end",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 20,
+      "finding_ids": [
+        "0957d25bfdb370c03526ad4a3b29d97a1475a2b774c73c85c0bbe4d4ec5ecd04",
+        "1a4ac103fa11e7581e78406c668a3abfb055131c282bdd10d933b7ffbc16c80d",
+        "289231559d1edacb1be9b781a6414f902b246837fa190fa573dc1d7c072e54c4",
+        "2c37536061edeef6f93831e6c34c9e4bf8bf7d01e1e8b1147ce0ce7302d2c177",
+        "2fd3a062807f8b6d6b8a1e7318ef3698b7ab3087ae9e0e3fed2fb1cfbcc23f64",
+        "378ea98b9f0d9f0b937758f95918544a1eddf39b478475c0dcce22ec6cb97628",
+        "3e48e32e9c93c7629acda44af6011f369c750e883b82253e121e16ed5f164e9b",
+        "4225e0893c304a43c2e2d1212ea78946a660343e18d6d84e624a9518244aea5a",
+        "4503453f8732f2613a20493bfc17c8b2455f9162103673d18992337350e41f74",
+        "49e970e8ace90a700b85f271664e9f181a82a947badbdf566fa2a0431d1582a1",
+        "536339364a370e04cfdd570029909c5afc10266f006cf152fa866b7acf8120f0",
+        "591e56470d3fe94f64376bba8ca232147c754521dd53e092be74624703127d7a",
+        "77b5510d62f0cafe7905c2cf2ae45c65118c488cb88758a49de96427001b60e9",
+        "7ebed71ca8c9bb3b786dd389405cfcedf73cc4a049485e54c96ca2128a66857c",
+        "917e4b6ad6589bbfdb5b6d7dd8044226f675c3bb698efeec77f30eca98c77f2f",
+        "9348a22eca86ff75a1ff9d9ff75738d32bc96d58161ebee8f987ee86e13b99f8",
+        "cb68e3bb31eb5906fc2d457652259b4319f20cda2b589f7b35c9724052fb7bee",
+        "cf8041765096d3bcf32d7bd361523d278ab4c7f6563de1b0fac149c059b23626",
+        "d7a1ac52968180ebd325d5a61d424f09c9ce36719a98447850e4afbd70fe7407",
+        "e81b3fca20734aba4b4c8e755383e8af8921f1cbcdfeee89f6fec2c488bf6e60"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeToInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeToInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeToInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeToInclusive<usize>>::get_mut"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "155a69422bb64ffb0b786f486267af89424fd0977d177cf672f8e2121b2befab"
+      ],
+      "source_paths": [
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/str/traits.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/array/ascii.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/slice/ascii.rs",
+        "library/core/src/str/mod.rs",
+        "library/core/src/wtf8.rs"
+      ],
+      "family_id": "3d53860ec72ce0a412b9278772d30e7ab8f9df23dc231bdb61c88f676ac90476",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 12,
+      "finding_ids": [
+        "071389de81cac2eace6d6a2047d3684f3fdca13548a7f269ceb0ca9b7b216194",
+        "0c656331ddf079084b99757f6f85b0412b11da65c89b5c03eff452bac2fc96c8",
+        "1a492e2728e3fba0dbe1571c9efa514e2808b4a84a074c589966897e4a000dc3",
+        "209f9809b3ce5374c72df467aaeade3bfb8a842c7e373e7d73dee70c77a359d3",
+        "237fa38c0dfa03c5f01d2c56ef0fe987416de4a3369a05025fc56201004b876c",
+        "45b545856865f4dca9dbe162d76161e56cd919b9ecedf0289d0a66825a341ac3",
+        "605bc8bd7da82b00636f0a2b3315b373cdaaf3c688dd2d646ad84e5cf2eecd63",
+        "67a9627a81afe3924decd8ae7a034dba88f751545838a8bc60f3735ba9bd6207",
+        "8e049ee86e9e1efc4cb2b01cb5111814a474cad46f729722afbc34e4b2f1a74b",
+        "8eb03e152266942ea669f609be269360e013aaf7daee746eca085c692a67dab9",
+        "df6f6028dc906ea0b945c3904ffaa381cb93a6d859c24c9090b2b8f44fd5419e",
+        "e0d0bf1baa1d5de7e8d287c29f73d61339ef21cf10b2febf16e56b223d3544d0"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "array::ascii::<impl [u8; N]>::as_ascii",
+        "slice::ascii::<impl [u8]>::as_ascii",
+        "slice::ascii::<impl [u8]>::is_ascii",
+        "str::<impl str>::as_ascii",
+        "str::<impl str>::is_ascii",
+        "wtf8::Wtf8::is_ascii"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "3d53860ec72ce0a412b9278772d30e7ab8f9df23dc231bdb61c88f676ac90476"
+      ],
+      "source_paths": [
+        "library/core/src/array/ascii.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/slice/ascii.rs",
+        "library/core/src/str/mod.rs",
+        "library/core/src/wtf8.rs",
+        "library/stdarch/crates/core_arch/src/aarch64/neon/generated.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/str/traits.rs"
+      ],
+      "family_id": "a8c16203d883a99047f3f4ff916e5020982f0e62b716778fffc66e626d4f26ae",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:range::Range::start",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 20,
+      "finding_ids": [
+        "22b6afec6e4dfe72e2b18f779d33062cf129d9ad0a50dbfbd10f03fbb4b601e9",
+        "2aed5855d22e4df53d7b758208782dd6e894d3d73f4d37f8f32c3750651a1433",
+        "39bb61d4dd565fb441623efb51e13128489f71641d4b180ed54ddc8afb3c35e3",
+        "436303f3b82acd0b754b6f02c559e6bee41971c667cc7c537e668efa7d895943",
+        "4768e5881a37d9269bdf3685a38f1f74d8615146af700853913853edd4b48e32",
+        "4b69a93e8105074d8173c0932b52f5e86a804a411bc96aec14333df0207e5543",
+        "4e83c01feea0eec6694f72d79c44b1fd8364e42c8a7c9c05dd7a51a03c885a82",
+        "5142d4500e87b408e2ac23544329383a2b5366e88859574d38ff300186d0c5d7",
+        "5c6f84642c323220f80610a8658ab9b6f12c3334c7bdd99a2289d6510e89bdce",
+        "673ea7d875bae0ea00fbca96203657a8d92e5a867268849cea7a96ab60da3c60",
+        "698f765d3c45eb720ec0be1686128723037bb5e3bb9865039310dbb2d29046a6",
+        "7c23c79ae5879eac20ccd2e12176d2543f7ac5dba8ecf4789a39286c8477a40e",
+        "8de485140f63841b0043aeda2621938f4a59c6b2caf2bc3f617cb9b8143dbf3e",
+        "c0865216a1579547064ce4bb6f0fa6c1895761fdfae7d4cde6f49066cc4fdcda",
+        "c2c6b3468ab8b4060e3c23bfc4b85e1fca97e1efdf720420cdd033ebde146102",
+        "c87c4533fec94de8703487e02bbefb8a5de92272445d107769877682cfec70d4",
+        "ca592c566436874858926eda9eac15c84c35804de43b437db4bbe32420707064",
+        "dcee96f16bf418f86dba32f2af9dfae7d01ee2afdcec13aeb89962a38aa8e1ee",
+        "e9ee571be630342fb3e5e1197f5e1cedf29e4ea3a0375cb812e08a154ba67454",
+        "f120e9a0dfee96374b7b96039f3ff9edf8776b47bd837d18d8f4c59bbaadd158"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for (ops::range::Bound<usize>, ops::range::Bound<usize>)>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::Range<usize>>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeToInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeToInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::index",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::index_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeInclusive<usize>>::get_mut",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeToInclusive<usize>>::get",
+        "str::traits::<impl slice::index::SliceIndex<str> for range::RangeToInclusive<usize>>::get_mut"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "a8c16203d883a99047f3f4ff916e5020982f0e62b716778fffc66e626d4f26ae"
+      ],
+      "source_paths": [
+        "library/core/src/ptr/const_ptr.rs",
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/str/traits.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/io/impls.rs",
+        "library/core/src/mem/mod.rs",
+        "library/core/src/slice/mod.rs"
+      ],
+      "family_id": "e07fc1be1a186b804770408d6aaa2889f21c6b0468ab97902428d23f5e6a5584",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 2,
+      "finding_ids": [
+        "95eb65e1c57ffd054fd9dec4ef4c3020573b16de9c417486564aafb115423fb7",
+        "d29919527a8943912dddb599a3160da91cc0e12a3876af701d4b27e0000b129e"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "io::impls::<impl io::write::Write for &mut [u8]>::write_all_vectored",
+        "io::impls::<impl io::write::Write for &mut [u8]>::write_vectored"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "e07fc1be1a186b804770408d6aaa2889f21c6b0468ab97902428d23f5e6a5584"
+      ],
+      "source_paths": [
+        "library/core/src/io/impls.rs",
+        "library/core/src/mem/mod.rs",
+        "library/core/src/slice/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/iter/range.rs",
+        "library/core/src/mem/mod.rs"
+      ],
+      "family_id": "f0fdbcff254b9483226f75eeee3ac2e7ad9f5324ce61c7b17378a9da8dc2d1b9",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 975
+            },
+            "path": "library/core/src/mem/mod.rs",
+            "start": {
+              "column": 22,
+              "line": 975
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:ops::range::RangeFrom::start",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 1,
+      "finding_ids": [
+        "0efc4a3f99d853b6aa92da91071dcd18733e06ecefc5ca72bacafc22b028a4bb"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "iter::range::<impl iter::traits::iterator::Iterator for ops::range::RangeFrom<A>>::next"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "f0fdbcff254b9483226f75eeee3ac2e7ad9f5324ce61c7b17378a9da8dc2d1b9"
+      ],
+      "source_paths": [
+        "library/core/src/iter/range.rs",
+        "library/core/src/mem/mod.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    },
+    {
+      "changed_source_files": [
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/mod.rs",
+        "library/core/src/slice/sort/stable/quicksort.rs"
+      ],
+      "family_id": "fecf8399b8084a1b2ee9f9da9ee5cc5964e6d26d48fff20da6343d5bdcf8cb10",
+      "family_key": {
+        "first_contract_failure": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "predicates": [
+          "valid_for_read"
+        ],
+        "propagation_depth": "recursive",
+        "rule_id": "P2.raw_read",
+        "sink": {
+          "kind": "raw_read",
+          "span": {
+            "end": {
+              "column": 46,
+              "line": 1755
+            },
+            "path": "library/core/src/ptr/mod.rs",
+            "start": {
+              "column": 9,
+              "line": 1755
+            }
+          }
+        },
+        "source_kind": "literal_public_field",
+        "subject": "field:option::Option::Some::0",
+        "unit": "core",
+        "validation_status": "missing"
+      },
+      "finding_count": 3,
+      "finding_ids": [
+        "0e171cc58459a7f5ae2dcd1aeec263ca5159934f21e99c741c4c7e9ef3d55b0a",
+        "9f57f2202a95477c332211b58cc59b69f7f13559a40d4d15c6263f65478e7cb6",
+        "a8ecc77d7532adf5585e1d67cdfce777b3ad3f3efb75fad4a9461c0f82850bdc"
+      ],
+      "new_family": true,
+      "public_roots": [
+        "slice::sort::stable::drift::sort",
+        "slice::sort::stable::quicksort::quicksort",
+        "slice::sort::stable::sort"
+      ],
+      "review_rank": [
+        0,
+        "P2.raw_read",
+        "fecf8399b8084a1b2ee9f9da9ee5cc5964e6d26d48fff20da6343d5bdcf8cb10"
+      ],
+      "source_paths": [
+        "library/core/src/ptr/mod.rs",
+        "library/core/src/slice/mod.rs",
+        "library/core/src/slice/sort/stable/drift.rs",
+        "library/core/src/slice/sort/stable/mod.rs",
+        "library/core/src/slice/sort/stable/quicksort.rs"
+      ],
+      "status": "reviewed_confirmed_safe_current"
+    }
+  ],
+  "review_results": [
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "52ab9c7370d08f6f2d7d708c376d8861bf2a2526a1084cbbb42d992e89dfe29d",
+      "proof_group": "array_into_iter_alive_range",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "cbe409c7ac82d0151a62b788dd3ebb0f8c70f27237b9590ceb83f5a46c55cf7c",
+      "proof_group": "array_into_iter_alive_range",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "98d9caa1aa47804056833acfc8d36daf6a29d717d827a37d1ce5343ccdd5975e",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "ad3449b26821a704e8cdaf8d3fed30b94262769214a6e985d7bc807ea8e77c90",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "b2f97cca2185be4198bb4ca709767fe24897555646bcc5fffd9e3baa47da7693",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "bfebffc15f105d63053ad783dd9d27d33cb0648d48fe03c66b33ffd25c9fd37e",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "2a1f1a0dba47dcc492bf7503130215c0307d1390b855a9ce047711a3ec1a102c",
+      "proof_group": "two_way_string_search",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "331ea39d01f7a5b5d04689d79f988d20e7d78be3c37e8a836e5f5c1d2449313e",
+      "proof_group": "binary_search_indices",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "5fae4b25b5667e30ef16141d4191865ecfa768b4959228c65159b185d4eef2d6",
+      "proof_group": "two_way_string_search",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "8f94765b1ab5a80277672260cd2401e423390538c1c06d6bd64e8b95b6d3f206",
+      "proof_group": "binary_search_indices",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "a2d4a489e76919539129c86869ed931a73077569a7c00f8fac319bb9a2140741",
+      "proof_group": "integer_format_buffer",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "a6183627cf1cf3015e7dc768b27f06d3c3ddf72527b16ec7901a146ca266bb03",
+      "proof_group": "binary_search_indices",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "c3c494facb181e38c8b4bf8793791d8c9f06819374b87ef5869bfb527a194ba0",
+      "proof_group": "two_way_string_search",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "f5e3374d1ce6042fb025b09e47341518ccc361192d7fe5fbcebea5943e5c3ae7",
+      "proof_group": "two_way_string_search",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "155a69422bb64ffb0b786f486267af89424fd0977d177cf672f8e2121b2befab",
+      "proof_group": "str_range_normalization",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "3d53860ec72ce0a412b9278772d30e7ab8f9df23dc231bdb61c88f676ac90476",
+      "proof_group": "ascii_fixed_chunks",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "a8c16203d883a99047f3f4ff916e5020982f0e62b716778fffc66e626d4f26ae",
+      "proof_group": "str_range_normalization",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "e07fc1be1a186b804770408d6aaa2889f21c6b0468ab97902428d23f5e6a5584",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "f0fdbcff254b9483226f75eeee3ac2e7ad9f5324ce61c7b17378a9da8dc2d1b9",
+      "proof_group": "initialized_value_moves",
+      "remaining_hypothesis": "none"
+    },
+    {
+      "disposition": "confirmed_safe_current",
+      "family_id": "fecf8399b8084a1b2ee9f9da9ee5cc5964e6d26d48fff20da6343d5bdcf8cb10",
+      "proof_group": "stable_sort_pivot",
+      "remaining_hypothesis": "none"
+    }
+  ],
+  "reviewed_family_count": 20,
+  "reviewed_finding_count": 124,
+  "reviewed_rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+  "schema_version": "unsoundaudit-v2-current-core-summary-v1",
+  "unit": "core",
+  "value_stop_gate": "current_core_no_high_value_signal_in_bounded_review"
+}

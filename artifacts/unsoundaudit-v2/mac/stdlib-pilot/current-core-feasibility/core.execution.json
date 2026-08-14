@@ -1,0 +1,34 @@
+{
+  "analyzer_profile": "rapx-perf",
+  "cargo_rapx_sha256": "f477ccc98c0e2af1ce06420ad10b19d73651ca3304855b43ca89111cfebe99a6",
+  "executions": [
+    {
+      "classification": "success",
+      "elapsed_seconds": 31.049,
+      "max_physical_footprint_bytes": 1219135648,
+      "max_rss_bytes": 1178304512,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "control",
+      "returncode": 0,
+      "run": 0
+    },
+    {
+      "classification": "success",
+      "elapsed_seconds": 218.253,
+      "max_physical_footprint_bytes": 3775878400,
+      "max_rss_bytes": 2613854208,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "scan",
+      "returncode": 0,
+      "run": 1
+    }
+  ],
+  "memory_limit_metric": "physical_footprint",
+  "physical_limit_bytes": 8589934592,
+  "rapx_sha256": "c080eff2df03ad274ed70f078304382410782e814ce1de0d590b26a935639c35",
+  "raw_logs_committed": false,
+  "schema_version": "unsoundaudit-v2-current-core-execution-v1",
+  "status": "success",
+  "unit": "core",
+  "wall_limit_seconds": 900
+}

@@ -22,7 +22,7 @@ use rustc_attr_ir::lang_items::LangItem;
 use rustc_hir::{
     def::DefKind,
     def_id::{DefId, LocalDefId, LOCAL_CRATE},
-    Mutability, Safety,
+    ConstContext, Mutability, Safety,
 };
 use rustc_index::IndexVec;
 use rustc_middle::{
@@ -1815,7 +1815,12 @@ impl<'tcx> Engine<'tcx> {
             .iter_local_def_id()
             .filter(|id| {
                 let did = id.to_def_id();
-                matches!(self.tcx.def_kind(did), DefKind::Fn | DefKind::AssocFn)
+                let kind = self.tcx.def_kind(did);
+                matches!(kind, DefKind::Fn | DefKind::AssocFn)
+                    && supports_optimized_mir_body(
+                        kind,
+                        self.tcx.hir_body_const_context(*id),
+                    )
                     && self.tcx.is_mir_available(did)
             })
             .collect::<Vec<_>>();
@@ -4157,6 +4162,11 @@ impl<'tcx> Engine<'tcx> {
             span: self.stable_span(span)?,
         })
     }
+}
+
+fn supports_optimized_mir_body(kind: DefKind, context: Option<ConstContext>) -> bool {
+    matches!(kind, DefKind::Fn | DefKind::AssocFn)
+        && !matches!(context, Some(ConstContext::Const { .. } | ConstContext::Static(_)))
 }
 
 impl From<AbstractValue> for ValueFacts {
@@ -6904,6 +6914,24 @@ fn location_precedes(left: Location, right: Location, body: &Body<'_>) -> bool {
 mod tests {
     use super::super::summary::scc_cycle_token;
     use super::*;
+
+    #[test]
+    fn current_comptime_functions_are_not_sent_to_optimized_mir() {
+        assert!(supports_optimized_mir_body(
+            DefKind::Fn,
+            None,
+        ));
+        assert!(supports_optimized_mir_body(
+            DefKind::AssocFn,
+            Some(ConstContext::ConstFn),
+        ));
+        assert!(!supports_optimized_mir_body(
+            DefKind::AssocFn,
+            Some(ConstContext::Const {
+                allow_const_fn_promotion: false,
+            }),
+        ));
+    }
 
     fn span() -> StableSpan {
         StableSpan::new(
