@@ -3,6 +3,7 @@ use super::dataflow::{
     StaticWriteToken,
 };
 use super::perf_trace::PerfTrace;
+use super::relations::{RelationFact, RelationKind, RelationProof, RelationTerm};
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
     select_preferred_unresolved_route, select_unresolved_route_cycle, solve_summaries,
@@ -309,6 +310,50 @@ impl ValidationBinding {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum ProofBinding {
+    Validation(ValidationBinding),
+    Relation(RelationFact),
+}
+
+impl From<ValidationBinding> for ProofBinding {
+    fn from(binding: ValidationBinding) -> Self {
+        Self::Validation(binding)
+    }
+}
+
+impl PartialEq<ValidationBinding> for ProofBinding {
+    fn eq(&self, other: &ValidationBinding) -> bool {
+        self.validation() == Some(other)
+    }
+}
+
+impl ProofBinding {
+    fn storage_places(&self) -> Vec<PlaceKey> {
+        match self {
+            Self::Validation(binding) => binding.storage_places(),
+            Self::Relation(relation) => relation.storage_places(),
+        }
+    }
+
+    fn validation(&self) -> Option<&ValidationBinding> {
+        match self {
+            Self::Validation(binding) => Some(binding),
+            Self::Relation(_) => None,
+        }
+    }
+
+    fn relation(&self) -> Option<&RelationFact> {
+        match self {
+            Self::Validation(_) => None,
+            Self::Relation(relation) => Some(relation),
+        }
+    }
+}
+
+type ProgramState = BlockState<PlaceKey, ValueFacts, ProofBinding>;
+type ProgramDataflowResult = DataflowResult<PlaceKey, ValueFacts, ProofBinding>;
+
 #[derive(Clone, Debug)]
 struct BodyProgram {
     def_id: LocalDefId,
@@ -452,7 +497,7 @@ fn map_structured_local_outputs(
 fn reachable_out_dependencies(
     edges: &IndexVec<BasicBlock, EdgeTerm>,
     formals: impl IntoIterator<Item = u32>,
-    solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+    solved: &ProgramDataflowResult,
     definite_outs: &BTreeSet<u32>,
 ) -> BTreeSet<OutDependency> {
     let formals = formals.into_iter().collect::<BTreeSet<_>>();
@@ -811,6 +856,7 @@ struct CfgPoint {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct ValidationSnapshot {
     current_validations: BTreeSet<ValidationBinding>,
+    current_relations: BTreeSet<RelationFact>,
     entry_formals: BTreeMap<PlaceKey, BoundarySlot>,
 }
 
@@ -830,18 +876,28 @@ impl BodyValueFacts {
 }
 
 impl ValidationSnapshot {
-    fn capture(
-        state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-        arg_count: usize,
-    ) -> Self {
+    fn capture(state: &ProgramState, arg_count: usize) -> Self {
         let current_validations = state
             .must_validations()
             .iter()
             .filter_map(|validation| {
-                let binding = validation.predicate();
+                let binding = validation.predicate().validation()?;
                 state
                     .has_current_validation(binding, binding.storage_places())
                     .then(|| binding.clone())
+            })
+            .collect();
+        let current_relations = state
+            .must_validations()
+            .iter()
+            .filter_map(|validation| {
+                let relation = validation.predicate().relation()?;
+                state
+                    .has_current_validation(
+                        &ProofBinding::Relation(relation.clone()),
+                        relation.storage_places(),
+                    )
+                    .then(|| relation.clone())
             })
             .collect();
         let entry_formals = state
@@ -853,6 +909,7 @@ impl ValidationSnapshot {
             .collect();
         Self {
             current_validations,
+            current_relations,
             entry_formals,
         }
     }
@@ -1764,10 +1821,10 @@ impl<'tcx> Engine<'tcx> {
     fn materialize_operation(
         &self,
         program: &BodyProgram,
-        solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
+        solved: &ProgramDataflowResult,
         block: BasicBlock,
         index: usize,
-        state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+        state: &ProgramState,
         facts: &mut BodyFacts,
     ) {
         let operation = &program.operations[block][index];
@@ -1964,11 +2021,7 @@ impl<'tcx> Engine<'tcx> {
         }
     }
 
-    fn materialize_exits(
-        &self,
-        solved: &DataflowResult<PlaceKey, ValueFacts, ValidationBinding>,
-        facts: &mut BodyFacts,
-    ) {
+    fn materialize_exits(&self, solved: &ProgramDataflowResult, facts: &mut BodyFacts) {
         for state in solved.exit.iter().flatten() {
             for (place, value) in state.may_values() {
                 facts
@@ -3613,10 +3666,7 @@ fn canonical_storage(place: &PlaceKey) -> PlaceKey {
     }
 }
 
-fn state_value(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    place: &PlaceKey,
-) -> ValueFacts {
+fn state_value(state: &ProgramState, place: &PlaceKey) -> ValueFacts {
     let mut value = state.may_values().get(place).cloned().unwrap_or_default();
     let storage = canonical_storage(place);
     if storage != *place {
@@ -3627,10 +3677,7 @@ fn state_value(
     value
 }
 
-fn exact_semantics(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    place: &PlaceKey,
-) -> (BTreeSet<PlaceKey>, bool) {
+fn exact_semantics(state: &ProgramState, place: &PlaceKey) -> (BTreeSet<PlaceKey>, bool) {
     state
         .may_values()
         .get(place)
@@ -3638,10 +3685,7 @@ fn exact_semantics(
         .unwrap_or_default()
 }
 
-fn semantic_value_at(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    place: &PlaceKey,
-) -> ValueFacts {
+fn semantic_value_at(state: &ProgramState, place: &PlaceKey) -> ValueFacts {
     let (exact_roots, semantic_unknown) = exact_semantics(state, place);
     ValueFacts {
         exact_roots,
@@ -3650,10 +3694,7 @@ fn semantic_value_at(
     }
 }
 
-fn current_storage_versions(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    place: &PlaceKey,
-) -> BTreeSet<StaticWriteToken> {
+fn current_storage_versions(state: &ProgramState, place: &PlaceKey) -> BTreeSet<StaticWriteToken> {
     state
         .versions()
         .get(&canonical_storage(place))
@@ -3683,7 +3724,7 @@ fn unique_place(places: &BTreeSet<PlaceKey>) -> Option<PlaceKey> {
 }
 
 fn length_relation_is_current(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &ProgramState,
     value: &ValueFacts,
     collection: &PlaceKey,
 ) -> bool {
@@ -3697,10 +3738,7 @@ fn length_relation_is_current(
         && atom.captured_versions == current_storage_versions(state, collection)
 }
 
-fn current_length_collection(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    value: &ValueFacts,
-) -> Option<PlaceKey> {
+fn current_length_collection(state: &ProgramState, value: &ValueFacts) -> Option<PlaceKey> {
     let mut collections = value.len_of.iter();
     let collection = collections.next()?.clone();
     if collections.next().is_some()
@@ -3714,10 +3752,7 @@ fn current_length_collection(
     Some(collection)
 }
 
-fn current_utf8_bytes(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    value: &ValueFacts,
-) -> Option<PlaceKey> {
+fn current_utf8_bytes(state: &ProgramState, value: &ValueFacts) -> Option<PlaceKey> {
     let mut atoms = value.utf8_atoms.iter();
     let atom = atoms.next()?;
     if atoms.next().is_some()
@@ -3759,10 +3794,7 @@ fn range_binding_for_pointer(value: &ValueFacts, width: u64) -> Option<Validatio
     ))
 }
 
-fn current_checked_end(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    value: &ValueFacts,
-) -> Option<CheckedEndAtom> {
+fn current_checked_end(state: &ProgramState, value: &ValueFacts) -> Option<CheckedEndAtom> {
     let mut atoms = value.checked_end_atoms.iter();
     let atom = atoms.next()?;
     if atoms.next().is_some()
@@ -3777,10 +3809,7 @@ fn current_checked_end(
     Some(atom.clone())
 }
 
-fn current_range_limit(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    value: &ValueFacts,
-) -> Option<RangeLimitAtom> {
+fn current_range_limit(state: &ProgramState, value: &ValueFacts) -> Option<RangeLimitAtom> {
     let mut atoms = value.range_limit_atoms.iter();
     let atom = atoms.next()?;
     if atoms.next().is_some()
@@ -3794,12 +3823,134 @@ fn current_range_limit(
     Some(atom.clone())
 }
 
-fn normalized_compare_pending(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+fn current_relation_proof(state: &ProgramState) -> RelationProof {
+    RelationProof::from_facts(state.must_validations().iter().filter_map(|validation| {
+        let relation = validation.predicate().relation()?;
+        state
+            .has_current_validation(
+                &ProofBinding::Relation(relation.clone()),
+                relation.storage_places(),
+            )
+            .then(|| relation.clone())
+    }))
+}
+
+fn relation_term_for_operand(state: &ProgramState, operand: &OperandModel) -> Option<RelationTerm> {
+    if let CallOperand::Constant(value) = &operand.operand {
+        return Some(RelationTerm::Constant(*value));
+    }
+    let value = eval_operand(state, operand);
+    if let Some(collection) = current_length_collection(state, &value) {
+        return Some(RelationTerm::Length(canonical_storage(&collection)));
+    }
+    unique_semantic_value(&value).map(|place| RelationTerm::Place(canonical_storage(&place)))
+}
+
+fn normalized_relation_pending(
+    state: &ProgramState,
     op: BinOp,
     left: &OperandModel,
     right: &OperandModel,
-) -> Vec<(ValidationBinding, bool, Vec<PlaceKey>)> {
+) -> Vec<(ProofBinding, bool, Vec<PlaceKey>)> {
+    let (Some(left), Some(right)) = (
+        relation_term_for_operand(state, left),
+        relation_term_for_operand(state, right),
+    ) else {
+        return Vec::new();
+    };
+    let relations = match op {
+        BinOp::Lt => vec![
+            (RelationKind::Lt(left.clone(), right.clone()), true),
+            (RelationKind::Le(right, left), false),
+        ],
+        BinOp::Le => vec![
+            (RelationKind::Le(left.clone(), right.clone()), true),
+            (RelationKind::Lt(right, left), false),
+        ],
+        BinOp::Gt => vec![
+            (RelationKind::Lt(right.clone(), left.clone()), true),
+            (RelationKind::Le(left, right), false),
+        ],
+        BinOp::Ge => vec![
+            (RelationKind::Le(right.clone(), left.clone()), true),
+            (RelationKind::Lt(left, right), false),
+        ],
+        BinOp::Eq => vec![(RelationKind::Eq(left, right), true)],
+        BinOp::Ne => vec![(RelationKind::Eq(left, right), false)],
+        _ => Vec::new(),
+    };
+    relations
+        .into_iter()
+        .map(|(kind, polarity)| {
+            let relation = RelationFact::new(kind);
+            let places = relation.storage_places();
+            (ProofBinding::Relation(relation), polarity, places)
+        })
+        .collect()
+}
+
+fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Option<RelationFact> {
+    let result = RelationTerm::Place(canonical_storage(&assignment.destination));
+    let kind = match &assignment.value {
+        ValueModel::Operand(operand) | ValueModel::RefOrRaw(operand) => {
+            RelationKind::Eq(result, relation_term_for_operand(state, operand)?)
+        }
+        ValueModel::Length(collection) => {
+            let collection = unique_semantic_value(&eval_operand(state, collection))?;
+            RelationKind::Eq(result, RelationTerm::Length(canonical_storage(&collection)))
+        }
+        ValueModel::Compare {
+            op: BinOp::Add,
+            left,
+            right,
+        } => {
+            let left = relation_term_for_operand(state, left)?;
+            let right = relation_term_for_operand(state, right)?;
+            let (base, addend) = match (left, right) {
+                (base, RelationTerm::Constant(addend)) | (RelationTerm::Constant(addend), base) => {
+                    (base, addend)
+                }
+                _ => return None,
+            };
+            if addend != 0
+                && !(addend == 1
+                    && current_relation_proof(state).proves_increment_without_overflow(&base))
+            {
+                return None;
+            }
+            RelationKind::AddConst {
+                result,
+                base,
+                addend,
+            }
+        }
+        ValueModel::Compare {
+            op: BinOp::Sub,
+            left,
+            right,
+        } => {
+            let upper = relation_term_for_operand(state, left)?;
+            let lower = relation_term_for_operand(state, right)?;
+            if !current_relation_proof(state).proves_le(&lower, &upper) {
+                return None;
+            }
+            RelationKind::Sub {
+                result,
+                upper,
+                lower,
+            }
+        }
+        _ => return None,
+    };
+    Some(RelationFact::new(kind))
+}
+
+fn normalized_compare_pending(
+    state: &ProgramState,
+    op: BinOp,
+    left: &OperandModel,
+    right: &OperandModel,
+) -> Vec<(ProofBinding, bool, Vec<PlaceKey>)> {
     let left_value = eval_operand(state, left);
     let right_value = eval_operand(state, right);
 
@@ -3813,7 +3964,8 @@ fn normalized_compare_pending(
             if state.has_current_validation(&overflow_proof, overflow_proof.storage_places()) {
                 let binding =
                     ValidationBinding::range(end.offset, Some(collection), end.width, None);
-                return vec![(binding.clone(), false, binding.storage_places())];
+                let places = binding.storage_places();
+                return vec![(binding.into(), false, places)];
             }
         }
         if let (Some(offset), Some(limit)) = (
@@ -3823,7 +3975,8 @@ fn normalized_compare_pending(
             if !left_value.havoced {
                 let binding =
                     ValidationBinding::range(offset, Some(limit.collection), limit.width, None);
-                return vec![(binding.clone(), false, binding.storage_places())];
+                let places = binding.storage_places();
+                return vec![(binding.into(), false, places)];
             }
         }
     }
@@ -3846,7 +3999,8 @@ fn normalized_compare_pending(
                     subject,
                     collection: Some(collection),
                 };
-                return vec![(binding.clone(), polarity, binding.storage_places())];
+                let places = binding.storage_places();
+                return vec![(binding.into(), polarity, places)];
             }
         }
     }
@@ -3871,13 +4025,11 @@ fn normalized_compare_pending(
         subject: collection,
         collection: None,
     };
-    vec![(binding.clone(), polarity, binding.storage_places())]
+    let places = binding.storage_places();
+    vec![(binding.into(), polarity, places)]
 }
 
-fn eval_operand(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    operand: &OperandModel,
-) -> ValueFacts {
+fn eval_operand(state: &ProgramState, operand: &OperandModel) -> ValueFacts {
     let mut result = match &operand.operand {
         CallOperand::Place(place) => {
             let mut value = state_value(state, place);
@@ -3933,7 +4085,7 @@ fn join_value_facts(values: impl IntoIterator<Item = ValueFacts>) -> ValueFacts 
 }
 
 fn eval_value_model(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &ProgramState,
     model: &ValueModel,
     definition: StaticWriteToken,
 ) -> ValueFacts {
@@ -4034,7 +4186,7 @@ fn eval_value_model(
 }
 
 fn eval_registry_value(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &ProgramState,
     model: &RegistryValueModel,
     point: &ProgramPoint,
 ) -> ValueFacts {
@@ -4289,10 +4441,7 @@ fn eval_registry_value(
     }
 }
 
-fn state_alias_closure(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    seed: &PlaceKey,
-) -> BTreeSet<PlaceKey> {
+fn state_alias_closure(state: &ProgramState, seed: &PlaceKey) -> BTreeSet<PlaceKey> {
     let mut aliases = BTreeSet::from([seed.clone(), canonical_storage(seed)]);
     loop {
         let before = aliases.len();
@@ -4346,10 +4495,7 @@ fn take_relation_invalidation_clone_count() -> usize {
     RELATION_INVALIDATION_CLONE_COUNT.with(|count| count.replace(0))
 }
 
-fn invalidate_relation_evidence(
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    written_storage: &PlaceKey,
-) {
+fn invalidate_relation_evidence(state: &mut ProgramState, written_storage: &PlaceKey) {
     let updates = state
         .may_values()
         .iter()
@@ -4425,7 +4571,7 @@ fn apply_program_op(
     operation: &ProgramOp,
     block: BasicBlock,
     index: usize,
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &mut ProgramState,
 ) {
     let token = StaticWriteToken::new(block.index() as u32, index as u32);
     match &operation.kind {
@@ -4448,6 +4594,7 @@ fn apply_program_op(
                 _ => None,
             };
             let mut value = eval_value_model(state, &assignment.value, token);
+            let relation = assignment_relation(state, assignment);
             let pending = match &assignment.value {
                 ValueModel::Length(_) => current_length_collection(state, &value)
                     .map(|collection| {
@@ -4458,7 +4605,8 @@ fn apply_program_op(
                             subject: collection,
                             collection: None,
                         };
-                        vec![(binding.clone(), true, binding.storage_places())]
+                        let places = binding.storage_places();
+                        vec![(binding.into(), true, places)]
                     })
                     .unwrap_or_default(),
                 ValueModel::Discriminant(_) => current_checked_end(state, &value)
@@ -4469,11 +4617,17 @@ fn apply_program_op(
                             end.width,
                             Some(end.definition),
                         );
-                        vec![(binding.clone(), false, binding.storage_places())]
+                        let places = binding.storage_places();
+                        vec![(binding.into(), false, places)]
                     })
                     .unwrap_or_default(),
                 ValueModel::Compare { op, left, right } => {
-                    normalized_compare_pending(state, *op, left, right)
+                    let pending = normalized_compare_pending(state, *op, left, right);
+                    if pending.is_empty() {
+                        normalized_relation_pending(state, *op, left, right)
+                    } else {
+                        pending
+                    }
                 }
                 _ => copied_pending.unwrap_or_default(),
             };
@@ -4509,6 +4663,13 @@ fn apply_program_op(
             state.record_write(storage.clone(), token);
             invalidate_relation_evidence(state, &storage);
             state.set_value(assignment.destination.clone(), value);
+            if let Some(relation) = relation {
+                let places = relation.storage_places();
+                state.establish(BoundValidation::new(
+                    ProofBinding::Relation(relation),
+                    places,
+                ));
+            }
             if let Some((formal_index, output)) = out_value {
                 strong_write_out_formal(state, formal_index, &output, token);
             }
@@ -4523,18 +4684,14 @@ fn apply_program_op(
     }
 }
 
-fn apply_program_edge(
-    edge: &EdgeTerm,
-    target: BasicBlock,
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-) {
+fn apply_program_edge(edge: &EdgeTerm, target: BasicBlock, state: &mut ProgramState) {
     apply_program_edge_with_outputs(edge, target, state, &LocalCallOutputs::new());
 }
 
 fn apply_program_edge_with_outputs(
     edge: &EdgeTerm,
     target: BasicBlock,
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &mut ProgramState,
     local_outputs: &LocalCallOutputs,
 ) {
     if let EdgeTerm::CallNormal {
@@ -4604,17 +4761,17 @@ fn apply_program_edge_with_outputs(
             .into_iter()
             .flat_map(|facts| facts.keys())
             .filter(|(binding, polarity)| {
-                binding.predicate == Predicate::InBounds
+                (binding.relation().is_some()
+                    || binding
+                        .validation()
+                        .is_some_and(|binding| binding.predicate == Predicate::InBounds))
                     && *polarity == *expected
                     && state.pending_is_current(condition, binding, *polarity)
             })
             .map(|(binding, _)| binding.clone())
             .collect::<Vec<_>>();
         for binding in bindings {
-            state.establish(BoundValidation::new(
-                binding.clone(),
-                binding.storage_places(),
-            ));
+            establish_proof(state, binding);
         }
         return;
     }
@@ -4647,15 +4804,36 @@ fn apply_program_edge_with_outputs(
         .map(|(binding, _)| binding.clone())
         .collect::<Vec<_>>();
     for binding in bindings {
-        state.establish(BoundValidation::new(
-            binding.clone(),
-            binding.storage_places(),
-        ));
+        establish_proof(state, binding);
     }
 }
 
+fn establish_proof(state: &mut ProgramState, binding: ProofBinding) {
+    state.establish(BoundValidation::new(
+        binding.clone(),
+        binding.storage_places(),
+    ));
+    let ProofBinding::Validation(validation) = binding else {
+        return;
+    };
+    if validation.predicate != Predicate::InBounds {
+        return;
+    }
+    let Some(collection) = validation.collection else {
+        return;
+    };
+    let relation = RelationFact::new(RelationKind::Lt(
+        RelationTerm::Place(canonical_storage(&validation.subject)),
+        RelationTerm::Length(canonical_storage(&collection)),
+    ));
+    state.establish(BoundValidation::new(
+        ProofBinding::Relation(relation.clone()),
+        relation.storage_places(),
+    ));
+}
+
 fn apply_local_outputs<'a>(
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &mut ProgramState,
     outputs: &'a BTreeMap<PlaceKey, MappedOutValue>,
 ) {
     for (place, output) in outputs {
@@ -4672,11 +4850,7 @@ fn apply_local_outputs<'a>(
     }
 }
 
-fn apply_mapped_out_value(
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    place: &PlaceKey,
-    output: &MappedOutValue,
-) {
+fn apply_mapped_out_value(state: &mut ProgramState, place: &PlaceKey, output: &MappedOutValue) {
     let mut current = state.may_values().get(place).cloned().unwrap_or_default();
     if output.may_skip_write {
         current
@@ -4690,7 +4864,7 @@ fn apply_mapped_out_value(
 }
 
 fn strong_write_out_formal(
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &mut ProgramState,
     formal_index: u32,
     written: &ValueFacts,
     token: StaticWriteToken,
@@ -4711,10 +4885,7 @@ fn strong_write_out_formal(
     state.set_value(slot, output);
 }
 
-fn state_proves_local_binding(
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-    binding: Option<&ValidationBinding>,
-) -> bool {
+fn state_proves_local_binding(state: &ProgramState, binding: Option<&ValidationBinding>) -> bool {
     binding.is_some_and(|binding| state.has_current_validation(binding, binding.storage_places()))
 }
 
@@ -4751,7 +4922,7 @@ fn validation_contract_policy(predicate: Predicate) -> LocalValidationPolicy {
 
 fn entry_formal_slot(
     arg_count: usize,
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &ProgramState,
     place: &PlaceKey,
 ) -> Option<BoundarySlot> {
     if canonical_storage(place) != *place {
@@ -4911,7 +5082,7 @@ fn propagate_validation_route(
 fn compose_validation_route(
     validation: &ValidationFact,
     call: &CallSite,
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &ProgramState,
     caller_arg_count: usize,
 ) -> ValidationRoute {
     let requirement = validation.instantiate_requirement(
@@ -5001,10 +5172,7 @@ fn instantiate_validation_binding(
     })
 }
 
-fn local_call_boundary_mapping(
-    call: &CallModel,
-    state: &BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-) -> BTreeSet<CallMapping> {
+fn local_call_boundary_mapping(call: &CallModel, state: &ProgramState) -> BTreeSet<CallMapping> {
     let mut mapping = BTreeSet::new();
     for (index, operand) in call.descriptor.args.iter().enumerate() {
         if let Some(actual) = operand.operand.place() {
@@ -5038,11 +5206,7 @@ fn local_call_boundary_mapping(
     mapping
 }
 
-fn apply_call_side_effects(
-    call: &CallModel,
-    point: &ProgramPoint,
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-) {
+fn apply_call_side_effects(call: &CallModel, point: &ProgramPoint, state: &mut ProgramState) {
     let token = StaticWriteToken::new(point.block, point.statement);
     for actual in &call.mutable_actuals {
         for target in state_alias_closure(state, actual) {
@@ -5073,7 +5237,7 @@ fn apply_call_return(
     call: &CallModel,
     point: &ProgramPoint,
     mut value: ValueFacts,
-    state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
+    state: &mut ProgramState,
 ) {
     let token = StaticWriteToken::new(point.block, point.statement);
     let destination = call.descriptor.destination.clone();
@@ -5592,11 +5756,16 @@ mod tests {
         }
     }
 
-    fn seed_exact(
-        state: &mut BlockState<PlaceKey, ValueFacts, ValidationBinding>,
-        place: &PlaceKey,
-    ) {
+    fn seed_exact(state: &mut ProgramState, place: &PlaceKey) {
         state.set_value(place.clone(), exact_value(place));
+    }
+
+    fn has_pending_validation(state: &ProgramState, condition: &PlaceKey) -> bool {
+        state.pending_must().get(condition).is_some_and(|facts| {
+            facts
+                .keys()
+                .any(|(binding, _)| binding.validation().is_some())
+        })
     }
 
     fn task6_contract() -> ValidationFact {
@@ -5658,7 +5827,7 @@ mod tests {
         let call = task6_call(&collection, &subject);
         let contract = task6_contract();
 
-        let mut guarded = BlockState::empty();
+        let mut guarded = ProgramState::empty();
         for place in [&collection, &subject, &other] {
             seed_exact(&mut guarded, place);
         }
@@ -5670,7 +5839,7 @@ mod tests {
             collection: Some(collection.clone()),
         };
         guarded.establish(BoundValidation::new(
-            binding.clone(),
+            binding.clone().into(),
             binding.storage_places(),
         ));
         assert_eq!(
@@ -5678,7 +5847,7 @@ mod tests {
             ValidationRoute::Satisfied
         );
 
-        let mut wrong_collection = BlockState::empty();
+        let mut wrong_collection = ProgramState::empty();
         for place in [&collection, &subject, &other] {
             seed_exact(&mut wrong_collection, place);
         }
@@ -5689,7 +5858,10 @@ mod tests {
             subject: subject.clone(),
             collection: Some(other),
         };
-        wrong_collection.establish(BoundValidation::new(wrong.clone(), wrong.storage_places()));
+        wrong_collection.establish(BoundValidation::new(
+            wrong.clone().into(),
+            wrong.storage_places(),
+        ));
         assert!(matches!(
             compose_validation_route(&contract, &call, &wrong_collection, 3),
             ValidationRoute::Conditional(_)
@@ -5703,7 +5875,7 @@ mod tests {
         let call = task6_call(&collection, &subject);
         let contract = task6_contract();
 
-        let mut guarded = BlockState::empty();
+        let mut guarded = ProgramState::empty();
         seed_exact(&mut guarded, &collection);
         seed_exact(&mut guarded, &subject);
         let binding = ValidationBinding {
@@ -5714,11 +5886,11 @@ mod tests {
             collection: Some(collection.clone()),
         };
         guarded.establish(BoundValidation::new(
-            binding.clone(),
+            binding.clone().into(),
             binding.storage_places(),
         ));
 
-        let mut unguarded = BlockState::empty();
+        let mut unguarded = ProgramState::empty();
         seed_exact(&mut unguarded, &collection);
         seed_exact(&mut unguarded, &subject);
         let routes = [
@@ -5989,7 +6161,7 @@ mod tests {
         let referent = PlaceKey::new("_2");
         let reference = PlaceKey::new("_3");
         let destination = PlaceKey::new("_4");
-        let mut before = BlockState::empty();
+        let mut before = ProgramState::empty();
         seed_exact(&mut before, &referent);
         before.set_value(
             reference.clone(),
@@ -6007,7 +6179,7 @@ mod tests {
             collection: None,
         };
         before.establish(BoundValidation::new(
-            binding.clone(),
+            binding.clone().into(),
             binding.storage_places(),
         ));
         let call = CallModel {
@@ -6157,7 +6329,7 @@ mod tests {
     #[test]
     fn task7_partial_local_out_overlay_preserves_the_callers_old_may_origin_and_havoc() {
         let place = PlaceKey::new("_2");
-        let mut state = BlockState::empty();
+        let mut state = ProgramState::empty();
         state.set_value(
             place.clone(),
             ValueFacts {
@@ -6740,7 +6912,7 @@ mod tests {
             2,
             &mut stale,
         );
-        assert!(!stale.pending_must().contains_key(&stale_condition));
+        assert!(!has_pending_validation(&stale, &stale_condition));
 
         let first = StaticWriteToken::new(1, 0);
         let second = StaticWriteToken::new(2, 0);
@@ -6775,7 +6947,7 @@ mod tests {
             2,
             &mut conflated,
         );
-        assert!(!conflated.pending_must().contains_key(&conflated_condition));
+        assert!(!has_pending_validation(&conflated, &conflated_condition));
     }
 
     #[test]
@@ -6890,7 +7062,7 @@ mod tests {
             assignment.destination = stale_condition.clone();
         }
         apply_program_op(&stale_compare, BasicBlock::from_usize(0), 4, &mut state);
-        assert!(!state.pending_must().contains_key(&stale_condition));
+        assert!(!has_pending_validation(&state, &stale_condition));
     }
 
     #[test]
@@ -7567,7 +7739,7 @@ mod tests {
             2,
             &mut nonzero,
         );
-        assert!(nonzero.pending_must().get(&condition).is_none());
+        assert!(!has_pending_validation(&nonzero, &condition));
 
         let mut stale = BlockState::empty();
         seed_exact(&mut stale, &collection);
@@ -9000,7 +9172,7 @@ mod tests {
         );
         let unknown_condition = PlaceKey::new("_5");
         apply_program_op(&compare(unknown_condition.clone()), normal, 1, &mut unknown);
-        assert!(!unknown.pending_must().contains_key(&unknown_condition));
+        assert!(!has_pending_validation(&unknown, &unknown_condition));
     }
 
     #[test]
@@ -9076,7 +9248,7 @@ mod tests {
         };
         let mut state = BlockState::empty();
         state.establish(BoundValidation::new(
-            binding.clone(),
+            binding.clone().into(),
             binding.storage_places(),
         ));
         assert!(state_proves_local_binding(&state, Some(&binding)));
@@ -9099,11 +9271,11 @@ mod tests {
             subject: subject.clone(),
             collection: Some(collection.clone()),
         };
-        let mut state = BlockState::empty();
+        let mut state = ProgramState::empty();
         seed_exact(&mut state, &collection);
         seed_exact(&mut state, &subject);
         state.establish(BoundValidation::new(
-            binding.clone(),
+            binding.clone().into(),
             binding.storage_places(),
         ));
 
@@ -9760,5 +9932,156 @@ mod tests {
         .is_err());
 
         std::fs::remove_dir_all(&temporary).expect("remove source-root fixture");
+    }
+
+    #[test]
+    fn relational_must_binding_survives_only_when_all_predecessors_prove_it() {
+        use super::super::relations::{RelationFact, RelationKind, RelationTerm};
+
+        let index = PlaceKey::new("_1");
+        let slice = PlaceKey::new("_2");
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(index.clone()),
+            RelationTerm::Length(slice.clone()),
+        ));
+        let binding = ProofBinding::Relation(relation.clone());
+        let places = relation.storage_places();
+
+        let mut left = ProgramState::empty();
+        left.record_write(index.clone(), StaticWriteToken::new(1, 0));
+        left.establish(BoundValidation::new(binding.clone(), places.clone()));
+
+        let mut right = ProgramState::empty();
+        right.record_write(index.clone(), StaticWriteToken::new(2, 0));
+        right.establish(BoundValidation::new(binding.clone(), places.clone()));
+
+        let joined = ProgramState::join_predecessors([&left, &right])
+            .expect("both predecessors are reachable");
+        assert!(joined.has_current_validation(&binding, places.clone()));
+
+        let missing = ProgramState::empty();
+        let joined = ProgramState::join_predecessors([&left, &missing])
+            .expect("both predecessors are reachable");
+        assert!(!joined.has_current_validation(&binding, places));
+    }
+
+    #[test]
+    fn relational_must_binding_is_killed_by_an_exact_or_may_write() {
+        use super::super::relations::{RelationFact, RelationKind, RelationTerm};
+
+        let index = PlaceKey::new("_1");
+        let slice = PlaceKey::new("_2");
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(index.clone()),
+            RelationTerm::Length(slice.clone()),
+        ));
+        let binding = ProofBinding::Relation(relation.clone());
+        let places = relation.storage_places();
+
+        for may_write in [false, true] {
+            let mut state = ProgramState::empty();
+            state.establish(BoundValidation::new(binding.clone(), places.clone()));
+            if may_write {
+                state.record_may_write(slice.clone(), StaticWriteToken::new(3, 0));
+            } else {
+                state.record_write(slice.clone(), StaticWriteToken::new(3, 0));
+            }
+            assert!(!state.has_current_validation(&binding, places.clone()));
+        }
+    }
+
+    #[test]
+    fn relational_switch_establishes_only_the_matching_exact_ordering() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let length = PlaceKey::new("_3");
+        let condition = PlaceKey::new("_4");
+        let mut before = ProgramState::empty();
+        seed_exact(&mut before, &collection);
+        seed_exact(&mut before, &index);
+
+        let length_op = ProgramOp {
+            point: Some(point(0, 0)),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: length.clone(),
+                value: ValueModel::Length(place_operand(&collection.0)),
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+                out_formal: None,
+            }),
+        };
+        apply_program_op(&length_op, BasicBlock::from_usize(0), 0, &mut before);
+        let compare = ProgramOp {
+            point: Some(point(0, 1)),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: condition.clone(),
+                value: ValueModel::Compare {
+                    op: BinOp::Lt,
+                    left: place_operand(&index.0),
+                    right: place_operand(&length.0),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+                out_formal: None,
+            }),
+        };
+        apply_program_op(&compare, BasicBlock::from_usize(0), 1, &mut before);
+        let false_target = BasicBlock::from_usize(1);
+        let true_target = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::Switch {
+            condition,
+            false_target,
+            true_target,
+        };
+
+        let mut on_true = before.clone();
+        apply_program_edge(&edge, true_target, &mut on_true);
+        assert!(current_relation_proof(&on_true)
+            .proves_in_bounds(&RelationTerm::Place(index.clone()), &collection,));
+
+        let mut on_false = before;
+        apply_program_edge(&edge, false_target, &mut on_false);
+        assert!(!current_relation_proof(&on_false)
+            .proves_in_bounds(&RelationTerm::Place(index), &collection));
+    }
+
+    #[test]
+    fn branch_proved_increment_creates_a_nonoverflowing_add_relation() {
+        let collection = PlaceKey::new("_1");
+        let index = PlaceKey::new("_2");
+        let next = PlaceKey::new("_3");
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(index.clone()),
+            RelationTerm::Length(collection.clone()),
+        ));
+        let mut state = ProgramState::empty();
+        seed_exact(&mut state, &collection);
+        seed_exact(&mut state, &index);
+        state.establish(BoundValidation::new(
+            ProofBinding::Relation(relation.clone()),
+            relation.storage_places(),
+        ));
+        let add = ProgramOp {
+            point: Some(point(0, 0)),
+            kind: ProgramOpKind::Assign(AssignmentModel {
+                destination: next.clone(),
+                value: ValueModel::Compare {
+                    op: BinOp::Add,
+                    left: place_operand(&index.0),
+                    right: constant_operand(1),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+                out_formal: None,
+            }),
+        };
+        apply_program_op(&add, BasicBlock::from_usize(0), 0, &mut state);
+        assert!(current_relation_proof(&state).proves_le(
+            &RelationTerm::Place(next),
+            &RelationTerm::Length(collection),
+        ));
     }
 }

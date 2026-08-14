@@ -200,6 +200,12 @@ impl RelationProof {
         }) || self.proves_le(end, &RelationTerm::Capacity(base.clone()))
     }
 
+    pub(super) fn proves_increment_without_overflow(&self, base: &RelationTerm) -> bool {
+        self.relations.iter().any(|relation| {
+            matches!(relation, RelationKind::Lt(left, RelationTerm::Length(_)) if left == base)
+        })
+    }
+
     fn close(&mut self) {
         loop {
             let before = self.relations.len();

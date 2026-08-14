@@ -130,11 +130,15 @@ where
     /// Queries a validation against the current reaching definitions at this
     /// program point. Both the semantic binding and all bound versions must
     /// match exactly.
-    pub(super) fn has_current_validation(
+    pub(super) fn has_current_validation<Q>(
         &self,
-        predicate: &P,
+        predicate: &Q,
         bound_places: impl IntoIterator<Item = K>,
-    ) -> bool {
+    ) -> bool
+    where
+        P: PartialEq<Q>,
+        Q: ?Sized,
+    {
         let expected = bound_places
             .into_iter()
             .map(|place| {
@@ -159,11 +163,13 @@ where
 
     /// Strongly defines one condition's finite pending edge facts. Every fact
     /// is sealed to the current reaching definitions when it is created.
-    pub(super) fn set_pending(
+    pub(super) fn set_pending<Q>(
         &mut self,
         condition: K,
-        facts: impl IntoIterator<Item = (P, bool, Vec<K>)>,
-    ) {
+        facts: impl IntoIterator<Item = (Q, bool, Vec<K>)>,
+    ) where
+        Q: Into<P>,
+    {
         let mut sealed = BTreeMap::<(P, bool), BTreeMap<K, BTreeSet<StaticWriteToken>>>::new();
         for (fact, polarity, places) in facts {
             let versions = places
@@ -173,7 +179,7 @@ where
                     (place, version)
                 })
                 .collect::<BTreeMap<_, _>>();
-            let entry = sealed.entry((fact, polarity)).or_default();
+            let entry = sealed.entry((fact.into(), polarity)).or_default();
             for (place, versions) in versions {
                 entry.entry(place).or_default().extend(versions);
             }
@@ -181,10 +187,21 @@ where
         self.pending_must.insert(condition, sealed);
     }
 
-    pub(super) fn pending_is_current(&self, condition: &K, fact: &P, polarity: bool) -> bool {
+    pub(super) fn pending_is_current<Q>(&self, condition: &K, fact: &Q, polarity: bool) -> bool
+    where
+        P: PartialEq<Q>,
+        Q: ?Sized,
+    {
         self.pending_must
             .get(condition)
-            .and_then(|facts| facts.get(&(fact.clone(), polarity)))
+            .and_then(|facts| {
+                facts
+                    .iter()
+                    .find(|((candidate, candidate_polarity), _)| {
+                        candidate == fact && *candidate_polarity == polarity
+                    })
+                    .map(|(_, sealed)| sealed)
+            })
             .is_some_and(|sealed| {
                 sealed.iter().all(|(place, version)| {
                     self.versions.get(place).cloned().unwrap_or_default() == *version
