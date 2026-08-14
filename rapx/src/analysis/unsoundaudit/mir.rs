@@ -2754,6 +2754,7 @@ impl<'tcx> Engine<'tcx> {
             .is_some_and(|did| self.is_open_behavior_call(did, &callee, body, args, destination));
         let modeled_registry = raw_def.is_some_and(|did| {
             self.is_modeled_registry_call(did)
+                || self.is_slice_iterator_position(did, body, args)
                 || self.is_associated_slice_as_ref(did, body, args, destination)
         });
         let disposition = select_boundary(BoundaryInputs {
@@ -2801,7 +2802,7 @@ impl<'tcx> Engine<'tcx> {
                 value = RegistryValueModel::Length(operands[0].clone());
             } else if self.is_slice_iterator_constructor(did) && !operands.is_empty() {
                 value = RegistryValueModel::SliceIterator(operands[0].clone());
-            } else if self.is_slice_iterator_position(did) && !operands.is_empty() {
+            } else if self.is_slice_iterator_position(did, body, args) && !operands.is_empty() {
                 value = RegistryValueModel::SlicePosition(operands[0].clone());
             } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
                 value = RegistryValueModel::SelectedOpenBehavior {
@@ -3695,7 +3696,6 @@ impl<'tcx> Engine<'tcx> {
             || self.is_maybe_uninit_constructor(did, "new")
             || self.is_slice_len(did)
             || self.is_slice_iterator_constructor(did)
-            || self.is_slice_iterator_position(did)
             || self.tcx.is_diagnostic_item(sym::assume_init, did)
             || self.tcx.is_diagnostic_item(sym::str_from_utf8, did)
             || self
@@ -3775,7 +3775,12 @@ impl<'tcx> Engine<'tcx> {
                 .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
     }
 
-    fn is_slice_iterator_position(&self, did: DefId) -> bool {
+    fn is_slice_iterator_position(
+        &self,
+        did: DefId,
+        body: &Body<'tcx>,
+        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+    ) -> bool {
         if !self
             .tcx
             .opt_item_name(did)
@@ -3783,18 +3788,20 @@ impl<'tcx> Engine<'tcx> {
         {
             return false;
         }
-        self.tcx.impl_of_method(did).is_some_and(|impl_id| {
-            let self_ty = self.tcx.type_of(impl_id).skip_binder();
-            let Some(adt) = self_ty.ty_adt_def() else {
-                return false;
-            };
-            self.tcx.crate_name(adt.did().krate).as_str() == "core"
-                && matches!(
-                    self.tcx.item_name(adt.did()).as_str(),
-                    "Iter" | "IterMut"
-                )
-                && self.tcx.def_path_str(adt.did()).starts_with("core::slice::iter::")
-        })
+        let Some(receiver) = args.first() else {
+            return false;
+        };
+        let receiver = receiver.node.ty(&body.local_decls, self.tcx);
+        let receiver = match receiver.kind() {
+            ty::Ref(_, inner, _) => *inner,
+            _ => receiver,
+        };
+        let Some(adt) = receiver.ty_adt_def() else {
+            return false;
+        };
+        self.tcx.crate_name(adt.did().krate).as_str() == "core"
+            && matches!(self.tcx.item_name(adt.did()).as_str(), "Iter" | "IterMut")
+            && self.tcx.def_path_str(adt.did()).starts_with("core::slice::iter::")
     }
 
     fn is_pointer_is_null(&self, did: DefId) -> bool {
