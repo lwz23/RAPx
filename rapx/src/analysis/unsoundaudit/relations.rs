@@ -9,6 +9,7 @@ pub(super) enum RelationTerm {
     Length(PlaceKey),
     Capacity(PlaceKey),
     Constant(u64),
+    ReturnPayload { storage: PlaceKey, field: u32 },
     Formal(u32),
     Return,
     Out(u32),
@@ -17,7 +18,10 @@ pub(super) enum RelationTerm {
 impl RelationTerm {
     pub(super) fn storage_place(&self) -> Option<&PlaceKey> {
         match self {
-            Self::Place(place) | Self::Length(place) | Self::Capacity(place) => Some(place),
+            Self::Place(place)
+            | Self::Length(place)
+            | Self::Capacity(place)
+            | Self::ReturnPayload { storage: place, .. } => Some(place),
             Self::Constant(_) | Self::Formal(_) | Self::Return | Self::Out(_) => None,
         }
     }
@@ -172,13 +176,30 @@ pub(super) enum SummaryRelationKind {
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct RelationalPostcondition {
+    pub(super) condition: Option<ReturnCondition>,
     pub(super) relation: SummaryRelationKind,
 }
 
 impl RelationalPostcondition {
     pub(super) fn unconditional(relation: SummaryRelationKind) -> Self {
-        Self { relation }
+        Self {
+            condition: None,
+            relation,
+        }
     }
+
+    pub(super) fn conditional(condition: ReturnCondition, relation: SummaryRelationKind) -> Self {
+        Self {
+            condition: Some(condition),
+            relation,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct ReturnCondition {
+    pub(super) discriminant: u128,
+    pub(super) payload_field: u32,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -261,6 +282,33 @@ impl RelationProof {
     pub(super) fn proves_increment_without_overflow(&self, base: &RelationTerm) -> bool {
         self.relations.iter().any(|relation| {
             matches!(relation, RelationKind::Lt(left, RelationTerm::Length(_)) if left == base)
+        })
+    }
+
+    pub(super) fn mentions_return_payload(&self, storage: &PlaceKey, field: u32) -> bool {
+        let payload = RelationTerm::ReturnPayload {
+            storage: storage.clone(),
+            field,
+        };
+        self.relations.iter().any(|relation| match relation {
+            RelationKind::Eq(left, right)
+            | RelationKind::Le(left, right)
+            | RelationKind::Lt(left, right)
+            | RelationKind::SameObject(left, right) => left == &payload || right == &payload,
+            RelationKind::AddConst { result, base, .. } => result == &payload || base == &payload,
+            RelationKind::Sub {
+                result,
+                upper,
+                lower,
+            } => result == &payload || upper == &payload || lower == &payload,
+            RelationKind::SumEq { total, left, right } => {
+                total == &payload || left == &payload || right == &payload
+            }
+            RelationKind::Within { start, end, .. }
+            | RelationKind::InitializedWithin { start, end, .. } => {
+                start == &payload || end == &payload
+            }
+            RelationKind::CapacityFor { end, .. } => end == &payload,
         })
     }
 
