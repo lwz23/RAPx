@@ -1167,7 +1167,9 @@ impl ValidationSnapshot {
         let proof = RelationProof::from_facts(self.current_relations.iter().cloned());
         match obligation {
             RelationalObligation::Within { base, start, end } => {
-                proof.proves_within(base, start, end)
+                (matches!(start, RelationTerm::Constant(0))
+                    && proof.proves_le(end, &RelationTerm::Length(base.clone())))
+                    || proof.proves_within(base, start, end)
             }
         }
     }
@@ -2693,17 +2695,24 @@ impl<'tcx> Engine<'tcx> {
     }
 
     fn range_index_kind(&self, ty: ty::Ty<'tcx>) -> Option<RangeIndexKind> {
-        let ty::Adt(definition, _) = ty.kind() else {
+        let ty::Adt(definition, arguments) = ty.kind() else {
             return None;
         };
         if self.tcx.crate_name(definition.did().krate).as_str() != "core" {
             return None;
         }
-        match self.tcx.def_path_str(definition.did()).as_str() {
-            "core::ops::range::RangeFull" => Some(RangeIndexKind::Full),
-            "core::ops::range::RangeFrom" => Some(RangeIndexKind::From),
-            "core::ops::range::RangeTo" => Some(RangeIndexKind::To),
-            "core::ops::range::Range" => Some(RangeIndexKind::Between),
+        let name = self.tcx.item_name(definition.did());
+        if name.as_str() != "RangeFull"
+            && (arguments.is_empty()
+                || !matches!(arguments.type_at(0).kind(), ty::Uint(ty::UintTy::Usize)))
+        {
+            return None;
+        }
+        match name.as_str() {
+            "RangeFull" => Some(RangeIndexKind::Full),
+            "RangeFrom" => Some(RangeIndexKind::From),
+            "RangeTo" => Some(RangeIndexKind::To),
+            "Range" => Some(RangeIndexKind::Between),
             _ => None,
         }
     }
@@ -10145,6 +10154,10 @@ mod tests {
         };
         let obligation = range_index_obligation(&call, &collection).expect("range obligation");
         assert!(ValidationSnapshot::capture(&state, 4).proves_relational(&obligation));
+        let mut range_to = call.clone();
+        range_to.index_range_kind = Some(RangeIndexKind::To);
+        let range_to = range_index_obligation(&range_to, &collection).expect("range-to obligation");
+        assert!(ValidationSnapshot::capture(&state, 4).proves_relational(&range_to));
 
         let wrong_collection = PlaceKey::new("_8");
         seed_exact(&mut state, &wrong_collection);
