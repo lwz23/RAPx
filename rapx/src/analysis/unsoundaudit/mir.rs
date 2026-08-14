@@ -17,22 +17,23 @@ use super::summary::{
     StableSpan, UnresolvedPredecessor, UnresolvedRouteCycle, UnresolvedRouteFact,
     UnresolvedRouteNode, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
+use rustc_abi::ExternAbi;
+use rustc_attr_ir::lang_items::LangItem;
 use rustc_hir::{
     def::DefKind,
     def_id::{DefId, LocalDefId, LOCAL_CRATE},
-    LangItem, Mutability, Safety,
+    Mutability, Safety,
 };
 use rustc_index::IndexVec;
 use rustc_middle::{
     middle::privacy::Level,
     mir::{
-        AggregateKind, BasicBlock, BinOp, Body, CastKind, Location, Operand, Place, ProjectionElem,
-        Rvalue, StatementKind, TerminatorKind, UnOp, RETURN_PLACE,
+        AggregateKind, BasicBlock, BinOp, Body, CastKind, Location, Operand, Place, PlaceTy,
+        ProjectionElem, Rvalue, StatementKind, TerminatorKind, UnOp, RETURN_PLACE,
     },
     ty::{self, Instance, InstanceKind, TyCtxt, TypeVisitableExt},
 };
-use rustc_span::{sym, FileNameDisplayPreference, Span};
-use rustc_target::spec::abi::Abi;
+use rustc_span::{sym, Span, Spanned, Symbol};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -2505,7 +2506,7 @@ impl<'tcx> Engine<'tcx> {
             has_self: self
                 .tcx
                 .opt_associated_item(caller)
-                .is_some_and(|item| item.fn_has_self_parameter),
+                .is_some_and(|item| item.is_method()),
             out_formals: body
                 .args_iter()
                 .filter(|arg| is_mutable_call_actual(body.local_decls[*arg].ty))
@@ -2532,7 +2533,7 @@ impl<'tcx> Engine<'tcx> {
     ) -> AssignmentModel {
         let destination_key = place_key(destination);
         let value = match rvalue {
-            Rvalue::Use(operand) => {
+            Rvalue::Use(operand, _) => {
                 ValueModel::Operand(self.normalize_operand(body, operand, point))
             }
             Rvalue::CopyForDeref(place) => {
@@ -2546,9 +2547,7 @@ impl<'tcx> Engine<'tcx> {
                 operand: self.normalize_operand(body, operand, point),
                 known_length: match operand.ty(&body.local_decls, self.tcx).kind() {
                     ty::Ref(_, inner, _) => match inner.kind() {
-                        ty::Array(_, length) => {
-                            length.try_eval_target_usize(self.tcx, ty::ParamEnv::empty())
-                        }
+                        ty::Array(_, length) => length.try_to_target_usize(self.tcx),
                         _ => None,
                     },
                     _ => None,
@@ -2564,7 +2563,6 @@ impl<'tcx> Engine<'tcx> {
                 }
                 ValueModel::RefOrRaw(operand)
             }
-            Rvalue::Len(place) => ValueModel::Length(self.normalize_place(body, *place, point)),
             Rvalue::UnaryOp(UnOp::PtrMetadata, operand) => operand
                 .place()
                 .map(|place| ValueModel::Length(self.normalize_place(body, place, point)))
@@ -2629,7 +2627,7 @@ impl<'tcx> Engine<'tcx> {
                 }
             });
         let raw_read_source = match rvalue {
-            Rvalue::Use(operand) => operand
+            Rvalue::Use(operand, _) => operand
                 .place()
                 .filter(|place| {
                     place
@@ -2743,12 +2741,7 @@ impl<'tcx> Engine<'tcx> {
             def_id if Some(def_id) == lang_items.range_struct() => RangeIndexKind::Between,
             _ => return None,
         };
-        let element = arguments
-            .iter()
-            .find_map(|argument| match argument.unpack() {
-                ty::GenericArgKind::Type(element) => Some(element),
-                _ => None,
-            })?;
+        let element = arguments.iter().find_map(|argument| argument.as_type())?;
         matches!(element.kind(), ty::Uint(ty::UintTy::Usize)).then_some(kind)
     }
 
@@ -2757,7 +2750,7 @@ impl<'tcx> Engine<'tcx> {
         caller: DefId,
         body: &Body<'tcx>,
         func: &Operand<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
         destination: Place<'tcx>,
         point: &ProgramPoint,
         legacy_write: bool,
@@ -2856,11 +2849,14 @@ impl<'tcx> Engine<'tcx> {
                 };
             } else if self.is_option_try_branch(did) && !operands.is_empty() {
                 value = RegistryValueModel::CheckedTryBranch(operands[0].clone());
-            } else if self.tcx.is_diagnostic_item(sym::mem_size_of, did) {
-                if let Ok(layout) = self
-                    .tcx
-                    .layout_of(self.tcx.param_env(caller).and(generic_args.type_at(0)))
-                {
+            } else if self
+                .tcx
+                .is_diagnostic_item(Symbol::intern("mem_size_of"), did)
+            {
+                if let Ok(layout) = self.tcx.layout_of(
+                    ty::TypingEnv::post_analysis(self.tcx, caller)
+                        .as_query_input(generic_args.type_at(0)),
+                ) {
                     value = RegistryValueModel::Constant(layout.size.bytes());
                 }
             } else if self.is_slice_prefix_index(did) && operands.len() >= 2 {
@@ -2910,7 +2906,9 @@ impl<'tcx> Engine<'tcx> {
         let destination_ty = destination.ty(&body.local_decls, self.tcx).ty;
         let access_width = self
             .tcx
-            .layout_of(self.tcx.param_env(caller).and(destination_ty))
+            .layout_of(
+                ty::TypingEnv::post_analysis(self.tcx, caller).as_query_input(destination_ty),
+            )
             .ok()
             .map(|layout| layout.size.bytes());
         CallModel {
@@ -3260,9 +3258,21 @@ impl<'tcx> Engine<'tcx> {
         )
     }
 
+    fn associated_impl(&self, did: DefId) -> Option<DefId> {
+        self.tcx.opt_associated_item(did)?.impl_container(self.tcx)
+    }
+
+    fn associated_trait(&self, did: DefId) -> Option<DefId> {
+        let item = self.tcx.opt_associated_item(did)?;
+        match item.container {
+            ty::AssocContainer::Trait => Some(self.tcx.parent(item.def_id)),
+            ty::AssocContainer::TraitImpl(Ok(trait_item)) => Some(self.tcx.parent(trait_item)),
+            ty::AssocContainer::TraitImpl(Err(_)) | ty::AssocContainer::InherentImpl => None,
+        }
+    }
+
     fn is_selected_open_behavior(&self, did: DefId) -> bool {
-        self.tcx
-            .trait_of_item(did)
+        self.associated_trait(did)
             .is_some_and(|trait_id| self.tcx.item_name(trait_id).as_str() == "IndexSource")
             && self
                 .tcx
@@ -3668,10 +3678,10 @@ impl<'tcx> Engine<'tcx> {
         ) {
             return None;
         }
-        operand
-            .constant()?
-            .const_
-            .try_eval_target_usize(self.tcx, ty::ParamEnv::empty())
+        operand.constant()?.const_.try_eval_target_usize(
+            self.tcx,
+            ty::TypingEnv::post_analysis(self.tcx, body.source.def_id()),
+        )
     }
 
     fn symbolic_array_lengths(
@@ -3715,8 +3725,7 @@ impl<'tcx> Engine<'tcx> {
     }
 
     fn field_info(&self, body: &Body<'tcx>, place: Place<'tcx>) -> Option<(bool, String)> {
-        let mut place_ty =
-            rustc_middle::mir::tcx::PlaceTy::from_ty(body.local_decls[place.local].ty);
+        let mut place_ty = PlaceTy::from_ty(body.local_decls[place.local].ty);
         for element in place.projection.iter() {
             if let ProjectionElem::Field(index, _) = element {
                 if let ty::Adt(adt, _) = place_ty.ty.kind() {
@@ -3747,9 +3756,12 @@ impl<'tcx> Engine<'tcx> {
         raw: DefId,
         args: ty::GenericArgsRef<'tcx>,
     ) -> Option<FunctionKey> {
-        if let Ok(Some(instance)) =
-            Instance::try_resolve(self.tcx, self.tcx.param_env(caller), raw, args)
-        {
+        if let Ok(Some(instance)) = Instance::try_resolve(
+            self.tcx,
+            ty::TypingEnv::post_analysis(self.tcx, caller),
+            raw,
+            args,
+        ) {
             if let InstanceKind::Item(target) = instance.def {
                 if target.is_local() && self.tcx.is_mir_available(target) {
                     return Some(FunctionKey::new(self.tcx.def_path_str(target)));
@@ -3771,7 +3783,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx.is_foreign_item(did)
             && matches!(
                 self.tcx.fn_sig(did).skip_binder().abi(),
-                Abi::C { unwind: false }
+                ExternAbi::C { unwind: false }
             )
     }
 
@@ -3787,7 +3799,9 @@ impl<'tcx> Engine<'tcx> {
             || self
                 .tcx
                 .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
-            || self.tcx.is_diagnostic_item(sym::mem_size_of, did)
+            || self
+                .tcx
+                .is_diagnostic_item(Symbol::intern("mem_size_of"), did)
             || self.is_slice_is_empty(did)
             || self.is_pointer_is_null(did)
             || self.is_result_is_err(did)
@@ -3806,8 +3820,7 @@ impl<'tcx> Engine<'tcx> {
             .opt_item_name(did)
             .is_some_and(|name| matches!(name.as_str(), "get_unchecked" | "get_unchecked_mut"))
             && self
-                .tcx
-                .impl_of_method(did)
+                .associated_impl(did)
                 .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
     }
 
@@ -3815,7 +3828,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "new_unchecked")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 self.tcx
                     .type_of(impl_id)
                     .skip_binder()
@@ -3828,7 +3841,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == expected)
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 self.tcx
                     .type_of(impl_id)
                     .skip_binder()
@@ -3842,8 +3855,7 @@ impl<'tcx> Engine<'tcx> {
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "is_empty")
             && self
-                .tcx
-                .impl_of_method(did)
+                .associated_impl(did)
                 .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
     }
 
@@ -3856,8 +3868,7 @@ impl<'tcx> Engine<'tcx> {
             .opt_item_name(did)
             .is_some_and(|name| matches!(name.as_str(), "iter" | "iter_mut"))
             && self
-                .tcx
-                .impl_of_method(did)
+                .associated_impl(did)
                 .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
     }
 
@@ -3865,7 +3876,7 @@ impl<'tcx> Engine<'tcx> {
         &self,
         did: DefId,
         body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
     ) -> bool {
         if !self
             .tcx
@@ -3903,15 +3914,14 @@ impl<'tcx> Engine<'tcx> {
         &self,
         did: DefId,
         body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
     ) -> bool {
         if !self
             .tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "next")
             || !self
-                .tcx
-                .trait_of_item(did)
+                .associated_trait(did)
                 .is_some_and(|trait_id| self.tcx.is_lang_item(trait_id, LangItem::Iterator))
         {
             return false;
@@ -3935,7 +3945,7 @@ impl<'tcx> Engine<'tcx> {
         &self,
         did: DefId,
         body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
     ) -> bool {
         if !self.tcx.is_lang_item(did, LangItem::IntoIterIntoIter) {
             return false;
@@ -3956,7 +3966,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "is_null")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 matches!(
                     self.tcx.type_of(impl_id).skip_binder().kind(),
                     ty::RawPtr(..)
@@ -3968,7 +3978,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "is_err")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 self.tcx
                     .type_of(impl_id)
                     .skip_binder()
@@ -3981,7 +3991,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "saturating_sub")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 matches!(
                     self.tcx.type_of(impl_id).skip_binder().kind(),
                     ty::Uint(ty::UintTy::Usize)
@@ -3993,7 +4003,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "checked_add")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 matches!(
                     self.tcx.type_of(impl_id).skip_binder().kind(),
                     ty::Uint(ty::UintTy::Usize)
@@ -4015,8 +4025,7 @@ impl<'tcx> Engine<'tcx> {
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "index")
             && self
-                .tcx
-                .trait_of_item(did)
+                .associated_trait(did)
                 .is_some_and(|trait_id| self.tcx.item_name(trait_id).as_str() == "Index")
     }
 
@@ -4025,8 +4034,7 @@ impl<'tcx> Engine<'tcx> {
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "as_ptr")
             && self
-                .tcx
-                .impl_of_method(did)
+                .associated_impl(did)
                 .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
     }
 
@@ -4034,7 +4042,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "wrapping_add")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 matches!(
                     self.tcx.type_of(impl_id).skip_binder().kind(),
                     ty::RawPtr(..)
@@ -4046,7 +4054,7 @@ impl<'tcx> Engine<'tcx> {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "cast")
-            && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            && self.associated_impl(did).is_some_and(|impl_id| {
                 matches!(
                     self.tcx.type_of(impl_id).skip_binder().kind(),
                     ty::RawPtr(..)
@@ -4060,7 +4068,7 @@ impl<'tcx> Engine<'tcx> {
                 .tcx
                 .opt_item_name(did)
                 .is_some_and(|name| name.as_str() == "read_unaligned")
-                && self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+                && self.associated_impl(did).is_some_and(|impl_id| {
                     matches!(
                         self.tcx.type_of(impl_id).skip_binder().kind(),
                         ty::RawPtr(..)
@@ -4072,15 +4080,14 @@ impl<'tcx> Engine<'tcx> {
         &self,
         did: DefId,
         body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
         destination: Place<'tcx>,
     ) -> bool {
         self.tcx
             .opt_item_name(did)
             .is_some_and(|name| name.as_str() == "as_ref")
             && self
-                .tcx
-                .trait_of_item(did)
+                .associated_trait(did)
                 .is_some_and(|trait_id| self.tcx.item_name(trait_id).as_str() == "AsRef")
             && destination
                 .ty(&body.local_decls, self.tcx)
@@ -4099,7 +4106,7 @@ impl<'tcx> Engine<'tcx> {
         did: DefId,
         callee: &Option<FunctionKey>,
         body: &Body<'tcx>,
-        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+        args: &[Spanned<Operand<'tcx>>],
         destination: Place<'tcx>,
     ) -> bool {
         callee.is_none()
@@ -4120,16 +4127,12 @@ impl<'tcx> Engine<'tcx> {
         let span = span.source_callsite();
         let source_map = self.tcx.sess.source_map();
         let (file, lo_line, lo_column, hi_line, hi_column) = source_map.span_to_location_info(span);
-        let local = file.as_ref().map(|file| {
-            file.name
-                .display(FileNameDisplayPreference::Local)
-                .to_string()
-        });
-        let remapped = file.as_ref().map(|file| {
-            file.name
-                .display(FileNameDisplayPreference::Remapped)
-                .to_string()
-        });
+        let local = file
+            .as_ref()
+            .map(|file| file.name.prefer_local_unconditionally().to_string());
+        let remapped = file
+            .as_ref()
+            .map(|file| file.name.prefer_remapped_unconditionally().to_string());
         stable_span_from_locations(
             &self.source_root,
             local.as_deref(),
