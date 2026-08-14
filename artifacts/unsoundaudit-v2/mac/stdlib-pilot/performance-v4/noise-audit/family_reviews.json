@@ -1,0 +1,194 @@
+{
+  "claim_scope": "single_reviewer_development_diagnostic_only",
+  "clusters_sha256": "bef9fd7f524d89652a8146465d84d646dfaedc3e1039758b8348401ffe340dc6",
+  "reviewer_id": "codex-single-rust-unsafe-reviewer-2026-08-14",
+  "reviews": [
+    {
+      "evidence_spans": ["library/alloc/src/collections/binary_heap/mod.rs:1361-1400"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["1d82db6b0aa632a79215834c62ed5495e658626122888da185fafd3200ace166", "bfe18d1ea5407c0a63a50ee927c443ab67eb17c516d2dbbe1f05c534102dea99", "dbc90f7d77778adacda25bc0ea4bee6ffae93cd4b71bfb9ea16058d6558bc93c"],
+      "label": "C",
+      "rationale": "BinaryHeap Hole construction and access document and debug-check that pos is within the backing slice and that the removed slot is excluded; the invariant is maintained by the private Hole type independently of the public entry root.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/alloc/src/collections/btree/node.rs:476-523", "library/alloc/src/collections/btree/node.rs:1088-1182"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["084e0542f7e598eca4d27a81060df550f2e02878b8fc38933105e3ec971502aa", "fe55eb0ccb26cd2e946312d0c621c50049670831bd11c62de10907c2903a468b", "e2febff0e6ef7ed76a60270c5302fd9622bd959e28eb892e22354b7b3dce89f6", "0a2a0d6b400bcfd0b849a0b8a6a3b2a099b80091866fd9b03e5e257f45df7f8f", "dcf86b87e5ee0373f0eb05bb0987589526072cf0b39216e702fc5d59e5ebd0df", "a246dc88b8d3e1b4bcb3559f5db5b2145e0fb77cfe6f16047854881f232883a1", "aec920f5e0d43544a6a1a54c036ecbfdec6321f83caf467fa0ac841c88b7ff37", "cc8efbec91390e88ffad9cb948074c16e635fbac0ebc6a63f75bb47ea5ee3394", "6d5ebde5a7fa2e117e79fbd947119907ab3bedfb2c36b6a722b20f30c52e60fb", "f31c020cdcd79badfc102ca615cdd789ba1a06c8bbed0154d7238abd7bb5cefb", "580831fadc6dce394f68e2adda94cbff3f967eb7c0063886f9d5062fa1c9099a", "a9d13696b2eeca5c3a69af06d928a8c65b6a70e0b64ee73db608a9bca5133ab7", "2a0e4b04cc6e8d8c0a831acdf762f73103a9068948725d3cd6c47fb6c6bc8ab3", "fc4f52cfcbd30f0f930b6162e3f7577ef829edc122b4eef4ac27d89dfdc1c18a", "9e6c2b16117e1f41644b8a69681b0d5d7044bf55b3356b90f4f6bf70c3551de8", "fd672b99764a480be104a9b72c423a4c4789c6155ddbeb2b9e611ff7960017d9", "5ee3e08f0e08f81eb43737e63af00acdb9ba6b97626c21e0dcc525fa8d1b29a1"],
+      "label": "C",
+      "rationale": "The private BTree Handle couples idx with node height, length, capacity, and edge/KV kind. Constructors and unsafe accessors state these invariants at the exact sinks; recursive clone routes do not change the handle contract.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/alloc/src/collections/btree/search.rs:213-229"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["58997cb1a71cee7de82155fcfab2831e906e9edf38def4d9212907f215df9e61"],
+      "label": "C",
+      "rationale": "The private IndexResult edge index is produced by BTree search under its unsafe node ordering and valid-start contract; the source explicitly checks start_index against the node key slice before the unchecked range.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/alloc/src/collections/vec_deque/mod.rs:1151-1177"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["bf97c840a09beb2b5155bdcf4b5ff5679d100a9cdabe91c3bcddf6a02e2f85e3", "9a5d7fe1207d4a1e08da8d4ab0e2ff97d024d335b7a2c2ef985fa9329c6e02be", "6c9651ab4a70f5d11cc3c222921d90d2702f75f2ca490d9d2349530f6e24df39", "2b3ed48ba0346bfa7a0f879e8c3cd503897d74e3f26b8de0988e727ae23c2e74"],
+      "label": "B",
+      "rationale": "VecDeque::truncate proves both unchecked ranges with an early return and a branch-specific subtraction. This is ordinary guard/arithmetic evidence that should be modeled generally, not a stdlib-only invariant.",
+      "root_cause": "missing_guard_recognizer"
+    },
+    {
+      "evidence_spans": ["library/alloc/src/ffi/c_str.rs:537-543"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["4e8bd8f71b2a466b81f05ae0a79ee7cf69ff089cc91f86811e7252d6c4d5af11"],
+      "label": "C",
+      "rationale": "CString's private boxed representation is constructed with a trailing NUL and therefore has length at least one; as_bytes removes exactly that terminator. The safety comment states the type invariant at the sink.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/alloc/src/str.rs:148-177"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["560c34406031d113235e81e9d711f31bc34ba2673819fc96abd51ce60f93b4df"],
+      "label": "B",
+      "rationale": "The target range follows checked total-length arithmetic, Vec capacity reservation, and the current Vec length. The missing proof is a reusable checked-capacity and spare-capacity summary rather than a type-only invariant.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/core/src/array/iter.rs:204-230", "library/core/src/ops/index_range.rs:1-45"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["b9f8f1d119815156debc05e690bcdacf2ebf9e109758dab20fb0e2c4cc3dd07d", "96f213bf12b05b534c976017b74fbb2d4a6e86d2278ba4f515e028bf5ab07561", "00d4450f7f72cfd846c0d44f072f4aeee86c4ebe110535601c4f790fcd67cb6c", "5d4fdd7fa3f83500082bdaebef6fdd66f0f30d9b94bc969d198657dfd760465e"],
+      "label": "C",
+      "rationale": "IntoIter privately couples the alive IndexRange to the initialized region of its fixed-size backing array. Constructors and iterator updates maintain 0 <= start <= end <= N, which is the documented safety basis of both slice accessors.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/array/iter.rs:281-293", "library/core/src/array/iter.rs:336-348"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["5809e7728fb634f0ec25309fb6495ec110d986749b7181e8dcac1a5f9387a441", "29430f8db75c5b1ec8546262181c2d19d68c5a66897002358fa8f0913f772a36", "3457eb7b5a97730f0f5d3ca02cdbbdb695540d9b9d3070863062fe1a25ceea13", "d8f93399becd57112989c5854dc4fbd2a2838c73c62c02fe1f18a26a1b14339f"],
+      "label": "B",
+      "rationale": "take_prefix/take_suffix clamp the public count to the current alive range before the unchecked access. The missing evidence is a reusable local return/summary contract for those range helpers.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/core/src/array/mod.rs:874-900"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["121cb762e33e3368102113217ae2c6bf29e6516d04a124db66d996141da8e56c"],
+      "label": "C",
+      "rationale": "The private array initialization Guard stores the exact number of initialized slots; push_unchecked's safety contract and all constructors bound it by N. The source states the invariant immediately above the sink.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/fmt/mod.rs:1168-1248"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["b215c67a78fa59d798aaea674327c7329dda41a35ddfd063017a24a3f1a03bf8", "69b53f03a690930f04677fe65aad0834a71d30c00a48dcbb614f48d25d56aea9", "341d204112ccb74c7437be36af4e4309312984a6f99453b99caa34208c05c069", "18d8a57e4e7604da39d118c2ab39acef487a32a02da02933fcce15b8dc820b5b", "60b57d804e92e7f0979b0af9fd21bbfe5b0bf607f83e2585444336af9ab894d7", "fe38ddbe76845d7819fea36a1798f8d0621d0f874b44c2143e9189884278b43e"],
+      "label": "C",
+      "rationale": "fmt::Arguments and its private Placeholder/Count descriptors are compiler-constructed together with pieces and arguments. The exact sinks document that shared-construction invariant and include debug assertions where applicable.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/hash/sip.rs:117-142"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["a2f1489e5828edc098d6431934ac5b28980c2620c566aa869894d371a0b4e2df"],
+      "label": "B",
+      "rationale": "The final byte read is dominated by i < len and by the caller's start..start+len slice contract. This is arithmetic and caller-contract evidence that should be propagated generally.",
+      "root_cause": "missing_guard_recognizer"
+    },
+    {
+      "evidence_spans": ["library/core/src/io/borrowed_buf.rs:91-119", "library/core/src/io/borrowed_buf.rs:201-259"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["d9105c4aee907d345436f86c70a2477524fdc0adfe569cbea7bf2f452590d185", "f590cd02e374e5d1e20eebddbae07eb312e6fa18172d025e5cb37a3be0cf24fe", "71ee37ae2d132769dcf1c591502aba55761ad9156d56d614054e97e29ae272c1", "6f6510b6f376756ff03b126a235f1d3fe80ba06b92becd67acc6dbd22ea29719", "6e55b73e8c80c9743c3953634c011a5b9b17a1bbbc5f702af7264171d42c4754", "33fdfc4f65c09c5d177d02a1fb8e56d0959325f08c39441cdfe958e301171a16", "dcf841b3b6bc3a475e7b9faed40b8046fe22883ddb9dde62789892759f8c455f"],
+      "label": "C",
+      "rationale": "BorrowedBuf privately maintains filled <= init <= capacity and BorrowedCursor only advances those counters through checked methods. Each unchecked slice is explicitly justified by that representation invariant.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/mem/mod.rs:862-875", "library/core/src/iter/range.rs:1005-1021"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["904a64d4af85deaa6437101ed6d3001b7671adacfdcf29773aac2b2558c3fe68", "c95cb52b2ca89a9f3e86034c8204d45ffdc90b3edbe4b855dc5f7942fcea9155"],
+      "label": "C",
+      "rationale": "These ptr::read calls receive a pointer formed directly from a live mutable Rust reference to the destination or private field. Reference validity, not a missing numeric guard, discharges valid_for_read for every root in these exact families.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/slice/mod.rs:3448-3511", "library/core/src/slice/rotate.rs:63-151"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["ad2ddb26d76a230c7f9563bfb0f97a21907f61aa7fcadb44581c78fae3133708"],
+      "label": "B",
+      "rationale": "rotate_left/right assert the public rotation count against the slice length before deriving the raw pointer passed into ptr_rotate. The unresolved read should be handled by a general guard plus pointer-offset summary, not an allowlist.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/core/src/slice/rotate.rs:63-151", "library/core/src/slice/sort/stable/quicksort.rs:35-55"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["012f6e8fbe635d4b09b213ab60a201b4f2a80f4ca2cd0d87594ff1d6f2f7d7b0", "29d3962ae91a8acb5128b1f8d19cb6ff5e54cd108a9260b223b730b0ce046134"],
+      "label": "C",
+      "rationale": "The Option payloads are private saved raw pointers created from an already in-bounds slice position and consumed under the rotate/quicksort gap invariants. The recursive witness uses the same exact pivot invariant and real SCC edge.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/core/src/slice/iter.rs:456-513"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["254f391b952313b6e20e6af3ae3c4ae72e8ae80806c1d59fefeac9615c0f3823", "86efdab2ced0ac5cd56d38b1d0694f621c3f63b158c141bf3aed4fdbaf1b7466", "7599f48e49559b4127333016dc73824410017efabf60c374f8715f4397b60b30", "b56f1e87137ad83ef3d5b9d4396d33a0aca5158e7cbc8630923f1ce94b5f508b", "30ed5bbde20a9ff57e12d815fe05b8ab72e50f1bd1d27585d8df681aa5f08826", "b4ff0a0c0f3dff624efe6aabe037e3fcef294d337ab63b6649b8c4ae2ebce1e6", "3778ca92b01cb87fa8cd7083b1983f22a8da27e4cef784aef8449c013e7ccec4", "a89a8c788b489814141b04e59e6c57642a1d9801008af34b28054b32197294e3"],
+      "label": "B",
+      "rationale": "Iterator::position/rposition returning Some(idx) proves idx is a valid index of the exact searched slice. The analyzer lacks that reusable return contract, including the derived idx+1 range relation.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/core/src/slice/mod.rs:4490-4507"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["c0fa33581e1ecbbaedea4a863e29e26e7bd8a67481cf388a0dba19978f96245f", "c48ccaae2495c83893f603bc8e117a27c81f0be6abe9c3cc15312b290214f27a"],
+      "label": "B",
+      "rationale": "get_many_mut reaches this unsafe helper only after validating all indices and their uniqueness. The missing result is a cross-call precondition/validation summary rather than a constructor-only invariant.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/core/src/slice/sort/stable/drift.rs:79-105"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["2db0f64524bf2b071dff2d8b2427f94eb3207c1026aaa5ab5a106b4c9a6f9173", "6c13690f011ac9c2037143433aae9b8aab888a8b3b76afe498fcd871d1e2c229", "15d89540648c85711045d4d0545116d15dd6481dacbed48528748c6800800fa2"],
+      "label": "C",
+      "rationale": "Driftsort documents the run-stack sum and scan_idx invariants at the unchecked merge slice. The recursive variant traverses the same private run descriptor invariant and one real canonical SCC edge.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/std/src/ffi/os_str.rs:1040-1055"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["4261bfac9813d7755a546cd2d6a4c128400aaa26dc74473874773b5d724d88fc"],
+      "label": "B",
+      "rationale": "slice::range returns start/end already checked against encoded_bytes.len(), and boundary checks are then applied. This is a reusable RangeBounds return contract, so the finding is retained pending generic support.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/std/src/io/buffered/bufreader/buffer.rs:39-67"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["0ff8507c4b8bec3963e2f7a62bc8eecb39e2a9d59e512312b3eb3ad5bd58f30a"],
+      "label": "C",
+      "rationale": "The private Buffer representation maintains pos <= filled <= initialized <= capacity. buffer() explicitly cites those type invariants for the exact unchecked range, independently of its many public Read roots.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/std/src/io/cursor.rs:455-476"],
+      "family_disposition": "generic_repair",
+      "family_ids": ["caabff54fe0affca2dc400cd21e607de93f40a44b3837bae8a8767650b9f441a"],
+      "label": "B",
+      "rationale": "reserve is followed by a debug assertion that the spare-capacity length covers diff before the unchecked range. This is a reusable Vec reserve/spare-capacity proof and remains active pending a generic summary.",
+      "root_cause": "cross_call_summary_loss"
+    },
+    {
+      "evidence_spans": ["library/std/src/io/mod.rs:371-391"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["9673c9f36f2f771923fcbb9733306c7c48ea9d625b1d343a4258c11560677ba9"],
+      "label": "C",
+      "rationale": "append_to_string's private Guard freezes the original length and its unsafe callback contract permits only appends, so g.len remains a valid slice boundary. The invariant is explicit at the sink for all exact roots.",
+      "root_cause": "type_or_constructor_invariant"
+    },
+    {
+      "evidence_spans": ["library/std/src/sync/mpmc/array.rs:128-155", "library/std/src/sync/mpmc/array.rs:214-239", "library/std/src/sync/mpmc/list.rs:88-105", "library/std/src/sync/mpmc/list.rs:257-275", "library/std/src/sync/mpmc/list.rs:363-386"],
+      "family_disposition": "stdlib_invariant_suppression",
+      "family_ids": ["bddfdddede77d18cc1604be7bda5d8662b73e0716bb0965e49dbbee916926bb5", "3364dcf773e4a57a728fa2aabd9caf9d2ab0ef8c8b22fef987bd91dfcf01bb5a", "7c7ed2a01829cd3173ac18151c8e1db4ffa4ca0a42e60805b3b28725a728bb23", "d35696492e0273604e90074ee6648265e6dd15b50cb9b7a4ae11e370c6093a5e", "c49c6db440fb07af8fc9b867a294f08f0654d2f323133006d06a7f5550c99b15"],
+      "label": "C",
+      "rationale": "The private MPMC channel layout derives array/list offsets from masked stamps, fixed BLOCK_CAP, and Token fields written only by reservation. Debug assertions and loop ranges state the exact bounds at each sink.",
+      "root_cause": "type_or_constructor_invariant"
+    }
+  ],
+  "rust_unsafe_contract_experience": true,
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "schema_version": "unsoundaudit-v2-stdlib-noise-family-reviews-v1"
+}

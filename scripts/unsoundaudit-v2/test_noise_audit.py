@@ -16,6 +16,7 @@ EVIDENCE_ROOT = (
     REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4"
 )
 PROTOCOL = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json"
+FAMILY_REVIEWS = EVIDENCE_ROOT / "noise-audit/family_reviews.json"
 
 
 class NoiseFamilyTests(unittest.TestCase):
@@ -318,6 +319,66 @@ class DiagnosticLabelTests(unittest.TestCase):
             self.clusters, self.sample, audit.validate_labels(self.clusters, self.sample, labels)
         )
         self.assertEqual(len(report["suppression_candidate_family_ids"]), 77)
+
+    def test_real_single_reviewer_decisions_cover_all_families_without_early_stop(self) -> None:
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        validated_reviews = audit.validate_family_reviews(self.clusters, reviews)
+        labels = audit.labels_from_family_reviews(self.clusters, self.sample, reviews)
+        report = audit.build_audit_report(self.clusters, self.sample, labels)
+
+        self.assertEqual(len(validated_reviews["reviews"]), 77)
+        self.assertEqual(len(labels["labels"]), 124)
+        self.assertEqual(
+            report["labels"], {"A": 0, "B": 33, "C": 91, "D": 0, "E": 0, "U": 0}
+        )
+        self.assertFalse(report["early_stop"]["triggered"])
+        self.assertEqual(len(report["suppression_candidate_family_ids"]), 54)
+        population_by_family = {
+            row["family_id"]: row["population_size"]
+            for row in self.clusters["families"]
+        }
+        self.assertEqual(
+            sum(
+                population_by_family[identity]
+                for identity in report["suppression_candidate_family_ids"]
+            ),
+            839,
+        )
+
+    def test_review_expansion_is_independent_of_group_and_sample_order(self) -> None:
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        forward = audit.labels_from_family_reviews(self.clusters, self.sample, reviews)
+        reversed_reviews = {
+            **copy.deepcopy(reviews),
+            "reviews": list(reversed(reviews["reviews"])),
+        }
+        reversed_sample = {
+            **copy.deepcopy(self.sample),
+            "findings": list(reversed(self.sample["findings"])),
+        }
+        reversed_labels = audit.labels_from_family_reviews(
+            self.clusters, reversed_sample, reversed_reviews
+        )
+        self.assertEqual(
+            {row["finding_id"]: row for row in forward["labels"]},
+            {row["finding_id"]: row for row in reversed_labels["labels"]},
+        )
+
+    def test_family_review_table_rejects_missing_and_non_c_suppressions(self) -> None:
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        reviews["reviews"][0]["family_ids"].pop()
+        with self.assertRaisesRegex(Exception, "exact clustered population"):
+            audit.validate_family_reviews(self.clusters, reviews)
+
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        suppressing = next(
+            row
+            for row in reviews["reviews"]
+            if row["family_disposition"] == "stdlib_invariant_suppression"
+        )
+        suppressing["label"] = "B"
+        with self.assertRaisesRegex(Exception, "only C type invariants"):
+            audit.validate_family_reviews(self.clusters, reviews)
 
 
 if __name__ == "__main__":

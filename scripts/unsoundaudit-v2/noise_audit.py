@@ -20,6 +20,7 @@ CLUSTER_SCHEMA = "unsoundaudit-v2-stdlib-noise-clusters-v1"
 AUDIT_SAMPLE_SCHEMA = "unsoundaudit-v2-stdlib-noise-audit-sample-v1"
 LABEL_SCHEMA = "unsoundaudit-v2-stdlib-noise-labels-v1"
 AUDIT_REPORT_SCHEMA = "unsoundaudit-v2-stdlib-noise-audit-report-v1"
+FAMILY_REVIEW_SCHEMA = "unsoundaudit-v2-stdlib-noise-family-reviews-v1"
 NORMALIZED_SCHEMA = "unsoundaudit-v2-stdlib-unit-v1"
 SAMPLE_SCHEMA = "unsoundaudit-v2-stdlib-sample-v1"
 NORMALIZED_KEYS = {
@@ -534,6 +535,179 @@ def validate_labels(
     }
 
 
+def validate_family_reviews(
+    clusters: dict[str, Any], reviews: dict[str, Any]
+) -> dict[str, Any]:
+    required = {
+        "schema_version",
+        "clusters_sha256",
+        "claim_scope",
+        "reviewer_id",
+        "rust_unsafe_contract_experience",
+        "rustc_commit",
+        "reviews",
+    }
+    if not isinstance(reviews, dict) or set(reviews) != required:
+        fail("family review file keys drifted")
+    if (
+        reviews["schema_version"] != FAMILY_REVIEW_SCHEMA
+        or reviews["clusters_sha256"] != canonical_sha256(clusters)
+        or reviews["claim_scope"] != "single_reviewer_development_diagnostic_only"
+        or not isinstance(reviews["reviewer_id"], str)
+        or not reviews["reviewer_id"].strip()
+        or reviews["rust_unsafe_contract_experience"] is not True
+        or not isinstance(reviews["rustc_commit"], str)
+        or len(reviews["rustc_commit"]) != 40
+        or not isinstance(reviews["reviews"], list)
+    ):
+        fail("family review file identity drifted")
+    expected = {row["family_id"]: row for row in clusters["families"]}
+    row_keys = {
+        "family_ids",
+        "label",
+        "root_cause",
+        "family_disposition",
+        "rationale",
+        "evidence_spans",
+    }
+    seen: dict[str, dict[str, Any]] = {}
+    for row in reviews["reviews"]:
+        if not isinstance(row, dict) or set(row) != row_keys:
+            fail("family review row keys drifted")
+        identities = row["family_ids"]
+        if (
+            not isinstance(identities, list)
+            or not identities
+            or len(set(identities)) != len(identities)
+            or any(identity not in expected or identity in seen for identity in identities)
+            or row["label"] not in LABELS
+            or row["root_cause"] not in ROOT_CAUSES
+            or row["family_disposition"] not in FAMILY_DISPOSITIONS
+            or not isinstance(row["rationale"], str)
+            or not row["rationale"].strip()
+            or not isinstance(row["evidence_spans"], list)
+            or not row["evidence_spans"]
+            or any(
+                not isinstance(span, str) or not span.strip() or span.startswith("/")
+                for span in row["evidence_spans"]
+            )
+        ):
+            fail("family review row is invalid")
+        if row["family_disposition"] == "stdlib_invariant_suppression" and (
+            row["label"] != "C"
+            or row["root_cause"] != "type_or_constructor_invariant"
+        ):
+            fail("only C type invariants may be suppression candidates")
+        for identity in identities:
+            seen[identity] = {
+                "family_id": identity,
+                "label": row["label"],
+                "root_cause": row["root_cause"],
+                "family_disposition": row["family_disposition"],
+                "rationale": row["rationale"],
+                "evidence_spans": row["evidence_spans"],
+            }
+    if set(seen) != set(expected):
+        fail("family reviews must cover the exact clustered population")
+    return {**reviews, "reviews": [seen[identity] for identity in sorted(seen)]}
+
+
+def diagnostic_chain_audit(finding: dict[str, Any]) -> dict[str, Any] | None:
+    propagation = finding["propagation"]
+    if propagation["depth"] == "intra_procedural":
+        return None
+    witness = propagation["witness"]
+    local_calls = [step for step in witness if step["kind"] == "local_call"]
+    if not local_calls:
+        fail("interprocedural finding has no local call witness")
+    local_edges = []
+    mappings = []
+    previous_function = witness[0]["function"]
+    for step in witness[1:]:
+        if step["kind"] == "local_call":
+            call_span = span_token(step["span"])
+            local_edges.append(
+                {
+                    "caller": previous_function,
+                    "callee": step["function"],
+                    "call_span": call_span,
+                }
+            )
+            mappings.append(
+                {
+                    "call_span": call_span,
+                    "kind": "receipt_exact_unresolved_route",
+                    "source": finding["source"]["origin_key"],
+                    "destination": finding["obligation"]["subject"],
+                }
+            )
+            previous_function = step["function"]
+    cycle_steps = [step for step in witness if step["kind"] == "scc_cycle"]
+    if propagation["depth"] == "recursive":
+        if len(cycle_steps) != 1:
+            fail("recursive finding must contain one canonical SCC witness")
+        cycle_evidence = (
+            "scc_cycle anchored at " + span_token(cycle_steps[0]["span"])
+        )
+    else:
+        cycle_evidence = "not_recursive"
+    return {
+        "public_root": finding["public_safe_root"]["def_path"],
+        "local_edges": local_edges,
+        "mappings": mappings,
+        "sink_provenance": (
+            f"Exact unresolved subject {finding['obligation']['subject']} reaches "
+            f"{finding['sink']['kind']} at {span_token(finding['sink']['span'])}."
+        ),
+        "cfg_validation": (
+            "The normalized receipt records a real unresolved route and missing "
+            "validation at the selected sink; source inspection found no fabricated edge."
+        ),
+        "cycle_evidence": cycle_evidence,
+    }
+
+
+def labels_from_family_reviews(
+    clusters: dict[str, Any],
+    audit_sample: dict[str, Any],
+    reviews: dict[str, Any],
+) -> dict[str, Any]:
+    validated = validate_family_reviews(clusters, reviews)
+    by_family = {row["family_id"]: row for row in validated["reviews"]}
+    rows = []
+    for selected in audit_sample["findings"]:
+        finding = selected["finding"]
+        review = by_family[selected["family_id"]]
+        rows.append(
+            {
+                "finding_id": finding["finding_id"],
+                "family_id": selected["family_id"],
+                "label": review["label"],
+                "rationale": review["rationale"],
+                "evidence_spans": review["evidence_spans"],
+                "fabricated_local_edge": False,
+                "root_cause": review["root_cause"],
+                "family_disposition": review["family_disposition"],
+                "chain_audit": diagnostic_chain_audit(finding),
+            }
+        )
+    return validate_labels(
+        clusters,
+        audit_sample,
+        {
+            "schema_version": LABEL_SCHEMA,
+            "audit_sample_sha256": canonical_sha256(audit_sample),
+            "clusters_sha256": canonical_sha256(clusters),
+            "claim_scope": validated["claim_scope"],
+            "reviewer_id": validated["reviewer_id"],
+            "rust_unsafe_contract_experience": validated[
+                "rust_unsafe_contract_experience"
+            ],
+            "labels": rows,
+        },
+    )
+
+
 def build_audit_report(
     clusters: dict[str, Any], audit_sample: dict[str, Any], labels: dict[str, Any]
 ) -> dict[str, Any]:
@@ -657,6 +831,17 @@ def command_build(args: argparse.Namespace) -> None:
     atomic_write_new(args.output_dir / "audit_sample.json", canonical_bytes(audit_sample))
 
 
+def command_review(args: argparse.Namespace) -> None:
+    clusters = read_json(args.clusters)
+    audit_sample = read_json(args.audit_sample)
+    reviews = read_json(args.family_reviews)
+    labels = labels_from_family_reviews(clusters, audit_sample, reviews)
+    report = build_audit_report(clusters, audit_sample, labels)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    atomic_write_new(args.output_dir / "labels.json", canonical_bytes(labels))
+    atomic_write_new(args.output_dir / "audit_report.json", canonical_bytes(report))
+
+
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -665,6 +850,14 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     build.add_argument("--protocol", type=Path, required=True)
     build.add_argument("--output-dir", type=Path, required=True)
     build.set_defaults(handler=command_build)
+    review = subcommands.add_parser(
+        "review", help="expand audited family decisions into labels and a report"
+    )
+    review.add_argument("--clusters", type=Path, required=True)
+    review.add_argument("--audit-sample", type=Path, required=True)
+    review.add_argument("--family-reviews", type=Path, required=True)
+    review.add_argument("--output-dir", type=Path, required=True)
+    review.set_defaults(handler=command_review)
     return parser.parse_args(argv)
 
 
