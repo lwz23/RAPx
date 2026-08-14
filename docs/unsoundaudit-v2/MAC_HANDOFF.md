@@ -542,3 +542,32 @@ target 或缓存，只提交源码、小型 JSON/text receipts 和审查摘要�
 有会改变 Pattern 语义、主计数、过程间范围或验收条件的不确定之处，停下来问我，
 不要自行决定。
 ```
+
+## 11. 2024 真实项目候选质量 pilot（legacy 精确模式）
+
+真实项目 pilot 固定使用 RAP source commit
+`75ded1f25f3d5a1d81d899c2fe070e34d1f5f8ad`、rustc commit
+`1bc403daadbebb553ccc211a0a8eebb73989665f` 和 Cargo commit
+`15fbd2f607d4defc87053b8b76bf5038f2483cf4`。三种分析器构建及固定 argv
+记录在 `real_project_pilot_profile_contract_v1.json`；二进制只保留于本机隔离
+target，不得提交。
+
+运行入口是 `scripts/unsoundaudit_v2_real_project_pilot.py`。顺序固定为：
+
+1. `verify-profiles`，任一 source/toolchain/hash 不匹配即写
+   `blocked_legacy_preflight` 并停止；
+2. 使用已提交 input 与 exclusions 运行纯 `select`；
+3. `admit` 只接受 cutoff 前默认分支提交、根 `Cargo.lock` 和
+   `cargo check --locked --jobs 1` control；
+4. `scan` 对 canonical `rapx-perf` 做两个 fresh-target 运行，只对稳定非零目标
+   再运行 debug 与 stock release；
+5. `verify-scans` 后 `export-review`，所有输出仍称“静态候选”。
+
+目标 crate 始终是普通 development `cargo check`，profile 名仅指分析器自身构建。
+不得运行项目测试、example、binary 或候选路径，不得使用项目名、函数名或源码行号
+白名单，也不得因扫描输出选择 reserve。
+
+本次 Mac 工作树含精确 `75ded1f` 对象，但协调远端
+`origin/feature/unsoundaudit-v2-p1-p6` 尚未包含该对象；因此 pilot 绑定本地 exact
+object 与 profile hash，且把远端 custody lag 作为显式协调警告。不得把该状态表述为
+“已由 feature 远端托管”，也不得用当前 HEAD 或其他 nightly 代替 legacy source。

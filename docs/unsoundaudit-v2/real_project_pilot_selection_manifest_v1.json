@@ -1,0 +1,549 @@
+{
+  "excluded_names": [
+    "amanieu/parking_lot",
+    "amanieu/thread_local-rs",
+    "bevyengine/bevy",
+    "bytecodealliance/wasmtime",
+    "clap-rs/clap",
+    "contain-rs/linked-hash-map",
+    "crossbeam-rs/crossbeam",
+    "diesel-rs/diesel",
+    "dtolnay/ref-cast",
+    "ferrilab/bitvec",
+    "fitzgen/bumpalo",
+    "fizyk20/generic-array",
+    "gitoxidelabs/gitoxide",
+    "hyperium/http",
+    "jeromefroe/lru-rs",
+    "lokathor/bytemuck",
+    "napi-rs/napi-rs",
+    "nix-rust/nix",
+    "petgraph/fixedbitset",
+    "pola-rs/polars",
+    "pyo3/pyo3",
+    "qdrant/qdrant",
+    "rayon-rs/rayon",
+    "reem/rust-ordered-float",
+    "rust-lang/flate2-rs",
+    "rust-lang/hashbrown",
+    "rust-lang/libc",
+    "rust-lang/rust",
+    "rust-random/rand",
+    "rustpython/rustpython",
+    "rwf2/rocket",
+    "servo/rust-smallvec",
+    "smol-rs/event-listener",
+    "solana-labs/solana",
+    "swc-project/swc",
+    "tikv/tikv",
+    "tokio-rs/bytes",
+    "unicode-org/icu4x",
+    "vorner/arc-swap",
+    "wasmerio/wasmer",
+    "xacrimon/dashmap",
+    "zesterer/spin-rs"
+  ],
+  "inputs": {
+    "development_exclusions_sha256": "11b3207dd315b6002fe8bb10ecf388f51b70ca6a7bccf9f8719d396410991323",
+    "instance_records": 82,
+    "instances_sha256": "6be010f88af0cda8532819af12b76a635f552f4c4e706ac0909bf80e1668dd29",
+    "roster_records": 500,
+    "roster_sha256": "aed1cda65e90bdd47583c93ff955f9e98ab9d3820527fdb5160083d0d92a2372"
+  },
+  "reserve_count_per_stratum": 25,
+  "reserves": {
+    "downloads_top250": [
+      {
+        "default_branch": "master",
+        "repo_id": 31078679,
+        "repository": "seanmonstar/httparse",
+        "repository_url": "https://github.com/seanmonstar/httparse",
+        "stratum": "downloads_top250",
+        "stratum_rank": 84
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 30270430,
+        "repository": "burntsushi/byteorder",
+        "repository_url": "https://github.com/burntsushi/byteorder",
+        "stratum": "downloads_top250",
+        "stratum_rank": 61
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 157348282,
+        "repository": "srijs/rust-crc32fast",
+        "repository_url": "https://github.com/srijs/rust-crc32fast",
+        "stratum": "downloads_top250",
+        "stratum_rank": 89
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 37290678,
+        "repository": "burntsushi/aho-corasick",
+        "repository_url": "https://github.com/burntsushi/aho-corasick",
+        "stratum": "downloads_top250",
+        "stratum_rank": 35
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 143220272,
+        "repository": "matklad/once_cell",
+        "repository_url": "https://github.com/matklad/once_cell",
+        "stratum": "downloads_top250",
+        "stratum_rank": 28
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 61962375,
+        "repository": "dtolnay/itoa",
+        "repository_url": "https://github.com/dtolnay/itoa",
+        "stratum": "downloads_top250",
+        "stratum_rank": 24
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 295544240,
+        "repository": "bytecodealliance/rustix",
+        "repository_url": "https://github.com/bytecodealliance/rustix",
+        "stratum": "downloads_top250",
+        "stratum_rank": 36
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 196629842,
+        "repository": "rustls/rustls-native-certs",
+        "repository_url": "https://github.com/rustls/rustls-native-certs",
+        "stratum": "downloads_top250",
+        "stratum_rank": 124
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 67305738,
+        "repository": "dtolnay/syn",
+        "repository_url": "https://github.com/dtolnay/syn",
+        "stratum": "downloads_top250",
+        "stratum_rank": 9
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 39527318,
+        "repository": "briansmith/ring",
+        "repository_url": "https://github.com/briansmith/ring",
+        "stratum": "downloads_top250",
+        "stratum_rank": 80
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 159830626,
+        "repository": "r-efi/r-efi",
+        "repository_url": "https://github.com/r-efi/r-efi",
+        "stratum": "downloads_top250",
+        "stratum_rank": 216
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 76690728,
+        "repository": "mgeisler/textwrap",
+        "repository_url": "https://github.com/mgeisler/textwrap",
+        "stratum": "downloads_top250",
+        "stratum_rank": 163
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 35065114,
+        "repository": "alexcrichton/filetime",
+        "repository_url": "https://github.com/alexcrichton/filetime",
+        "stratum": "downloads_top250",
+        "stratum_rank": 175
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 32363061,
+        "repository": "seanmonstar/num_cpus",
+        "repository_url": "https://github.com/seanmonstar/num_cpus",
+        "stratum": "downloads_top250",
+        "stratum_rank": 106
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 96382888,
+        "repository": "rust-cli/env_logger",
+        "repository_url": "https://github.com/rust-cli/env_logger",
+        "stratum": "downloads_top250",
+        "stratum_rank": 71
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 23398922,
+        "repository": "hyperium/mime",
+        "repository_url": "https://github.com/hyperium/mime",
+        "stratum": "downloads_top250",
+        "stratum_rank": 107
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 164668916,
+        "repository": "taiki-e/pin-project",
+        "repository_url": "https://github.com/taiki-e/pin-project",
+        "stratum": "downloads_top250",
+        "stratum_rank": 31
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 107177461,
+        "repository": "gilnaa/memoffset",
+        "repository_url": "https://github.com/gilnaa/memoffset",
+        "stratum": "downloads_top250",
+        "stratum_rank": 75
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 41272773,
+        "repository": "djc/rustc-version-rs",
+        "repository_url": "https://github.com/djc/rustc-version-rs",
+        "stratum": "downloads_top250",
+        "stratum_rank": 78
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 510103717,
+        "repository": "dtolnay/unsafe-libyaml",
+        "repository_url": "https://github.com/dtolnay/unsafe-libyaml",
+        "stratum": "downloads_top250",
+        "stratum_rank": 221
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 43174289,
+        "repository": "paholg/typenum",
+        "repository_url": "https://github.com/paholg/typenum",
+        "stratum": "downloads_top250",
+        "stratum_rank": 56
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 35894511,
+        "repository": "serde-rs/json",
+        "repository_url": "https://github.com/serde-rs/json",
+        "stratum": "downloads_top250",
+        "stratum_rank": 27
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 34527204,
+        "repository": "havarnov/multimap",
+        "repository_url": "https://github.com/havarnov/multimap",
+        "stratum": "downloads_top250",
+        "stratum_rank": 207
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 164354270,
+        "repository": "dtolnay/path-to-error",
+        "repository_url": "https://github.com/dtolnay/path-to-error",
+        "stratum": "downloads_top250",
+        "stratum_rank": 232
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 78690338,
+        "repository": "hyperium/hyper-tls",
+        "repository_url": "https://github.com/hyperium/hyper-tls",
+        "stratum": "downloads_top250",
+        "stratum_rank": 185
+      }
+    ],
+    "stars_top250": [
+      {
+        "default_branch": "main",
+        "repo_id": 114685405,
+        "repository": "wasm-bindgen/wasm-bindgen",
+        "repository_url": "https://github.com/wasm-bindgen/wasm-bindgen",
+        "stratum": "stars_top250",
+        "stratum_rank": 164
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 393045142,
+        "repository": "flxzt/rnote",
+        "repository_url": "https://github.com/flxzt/rnote",
+        "stratum": "stars_top250",
+        "stratum_rank": 136
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 410749029,
+        "repository": "spacedriveapp/spacedrive",
+        "repository_url": "https://github.com/spacedriveapp/spacedrive",
+        "stratum": "stars_top250",
+        "stratum_rank": 27
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 68546136,
+        "repository": "watchexec/watchexec",
+        "repository_url": "https://github.com/watchexec/watchexec",
+        "stratum": "stars_top250",
+        "stratum_rank": 209
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 340547520,
+        "repository": "zed-industries/zed",
+        "repository_url": "https://github.com/zed-industries/zed",
+        "stratum": "stars_top250",
+        "stratum_rank": 6
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 722597620,
+        "repository": "rustfs/rustfs",
+        "repository_url": "https://github.com/rustfs/rustfs",
+        "stratum": "stars_top250",
+        "stratum_rank": 48
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 20153092,
+        "repository": "image-rs/image",
+        "repository_url": "https://github.com/image-rs/image",
+        "stratum": "stars_top250",
+        "stratum_rank": 243
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 595662105,
+        "repository": "gitbutlerapp/gitbutler",
+        "repository_url": "https://github.com/gitbutlerapp/gitbutler",
+        "stratum": "stars_top250",
+        "stratum_rank": 73
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 172714919,
+        "repository": "valeriansaliou/sonic",
+        "repository_url": "https://github.com/valeriansaliou/sonic",
+        "stratum": "stars_top250",
+        "stratum_rank": 74
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 296943592,
+        "repository": "elkowar/eww",
+        "repository_url": "https://github.com/elkowar/eww",
+        "stratum": "stars_top250",
+        "stratum_rank": 126
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 174381831,
+        "repository": "flamegraph-rs/flamegraph",
+        "repository_url": "https://github.com/flamegraph-rs/flamegraph",
+        "stratum": "stars_top250",
+        "stratum_rank": 241
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 430183021,
+        "repository": "pkgxdev/pkgx",
+        "repository_url": "https://github.com/pkgxdev/pkgx",
+        "stratum": "stars_top250",
+        "stratum_rank": 153
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 357728969,
+        "repository": "oven-sh/bun",
+        "repository_url": "https://github.com/oven-sh/bun",
+        "stratum": "stars_top250",
+        "stratum_rank": 4
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 48739367,
+        "repository": "tealdeer-rs/tealdeer",
+        "repository_url": "https://github.com/tealdeer-rs/tealdeer",
+        "stratum": "stars_top250",
+        "stratum_rank": 231
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 53631945,
+        "repository": "burntsushi/ripgrep",
+        "repository_url": "https://github.com/burntsushi/ripgrep",
+        "stratum": "stars_top250",
+        "stratum_rank": 8
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 109291007,
+        "repository": "perspective-dev/perspective",
+        "repository_url": "https://github.com/perspective-dev/perspective",
+        "stratum": "stars_top250",
+        "stratum_rank": 139
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 143092994,
+        "repository": "benfred/py-spy",
+        "repository_url": "https://github.com/benfred/py-spy",
+        "stratum": "stars_top250",
+        "stratum_rank": 103
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 397618589,
+        "repository": "messense/aliyundrive-webdav",
+        "repository_url": "https://github.com/messense/aliyundrive-webdav",
+        "stratum": "stars_top250",
+        "stratum_rank": 157
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 73169350,
+        "repository": "fdehau/tui-rs",
+        "repository_url": "https://github.com/fdehau/tui-rs",
+        "stratum": "stars_top250",
+        "stratum_rank": 140
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 31830551,
+        "repository": "rust-lang/rustfmt",
+        "repository_url": "https://github.com/rust-lang/rustfmt",
+        "stratum": "stars_top250",
+        "stratum_rank": 215
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 282179811,
+        "repository": "embarkstudios/rust-gpu",
+        "repository_url": "https://github.com/embarkstudios/rust-gpu",
+        "stratum": "stars_top250",
+        "stratum_rank": 195
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 146327667,
+        "repository": "vectordotdev/vector",
+        "repository_url": "https://github.com/vectordotdev/vector",
+        "stratum": "stars_top250",
+        "stratum_rank": 67
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 555988330,
+        "repository": "cachix/devenv",
+        "repository_url": "https://github.com/cachix/devenv",
+        "stratum": "stars_top250",
+        "stratum_rank": 207
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 608896930,
+        "repository": "sigoden/aichat",
+        "repository_url": "https://github.com/sigoden/aichat",
+        "stratum": "stars_top250",
+        "stratum_rank": 150
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 423275200,
+        "repository": "fuellabs/fuels-rs",
+        "repository_url": "https://github.com/fuellabs/fuels-rs",
+        "stratum": "stars_top250",
+        "stratum_rank": 23
+      }
+    ]
+  },
+  "schema": "rapx-real-project-selection-manifest-v1",
+  "seed": "rapx-v2-real-project-pilot-v1",
+  "selected": {
+    "downloads_top250": [
+      {
+        "default_branch": "main",
+        "repo_id": 66110995,
+        "repository": "gimli-rs/object",
+        "repository_url": "https://github.com/gimli-rs/object",
+        "stratum": "downloads_top250",
+        "stratum_rank": 102
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 183990447,
+        "repository": "dtolnay/rustversion",
+        "repository_url": "https://github.com/dtolnay/rustversion",
+        "stratum": "downloads_top250",
+        "stratum_rank": 79
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 36046479,
+        "repository": "cesarb/constant_time_eq",
+        "repository_url": "https://github.com/cesarb/constant_time_eq",
+        "stratum": "downloads_top250",
+        "stratum_rank": 208
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 140318694,
+        "repository": "hyperium/headers",
+        "repository_url": "https://github.com/hyperium/headers",
+        "stratum": "downloads_top250",
+        "stratum_rank": 204
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 157205610,
+        "repository": "sval-rs/sval",
+        "repository_url": "https://github.com/sval-rs/sval",
+        "stratum": "downloads_top250",
+        "stratum_rank": 225
+      }
+    ],
+    "stars_top250": [
+      {
+        "default_branch": "main",
+        "repo_id": 515368123,
+        "repository": "tracel-ai/burn",
+        "repository_url": "https://github.com/tracel-ai/burn",
+        "stratum": "stars_top250",
+        "stratum_rank": 101
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 212936374,
+        "repository": "dtolnay/anyhow",
+        "repository_url": "https://github.com/dtolnay/anyhow",
+        "stratum": "stars_top250",
+        "stratum_rank": 221
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 89359792,
+        "repository": "reacherhq/check-if-email-exists",
+        "repository_url": "https://github.com/reacherhq/check-if-email-exists",
+        "stratum": "stars_top250",
+        "stratum_rank": 161
+      },
+      {
+        "default_branch": "main",
+        "repo_id": 523043277,
+        "repository": "astral-sh/ruff",
+        "repository_url": "https://github.com/astral-sh/ruff",
+        "stratum": "stars_top250",
+        "stratum_rank": 18
+      },
+      {
+        "default_branch": "master",
+        "repo_id": 82530909,
+        "repository": "y2z/monolith",
+        "repository_url": "https://github.com/y2z/monolith",
+        "stratum": "stars_top250",
+        "stratum_rank": 105
+      }
+    ]
+  },
+  "selected_count_per_stratum": 5
+}

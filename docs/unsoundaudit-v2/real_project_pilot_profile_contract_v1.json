@@ -1,0 +1,41 @@
+{
+  "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+  "profiles": [
+    {
+      "argv": [
+        "rapx",
+        "-unsoundaudit",
+        "--"
+      ],
+      "executable": "debug/cargo-rapx",
+      "name": "debug",
+      "rapx_sha256": "3f75f1887aa83b65682fe5dc533dfa0aaac21b32378a8c4a4293cd6c3e924fed",
+      "sha256": "0765783fde3e49b4fbe55361807fa7625deabf975cf4a4170d2a0a60b520e38b"
+    },
+    {
+      "argv": [
+        "rapx",
+        "-unsoundaudit",
+        "--"
+      ],
+      "executable": "release/cargo-rapx",
+      "name": "release",
+      "rapx_sha256": "f249a2c12fc26f38872da99e7b2c19e7c35896400039e1ab75f14c4a994ac6b5",
+      "sha256": "9382fb77e17715b3530a2d2530f7756ad1dcf5ad7f40ad957f04b010bafeafa6"
+    },
+    {
+      "argv": [
+        "rapx",
+        "-unsoundaudit",
+        "--"
+      ],
+      "executable": "rapx-perf/cargo-rapx",
+      "name": "rapx-perf",
+      "rapx_sha256": "1b4f5d6d2eaca60a5e641d3c56ff10de2feb0d58317f37b18cf3e030423a02da",
+      "sha256": "d21edfc7ce1ae05a5f6d65fbe12ff1f18e3ffa50723a9e6adedaaddc2d24be5a"
+    }
+  ],
+  "rap_source_commit": "75ded1f25f3d5a1d81d899c2fe070e34d1f5f8ad",
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "schema": "rapx-real-project-profile-contract-v1"
+}

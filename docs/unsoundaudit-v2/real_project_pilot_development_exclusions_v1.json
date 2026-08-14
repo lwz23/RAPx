@@ -1,0 +1,10 @@
+{
+  "records": [
+    {
+      "reason": "The Rust standard library was used throughout P1–P6 rule development and relational refinement; it is not an unseen real-project target.",
+      "repository": "rust-lang/rust",
+      "source_document": "docs/unsoundaudit-v2/STDLIB_ACTIVE_FINDING_AUDIT.md"
+    }
+  ],
+  "schema": "rapx-real-project-development-exclusions-v1"
+}
