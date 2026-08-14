@@ -631,8 +631,6 @@ class RealAdmissionRunner:
             return {**base, "status": "metadata_invalid", "source_commit": revision, "error": str(error)}
         if target is None:
             return {**base, "status": "target_missing", "source_commit": revision}
-        cargo_home = Path(tempfile.mkdtemp(prefix=f"cargo-home-{label}-", dir=self.result_root))
-        cargo_target = Path(tempfile.mkdtemp(prefix=f"cargo-target-{label}-", dir=self.result_root))
         control_argv = [
             str(self.cargo),
             "check",
@@ -643,17 +641,19 @@ class RealAdmissionRunner:
             target["package"],
         ]
         control_argv.extend(["--lib"] if target["kind"] == "lib" else ["--bin", target["name"]])
-        environment = dict(os.environ)
-        environment.update(
-            {
-                "CARGO_HOME": str(cargo_home),
-                "CARGO_TARGET_DIR": str(cargo_target),
-                "CARGO_BUILD_JOBS": "1",
-            }
-        )
-        control = _run_logged(
-            control_argv, repository, log_dir / "control.log", environment
-        )
+        with tempfile.TemporaryDirectory(prefix=f"cargo-home-{label}-") as cargo_home_name:
+            with tempfile.TemporaryDirectory(prefix=f"cargo-target-{label}-") as cargo_target_name:
+                environment = dict(os.environ)
+                environment.update(
+                    {
+                        "CARGO_HOME": cargo_home_name,
+                        "CARGO_TARGET_DIR": cargo_target_name,
+                        "CARGO_BUILD_JOBS": "1",
+                    }
+                )
+                control = _run_logged(
+                    control_argv, repository, log_dir / "control.log", environment
+                )
         record = {
             **base,
             "source_commit": revision,
@@ -686,10 +686,20 @@ def run_admission(
     if admissions_path.exists():
         raise ValueError("admissions.jsonl already exists; admission is append-only")
     runner = RealAdmissionRunner(clone_root, result_root, cargo, cutoff)
-    result = admit_candidates(manifest, runner)
     with admissions_path.open("x", encoding="utf-8") as output:
+        def journaled_runner(candidate: dict[str, Any]) -> dict[str, Any]:
+            outcome = runner(candidate)
+            output.write(
+                json.dumps({**candidate, **outcome}, ensure_ascii=False, sort_keys=True)
+                + "\n"
+            )
+            output.flush()
+            return outcome
+
+        result = admit_candidates(manifest, journaled_runner)
         for row in result["attempts"]:
-            output.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+            if row["status"] == "reserve_exhausted":
+                output.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     summary = result_root / "admission_summary.json"
     summary.write_text(
         json.dumps(
@@ -1000,6 +1010,7 @@ def run_scans(
     finding_rows: list[dict[str, Any]] = []
     deterministic = 0
     profile_stable_targets = 0
+    profile_unstable_nonzero_targets = 0
     failed_targets = 0
     for admission in admissions:
         canonical_runs: list[dict[str, Any]] = []
@@ -1038,6 +1049,7 @@ def run_scans(
             canonical_runs[0], diagnostic["debug"], diagnostic["release"]
         )
         if not stable:
+            profile_unstable_nonzero_targets += 1
             continue
         profile_stable_targets += 1
         for finding in stable:
@@ -1073,6 +1085,7 @@ def run_scans(
         "selected_targets": len(admissions),
         "deterministic_targets": deterministic,
         "profile_stable_nonzero_targets": profile_stable_targets,
+        "profile_unstable_nonzero_targets": profile_unstable_nonzero_targets,
         "failed_or_nondeterministic_targets": failed_targets,
         "profile_stable_finding_count": len(finding_rows),
         "unique_root_cause_count": len({row["root_cause_key"] for row in finding_rows}),
@@ -1221,6 +1234,7 @@ def export_review(result_root: Path) -> dict[str, Any]:
         f"- analyzer/nondeterminism failure：{scan_summary['failed_or_nondeterministic_targets']}",
         f"- canonical 双跑确定性目标：{scan_summary['deterministic_targets']}",
         f"- 三 profile 稳定非零目标：{scan_summary['profile_stable_nonzero_targets']}",
+        f"- 三 profile 不一致的非零目标：{scan_summary['profile_unstable_nonzero_targets']}",
         f"- 三 profile 稳定 findings：{scan_summary['profile_stable_finding_count']}",
         f"- 唯一 source–sink 根因：{scan_summary['unique_root_cause_count']}",
         "",
