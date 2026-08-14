@@ -1,0 +1,122 @@
+{
+  "schema_version": "unsoundaudit-v2-stdlib-bug-validation-v1",
+  "candidate": "alloc-str-join-varying-borrow",
+  "application_boundary_contains_unsafe": false,
+  "historical": {
+    "status": "confirmed_ub",
+    "channel": "nightly-2024-10-12-aarch64-apple-darwin",
+    "rustc_release": "1.83.0-nightly",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "miri_version": "miri 0.1.0 (1bc403da 2024-10-11)",
+    "environment_forwarding": "-Zmiri-env-forward=UNSOUNDAUDIT_STDLIB_POC_ACK",
+    "debug_cases": [
+      {
+        "name": "stable-control",
+        "outcome": "exit_zero_no_miri_diagnostic",
+        "exit_code": 0,
+        "log_sha256": "24489d9dd19d1f0a85366e1382812b59a569280eb6a1d428436295cc2e1b241d",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile control exited 0 with no Miri diagnostic."
+      },
+      {
+        "name": "join-shrinking-first",
+        "outcome": "exit_zero_no_miri_diagnostic",
+        "exit_code": 0,
+        "log_sha256": "066af488f178a93223529fa036d0f381b62db28ea03b3ea9350330435cb00746",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile varying-borrow control exited 0 with no Miri diagnostic."
+      },
+      {
+        "name": "join-growing-first",
+        "outcome": "ordinary_panic",
+        "exit_code": 101,
+        "log_sha256": "13791ae8a2a6b465055abaab8474e9150198a7bc88b31cae93a8997cfbd67571",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile execution stopped before the unchecked access with an ordinary subtraction-overflow panic at library/alloc/src/str.rs:164."
+      },
+      {
+        "name": "concat-growing-first",
+        "outcome": "ordinary_panic",
+        "exit_code": 101,
+        "log_sha256": "5fcec673061add843f19b8d8bf6e55a933ab33fa879d1f3a605244ef9ec22d34",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile execution stopped before the unchecked access with an ordinary subtraction-overflow panic at library/alloc/src/str.rs:164."
+      },
+      {
+        "name": "join-growing-later",
+        "outcome": "ordinary_panic",
+        "exit_code": 101,
+        "log_sha256": "bfa6ed566b2ecf7870515ade9bbf95f99d7ac60f7e04614defd5b55563c7df00",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile execution stopped with an ordinary mid-greater-than-len panic at library/alloc/src/str.rs:177; Miri did not report UB."
+      },
+      {
+        "name": "join-growing-first-nonempty-separator",
+        "outcome": "ordinary_panic",
+        "exit_code": 101,
+        "log_sha256": "6bab8cc8c3ede52f81a50a54c92e3fd34ae131bc46e51876b617204c87182eb8",
+        "sink_reached": false,
+        "diagnostic": "Dev-profile execution stopped before the unchecked access with an ordinary subtraction-overflow panic at library/alloc/src/str.rs:164."
+      }
+    ],
+    "release_profile_note": "Miri ignores optimization level; the release profile disables debug assertions and overflow checks that stop the dev-profile execution before the unchecked sink.",
+    "release_cases": [
+      {
+        "name": "stable-control",
+        "outcome": "exit_zero_no_miri_diagnostic",
+        "exit_code": 0,
+        "log_sha256": "f4944324fad8a8c2a04acee113f9396adaaae5d32f50f1df7681134c4d41ea8e",
+        "sink_reached": false,
+        "diagnostic": "Release-profile control exited 0 with no Miri diagnostic."
+      },
+      {
+        "name": "join-shrinking-first",
+        "outcome": "exit_zero_no_miri_diagnostic",
+        "exit_code": 0,
+        "log_sha256": "696e0d615476f6bf6f202c40b7f0cd9a7c31eccb1cf9d6eba76397f0d968bb32",
+        "sink_reached": false,
+        "diagnostic": "Release-profile varying-borrow control exited 0 with no Miri diagnostic."
+      },
+      {
+        "name": "join-growing-first",
+        "outcome": "miri_ub",
+        "exit_code": 1,
+        "log_sha256": "87bf6ca6b75c07c11df3759cf176f9929832857d3bc50a14f570b4ec9657139a",
+        "sink_reached": true,
+        "diagnostic": "Miri reported invalid wide-pointer metadata in get_unchecked_mut, with join_generic_copy at library/alloc/src/str.rs:164 in the safe join call chain."
+      },
+      {
+        "name": "concat-growing-first",
+        "outcome": "miri_ub",
+        "exit_code": 1,
+        "log_sha256": "0f3d46ef959ab848bd3fdf00c7f54c59a5c157ab0fb8670906bce972ef63dd62",
+        "sink_reached": true,
+        "diagnostic": "Miri reported invalid wide-pointer metadata in get_unchecked_mut, with join_generic_copy at library/alloc/src/str.rs:164 in the safe concat call chain."
+      },
+      {
+        "name": "join-growing-later",
+        "outcome": "ordinary_panic",
+        "exit_code": 101,
+        "log_sha256": "46e1d74861502efe41aaad6ef436d2a2c94cef31115995b854295e6877d519d3",
+        "sink_reached": false,
+        "diagnostic": "Execution stopped with an ordinary mid-greater-than-len panic at library/alloc/src/str.rs:177; Miri did not report UB."
+      },
+      {
+        "name": "join-growing-first-nonempty-separator",
+        "outcome": "miri_ub",
+        "exit_code": 1,
+        "log_sha256": "ae33a628abd40c905efe91d093c6f1a96dbe30d0c076a32afc2193430b337a14",
+        "sink_reached": true,
+        "diagnostic": "Miri reported invalid wide-pointer metadata in get_unchecked_mut, with join_generic_copy at library/alloc/src/str.rs:164 in the safe join call chain using a nonempty separator."
+      }
+    ]
+  },
+  "current": {
+    "status": "not_started"
+  },
+  "upstream_duplicate_search": {
+    "status": "not_started"
+  },
+  "disclosure_status": "not_authorized"
+}

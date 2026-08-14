@@ -14,6 +14,10 @@ JOIN_POC = (
     REPO
     / "tests/unsoundaudit-v2/stdlib-bug-validation/join-varying-borrow"
 )
+JOIN_RESULT = (
+    REPO
+    / "artifacts/unsoundaudit-v2/mac/stdlib-bug-validation/join-varying-borrow/results.json"
+)
 UNITS = ("core", "alloc", "std")
 JOIN_CONCAT_FAMILY = (
     "560c34406031d113235e81e9d711f31bc34ba2673819fc96abd51ce60f93b4df"
@@ -108,7 +112,7 @@ class ActiveFindingValidationTests(unittest.TestCase):
             self.assertEqual(cells[5], expected_public_roots)
 
             expected_disposition = (
-                "poc_required"
+                "confirmed_ub"
                 if family_id == JOIN_CONCAT_FAMILY
                 else "likely_safe"
             )
@@ -177,6 +181,66 @@ class ActiveFindingValidationTests(unittest.TestCase):
         test_suffix = source_by_name["lib.rs"].split("#[cfg(test)]", 1)[1]
         for validation_case in growing_cases:
             self.assertNotIn(validation_case.replace("-", "_"), test_suffix)
+
+    def test_pinned_miri_evidence_separates_debug_panic_from_release_ub(self):
+        payload = json.loads(JOIN_RESULT.read_text())
+        self.assertEqual(
+            set(payload),
+            {
+                "schema_version",
+                "candidate",
+                "application_boundary_contains_unsafe",
+                "historical",
+                "current",
+                "upstream_duplicate_search",
+                "disclosure_status",
+            },
+        )
+        self.assertEqual(
+            payload["schema_version"],
+            "unsoundaudit-v2-stdlib-bug-validation-v1",
+        )
+        self.assertFalse(payload["application_boundary_contains_unsafe"])
+        self.assertEqual(payload["current"], {"status": "not_started"})
+        self.assertEqual(
+            payload["upstream_duplicate_search"], {"status": "not_started"}
+        )
+        self.assertEqual(payload["disclosure_status"], "not_authorized")
+
+        historical = payload["historical"]
+        self.assertEqual(historical["status"], "confirmed_ub")
+        expected_names = {
+            "stable-control",
+            "join-shrinking-first",
+            "join-growing-first",
+            "concat-growing-first",
+            "join-growing-later",
+            "join-growing-first-nonempty-separator",
+        }
+        debug = {case["name"]: case for case in historical["debug_cases"]}
+        release = {case["name"]: case for case in historical["release_cases"]}
+        self.assertEqual(set(debug), expected_names)
+        self.assertEqual(set(release), expected_names)
+        self.assertNotIn("miri_ub", {case["outcome"] for case in debug.values()})
+
+        ub_names = {
+            "join-growing-first",
+            "concat-growing-first",
+            "join-growing-first-nonempty-separator",
+        }
+        self.assertEqual(
+            {name for name, case in release.items() if case["outcome"] == "miri_ub"},
+            ub_names,
+        )
+        for name in ub_names:
+            self.assertEqual(release[name]["exit_code"], 1)
+            self.assertTrue(release[name]["sink_reached"])
+            self.assertIn("library/alloc/src/str.rs:164", release[name]["diagnostic"])
+        for name in {"stable-control", "join-shrinking-first"}:
+            self.assertEqual(release[name]["exit_code"], 0)
+            self.assertFalse(release[name]["sink_reached"])
+        self.assertEqual(release["join-growing-later"]["outcome"], "ordinary_panic")
+        self.assertFalse(release["join-growing-later"]["sink_reached"])
 
 
 if __name__ == "__main__":
