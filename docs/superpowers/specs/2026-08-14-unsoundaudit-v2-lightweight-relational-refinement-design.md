@@ -49,7 +49,7 @@ MIR normalization
   -> findings, family presentation, optional LLM review
 ```
 
-Relational facts participate in the same CFG fixed point as existing `ValueFacts`. Interprocedural summaries are inferred only for resolved-local MIR bodies and solved synchronously over the existing call-graph SCCs. The proof layer runs before a local requirement is exported: if the sink snapshot proves the requirement, it is removed; otherwise the unchanged requirement enters the existing Task 6/8 propagation and witness machinery.
+Relational facts participate in the same CFG fixed point as existing must validations. The dataflow predicate type becomes `ProofBinding::{Validation, Relation}`; `BoundValidation` continues to seal each binding to the complete current storage-version sets, intersect it at predecessor joins, and kill it on writes. This avoids treating a relation seen on only one reaching path as a proof. Interprocedural summaries are inferred only for resolved-local MIR bodies and solved synchronously over the existing call-graph SCCs. The proof layer runs before a local requirement is exported: if the sink snapshot proves the requirement, it is removed; otherwise the unchanged requirement enters the existing Task 6/8 propagation and witness machinery.
 
 ## Finite relational domain
 
@@ -62,7 +62,7 @@ Relational facts participate in the same CFG fixed point as existing `ValueFacts
 - `Const(u64)`;
 - `Return` and `Formal(u32)` in a summary.
 
-Every place-backed term is bound to `canonical_storage(place)` and the complete current set of `StaticWriteToken`s for that storage. A fact is current only when all captured sets exactly match the state. Writes do not delete old facts; they set a sticky invalidation bit, preserving loop monotonicity.
+Every place-backed term is bound through `BoundValidation` to `canonical_storage(place)` and the complete current set of `StaticWriteToken`s for that storage. A fact is current only when all sealed sets exactly match the state. Exact writes replace the storage version and remove bindings that mention it; may-writes grow the version set and also remove those bindings. At CFG joins a relation survives only when the same semantic relation occurs on every reachable predecessor; its version sets union, preserving loop monotonicity.
 
 ### Relations
 
@@ -78,7 +78,7 @@ The first implementation supports only relations needed by the audited proof gro
 - `CapacityFor { base, end }`, meaning `end <= Capacity(base)`;
 - `SameObject(left, right)` for exact collection/pointer identity.
 
-Facts contain only static terms and definition points, so the lattice is finite. May facts union. Proof-relevant must facts intersect at CFG joins. An unsupported operand, opaque mutation, mixed object identity, unknown projection, or mismatched version prevents proof.
+Facts contain only static terms and definition points, so the lattice is finite. `ProofBinding::Relation` facts intersect at CFG joins using the existing must lattice. An unsupported operand, opaque mutation, mixed object identity, unknown projection, or mismatched version prevents proof.
 
 ### Arithmetic closure
 
@@ -98,7 +98,7 @@ There is no search over arbitrary expressions and no dynamic path enumeration.
 
 MIR binary operations are no longer all represented as comparisons. Normalization freezes `Add`, `Sub`, comparison, checked arithmetic, and range construction as distinct DTO variants. Transfer creates a relation only when operand identity is exact and arithmetic safety is established by a normal edge, an assert/switch polarity, or a checked operation. Raw, wrapping, saturating, ambiguous, and overflow-capable arithmetic does not silently become an exact relation.
 
-Existing assignment, call-return, mutable-actual, FFI-out, and Task 7 out-write hooks invalidate relation facts for affected storage. Normal and unwind edges remain distinct; return facts and postconditions are installed only on the normal edge.
+Existing assignment, call-return, mutable-actual, FFI-out, and Task 7 out-write hooks already kill every `BoundValidation` tied to affected storage; relation bindings use the same mechanism. Normal and unwind edges remain distinct; return facts and postconditions are installed only on the normal edge.
 
 ## Interprocedural summaries
 
@@ -146,7 +146,7 @@ The join/concat historical UB remains because its second borrow can produce a co
 
 ## Efficiency
 
-No full-program symbolic executor is added. Relations use sorted finite sets and are carried by existing state only while CFG solving/replay needs them. Persistent body snapshots store only current proof facts at call and sink observations. Summary postconditions are small projections of normal-return states.
+No full-program symbolic executor is added. Relations use sorted finite sets in the existing must-binding state only while CFG solving/replay needs them. Persistent body snapshots store only current proof facts at call and sink observations. Summary postconditions are small projections of normal-return states.
 
 Performance is accepted only if `rapx-perf` retains the existing development gates:
 
