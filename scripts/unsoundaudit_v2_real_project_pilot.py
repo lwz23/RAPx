@@ -32,6 +32,8 @@ RUN_LOCAL_FIELDS = {
     "duration_ms",
     "absolute_log_path",
     "target_dir",
+    # Derived from the complete rustc argv, including the required fresh target out-dir.
+    "rustc_invocation_id",
 }
 REVIEW_DISPOSITIONS = {
     "new_iue_candidate",
@@ -1168,6 +1170,76 @@ def verify_scans(result_root: Path) -> dict[str, Any]:
     return summary
 
 
+def reconcile_zero_scan_determinism(result_root: Path) -> dict[str, Any]:
+    """Repair the pre-field-correction all-zero run without rerunning target code."""
+    result_root = result_root.resolve(strict=True)
+    scans_path = result_root / "scans.jsonl"
+    findings_path = result_root / "findings.jsonl"
+    rows = _read_jsonl(scans_path)
+    if findings_path.read_text(encoding="utf-8") != "":
+        raise ValueError("zero-scan reconciliation requires an empty findings ledger")
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        repository = normalize_repository(row.get("repository"))
+        groups.setdefault(repository, []).append(row)
+    deterministic = 0
+    failed = 0
+    for repository, group in sorted(groups.items()):
+        if any(row.get("profile") != "rapx-perf" for row in group):
+            raise ValueError("zero-scan reconciliation refuses diagnostic profile rows")
+        success = [row for row in group if row.get("status") == "success"]
+        if len(success) != 2:
+            failed += 1
+            continue
+        receipts: list[dict[str, Any]] = []
+        for row in sorted(success, key=lambda value: value["run_number"]):
+            path = result_root / row.get("receipt", "")
+            if not path.is_file() or sha256_file(path) != row.get("receipt_sha256"):
+                raise ValueError(f"zero-scan receipt hash drifted: {repository}")
+            value = _read_json(path)
+            if not isinstance(value, dict) or value.get("finding_count") != 0:
+                raise ValueError("zero-scan reconciliation encountered a non-zero receipt")
+            receipts.append(value)
+        if _canonical_bytes(normalize_receipt(receipts[0])) != _canonical_bytes(
+            normalize_receipt(receipts[1])
+        ):
+            failed += 1
+            for row in success:
+                row["deterministic"] = False
+            continue
+        deterministic += 1
+        for row in success:
+            row["deterministic"] = True
+            row["normalized_sha256"] = hashlib.sha256(
+                _canonical_bytes(normalize_receipt(receipts[0]))
+            ).hexdigest()
+    temporary = scans_path.with_suffix(".jsonl.reconciled")
+    with temporary.open("x", encoding="utf-8") as output:
+        for row in rows:
+            output.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    temporary.replace(scans_path)
+    summary = _read_json(result_root / "scan_summary.json")
+    if not isinstance(summary, dict):
+        raise ValueError("scan summary is not an object")
+    summary.update(
+        {
+            "deterministic_targets": deterministic,
+            "failed_or_nondeterministic_targets": failed,
+            "profile_stable_finding_count": 0,
+            "profile_stable_nonzero_targets": 0,
+            "profile_unstable_nonzero_targets": 0,
+            "unique_root_cause_count": 0,
+            "scans_sha256": sha256_file(scans_path),
+            "findings_sha256": sha256_file(findings_path),
+        }
+    )
+    (result_root / "scan_summary.json").write_text(
+        json.dumps(summary, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return verify_scans(result_root)
+
+
 def _review_template(group: list[dict[str, Any]]) -> dict[str, Any]:
     ordered = sorted(group, key=lambda row: (row["finding_key"], row["finding"]["finding_id"]))
     representative = ordered[0]
@@ -1512,6 +1584,8 @@ def _parser() -> argparse.ArgumentParser:
     scan.add_argument("--allow-incomplete-admission", action="store_true")
     verify_scans_parser = commands.add_parser("verify-scans")
     verify_scans_parser.add_argument("--result-root", type=Path, required=True)
+    reconcile = commands.add_parser("reconcile-zero-scans")
+    reconcile.add_argument("--result-root", type=Path, required=True)
     export = commands.add_parser("export-review")
     export.add_argument("--result-root", type=Path, required=True)
     freeze = commands.add_parser("freeze-evidence")
@@ -1554,6 +1628,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "verify-scans":
         verify_scans(args.result_root)
+        return 0
+    if args.command == "reconcile-zero-scans":
+        reconcile_zero_scan_determinism(args.result_root)
         return 0
     if args.command == "export-review":
         export_review(args.result_root)

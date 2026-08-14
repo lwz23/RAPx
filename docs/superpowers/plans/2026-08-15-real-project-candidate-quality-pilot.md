@@ -169,7 +169,13 @@ Expected: FAIL because normalization and finding keys do not exist.
 
 For every admitted target, invoke the canonical profile twice with fresh scan targets and RAP JSON directories. The wrapper must be `$RAPV2_BIN_DIR/cargo-rapx rapx -unsoundaudit -- --locked --jobs 1 --package <package> --lib`; replace only `--lib` with `--bin <target>` for a binary. Require all MAC_HANDOFF exact environment variables, UNSOUND_SCANNER_RAP_JSON_DIR, UNSOUND_SCANNER_PROJECT_ROOT, and the profile executable hash.
 
-Normalize only generated_at, started_at, finished_at, duration_ms, absolute_log_path, and target_dir; sort keys/findings. Any other difference is nondeterministic. For stable non-zero candidates, run the two remaining contract profiles and count only matching root-key/primary-pattern sets as profile stable.
+Normalize only generated_at, started_at, finished_at, duration_ms, absolute_log_path,
+target_dir, and `rustc_invocation_id`; sort keys/findings. The last field is a hash of the
+complete rustc argv and therefore necessarily changes when the required fresh target out-dir
+changes. `unit_id`, package/source/target identities, findings, and every other receipt field
+remain comparison inputs. Any other difference is nondeterministic. For stable non-zero
+candidates, run the two remaining contract profiles and count only matching
+root-key/primary-pattern sets as profile stable.
 
 - [ ] **Step 4: Test and commit**
 

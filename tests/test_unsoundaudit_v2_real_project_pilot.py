@@ -157,8 +157,18 @@ class RealProjectPilotTests(unittest.TestCase):
             "sink": {"kind": "raw_read", "span": {"path": "src/lib.rs", "line": 7}},
             "obligation": {"predicates": ["valid_for_read"], "subject": "arg:1"},
         }
-        left = {"generated_at": "a", "duration_ms": 10, "findings": [finding]}
-        right = {"generated_at": "b", "duration_ms": 99, "findings": [dict(finding)]}
+        left = {
+            "generated_at": "a",
+            "duration_ms": 10,
+            "rustc_invocation_id": "rustc-fresh-target-one",
+            "findings": [finding],
+        }
+        right = {
+            "generated_at": "b",
+            "duration_ms": 99,
+            "rustc_invocation_id": "rustc-fresh-target-two",
+            "findings": [dict(finding)],
+        }
         self.assertEqual(PILOT.normalize_receipt(left), PILOT.normalize_receipt(right))
         changed = dict(finding)
         changed["sink"] = {"kind": "raw_read", "span": {"path": "src/other.rs", "line": 7}}
