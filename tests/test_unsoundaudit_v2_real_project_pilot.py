@@ -116,6 +116,38 @@ class RealProjectPilotTests(unittest.TestCase):
         self.assertEqual("lib", target["kind"])
         self.assertEqual("a/Cargo.toml", target["manifest_path"])
 
+    def test_incomplete_admission_requires_reserve_exhaustion_receipt(self) -> None:
+        root = Path(tempfile.mkdtemp(prefix="rapx-incomplete-admission-"))
+        admissions = root / "admissions.jsonl"
+        rows = []
+        for stratum in ("stars_top250", "downloads_top250"):
+            rows.append(
+                {
+                    "status": "admitted",
+                    "stratum": stratum,
+                    "repository": f"owner/{stratum}",
+                    "target": {"kind": "lib"},
+                }
+            )
+        admissions.write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(ValueError, "reserve-exhaustion"):
+            PILOT._admitted_rows(admissions, True)
+        (root / "admission_summary.json").write_text(
+            json.dumps(
+                {
+                    "reserve_exhausted": True,
+                    "admitted_by_stratum": {
+                        "stars_top250": 1,
+                        "downloads_top250": 1,
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        self.assertEqual(2, len(PILOT._admitted_rows(admissions, True)))
+
     def test_normalization_ignores_only_run_local_fields(self) -> None:
         finding = {
             "finding_id": "a" * 64,

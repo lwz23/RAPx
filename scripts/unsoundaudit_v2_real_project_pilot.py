@@ -719,9 +719,9 @@ def run_admission(
     return result
 
 
-def _admitted_rows(path: Path) -> list[dict[str, Any]]:
+def _admitted_rows(path: Path, allow_incomplete: bool = False) -> list[dict[str, Any]]:
     rows = [row for row in _read_jsonl(path) if row.get("status") == "admitted"]
-    if len(rows) != 10:
+    if not allow_incomplete and len(rows) != 10:
         raise ValueError(f"scan requires exactly ten admitted targets, found {len(rows)}")
     strata = {stratum: 0 for stratum in STRATA}
     repositories: set[str] = set()
@@ -735,8 +735,23 @@ def _admitted_rows(path: Path) -> list[dict[str, Any]]:
         target = row.get("target")
         if not isinstance(target, dict) or target.get("kind") not in {"lib", "bin"}:
             raise ValueError("admitted target record is invalid")
-    if any(count != 5 for count in strata.values()):
+    if not allow_incomplete and any(count != 5 for count in strata.values()):
         raise ValueError("scan requires five admitted targets per stratum")
+    if allow_incomplete:
+        summary_path = path.with_name("admission_summary.json")
+        try:
+            summary = _read_json(summary_path)
+        except ValueError as error:
+            raise ValueError(
+                "incomplete admission requires an exact reserve-exhaustion receipt"
+            ) from error
+        if (
+            not isinstance(summary, dict)
+            or summary.get("reserve_exhausted") is not True
+            or summary.get("admitted_by_stratum") != strata
+            or any(count <= 0 or count > 5 for count in strata.values())
+        ):
+            raise ValueError("incomplete admission requires an exact reserve-exhaustion receipt")
     return rows
 
 
@@ -992,9 +1007,10 @@ def run_scans(
     contract_path: Path,
     bin_dir: Path,
     result_root: Path,
+    allow_incomplete_admission: bool = False,
 ) -> dict[str, Any]:
     _required_environment()
-    admissions = _admitted_rows(admissions_path)
+    admissions = _admitted_rows(admissions_path, allow_incomplete_admission)
     profiles = _profile_map(load_profile_contract(contract_path), bin_dir)
     result_root = result_root.resolve()
     result_root.mkdir(parents=True, exist_ok=True)
@@ -1081,6 +1097,7 @@ def run_scans(
     summary = {
         "schema": "rapx-real-project-scan-summary-v1",
         "selected_targets": len(admissions),
+        "incomplete_admission": allow_incomplete_admission,
         "deterministic_targets": deterministic,
         "profile_stable_nonzero_targets": profile_stable_targets,
         "profile_unstable_nonzero_targets": profile_unstable_nonzero_targets,
@@ -1475,6 +1492,7 @@ def _parser() -> argparse.ArgumentParser:
     scan.add_argument("--profile-contract", type=Path, required=True)
     scan.add_argument("--bin-dir", type=Path, required=True)
     scan.add_argument("--result-root", type=Path, required=True)
+    scan.add_argument("--allow-incomplete-admission", action="store_true")
     verify_scans_parser = commands.add_parser("verify-scans")
     verify_scans_parser.add_argument("--result-root", type=Path, required=True)
     export = commands.add_parser("export-review")
@@ -1514,6 +1532,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.profile_contract,
             args.bin_dir,
             args.result_root,
+            args.allow_incomplete_admission,
         )
         return 0
     if args.command == "verify-scans":
