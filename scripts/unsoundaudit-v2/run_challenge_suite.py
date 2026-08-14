@@ -10,12 +10,12 @@ import sys
 from pathlib import Path
 
 from run_fixture_suite import (
-    baseline_toolchain,
     canonical_existing,
     fresh_target,
     git_tracked,
     normalized_case,
     run_command,
+    toolchain_contract,
     verify_case_contract,
     verify_environment,
     verify_receipt_toolchain,
@@ -154,6 +154,7 @@ def main() -> int:
     parser.add_argument("--cargo", type=Path, required=True)
     parser.add_argument("--rap-bin-dir", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--toolchain-contract", type=Path)
     parser.add_argument("--case", action="append", dest="selected_cases")
     args = parser.parse_args()
     try:
@@ -163,10 +164,11 @@ def main() -> int:
         schema_path = canonical_existing(args.schema, "receipt schema")
         cargo = canonical_existing(args.cargo, "Cargo")
         rap_bin_dir = canonical_existing(args.rap_bin_dir, "RAP binary directory")
-        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir)
+        expected_toolchain = toolchain_contract(repo_root, args.toolchain_contract)
+        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir, expected_toolchain)
         manifest = read_json(manifest_path)
         schema = read_json(schema_path)
-        _, expected_rustc_commit = baseline_toolchain(repo_root)
+        _, expected_rustc_commit = expected_toolchain
         all_case_ids = verify_challenge_contract(repo_root, challenge_root, manifest_path, manifest)
         if args.selected_cases:
             unknown = sorted(set(args.selected_cases) - set(all_case_ids))

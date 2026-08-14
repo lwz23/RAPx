@@ -148,10 +148,24 @@ class ChallengeRunnerContractTests(unittest.TestCase):
                 "--cargo", str(cargo),
                 "--rap-bin-dir", str(rap_bin_dir),
                 "--output-root", str(output),
+                "--toolchain-contract",
+                str(REPO_ROOT / "tests/unsoundaudit-v2/latest_stdlib_target.json"),
             ]
             with mock.patch.object(sys, "argv", arguments), mock.patch.dict(os.environ, {}, clear=True):
                 self.assertEqual(self.runner.main(), 1)
             self.assertFalse(output.exists())
+
+    def test_runner_shares_the_explicit_current_toolchain_contract(self) -> None:
+        self.assertEqual(
+            self.runner.toolchain_contract(
+                REPO_ROOT,
+                REPO_ROOT / "tests/unsoundaudit-v2/latest_stdlib_target.json",
+            ),
+            (
+                "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+                "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+            ),
+        )
 
     def test_normalized_output_sorts_case_ids_and_closes_aggregate(self) -> None:
         cases = [

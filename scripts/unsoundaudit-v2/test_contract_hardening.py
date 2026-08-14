@@ -171,6 +171,45 @@ class ReceiptTamperTests(unittest.TestCase):
         self.assert_rejected(receipt)
 
 
+class ToolchainContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.target = REPO_ROOT / "tests/unsoundaudit-v2/latest_stdlib_target.json"
+
+    def test_default_contract_remains_the_historical_baseline(self) -> None:
+        self.assertEqual(
+            runner.toolchain_contract(REPO_ROOT, None),
+            runner.baseline_toolchain(REPO_ROOT),
+        )
+
+    def test_current_contract_selects_the_exact_frozen_commits(self) -> None:
+        self.assertEqual(
+            runner.toolchain_contract(REPO_ROOT, self.target),
+            (
+                "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+                "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+            ),
+        )
+
+    def test_current_contract_rejects_commit_and_key_drift(self) -> None:
+        original = read_json(self.target)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "target.json"
+
+            for field in ("cargo_commit", "rustc_commit"):
+                with self.subTest(field=field):
+                    wrong_commit = copy.deepcopy(original)
+                    wrong_commit["nightly"][field] = "0" * 40
+                    write_json(path, wrong_commit)
+                    with self.assertRaises(ContractError):
+                        runner.toolchain_contract(REPO_ROOT, path)
+
+            extra_key = copy.deepcopy(original)
+            extra_key["unexpected"] = True
+            write_json(path, extra_key)
+            with self.assertRaises(ContractError):
+                runner.toolchain_contract(REPO_ROOT, path)
+
+
 class FrozenInputTamperTests(unittest.TestCase):
     def create_legacy_tree(self, root: Path) -> tuple[Path, dict, list[Path]]:
         repo = root / "repo"

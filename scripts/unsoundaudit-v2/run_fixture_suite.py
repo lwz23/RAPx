@@ -43,6 +43,19 @@ EXPECTED_COUNTS = {
 }
 FORBIDDEN_DEPENDENCY_TABLES = frozenset({"dependencies", "dev-dependencies", "build-dependencies"})
 BASELINE_MANIFEST_RELATIVE = Path("docs/unsoundaudit-v2/baseline_manifest_v1.json")
+LATEST_STDLIB_TARGET_SCHEMA = "unsoundaudit-v2-latest-stdlib-target-v1"
+LATEST_STDLIB_TARGET_KEYS = {
+    "historical_baseline",
+    "nightly",
+    "rust_src_tree_sha256",
+    "schema_version",
+    "stable",
+    "target_triple",
+}
+CURRENT_NIGHTLY_CHANNEL = "nightly-2026-08-14"
+CURRENT_CARGO_COMMIT = "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0"
+CURRENT_RUSTC_COMMIT = "ba28ff76f353a722f31c4f3dd2ac4e437d36411b"
+CURRENT_TARGET_TRIPLE = "aarch64-apple-darwin"
 ENVIRONMENT_RECEIPT_RELATIVE = Path(
     "artifacts/unsoundaudit-v2/mac/exact-nightly-2024-10-12-arm64/environment_receipt.json"
 )
@@ -211,19 +224,73 @@ def baseline_toolchain(repo_root: Path) -> tuple[str, str]:
     return cargo_commit, rustc_commit
 
 
+def toolchain_contract(repo_root: Path, contract_path: Path | None) -> tuple[str, str]:
+    if contract_path is None:
+        return baseline_toolchain(repo_root)
+
+    contract = read_json(canonical_existing(contract_path, "toolchain contract"))
+    if not isinstance(contract, dict) or set(contract) != LATEST_STDLIB_TARGET_KEYS:
+        fail("current toolchain contract keys drifted")
+    if contract["schema_version"] != LATEST_STDLIB_TARGET_SCHEMA:
+        fail("current toolchain contract schema drifted")
+    if contract["target_triple"] != CURRENT_TARGET_TRIPLE:
+        fail("current toolchain contract target triple drifted")
+
+    nightly = contract["nightly"]
+    if not isinstance(nightly, dict) or set(nightly) != {
+        "cargo_commit",
+        "channel",
+        "miri_version",
+        "rustc_commit",
+    }:
+        fail("current toolchain contract nightly entry drifted")
+    if nightly["channel"] != CURRENT_NIGHTLY_CHANNEL:
+        fail("current toolchain contract nightly channel drifted")
+    if nightly["cargo_commit"] != CURRENT_CARGO_COMMIT:
+        fail("current toolchain contract Cargo commit drifted")
+    if nightly["rustc_commit"] != CURRENT_RUSTC_COMMIT:
+        fail("current toolchain contract rustc commit drifted")
+
+    historical = contract["historical_baseline"]
+    stable = contract["stable"]
+    trees = contract["rust_src_tree_sha256"]
+    if not isinstance(historical, dict) or set(historical) != {"channel", "rustc_commit"}:
+        fail("current toolchain contract historical baseline entry drifted")
+    if not isinstance(stable, dict) or set(stable) != {"cargo_commit", "channel", "rustc_commit"}:
+        fail("current toolchain contract stable entry drifted")
+    if not isinstance(trees, dict) or set(trees) != {"alloc", "core", "std"}:
+        fail("current toolchain contract rust-src tree entry drifted")
+    for role, commit in (
+        ("historical rustc", historical["rustc_commit"]),
+        ("stable Cargo", stable["cargo_commit"]),
+        ("stable rustc", stable["rustc_commit"]),
+    ):
+        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+            fail(f"current toolchain contract {role} commit is invalid")
+    for unit, digest in trees.items():
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            fail(f"current toolchain contract {unit} rust-src digest is invalid")
+    return CURRENT_CARGO_COMMIT, CURRENT_RUSTC_COMMIT
+
+
 def verify_receipt_toolchain(receipt: dict, expected_rustc_commit: str) -> None:
     for field in ("cargo_supplied_rustc_commit", "rap_compiler_commit", "rustc_commit"):
         if receipt[field] != expected_rustc_commit:
-            fail(f"receipt.{field} differs from the baseline rustc commit")
+            fail(f"receipt.{field} differs from the selected rustc commit")
 
 
-def verify_environment(repo_root: Path, cargo: Path, rap_bin_dir: Path) -> tuple[Path, Path]:
+def verify_environment(
+    repo_root: Path,
+    cargo: Path,
+    rap_bin_dir: Path,
+    expected_toolchain: tuple[str, str] | None = None,
+) -> tuple[Path, Path]:
     missing = [key for key in REQUIRED_ENVIRONMENT if not os.environ.get(key)]
     if missing:
         fail(f"exact environment is incomplete: {', '.join(missing)}")
     if "CARGO_ENCODED_RUSTFLAGS" in os.environ:
         fail("CARGO_ENCODED_RUSTFLAGS must be unset for the exact environment")
-    expected_cargo_commit, expected_rustc_commit = baseline_toolchain(repo_root)
+    expected_cargo_commit, expected_rustc_commit = expected_toolchain or baseline_toolchain(repo_root)
     exact_cargo = canonical_existing(Path(os.environ["UNSOUND_SCANNER_EXACT_CARGO_PATH"]), "exact Cargo")
     if cargo != exact_cargo:
         fail("--cargo differs from UNSOUND_SCANNER_EXACT_CARGO_PATH")
@@ -234,9 +301,9 @@ def verify_environment(repo_root: Path, cargo: Path, rap_bin_dir: Path) -> tuple
     supplied_cargo_commit = os.environ["UNSOUND_SCANNER_EXACT_CARGO_COMMIT"]
     supplied_rustc_commit = os.environ["UNSOUND_SCANNER_EXPECTED_RUSTC_COMMIT"]
     if supplied_cargo_commit != expected_cargo_commit or command_commit(exact_cargo, "exact Cargo") != expected_cargo_commit:
-        fail("exact Cargo commit differs from the baseline manifest")
+        fail("exact Cargo commit differs from the selected toolchain contract")
     if supplied_rustc_commit != expected_rustc_commit or command_commit(exact_rustc, "exact rustc") != expected_rustc_commit:
-        fail("exact rustc commit differs from the baseline manifest")
+        fail("exact rustc commit differs from the selected toolchain contract")
     if os.environ["RUSTFLAGS"] != approved_rustflags(repo_root):
         fail("RUSTFLAGS must contain only the approved Z3 native-library search path")
     cargo_home = canonical_existing(Path(os.environ["CARGO_HOME"]), "CARGO_HOME")
@@ -613,6 +680,7 @@ def main() -> int:
     parser.add_argument("--cargo", type=Path, required=True)
     parser.add_argument("--rap-bin-dir", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--toolchain-contract", type=Path)
     parser.add_argument("--case", action="append", dest="selected_cases")
     args = parser.parse_args()
     try:
@@ -622,10 +690,11 @@ def main() -> int:
         schema_path = canonical_existing(args.schema, "receipt schema")
         cargo = canonical_existing(args.cargo, "Cargo")
         rap_bin_dir = canonical_existing(args.rap_bin_dir, "RAP binary directory")
-        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir)
+        expected_toolchain = toolchain_contract(repo_root, args.toolchain_contract)
+        cargo_rapx, _ = verify_environment(repo_root, cargo, rap_bin_dir, expected_toolchain)
         manifest = read_json(manifest_path)
         schema = read_json(schema_path)
-        _, expected_rustc_commit = baseline_toolchain(repo_root)
+        _, expected_rustc_commit = expected_toolchain
         all_case_ids = verify_contract(repo_root, fixture_root, manifest_path, manifest)
         if args.selected_cases:
             unknown = sorted(set(args.selected_cases) - set(all_case_ids))
