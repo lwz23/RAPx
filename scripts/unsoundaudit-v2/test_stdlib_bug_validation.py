@@ -1,4 +1,5 @@
 import json
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -9,6 +10,10 @@ V4_REVIEWS = (
     / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/family_reviews.json"
 )
 AUDIT = REPO / "docs/unsoundaudit-v2/STDLIB_ACTIVE_FINDING_AUDIT.md"
+JOIN_POC = (
+    REPO
+    / "tests/unsoundaudit-v2/stdlib-bug-validation/join-varying-borrow"
+)
 UNITS = ("core", "alloc", "std")
 JOIN_CONCAT_FAMILY = (
     "560c34406031d113235e81e9d711f31bc34ba2673819fc96abd51ce60f93b4df"
@@ -130,6 +135,48 @@ class ActiveFindingValidationTests(unittest.TestCase):
         for line in AUDIT.read_text().splitlines():
             if line.startswith("| `") and "confirmed bug" in line.lower():
                 self.assertIn("| `confirmed_ub` |", line)
+
+    def test_join_poc_is_dependency_free_safe_only_and_acknowledged(self):
+        manifest = (JOIN_POC / "Cargo.toml").read_text()
+        lockfile = (JOIN_POC / "Cargo.lock").read_text()
+        manifest_payload = tomllib.loads(manifest)
+        lockfile_payload = tomllib.loads(lockfile)
+        source_paths = sorted((JOIN_POC / "src").glob("*.rs"))
+        self.assertEqual([path.name for path in source_paths], ["lib.rs", "main.rs"])
+        source_by_name = {path.name: path.read_text() for path in source_paths}
+        source = "\n".join(source_by_name.values())
+
+        self.assertIn("[dependencies]\n", manifest)
+        self.assertEqual(set(manifest_payload), {"package", "dependencies"})
+        self.assertEqual(manifest_payload["dependencies"], {})
+        self.assertEqual(len(lockfile_payload["package"]), 1)
+        locked_package = lockfile_payload["package"][0]
+        self.assertEqual(locked_package["name"], "join-varying-borrow-poc")
+        self.assertNotIn("dependencies", locked_package)
+        self.assertNotIn("unsafe", source)
+        expected_ack_gate = """assert_eq!(
+        std::env::var("UNSOUNDAUDIT_STDLIB_POC_ACK").as_deref(),
+        Ok("1"),
+        "refusing to run a potential UB PoC without explicit acknowledgement",
+    );"""
+        self.assertIn(expected_ack_gate, source_by_name["main.rs"])
+
+        growing_cases = (
+            "join-growing-first",
+            "concat-growing-first",
+            "join-growing-later",
+            "join-growing-first-nonempty-separator",
+        )
+        for validation_case in (
+            "stable-control",
+            *growing_cases,
+            "join-shrinking-first",
+        ):
+            self.assertIn(validation_case, source)
+
+        test_suffix = source_by_name["lib.rs"].split("#[cfg(test)]", 1)[1]
+        for validation_case in growing_cases:
+            self.assertNotIn(validation_case.replace("-", "_"), test_suffix)
 
 
 if __name__ == "__main__":
