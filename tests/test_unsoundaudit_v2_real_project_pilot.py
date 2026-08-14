@@ -175,6 +175,31 @@ class RealProjectPilotTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash differs"):
             PILOT.verify_scans(root)
 
+    def test_sanitized_runtime_rows_remove_absolute_paths(self) -> None:
+        runtime = Path("/private/tmp/pilot-run")
+        admission = {
+            "stratum": "stars_top250",
+            "repo_id": 7,
+            "clone_path": "/private/tmp/pilot-run/clones/candidate",
+            "clone_argv": ["git", "clone", "url", "/private/tmp/pilot-run/clones/candidate"],
+            "metadata_argv": ["/Users/example/.rustup/bin/cargo", "metadata"],
+            "control_argv": ["/Users/example/.rustup/bin/cargo", "check"],
+        }
+        sanitized = PILOT._sanitized_admission(admission, runtime)
+        self.assertNotIn("clone_path", sanitized)
+        self.assertEqual("clones/stars_top250-7", sanitized["clone_argv"][-1])
+        self.assertEqual("cargo", sanitized["metadata_argv"][0])
+        scan = PILOT._sanitized_scan(
+            {
+                "profile": "rapx-perf",
+                "argv": ["/private/tmp/bin/rapx-perf/cargo-rapx", "rapx"],
+                "duration_ms": 1,
+            },
+            runtime,
+        )
+        self.assertEqual("rapx-perf/cargo-rapx", scan["argv"][0])
+        self.assertNotIn("duration_ms", scan)
+
     def test_review_rejects_allowlist_and_blank_rationale(self) -> None:
         row = {
             "disposition": "likely_false_positive",

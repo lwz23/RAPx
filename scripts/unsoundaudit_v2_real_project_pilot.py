@@ -1237,6 +1237,137 @@ def export_review(result_root: Path) -> dict[str, Any]:
     }
 
 
+def _replace_runtime_root(value: Any, runtime_root: Path) -> Any:
+    marker = str(runtime_root)
+    if isinstance(value, dict):
+        return {
+            key: _replace_runtime_root(item, runtime_root)
+            for key, item in value.items()
+            if key not in {"clone_path", "duration_ms"}
+        }
+    if isinstance(value, list):
+        return [_replace_runtime_root(item, runtime_root) for item in value]
+    if isinstance(value, str):
+        return value.replace(marker, "<runtime-root>")
+    return value
+
+
+def _sanitized_admission(row: dict[str, Any], runtime_root: Path) -> dict[str, Any]:
+    value = _replace_runtime_root(row, runtime_root)
+    label = f"{row.get('stratum')}-{row.get('repo_id')}"
+    clone_argv = value.get("clone_argv")
+    if isinstance(clone_argv, list) and clone_argv:
+        clone_argv[-1] = f"clones/{label}"
+    for key in ("metadata_argv", "control_argv"):
+        argv = value.get(key)
+        if isinstance(argv, list) and argv:
+            argv[0] = "cargo"
+    return value
+
+
+def _sanitized_scan(row: dict[str, Any], runtime_root: Path) -> dict[str, Any]:
+    value = _replace_runtime_root(row, runtime_root)
+    argv = value.get("argv")
+    profile = value.get("profile")
+    if isinstance(argv, list) and argv and isinstance(profile, str):
+        argv[0] = f"{profile}/cargo-rapx"
+    return value
+
+
+def _reject_private_or_secret_text(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    forbidden = (
+        "/Users/",
+        "/private/tmp/",
+        "/tmp/",
+        "ghp_",
+        "github_pat_",
+        "Authorization:",
+        "-----BEGIN PRIVATE KEY-----",
+    )
+    matches = [token for token in forbidden if token in text]
+    if matches:
+        raise ValueError(f"sanitized evidence contains private path or secret marker: {matches}")
+
+
+def freeze_evidence(
+    result_root: Path,
+    output_dir: Path,
+    receipt_manifest: Path,
+    selection_manifest: Path,
+    profile_contract: Path,
+) -> dict[str, Any]:
+    verify_scans(result_root)
+    validate_review_ledger(result_root / "review_ledger.jsonl")
+    result_root = result_root.resolve(strict=True)
+    output_dir.mkdir(parents=True, exist_ok=False)
+    files: dict[str, str] = {}
+
+    sanitized_admissions = output_dir / "admissions.jsonl"
+    with sanitized_admissions.open("x", encoding="utf-8") as output:
+        for row in _read_jsonl(result_root / "admissions.jsonl"):
+            output.write(
+                json.dumps(
+                    _sanitized_admission(row, result_root),
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+    sanitized_scans = output_dir / "scans.jsonl"
+    with sanitized_scans.open("x", encoding="utf-8") as output:
+        for row in _read_jsonl(result_root / "scans.jsonl"):
+            output.write(
+                json.dumps(
+                    _sanitized_scan(row, result_root),
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
+    for name in (
+        "findings.jsonl",
+        "review_ledger.jsonl",
+        "human_review.md",
+        "summary.md",
+    ):
+        source = result_root / name
+        target = output_dir / name
+        target.write_bytes(source.read_bytes())
+    raw_summary = _read_json(result_root / "scan_summary.json")
+    if not isinstance(raw_summary, dict):
+        raise ValueError("scan summary is not an object")
+    raw_summary["scans_sha256"] = sha256_file(sanitized_scans)
+    raw_summary["findings_sha256"] = sha256_file(output_dir / "findings.jsonl")
+    sanitized_summary = output_dir / "scan_summary.json"
+    sanitized_summary.write_text(
+        json.dumps(raw_summary, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    for path in sorted(output_dir.iterdir()):
+        if path.is_file():
+            _reject_private_or_secret_text(path)
+            files[path.name] = sha256_file(path)
+    manifest = {
+        "schema": "rapx-real-project-pilot-receipt-manifest-v1",
+        "rap_source_commit": LEGACY_SOURCE_COMMIT,
+        "rustc_commit": LEGACY_RUSTC_COMMIT,
+        "cargo_commit": LEGACY_CARGO_COMMIT,
+        "selection_manifest_sha256": sha256_file(selection_manifest),
+        "profile_contract_sha256": sha256_file(profile_contract),
+        "evidence_files": files,
+        "raw_logs_committed": False,
+        "binaries_or_caches_committed": False,
+    }
+    receipt_manifest.parent.mkdir(parents=True, exist_ok=True)
+    receipt_manifest.write_text(
+        json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    _reject_private_or_secret_text(receipt_manifest)
+    return manifest
+
+
 def _command_commit(executable: Path) -> str:
     try:
         result = subprocess.run(
@@ -1336,6 +1467,12 @@ def _parser() -> argparse.ArgumentParser:
     verify_scans_parser.add_argument("--result-root", type=Path, required=True)
     export = commands.add_parser("export-review")
     export.add_argument("--result-root", type=Path, required=True)
+    freeze = commands.add_parser("freeze-evidence")
+    freeze.add_argument("--result-root", type=Path, required=True)
+    freeze.add_argument("--output-dir", type=Path, required=True)
+    freeze.add_argument("--receipt-manifest", type=Path, required=True)
+    freeze.add_argument("--selection-manifest", type=Path, required=True)
+    freeze.add_argument("--profile-contract", type=Path, required=True)
     review = commands.add_parser("validate-review")
     review.add_argument("--ledger", type=Path, required=True)
     return parser
@@ -1372,6 +1509,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "export-review":
         export_review(args.result_root)
+        return 0
+    if args.command == "freeze-evidence":
+        freeze_evidence(
+            args.result_root,
+            args.output_dir,
+            args.receipt_manifest,
+            args.selection_manifest,
+            args.profile_contract,
+        )
         return 0
     if args.command == "validate-review":
         validate_review_ledger(args.ledger)
