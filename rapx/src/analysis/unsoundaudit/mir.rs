@@ -946,6 +946,8 @@ enum RegistryValueModel {
     Length(OperandModel),
     SliceIterator(OperandModel),
     SlicePosition(OperandModel),
+    RangeIntoIterator(OperandModel),
+    RangeIteratorNext(OperandModel),
     SelectedOpenBehavior {
         token: String,
     },
@@ -1004,6 +1006,7 @@ enum EdgeTerm {
 enum CallOperand {
     Place(PlaceKey),
     Constant(u64),
+    ArrayLengths(BTreeSet<PlaceKey>),
     Unknown,
 }
 
@@ -2068,7 +2071,9 @@ impl<'tcx> Engine<'tcx> {
             if local_requirement_is_proven(
                 snapshot,
                 None,
-                facts.local_relational_obligations.get(&requirement.sink.point),
+                facts
+                    .local_relational_obligations
+                    .get(&requirement.sink.point),
             ) {
                 facts.summary_seed.requirements.remove(&requirement);
                 continue;
@@ -2738,10 +2743,12 @@ impl<'tcx> Engine<'tcx> {
             def_id if Some(def_id) == lang_items.range_struct() => RangeIndexKind::Between,
             _ => return None,
         };
-        let element = arguments.iter().find_map(|argument| match argument.unpack() {
-            ty::GenericArgKind::Type(element) => Some(element),
-            _ => None,
-        })?;
+        let element = arguments
+            .iter()
+            .find_map(|argument| match argument.unpack() {
+                ty::GenericArgKind::Type(element) => Some(element),
+                _ => None,
+            })?;
         matches!(element.kind(), ty::Uint(ty::UintTy::Usize)).then_some(kind)
     }
 
@@ -2775,6 +2782,8 @@ impl<'tcx> Engine<'tcx> {
         let modeled_registry = raw_def.is_some_and(|did| {
             self.is_modeled_registry_call(did)
                 || self.is_slice_iterator_position(did, body, args)
+                || self.is_usize_range_into_iterator(did, body, args)
+                || self.is_usize_range_iterator_next(did, body, args)
                 || self.is_associated_slice_as_ref(did, body, args, destination)
         });
         let disposition = select_boundary(BoundaryInputs {
@@ -2824,6 +2833,10 @@ impl<'tcx> Engine<'tcx> {
                 value = RegistryValueModel::SliceIterator(operands[0].clone());
             } else if self.is_slice_iterator_position(did, body, args) && !operands.is_empty() {
                 value = RegistryValueModel::SlicePosition(operands[0].clone());
+            } else if self.is_usize_range_into_iterator(did, body, args) && !operands.is_empty() {
+                value = RegistryValueModel::RangeIntoIterator(operands[0].clone());
+            } else if self.is_usize_range_iterator_next(did, body, args) && !operands.is_empty() {
+                value = RegistryValueModel::RangeIteratorNext(operands[0].clone());
             } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
                 value = RegistryValueModel::SelectedOpenBehavior {
                     token: format!("trait-return:{}", self.tcx.def_path_str(did)),
@@ -3366,7 +3379,9 @@ impl<'tcx> Engine<'tcx> {
                 return local_requirement_is_proven(
                     snapshot,
                     facts.local_bindings.get(&requirement.sink.point),
-                    facts.local_relational_obligations.get(&requirement.sink.point),
+                    facts
+                        .local_relational_obligations
+                        .get(&requirement.sink.point),
                 );
             }
         }
@@ -3639,6 +3654,10 @@ impl<'tcx> Engine<'tcx> {
                 self.usize_constant(body, operand)
                     .map(CallOperand::Constant)
             })
+            .or_else(|| {
+                let lengths = self.symbolic_array_lengths(body, operand);
+                (!lengths.is_empty()).then_some(CallOperand::ArrayLengths(lengths))
+            })
             .unwrap_or(CallOperand::Unknown)
     }
 
@@ -3653,6 +3672,46 @@ impl<'tcx> Engine<'tcx> {
             .constant()?
             .const_
             .try_eval_target_usize(self.tcx, ty::ParamEnv::empty())
+    }
+
+    fn symbolic_array_lengths(
+        &self,
+        body: &Body<'tcx>,
+        operand: &Operand<'tcx>,
+    ) -> BTreeSet<PlaceKey> {
+        if !matches!(
+            operand.ty(&body.local_decls, self.tcx).kind(),
+            ty::Uint(ty::UintTy::Usize)
+        ) {
+            return BTreeSet::new();
+        }
+        let Some(rustc_middle::mir::Const::Ty(_, constant)) =
+            operand.constant().map(|constant| constant.const_)
+        else {
+            return BTreeSet::new();
+        };
+        body.local_decls
+            .iter_enumerated()
+            .filter_map(|(local, declaration)| {
+                (self.array_length_const(declaration.ty) == Some(constant))
+                    .then(|| PlaceKey::new(format!("{local:?}")))
+            })
+            .collect()
+    }
+
+    fn array_length_const(&self, ty: ty::Ty<'tcx>) -> Option<ty::Const<'tcx>> {
+        match ty.kind() {
+            ty::Array(_, length) => Some(*length),
+            ty::Ref(_, inner, _) | ty::RawPtr(inner, _) => self.array_length_const(*inner),
+            ty::Adt(definition, generic_args)
+                if self
+                    .tcx
+                    .is_lang_item(definition.did(), LangItem::MaybeUninit) =>
+            {
+                self.array_length_const(generic_args.type_at(0))
+            }
+            _ => None,
+        }
     }
 
     fn field_info(&self, body: &Body<'tcx>, place: Place<'tcx>) -> Option<(bool, String)> {
@@ -3838,6 +3897,59 @@ impl<'tcx> Engine<'tcx> {
                     | "std::slice::Iter"
                     | "std::slice::IterMut"
             )
+    }
+
+    fn is_usize_range_iterator_next(
+        &self,
+        did: DefId,
+        body: &Body<'tcx>,
+        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+    ) -> bool {
+        if !self
+            .tcx
+            .opt_item_name(did)
+            .is_some_and(|name| name.as_str() == "next")
+            || !self
+                .tcx
+                .trait_of_item(did)
+                .is_some_and(|trait_id| self.tcx.is_lang_item(trait_id, LangItem::Iterator))
+        {
+            return false;
+        }
+        let Some(receiver) = args.first() else {
+            return false;
+        };
+        let receiver = receiver.node.ty(&body.local_decls, self.tcx);
+        let receiver = match receiver.kind() {
+            ty::Ref(_, inner, _) => *inner,
+            _ => receiver,
+        };
+        let ty::Adt(definition, generic_args) = receiver.kind() else {
+            return false;
+        };
+        Some(definition.did()) == self.tcx.lang_items().range_struct()
+            && matches!(generic_args.type_at(0).kind(), ty::Uint(ty::UintTy::Usize))
+    }
+
+    fn is_usize_range_into_iterator(
+        &self,
+        did: DefId,
+        body: &Body<'tcx>,
+        args: &[rustc_span::source_map::Spanned<Operand<'tcx>>],
+    ) -> bool {
+        if !self.tcx.is_lang_item(did, LangItem::IntoIterIntoIter) {
+            return false;
+        }
+        let Some(receiver) = args.first() else {
+            return false;
+        };
+        let ty::Adt(definition, generic_args) =
+            receiver.node.ty(&body.local_decls, self.tcx).kind()
+        else {
+            return false;
+        };
+        Some(definition.did()) == self.tcx.lang_items().range_struct()
+            && matches!(generic_args.type_at(0).kind(), ty::Uint(ty::UintTy::Usize))
     }
 
     fn is_pointer_is_null(&self, did: DefId) -> bool {
@@ -4405,10 +4517,7 @@ enum RegistryRelationEffect {
     },
 }
 
-fn current_slice_iterator_base(
-    state: &ProgramState,
-    iterator: &OperandModel,
-) -> Option<PlaceKey> {
+fn current_slice_iterator_base(state: &ProgramState, iterator: &OperandModel) -> Option<PlaceKey> {
     let iterator = unique_semantic_value(&eval_operand(state, iterator))?;
     let mut bases = current_relation_proof(state)
         .facts()
@@ -4422,6 +4531,38 @@ fn current_slice_iterator_base(
         })
         .collect::<BTreeSet<_>>();
     (bases.len() == 1).then(|| bases.pop_first().expect("one iterator base"))
+}
+
+fn current_range_iterator_bounds(
+    state: &ProgramState,
+    iterator: &OperandModel,
+) -> BTreeSet<PlaceKey> {
+    let Some(iterator) = unique_semantic_value(&eval_operand(state, iterator)) else {
+        return BTreeSet::new();
+    };
+    let proof = current_relation_proof(state);
+    proof
+        .facts()
+        .filter_map(|fact| {
+            let (base, collection) = match fact.kind {
+                RelationKind::Eq(
+                    RelationTerm::Projection { base, path },
+                    RelationTerm::Length(collection),
+                ) if path.as_slice() == [ProjectionKey::Field(1)] => (base, collection),
+                RelationKind::Eq(
+                    RelationTerm::Length(collection),
+                    RelationTerm::Projection { base, path },
+                ) if path.as_slice() == [ProjectionKey::Field(1)] => (base, collection),
+                _ => return None,
+            };
+            proof
+                .proves_same_value(
+                    &RelationTerm::Place(iterator.clone()),
+                    &RelationTerm::Place(base),
+                )
+                .then_some(collection)
+        })
+        .collect()
 }
 
 fn registry_relation_effects(
@@ -4454,6 +4595,48 @@ fn registry_relation_effects(
                 )),
                 polarity: true,
             }]
+        }
+        RegistryValueModel::RangeIntoIterator(range) => current_range_iterator_bounds(state, range)
+            .into_iter()
+            .map(|collection| {
+                RegistryRelationEffect::Unconditional(RelationFact::new(RelationKind::Eq(
+                    RelationTerm::Projection {
+                        base: call.descriptor.destination.clone(),
+                        path: vec![ProjectionKey::Field(1)],
+                    },
+                    RelationTerm::Length(collection),
+                )))
+            })
+            .collect(),
+        RegistryValueModel::RangeIteratorNext(iterator) => {
+            let Some(iterator_base) = unique_semantic_value(&eval_operand(state, iterator)) else {
+                return Vec::new();
+            };
+            let bounds = current_range_iterator_bounds(state, iterator);
+            bounds
+                .into_iter()
+                .flat_map(|collection| {
+                    [
+                        RegistryRelationEffect::Unconditional(RelationFact::new(RelationKind::Eq(
+                            RelationTerm::Projection {
+                                base: iterator_base.clone(),
+                                path: vec![ProjectionKey::Field(1)],
+                            },
+                            RelationTerm::Length(collection.clone()),
+                        ))),
+                        RegistryRelationEffect::Pending {
+                            relation: RelationFact::new(RelationKind::Lt(
+                                RelationTerm::Projection {
+                                    base: call.descriptor.destination.clone(),
+                                    path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
+                                },
+                                RelationTerm::Length(collection),
+                            )),
+                            polarity: true,
+                        },
+                    ]
+                })
+                .collect()
         }
         _ => Vec::new(),
     }
@@ -4658,6 +4841,14 @@ fn relation_term_for_operand(state: &ProgramState, operand: &OperandModel) -> Op
     if let CallOperand::Constant(value) = &operand.operand {
         return Some(RelationTerm::Constant(*value));
     }
+    if let CallOperand::ArrayLengths(collections) = &operand.operand {
+        let mut collections = collections.iter();
+        let collection = collections.next()?.clone();
+        return collections
+            .next()
+            .is_none()
+            .then_some(RelationTerm::Length(collection));
+    }
     let value = eval_operand(state, operand);
     if let Some(collection) = current_length_collection(state, &value) {
         return Some(RelationTerm::Length(collection));
@@ -4715,96 +4906,111 @@ fn normalized_relation_pending(
 }
 
 fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Option<RelationFact> {
-    let kind = match &assignment.value {
-        ValueModel::Operand(operand) | ValueModel::RefOrRaw(operand) => {
-            let operand_term = relation_term_for_operand(state, operand)?;
-            let result = match &operand_term {
-                RelationTerm::Projection { .. } => {
-                    RelationTerm::Place(unique_semantic_value(&eval_operand(state, operand))?)
+    let kind =
+        match &assignment.value {
+            ValueModel::Operand(operand) | ValueModel::RefOrRaw(operand) => {
+                let operand_term = relation_term_for_operand(state, operand)?;
+                let result = match &operand_term {
+                    RelationTerm::Projection { .. } => {
+                        RelationTerm::Place(unique_semantic_value(&eval_operand(state, operand))?)
+                    }
+                    _ => RelationTerm::Place(assignment.destination.clone()),
+                };
+                RelationKind::Eq(result, operand_term)
+            }
+            ValueModel::Length(collection) => {
+                let collection = unique_semantic_value(&eval_operand(state, collection))?;
+                RelationKind::Eq(
+                    RelationTerm::Place(assignment.destination.clone()),
+                    RelationTerm::Length(collection),
+                )
+            }
+            ValueModel::Compare {
+                op: BinOp::Add,
+                left,
+                right,
+            } => {
+                let left = relation_term_for_operand(state, left)?;
+                let right = relation_term_for_operand(state, right)?;
+                let (base, addend) = match (left, right) {
+                    (base, RelationTerm::Constant(addend))
+                    | (RelationTerm::Constant(addend), base) => (base, addend),
+                    _ => return None,
+                };
+                if addend != 0
+                    && !(addend == 1
+                        && current_relation_proof(state).proves_increment_without_overflow(&base))
+                {
+                    return None;
                 }
-                _ => RelationTerm::Place(assignment.destination.clone()),
-            };
-            RelationKind::Eq(result, operand_term)
-        }
-        ValueModel::Length(collection) => {
-            let collection = unique_semantic_value(&eval_operand(state, collection))?;
-            RelationKind::Eq(
-                RelationTerm::Place(assignment.destination.clone()),
-                RelationTerm::Length(collection),
-            )
-        }
-        ValueModel::Compare {
-            op: BinOp::Add,
-            left,
-            right,
-        } => {
-            let left = relation_term_for_operand(state, left)?;
-            let right = relation_term_for_operand(state, right)?;
-            let (base, addend) = match (left, right) {
-                (base, RelationTerm::Constant(addend)) | (RelationTerm::Constant(addend), base) => {
-                    (base, addend)
+                RelationKind::AddConst {
+                    result: RelationTerm::Place(assignment.destination.clone()),
+                    base,
+                    addend,
                 }
-                _ => return None,
-            };
-            if addend != 0
-                && !(addend == 1
-                    && current_relation_proof(state).proves_increment_without_overflow(&base))
-            {
-                return None;
             }
-            RelationKind::AddConst {
-                result: RelationTerm::Place(assignment.destination.clone()),
-                base,
-                addend,
-            }
-        }
-        ValueModel::Compare {
-            op: BinOp::Sub,
-            left,
-            right,
-        } => {
-            let upper = relation_term_for_operand(state, left)?;
-            let lower = relation_term_for_operand(state, right)?;
-            if !current_relation_proof(state).proves_le(&lower, &upper) {
-                return None;
-            }
-            RelationKind::Sub {
-                result: RelationTerm::Place(assignment.destination.clone()),
-                upper,
-                lower,
-            }
-        }
-        ValueModel::CheckedBinary {
-            op: BinOp::Add,
-            left,
-            right,
-        } => {
-            let left = relation_term_for_operand(state, left)?;
-            let right = relation_term_for_operand(state, right)?;
-            let (base, addend) = match (left, right) {
-                (base, RelationTerm::Constant(addend)) | (RelationTerm::Constant(addend), base) => {
-                    (base, addend)
+            ValueModel::Compare {
+                op: BinOp::Sub,
+                left,
+                right,
+            } => {
+                let upper = relation_term_for_operand(state, left)?;
+                let lower = relation_term_for_operand(state, right)?;
+                if !current_relation_proof(state).proves_le(&lower, &upper) {
+                    return None;
                 }
-                _ => return None,
-            };
-            if addend != 0
-                && !(addend == 1
-                    && current_relation_proof(state).proves_increment_without_overflow(&base))
-            {
-                return None;
+                RelationKind::Sub {
+                    result: RelationTerm::Place(assignment.destination.clone()),
+                    upper,
+                    lower,
+                }
             }
-            RelationKind::AddConst {
-                result: RelationTerm::Projection {
-                    base: assignment.destination.clone(),
-                    path: vec![ProjectionKey::Field(0)],
-                },
-                base,
-                addend,
+            ValueModel::CheckedBinary {
+                op: BinOp::Add,
+                left,
+                right,
+            } => {
+                let left = relation_term_for_operand(state, left)?;
+                let right = relation_term_for_operand(state, right)?;
+                let (base, addend) = match (left, right) {
+                    (base, RelationTerm::Constant(addend))
+                    | (RelationTerm::Constant(addend), base) => (base, addend),
+                    _ => return None,
+                };
+                if addend != 0
+                    && !(addend == 1
+                        && current_relation_proof(state).proves_increment_without_overflow(&base))
+                {
+                    return None;
+                }
+                RelationKind::AddConst {
+                    result: RelationTerm::Projection {
+                        base: assignment.destination.clone(),
+                        path: vec![ProjectionKey::Field(0)],
+                    },
+                    base,
+                    addend,
+                }
             }
-        }
-        _ => return None,
-    };
+            _ => return None,
+        };
     Some(RelationFact::new(kind))
+}
+
+fn aggregate_relation_terms(
+    state: &ProgramState,
+    operand: &OperandModel,
+) -> BTreeSet<RelationTerm> {
+    match &operand.operand {
+        CallOperand::ArrayLengths(collections) => collections
+            .iter()
+            .cloned()
+            .map(RelationTerm::Length)
+            .collect(),
+        _ => relation_term_for_operand(state, operand)
+            .into_iter()
+            .collect(),
+    }
 }
 
 fn aggregate_proofs(state: &ProgramState, assignment: &AssignmentModel) -> Vec<ProofBinding> {
@@ -4817,23 +5023,26 @@ fn aggregate_proofs(state: &ProgramState, assignment: &AssignmentModel) -> Vec<P
     let fields = operands
         .iter()
         .enumerate()
-        .filter_map(|(field, operand)| {
-            let payload = relation_term_for_operand(state, operand)?;
+        .flat_map(|(field, operand)| {
             let mut path = Vec::new();
             if let Some(discriminant) = variant {
                 path.push(ProjectionKey::Downcast(*discriminant as u32));
             }
             path.push(ProjectionKey::Field(field as u32));
-            Some((
-                path.clone(),
-                ProofBinding::Relation(RelationFact::new(RelationKind::Eq(
-                    RelationTerm::Projection {
-                        base: canonical_storage(&assignment.destination),
-                        path,
-                    },
-                    payload,
-                ))),
-            ))
+            aggregate_relation_terms(state, operand)
+                .into_iter()
+                .map(move |payload| {
+                    (
+                        path.clone(),
+                        ProofBinding::Relation(RelationFact::new(RelationKind::Eq(
+                            RelationTerm::Projection {
+                                base: canonical_storage(&assignment.destination),
+                                path: path.clone(),
+                            },
+                            payload,
+                        ))),
+                    )
+                })
         })
         .collect::<Vec<_>>();
     let mut proofs = fields
@@ -4969,7 +5178,7 @@ fn eval_operand(state: &ProgramState, operand: &OperandModel) -> ValueFacts {
             known_length_unknown: true,
             ..ValueFacts::default()
         },
-        CallOperand::Unknown => ValueFacts {
+        CallOperand::ArrayLengths(_) | CallOperand::Unknown => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -5106,9 +5315,11 @@ fn eval_registry_value(
 ) -> ValueFacts {
     let definition = StaticWriteToken::new(point.block, point.statement);
     match model {
+        RegistryValueModel::RangeIntoIterator(range) => eval_operand(state, range),
         RegistryValueModel::Empty
         | RegistryValueModel::SliceIterator(_)
-        | RegistryValueModel::SlicePosition(_) => ValueFacts {
+        | RegistryValueModel::SlicePosition(_)
+        | RegistryValueModel::RangeIteratorNext(_) => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -5697,18 +5908,23 @@ fn apply_program_edge_with_outputs(
                     relation_storage_places(relation),
                 ));
             }
-            pending.extend(outputs.conditional_relations.iter().filter_map(|conditional| {
-                let polarity = match conditional.condition.discriminant {
-                    0 => false,
-                    1 => true,
-                    _ => return None,
-                };
-                Some((
-                    ProofBinding::Relation(conditional.relation.clone()),
-                    polarity,
-                    relation_storage_places(&conditional.relation),
-                ))
-            }));
+            pending.extend(
+                outputs
+                    .conditional_relations
+                    .iter()
+                    .filter_map(|conditional| {
+                        let polarity = match conditional.condition.discriminant {
+                            0 => false,
+                            1 => true,
+                            _ => return None,
+                        };
+                        Some((
+                            ProofBinding::Relation(conditional.relation.clone()),
+                            polarity,
+                            relation_storage_places(&conditional.relation),
+                        ))
+                    }),
+            );
         }
         if !pending.is_empty() {
             state.set_pending(call.descriptor.destination.clone(), pending);
@@ -10991,6 +11207,151 @@ mod tests {
             ));
         }
         assert!(current_slice_iterator_base(&ambiguous, &place_operand(&iterator.0)).is_none());
+    }
+
+    #[test]
+    fn usize_range_next_uses_exact_symbolic_array_extents_only_on_some() {
+        let indices = PlaceKey::new("_2");
+        let output = PlaceKey::new("_5");
+        let range_value = PlaceKey::new("_9");
+        let iterator = PlaceKey::new("_8");
+        let returned = PlaceKey::new("_13");
+        let mut state = ProgramState::empty();
+        for place in [&indices, &output, &range_value, &iterator] {
+            seed_exact(&mut state, place);
+        }
+
+        let symbolic_length = OperandModel {
+            operand: CallOperand::ArrayLengths(BTreeSet::from([indices.clone(), output.clone()])),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
+            projection_unknown: false,
+        };
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: range_value.clone(),
+                    value: ValueModel::Aggregate {
+                        operands: vec![constant_operand(0), symbolic_length],
+                        range_end: None,
+                        variant: None,
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+        let into_iter_target = BasicBlock::from_usize(1);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(into_iter_target),
+                point: point(0, 1),
+                call: CallModel {
+                    descriptor: CallDescriptor {
+                        callee: None,
+                        raw_def: None,
+                        disposition: BoundaryDisposition::ModeledRegistry,
+                        args: vec![place_operand(&range_value.0)],
+                        destination: iterator.clone(),
+                    },
+                    value: RegistryValueModel::RangeIntoIterator(place_operand(&range_value.0)),
+                    predicate: None,
+                    mutable_actuals: Vec::new(),
+                    ffi_out_actuals: Vec::new(),
+                    destination_is_bool: false,
+                    access_width: None,
+                    legacy_write: false,
+                    destination_out_formal: None,
+                },
+            },
+            into_iter_target,
+            &mut state,
+        );
+        assert_eq!(
+            current_range_iterator_bounds(&state, &place_operand(&iterator.0)),
+            BTreeSet::from([indices.clone(), output.clone()]),
+            "Range::into_iter preserves its exact symbolic end bound"
+        );
+
+        let call_target = BasicBlock::from_usize(2);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(call_target),
+                point: point(1, 0),
+                call: CallModel {
+                    descriptor: CallDescriptor {
+                        callee: Some(FunctionKey::new("crate::range_next")),
+                        raw_def: None,
+                        disposition: BoundaryDisposition::ResolvedLocal,
+                        args: vec![place_operand(&iterator.0)],
+                        destination: returned.clone(),
+                    },
+                    value: RegistryValueModel::RangeIteratorNext(place_operand(&iterator.0)),
+                    predicate: None,
+                    mutable_actuals: vec![iterator.clone()],
+                    ffi_out_actuals: Vec::new(),
+                    destination_is_bool: false,
+                    access_width: None,
+                    legacy_write: false,
+                    destination_out_formal: None,
+                },
+            },
+            call_target,
+            &mut state,
+        );
+        assert_eq!(
+            current_range_iterator_bounds(&state, &place_operand(&iterator.0)),
+            BTreeSet::from([indices.clone(), output.clone()]),
+            "Range::next mutates the cursor but preserves its exact end bound"
+        );
+
+        let discriminant = PlaceKey::new("_14");
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(2, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: discriminant.clone(),
+                    value: ValueModel::Discriminant(place_operand(&returned.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            call_target,
+            0,
+            &mut state,
+        );
+        let switch = EdgeTerm::Switch {
+            condition: discriminant,
+            false_target: BasicBlock::from_usize(2),
+            true_target: BasicBlock::from_usize(3),
+        };
+        let mut on_some = state.clone();
+        apply_program_edge(&switch, BasicBlock::from_usize(3), &mut on_some);
+        let mut on_none = state;
+        apply_program_edge(&switch, BasicBlock::from_usize(2), &mut on_none);
+
+        let payload = RelationTerm::Projection {
+            base: returned,
+            path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
+        };
+        for collection in [indices, output] {
+            let bound = RelationTerm::Length(collection);
+            assert!(current_relation_proof(&on_some).proves_lt(&payload, &bound));
+            assert!(!current_relation_proof(&on_none).proves_lt(&payload, &bound));
+        }
+
+        assert!(current_range_iterator_bounds(&on_some, &place_operand("_unrelated"),).is_empty());
     }
 
     #[test]
