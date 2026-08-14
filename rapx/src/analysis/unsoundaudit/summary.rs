@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::relations::{RelationalPostcondition, SummaryRelationKind, SummaryRelationTerm};
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FunctionKey(pub String);
 
@@ -931,6 +933,7 @@ pub struct FunctionSummary {
     pub requirements: BTreeSet<ContractRequirement>,
     pub unresolved_predecessors: BTreeSet<UnresolvedPredecessor>,
     pub return_value: AbstractValue,
+    pub(super) relational_postconditions: BTreeSet<RelationalPostcondition>,
 }
 
 impl FunctionSummary {
@@ -949,6 +952,7 @@ impl FunctionSummary {
             requirements: BTreeSet::new(),
             unresolved_predecessors: BTreeSet::new(),
             return_value: AbstractValue::default(),
+            relational_postconditions: BTreeSet::new(),
         }
     }
 
@@ -957,7 +961,7 @@ impl FunctionSummary {
             self.function, other.function,
             "summaries for different functions cannot be joined"
         );
-        let before = (
+        let before = [
             self.sources.len(),
             self.flows.len(),
             self.return_origins.len(),
@@ -970,7 +974,8 @@ impl FunctionSummary {
             self.requirements.len(),
             self.unresolved_predecessors.len(),
             self.return_value.origins.len(),
-        );
+            self.relational_postconditions.len(),
+        ];
         self.sources.extend(other.sources.iter().cloned());
         self.flows.extend(other.flows.iter().cloned());
         self.return_origins
@@ -989,8 +994,10 @@ impl FunctionSummary {
         self.return_value
             .origins
             .extend(other.return_value.origins.iter().cloned());
+        self.relational_postconditions
+            .extend(other.relational_postconditions.iter().cloned());
         before
-            != (
+            != [
                 self.sources.len(),
                 self.flows.len(),
                 self.return_origins.len(),
@@ -1003,7 +1010,8 @@ impl FunctionSummary {
                 self.requirements.len(),
                 self.unresolved_predecessors.len(),
                 self.return_value.origins.len(),
-            )
+                self.relational_postconditions.len(),
+            ]
     }
 }
 
@@ -1733,6 +1741,14 @@ mod tests {
             .origins
             .insert(AbstractOrigin::Constant(ordinal as u64));
         summary
+            .relational_postconditions
+            .insert(RelationalPostcondition::unconditional(
+                SummaryRelationKind::Lt(
+                    SummaryRelationTerm::Return,
+                    SummaryRelationTerm::LengthFormal(ordinal),
+                ),
+            ));
+        summary
     }
 
     #[test]
@@ -1758,6 +1774,9 @@ mod tests {
             .return_value
             .origins
             .is_subset(&left.return_value.origins));
+        assert!(before
+            .relational_postconditions
+            .is_subset(&left.relational_postconditions));
         let joined = left.clone();
         assert!(!left.join(&right));
         assert_eq!(left, joined);
@@ -1846,6 +1865,111 @@ mod tests {
             left.return_value.origins.iter().collect::<Vec<_>>(),
             vec![&AbstractOrigin::Constant(1), &AbstractOrigin::Constant(2)]
         );
+    }
+
+    #[test]
+    fn relational_postconditions_join_by_finite_stable_union() {
+        let relation = RelationalPostcondition::unconditional(SummaryRelationKind::Lt(
+            SummaryRelationTerm::Return,
+            SummaryRelationTerm::LengthFormal(1),
+        ));
+        let mut left = FunctionSummary::empty(FunctionKey::new("crate::entry"));
+        let mut right = FunctionSummary::empty(FunctionKey::new("crate::entry"));
+        right.relational_postconditions.insert(relation.clone());
+
+        assert!(left.join(&right));
+        assert_eq!(left.relational_postconditions, BTreeSet::from([relation]));
+        assert!(!left.join(&right));
+    }
+
+    #[test]
+    fn relational_postconditions_cross_sixty_four_calls_and_recursive_sccs_without_a_cap() {
+        let postcondition = RelationalPostcondition::unconditional(SummaryRelationKind::Lt(
+            SummaryRelationTerm::Return,
+            SummaryRelationTerm::LengthFormal(1),
+        ));
+        let functions = (0..=64)
+            .map(|index| FunctionKey::new(format!("crate::f{index}")))
+            .collect::<Vec<_>>();
+        let mut graph = BTreeMap::<FunctionKey, BTreeSet<FunctionKey>>::new();
+        for pair in functions.windows(2) {
+            graph.insert(pair[0].clone(), BTreeSet::from([pair[1].clone()]));
+        }
+        graph.insert(functions[64].clone(), BTreeSet::new());
+        let mut seeds = functions
+            .iter()
+            .cloned()
+            .map(|function| (function.clone(), FunctionSummary::empty(function)))
+            .collect::<BTreeMap<_, _>>();
+        seeds
+            .get_mut(&functions[64])
+            .unwrap()
+            .relational_postconditions
+            .insert(postcondition.clone());
+        let solved = solve_summaries(&graph, &seeds, |node, current| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            for callee in &graph[node] {
+                if let Some(summary) = current.get(callee) {
+                    derived
+                        .relational_postconditions
+                        .extend(summary.relational_postconditions.iter().cloned());
+                }
+            }
+            derived
+        });
+        assert!(functions.iter().all(|function| solved[function]
+            .relational_postconditions
+            .contains(&postcondition)));
+
+        let self_recursive = FunctionKey::new("crate::self_recursive");
+        let self_graph = BTreeMap::from([(
+            self_recursive.clone(),
+            BTreeSet::from([self_recursive.clone()]),
+        )]);
+        let self_seeds = BTreeMap::from([(
+            self_recursive.clone(),
+            FunctionSummary::empty(self_recursive.clone()),
+        )]);
+        let self_solved = solve_summaries(&self_graph, &self_seeds, |node, current| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            derived
+                .relational_postconditions
+                .extend(current[node].relational_postconditions.iter().cloned());
+            derived
+        });
+        assert!(self_solved[&self_recursive]
+            .relational_postconditions
+            .is_empty());
+
+        let left = FunctionKey::new("crate::left");
+        let right = FunctionKey::new("crate::right");
+        let mutual_graph = BTreeMap::from([
+            (left.clone(), BTreeSet::from([right.clone()])),
+            (right.clone(), BTreeSet::from([left.clone()])),
+        ]);
+        let mut right_seed = FunctionSummary::empty(right.clone());
+        right_seed
+            .relational_postconditions
+            .insert(postcondition.clone());
+        let mutual_seeds = BTreeMap::from([
+            (left.clone(), FunctionSummary::empty(left.clone())),
+            (right.clone(), right_seed),
+        ]);
+        let mutual = solve_summaries(&mutual_graph, &mutual_seeds, |node, current| {
+            let mut derived = FunctionSummary::empty(node.clone());
+            for callee in &mutual_graph[node] {
+                derived
+                    .relational_postconditions
+                    .extend(current[callee].relational_postconditions.iter().cloned());
+            }
+            derived
+        });
+        assert!(mutual[&left]
+            .relational_postconditions
+            .contains(&postcondition));
+        assert!(mutual[&right]
+            .relational_postconditions
+            .contains(&postcondition));
     }
 
     fn bounds_requirement(tag: &str) -> ContractRequirement {

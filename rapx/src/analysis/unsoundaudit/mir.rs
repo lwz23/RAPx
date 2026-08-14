@@ -3,7 +3,10 @@ use super::dataflow::{
     StaticWriteToken,
 };
 use super::perf_trace::PerfTrace;
-use super::relations::{RelationFact, RelationKind, RelationProof, RelationTerm};
+use super::relations::{
+    RelationFact, RelationKind, RelationProof, RelationTerm, RelationalPostcondition,
+    SummaryRelationKind, SummaryRelationTerm,
+};
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
     select_preferred_unresolved_route, select_unresolved_route_cycle, solve_summaries,
@@ -371,6 +374,7 @@ struct BodyProgram {
 struct MappedCallOutputs {
     returned: Option<(PlaceKey, AbstractValue)>,
     outs: BTreeMap<PlaceKey, MappedOutValue>,
+    relations: BTreeSet<RelationFact>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -422,6 +426,11 @@ fn join_local_outputs(
                 changed |= !output.may_skip_write && value.may_skip_write;
                 output.may_skip_write |= value.may_skip_write;
             }
+            let before = destination.relations.len();
+            destination
+                .relations
+                .extend(outputs.relations.iter().cloned());
+            changed |= destination.relations.len() != before;
         }
         if changed {
             changed_owners.insert(function.clone());
@@ -491,7 +500,122 @@ fn map_structured_local_outputs(
             }
         }
     }
-    MappedCallOutputs { returned, outs }
+    MappedCallOutputs {
+        returned,
+        outs,
+        relations: BTreeSet::new(),
+    }
+}
+
+fn instantiate_summary_term(
+    term: &SummaryRelationTerm,
+    call: &CallSite,
+    mappings: &BTreeSet<CallMapping>,
+) -> Option<RelationTerm> {
+    let actual = |index: u32| {
+        let value = call.arg_values.get(index.checked_sub(1)? as usize)?;
+        (!value.havoced)
+            .then(|| unique_semantic_value(value))
+            .flatten()
+            .map(|place| canonical_storage(&place))
+    };
+    Some(match term {
+        SummaryRelationTerm::Formal(index) => RelationTerm::Place(actual(*index)?),
+        SummaryRelationTerm::Return => RelationTerm::Place(canonical_storage(&call.destination)),
+        SummaryRelationTerm::Out(index) => {
+            let place = mappings.iter().find_map(|mapping| match mapping {
+                CallMapping::OutToCaller {
+                    formal_index,
+                    caller_place,
+                } if formal_index == index => Some(caller_place),
+                _ => None,
+            })?;
+            RelationTerm::Place(canonical_storage(place))
+        }
+        SummaryRelationTerm::LengthFormal(index) => RelationTerm::Length(actual(*index)?),
+        SummaryRelationTerm::CapacityFormal(index) => RelationTerm::Capacity(actual(*index)?),
+        SummaryRelationTerm::Constant(value) => RelationTerm::Constant(*value),
+    })
+}
+
+fn instantiate_summary_relation(
+    relation: &SummaryRelationKind,
+    call: &CallSite,
+    mappings: &BTreeSet<CallMapping>,
+) -> Option<RelationKind> {
+    let term = |term| instantiate_summary_term(term, call, mappings);
+    let base = |formal| {
+        instantiate_summary_term(&SummaryRelationTerm::Formal(formal), call, mappings)?
+            .storage_place()
+            .cloned()
+    };
+    Some(match relation {
+        SummaryRelationKind::Eq(left, right) => RelationKind::Eq(term(left)?, term(right)?),
+        SummaryRelationKind::Le(left, right) => RelationKind::Le(term(left)?, term(right)?),
+        SummaryRelationKind::Lt(left, right) => RelationKind::Lt(term(left)?, term(right)?),
+        SummaryRelationKind::AddConst {
+            result,
+            base,
+            addend,
+        } => RelationKind::AddConst {
+            result: term(result)?,
+            base: term(base)?,
+            addend: *addend,
+        },
+        SummaryRelationKind::Sub {
+            result,
+            upper,
+            lower,
+        } => RelationKind::Sub {
+            result: term(result)?,
+            upper: term(upper)?,
+            lower: term(lower)?,
+        },
+        SummaryRelationKind::SumEq { total, left, right } => RelationKind::SumEq {
+            total: term(total)?,
+            left: term(left)?,
+            right: term(right)?,
+        },
+        SummaryRelationKind::Within {
+            base_formal,
+            start,
+            end,
+        } => RelationKind::Within {
+            base: base(*base_formal)?,
+            start: term(start)?,
+            end: term(end)?,
+        },
+        SummaryRelationKind::InitializedWithin {
+            base_formal,
+            start,
+            end,
+        } => RelationKind::InitializedWithin {
+            base: base(*base_formal)?,
+            start: term(start)?,
+            end: term(end)?,
+        },
+        SummaryRelationKind::CapacityFor { base_formal, end } => RelationKind::CapacityFor {
+            base: base(*base_formal)?,
+            end: term(end)?,
+        },
+        SummaryRelationKind::SameObject(left, right) => {
+            RelationKind::SameObject(term(left)?, term(right)?)
+        }
+    })
+}
+
+fn instantiate_relational_postconditions(
+    postconditions: &BTreeSet<RelationalPostcondition>,
+    call: &CallSite,
+    mappings: &BTreeSet<CallMapping>,
+) -> BTreeSet<RelationFact> {
+    postconditions
+        .iter()
+        .filter_map(|postcondition| {
+            instantiate_summary_relation(&postcondition.relation, call, mappings)
+                .map(RelationFact::new)
+        })
+        .collect()
 }
 
 fn reachable_out_dependencies(
@@ -1488,13 +1612,20 @@ impl<'tcx> Engine<'tcx> {
                 let Some(program) = self.programs.get(caller_key) else {
                     continue;
                 };
-                let mapped = map_structured_local_outputs(
+                let mut mapped = map_structured_local_outputs(
                     &boundary.mapping,
                     summary,
                     &actuals,
                     &program.out_formals,
                     definite_outs.get(callee).cloned().unwrap_or_default(),
                 );
+                mapped
+                    .relations
+                    .extend(instantiate_relational_postconditions(
+                        &summary.relational_postconditions,
+                        call,
+                        &boundary.mapping,
+                    ));
                 let outputs = result
                     .entry(caller_key.clone())
                     .or_default()
@@ -1512,6 +1643,7 @@ impl<'tcx> Engine<'tcx> {
                     output.value.origins.extend(value.value.origins);
                     output.may_skip_write |= value.may_skip_write;
                 }
+                outputs.relations.extend(mapped.relations);
             }
         }
         result
@@ -1738,6 +1870,14 @@ impl<'tcx> Engine<'tcx> {
             },
         );
         self.materialize_exits(&solved, &mut facts);
+        facts
+            .summary_seed
+            .relational_postconditions
+            .extend(reachable_relational_postconditions(
+                &program.edges,
+                &solved,
+                facts.arg_count,
+            ));
         self.add_local_requirements(program, &mut facts);
         self.partition_validation_contracts(&mut facts);
         for (block, edge) in program.edges.iter_enumerated() {
@@ -3847,6 +3987,147 @@ fn current_relation_proof(state: &ProgramState) -> RelationProof {
     }))
 }
 
+fn project_summary_term(
+    term: &RelationTerm,
+    state: &ProgramState,
+    arg_count: usize,
+) -> Option<SummaryRelationTerm> {
+    let project_place = |place: &PlaceKey| {
+        let place = canonical_storage(place);
+        if place == PlaceKey::new("_0") {
+            return Some(SummaryRelationTerm::Return);
+        }
+        if let Some(formal_index) = out_slot_index(&place) {
+            return Some(SummaryRelationTerm::Out(formal_index));
+        }
+        match entry_formal_slot(arg_count, state, &place) {
+            Some(BoundarySlot::Formal(index)) => Some(SummaryRelationTerm::Formal(index)),
+            _ => None,
+        }
+    };
+    match term {
+        RelationTerm::Place(place) => project_place(place),
+        RelationTerm::Length(place) => match project_place(place)? {
+            SummaryRelationTerm::Formal(index) => Some(SummaryRelationTerm::LengthFormal(index)),
+            _ => None,
+        },
+        RelationTerm::Capacity(place) => match project_place(place)? {
+            SummaryRelationTerm::Formal(index) => Some(SummaryRelationTerm::CapacityFormal(index)),
+            _ => None,
+        },
+        RelationTerm::Constant(value) => Some(SummaryRelationTerm::Constant(*value)),
+        RelationTerm::Formal(index) => Some(SummaryRelationTerm::Formal(*index)),
+        RelationTerm::Return => Some(SummaryRelationTerm::Return),
+        RelationTerm::Out(index) => Some(SummaryRelationTerm::Out(*index)),
+    }
+}
+
+fn project_summary_relation(
+    relation: &RelationKind,
+    state: &ProgramState,
+    arg_count: usize,
+) -> Option<SummaryRelationKind> {
+    let term = |term| project_summary_term(term, state, arg_count);
+    Some(match relation {
+        RelationKind::Eq(left, right) => SummaryRelationKind::Eq(term(left)?, term(right)?),
+        RelationKind::Le(left, right) => SummaryRelationKind::Le(term(left)?, term(right)?),
+        RelationKind::Lt(left, right) => SummaryRelationKind::Lt(term(left)?, term(right)?),
+        RelationKind::AddConst {
+            result,
+            base,
+            addend,
+        } => SummaryRelationKind::AddConst {
+            result: term(result)?,
+            base: term(base)?,
+            addend: *addend,
+        },
+        RelationKind::Sub {
+            result,
+            upper,
+            lower,
+        } => SummaryRelationKind::Sub {
+            result: term(result)?,
+            upper: term(upper)?,
+            lower: term(lower)?,
+        },
+        RelationKind::SumEq { total, left, right } => SummaryRelationKind::SumEq {
+            total: term(total)?,
+            left: term(left)?,
+            right: term(right)?,
+        },
+        RelationKind::Within { base, start, end } => {
+            let SummaryRelationTerm::Formal(base_formal) =
+                project_summary_term(&RelationTerm::Place(base.clone()), state, arg_count)?
+            else {
+                return None;
+            };
+            SummaryRelationKind::Within {
+                base_formal,
+                start: term(start)?,
+                end: term(end)?,
+            }
+        }
+        RelationKind::InitializedWithin { base, start, end } => {
+            let SummaryRelationTerm::Formal(base_formal) =
+                project_summary_term(&RelationTerm::Place(base.clone()), state, arg_count)?
+            else {
+                return None;
+            };
+            SummaryRelationKind::InitializedWithin {
+                base_formal,
+                start: term(start)?,
+                end: term(end)?,
+            }
+        }
+        RelationKind::CapacityFor { base, end } => {
+            let SummaryRelationTerm::Formal(base_formal) =
+                project_summary_term(&RelationTerm::Place(base.clone()), state, arg_count)?
+            else {
+                return None;
+            };
+            SummaryRelationKind::CapacityFor {
+                base_formal,
+                end: term(end)?,
+            }
+        }
+        RelationKind::SameObject(left, right) => {
+            SummaryRelationKind::SameObject(term(left)?, term(right)?)
+        }
+    })
+}
+
+fn project_relational_postconditions(
+    state: &ProgramState,
+    arg_count: usize,
+) -> BTreeSet<RelationalPostcondition> {
+    current_relation_proof(state)
+        .facts()
+        .filter_map(|fact| {
+            project_summary_relation(&fact.kind, state, arg_count)
+                .map(RelationalPostcondition::unconditional)
+        })
+        .collect()
+}
+
+fn reachable_relational_postconditions(
+    edges: &IndexVec<BasicBlock, EdgeTerm>,
+    solved: &ProgramDataflowResult,
+    arg_count: usize,
+) -> BTreeSet<RelationalPostcondition> {
+    let mut returns = edges
+        .iter_enumerated()
+        .filter(|(block, edge)| matches!(edge, EdgeTerm::Return) && solved.exit[*block].is_some())
+        .filter_map(|(block, _)| solved.exit[block].as_ref())
+        .map(|state| project_relational_postconditions(state, arg_count));
+    let Some(mut common) = returns.next() else {
+        return BTreeSet::new();
+    };
+    for postconditions in returns {
+        common.retain(|postcondition| postconditions.contains(postcondition));
+    }
+    common
+}
+
 fn relation_term_for_operand(state: &ProgramState, operand: &OperandModel) -> Option<RelationTerm> {
     if let CallOperand::Constant(value) = &operand.operand {
         return Some(RelationTerm::Constant(*value));
@@ -4755,6 +5036,14 @@ fn apply_program_edge_with_outputs(
                 &output,
                 StaticWriteToken::new(point.block, point.statement),
             );
+        }
+        if let Some(outputs) = local_outputs.get(point) {
+            for relation in &outputs.relations {
+                state.establish(BoundValidation::new(
+                    ProofBinding::Relation(relation.clone()),
+                    relation.storage_places(),
+                ));
+            }
         }
         return;
     }
@@ -6416,6 +6705,7 @@ mod tests {
                         may_skip_write: false,
                     },
                 )]),
+                relations: BTreeSet::new(),
             },
         )]);
 
@@ -6589,6 +6879,7 @@ mod tests {
                             may_skip_write: false,
                         },
                     )]),
+                    relations: BTreeSet::new(),
                 },
             )]),
         )]);
@@ -6605,6 +6896,7 @@ mod tests {
                             may_skip_write: true,
                         },
                     )]),
+                    relations: BTreeSet::new(),
                 },
             )]),
         )]);
@@ -6637,6 +6929,7 @@ mod tests {
                         AbstractValue::new([AbstractOrigin::Constant(origin)]),
                     )),
                     outs: BTreeMap::new(),
+                    relations: BTreeSet::new(),
                 },
             )])
         };
@@ -6719,6 +7012,7 @@ mod tests {
                     AbstractValue::new([AbstractOrigin::Constant(0)]),
                 )),
                 outs: BTreeMap::new(),
+                relations: BTreeSet::new(),
             },
         )]);
         let mut state = BlockState::empty();
@@ -9349,6 +9643,158 @@ mod tests {
 
         state.record_write(subject, StaticWriteToken::new(0, 1));
         assert!(!ValidationSnapshot::capture(&state, 2).proves(&binding));
+    }
+
+    #[test]
+    fn relational_normal_return_projects_and_instantiates_exact_actuals() {
+        let formal = PlaceKey::new("_1");
+        let local = PlaceKey::new("_2");
+        let returned = PlaceKey::new("_0");
+        let mut state = ProgramState::empty();
+        for place in [&formal, &local, &returned] {
+            seed_exact(&mut state, place);
+        }
+        for relation in [
+            RelationFact::new(RelationKind::Lt(
+                RelationTerm::Place(local.clone()),
+                RelationTerm::Length(formal.clone()),
+            )),
+            RelationFact::new(RelationKind::Eq(
+                RelationTerm::Place(returned),
+                RelationTerm::Place(local),
+            )),
+        ] {
+            state.establish(BoundValidation::new(
+                ProofBinding::Relation(relation.clone()),
+                relation.storage_places(),
+            ));
+        }
+        let expected = RelationalPostcondition::unconditional(SummaryRelationKind::Lt(
+            SummaryRelationTerm::Return,
+            SummaryRelationTerm::LengthFormal(1),
+        ));
+        let postconditions = project_relational_postconditions(&state, 1);
+        assert!(postconditions.contains(&expected));
+
+        let actual = PlaceKey::new("_9");
+        let destination = PlaceKey::new("_10");
+        let call = CallSite {
+            callee: Some(FunctionKey::new("crate::callee")),
+            raw_def: None,
+            disposition: BoundaryDisposition::ResolvedLocal,
+            args: vec![CallOperand::Place(actual.clone())],
+            arg_values: vec![exact_value(&actual)],
+            destination: destination.clone(),
+            point: point(2, 0),
+            destination_is_bool: false,
+            access_width: None,
+        };
+        assert_eq!(
+            instantiate_relational_postconditions(
+                &BTreeSet::from([expected.clone()]),
+                &call,
+                &BTreeSet::new(),
+            ),
+            BTreeSet::from([RelationFact::new(RelationKind::Lt(
+                RelationTerm::Place(destination),
+                RelationTerm::Length(actual),
+            ))]),
+        );
+
+        let mut ambiguous = call;
+        ambiguous.arg_values[0].semantic_unknown = true;
+        assert!(instantiate_relational_postconditions(
+            &BTreeSet::from([expected]),
+            &ambiguous,
+            &BTreeSet::new(),
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn relational_postcondition_requires_every_reachable_normal_return() {
+        let formal = PlaceKey::new("_1");
+        let returned = PlaceKey::new("_0");
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(returned.clone()),
+            RelationTerm::Length(formal.clone()),
+        ));
+        let mut proved = ProgramState::empty();
+        seed_exact(&mut proved, &formal);
+        seed_exact(&mut proved, &returned);
+        proved.establish(BoundValidation::new(
+            ProofBinding::Relation(relation.clone()),
+            relation.storage_places(),
+        ));
+        let mut unproved = ProgramState::empty();
+        seed_exact(&mut unproved, &formal);
+        seed_exact(&mut unproved, &returned);
+        let mut edges = IndexVec::new();
+        edges.push(EdgeTerm::Return);
+        edges.push(EdgeTerm::Return);
+        edges.push(EdgeTerm::None);
+        let solved = ProgramDataflowResult {
+            entry: IndexVec::from_elem_n(None, 3),
+            exit: IndexVec::from_raw(vec![Some(proved.clone()), Some(unproved), Some(proved)]),
+            edge: BTreeMap::new(),
+        };
+        assert!(reachable_relational_postconditions(&edges, &solved, 1).is_empty());
+    }
+
+    #[test]
+    fn relational_call_postcondition_is_installed_only_on_the_normal_edge() {
+        let actual = PlaceKey::new("_1");
+        let destination = PlaceKey::new("_2");
+        let condition = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(destination.clone()),
+            RelationTerm::Length(actual.clone()),
+        ));
+        let call_point = point(0, 0);
+        let normal_target = BasicBlock::from_usize(1);
+        let unwind_target = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal_target),
+            point: call_point.clone(),
+            call: CallModel {
+                descriptor: CallDescriptor {
+                    callee: Some(FunctionKey::new("crate::callee")),
+                    raw_def: None,
+                    disposition: BoundaryDisposition::ResolvedLocal,
+                    args: vec![place_operand(&actual.0)],
+                    destination: destination.clone(),
+                },
+                value: RegistryValueModel::Empty,
+                predicate: None,
+                mutable_actuals: Vec::new(),
+                ffi_out_actuals: Vec::new(),
+                destination_is_bool: false,
+                access_width: None,
+                legacy_write: false,
+                destination_out_formal: None,
+            },
+        };
+        let outputs = LocalCallOutputs::from([(
+            call_point,
+            MappedCallOutputs {
+                relations: BTreeSet::from([condition.clone()]),
+                ..MappedCallOutputs::default()
+            },
+        )]);
+        let mut entry = ProgramState::empty();
+        seed_exact(&mut entry, &actual);
+        seed_exact(&mut entry, &destination);
+
+        let mut normal = entry.clone();
+        apply_program_edge_with_outputs(&edge, normal_target, &mut normal, &outputs);
+        assert!(current_relation_proof(&normal)
+            .proves_in_bounds(&RelationTerm::Place(destination), &actual,));
+
+        let mut unwind = entry;
+        apply_program_edge_with_outputs(&edge, unwind_target, &mut unwind, &outputs);
+        assert!(!current_relation_proof(&unwind).proves_lt(
+            &RelationTerm::Place(PlaceKey::new("_2")),
+            &RelationTerm::Length(PlaceKey::new("_1")),
+        ));
     }
 
     #[test]

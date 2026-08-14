@@ -15,7 +15,7 @@ pub(super) enum RelationTerm {
 }
 
 impl RelationTerm {
-    fn storage_place(&self) -> Option<&PlaceKey> {
+    pub(super) fn storage_place(&self) -> Option<&PlaceKey> {
         match self {
             Self::Place(place) | Self::Length(place) | Self::Capacity(place) => Some(place),
             Self::Constant(_) | Self::Formal(_) | Self::Return | Self::Out(_) => None,
@@ -123,6 +123,64 @@ impl RelationFact {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum SummaryRelationTerm {
+    Formal(u32),
+    Return,
+    Out(u32),
+    LengthFormal(u32),
+    CapacityFormal(u32),
+    Constant(u64),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum SummaryRelationKind {
+    Eq(SummaryRelationTerm, SummaryRelationTerm),
+    Le(SummaryRelationTerm, SummaryRelationTerm),
+    Lt(SummaryRelationTerm, SummaryRelationTerm),
+    AddConst {
+        result: SummaryRelationTerm,
+        base: SummaryRelationTerm,
+        addend: u64,
+    },
+    Sub {
+        result: SummaryRelationTerm,
+        upper: SummaryRelationTerm,
+        lower: SummaryRelationTerm,
+    },
+    SumEq {
+        total: SummaryRelationTerm,
+        left: SummaryRelationTerm,
+        right: SummaryRelationTerm,
+    },
+    Within {
+        base_formal: u32,
+        start: SummaryRelationTerm,
+        end: SummaryRelationTerm,
+    },
+    InitializedWithin {
+        base_formal: u32,
+        start: SummaryRelationTerm,
+        end: SummaryRelationTerm,
+    },
+    CapacityFor {
+        base_formal: u32,
+        end: SummaryRelationTerm,
+    },
+    SameObject(SummaryRelationTerm, SummaryRelationTerm),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) struct RelationalPostcondition {
+    pub(super) relation: SummaryRelationKind,
+}
+
+impl RelationalPostcondition {
+    pub(super) fn unconditional(relation: SummaryRelationKind) -> Self {
+        Self { relation }
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(super) struct RelationProof {
     relations: BTreeSet<RelationKind>,
@@ -204,6 +262,10 @@ impl RelationProof {
         self.relations.iter().any(|relation| {
             matches!(relation, RelationKind::Lt(left, RelationTerm::Length(_)) if left == base)
         })
+    }
+
+    pub(super) fn facts(&self) -> impl Iterator<Item = RelationFact> + '_ {
+        self.relations.iter().cloned().map(RelationFact::new)
     }
 
     fn close(&mut self) {
