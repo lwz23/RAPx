@@ -1,0 +1,24 @@
+{
+  "historical_baseline": {
+    "channel": "nightly-2024-10-12",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "nightly": {
+    "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+    "channel": "nightly-2026-08-13",
+    "miri_version": "miri 0.1.0 (ba28ff76f3 2026-08-13)",
+    "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b"
+  },
+  "rust_src_tree_sha256": {
+    "alloc": "3d40f86c6a4fbfa21b58b89a0d8e8b9029e94afb315597109031dbe58b0cdbcf",
+    "core": "c0a1e218b985dbcff02409dcef163588799dd79ccec21b2d8361f0c8f9370707",
+    "std": "d758f147c839f3a2f5d672490864f83603d8d1b720ee284b4d493968a9d9945f"
+  },
+  "schema_version": "unsoundaudit-v2-latest-stdlib-target-v1",
+  "stable": {
+    "cargo_commit": "c980f4866141969fab6254a680546a277789d6f0",
+    "channel": "1.97.1",
+    "rustc_commit": "8bab26f4f68e0e26f0bb7960be334d5b520ea452"
+  },
+  "target_triple": "aarch64-apple-darwin"
+}
