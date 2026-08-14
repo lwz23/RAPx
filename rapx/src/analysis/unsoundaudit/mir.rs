@@ -915,7 +915,19 @@ impl ValidationSnapshot {
     }
 
     fn proves(&self, binding: &ValidationBinding) -> bool {
-        self.current_validations.contains(binding)
+        if self.current_validations.contains(binding) {
+            return true;
+        }
+        let proof = RelationProof::from_facts(self.current_relations.iter().cloned());
+        match binding.predicate {
+            Predicate::InBounds => binding.collection.as_ref().is_some_and(|collection| {
+                proof.proves_in_bounds(
+                    &RelationTerm::Place(canonical_storage(&binding.subject)),
+                    &canonical_storage(collection),
+                )
+            }),
+            _ => false,
+        }
     }
 
     fn entry_formal(&self, place: &PlaceKey) -> Option<BoundarySlot> {
@@ -9299,6 +9311,44 @@ mod tests {
         );
         assert_eq!(stale.entry_formal(&subject), None);
         assert_eq!(entry_formal_slot(2, &state, &subject), None);
+    }
+
+    #[test]
+    fn relational_snapshot_proves_only_the_exact_in_bounds_sink() {
+        let collection = PlaceKey::new("_1");
+        let subject = PlaceKey::new("_2");
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            access_width: None,
+            proof_definition: None,
+            subject: subject.clone(),
+            collection: Some(collection.clone()),
+        };
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(subject.clone()),
+            RelationTerm::Length(collection.clone()),
+        ));
+        let mut state = ProgramState::empty();
+        seed_exact(&mut state, &collection);
+        seed_exact(&mut state, &subject);
+        state.establish(BoundValidation::new(
+            ProofBinding::Relation(relation.clone()),
+            relation.storage_places(),
+        ));
+
+        let snapshot = ValidationSnapshot::capture(&state, 2);
+        assert!(snapshot.proves(&binding));
+        assert!(!snapshot.proves(&ValidationBinding {
+            subject: PlaceKey::new("_9"),
+            ..binding.clone()
+        }));
+        assert!(!snapshot.proves(&ValidationBinding {
+            collection: Some(PlaceKey::new("_8")),
+            ..binding.clone()
+        }));
+
+        state.record_write(subject, StaticWriteToken::new(0, 1));
+        assert!(!ValidationSnapshot::capture(&state, 2).proves(&binding));
     }
 
     #[test]
