@@ -113,10 +113,163 @@
     ]
   },
   "current": {
-    "status": "not_started"
+    "status": "historical_fixed",
+    "classification": "confirmed_ub/historical_fixed",
+    "stable": {
+      "channel": "stable-aarch64-apple-darwin",
+      "rustc_release": "1.97.1",
+      "rustc_commit": "8bab26f4f68e0e26f0bb7960be334d5b520ea452",
+      "rustc_commit_date": "2026-07-14",
+      "cargo_release": "1.97.1",
+      "cargo_commit": "c980f4866141969fab6254a680546a277789d6f0",
+      "compile_only": {
+        "outcome": "exit_zero",
+        "exit_code": 0,
+        "log_sha256": "344858cb82e1a93c1b587cd88418b381e062e438941bd540f1db6c7faf1ee467",
+        "candidate_cases_executed_natively": false
+      },
+      "rust_src_sha256": "ef6974342cf6a89eb7ce00d32a7fa49bfa88a4e9058bbfe4ca6bee2436bad8bf",
+      "source_assessment": "The first element is borrowed exactly once and held through the copy; later elements that grow on their second borrow are stopped by bounds-checked split_at_mut before copying."
+    },
+    "nightly": {
+      "channel": "nightly-aarch64-apple-darwin",
+      "rustc_release": "1.99.0-nightly",
+      "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+      "rustc_commit_date": "2026-08-13",
+      "cargo_release": "1.99.0-nightly",
+      "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+      "miri_version": "miri 0.1.0 (ba28ff76f3 2026-08-13)",
+      "environment_forwarding": "-Zmiri-env-forward=UNSOUNDAUDIT_STDLIB_POC_ACK",
+      "rust_src_sha256": "40a2eb7db7c3ac9cfbc75f8869be745a1c692dd092c8e3f53a1753f09cea53f3",
+      "debug_cases": [
+        {
+          "name": "stable-control",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "571b440a27265c131c494b2dda72fb7c495b73a8edcafd01e2a242ac98ad5165",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile control exited 0 with no Miri diagnostic."
+        },
+        {
+          "name": "join-shrinking-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "dc9096c269baf7049800744f876eb3e2e8de56362ab2cbcd098af867274ccf0d",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile varying-borrow control exited 0 with no Miri diagnostic."
+        },
+        {
+          "name": "join-growing-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "d1addd0eeafd0af9f799e95bb6af89ab96fef1abe564366f4d1e6edae27cba09",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile join case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        },
+        {
+          "name": "concat-growing-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "c600716e3feb171c1c378f2ba6ca2598a2819846d6f4f42f4fbbe001619d40c5",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile concat case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        },
+        {
+          "name": "join-growing-later",
+          "outcome": "ordinary_panic",
+          "exit_code": 101,
+          "log_sha256": "8c28cd28d4b1519fa0550db13acfa821c3881ce8d84f65feaf7d6e16f055014f",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile execution stopped safely with an ordinary mid-greater-than-len panic at library/alloc/src/str.rs:200; Miri did not report UB."
+        },
+        {
+          "name": "join-growing-first-nonempty-separator",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "932168267f926a8f80593d3bee1967cee569636345762c9d58e9d48199282689",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly dev-profile nonempty-separator case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        }
+      ],
+      "release_profile_note": "Miri ignores optimization level; the release profile disables debug assertions and overflow checks, so it independently checks that the current repair does not depend on those checks.",
+      "release_cases": [
+        {
+          "name": "stable-control",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "68f530b445400969f1defe214defcec386723dbf992521b55bb17559677662da",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile control exited 0 with no Miri diagnostic."
+        },
+        {
+          "name": "join-shrinking-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "390138f41a2c75f78f536a3b104f0882c174f7d60b4946ba14e0d94eb64411de",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile varying-borrow control exited 0 with no Miri diagnostic."
+        },
+        {
+          "name": "join-growing-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "25e4182a5090798f52b93aa50832786e0f97d3969a0c66cd33eb88294179cf32",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile join case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        },
+        {
+          "name": "concat-growing-first",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "568cdb50fa28684b1a4b33ade873a2b425d909d5c4db3b17fc23afe9f8a3a461",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile concat case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        },
+        {
+          "name": "join-growing-later",
+          "outcome": "ordinary_panic",
+          "exit_code": 101,
+          "log_sha256": "b601635174fe785f7d3af84bfc2c7eea5054f30a9b3aa810430ac552ab5634f4",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile execution stopped safely with an ordinary mid-greater-than-len panic at library/alloc/src/str.rs:200; Miri did not report UB."
+        },
+        {
+          "name": "join-growing-first-nonempty-separator",
+          "outcome": "exit_zero_no_miri_diagnostic",
+          "exit_code": 0,
+          "log_sha256": "2af0852993235b1334b53448a2b236a4fc29ae36418036e179856222ef0c65f3",
+          "sink_reached": false,
+          "diagnostic": "Current-nightly release-profile nonempty-separator case exited 0 with no Miri diagnostic after the first-element single-borrow repair."
+        }
+      ],
+      "source_assessment": "The current nightly source has the same first-element single-borrow and later-element bounds-check repairs as current stable."
+    },
+    "conclusion": "The safe-only PoC confirms UB in the pinned historical source, while current stable source inspection and current-nightly dev/release Miri show that the published repair closes both first-element and later-element varying-Borrow paths."
   },
   "upstream_duplicate_search": {
-    "status": "not_started"
+    "status": "duplicate_confirmed",
+    "primary_fix": {
+      "url": "https://github.com/rust-lang/rust/pull/155708",
+      "title": "Fix heap overflow in slice::join caused by misbehaving Borrow",
+      "state": "merged",
+      "merged_at": "2026-04-27T05:54:32Z",
+      "milestone": "1.97.0",
+      "source_commit": "da545d0856a7d7925586accaa9dafe4068ba86ad",
+      "commit_url": "https://github.com/rust-lang/rust/commit/da545d0856a7d7925586accaa9dafe4068ba86ad",
+      "merge_commit": "f4043f8c09f0663d8e97d368f7f39f36902dcf09"
+    },
+    "follow_up": {
+      "url": "https://github.com/rust-lang/rust/pull/155858",
+      "title": "`slice::join`: borrow only once during length calc",
+      "state": "merged",
+      "merged_at": "2026-04-28T14:55:40Z",
+      "milestone": "1.97.0",
+      "source_commit": "b7424bac39776f3fa3a116cae5599b626c204cc5",
+      "commit_url": "https://github.com/rust-lang/rust/commit/b7424bac39776f3fa3a116cae5599b626c204cc5",
+      "merge_commit": "06fa54768c783f362da1fc4fef809e687f0a5c4c"
+    },
+    "first_fixed_release": "1.97.0",
+    "assessment": "The official primary fix describes the same nondeterministic safe Borrow root cause and heap overflow; the follow-up implements the first-element single-borrow repair. This is an already-reported historical soundness bug, so no new upstream report is appropriate."
   },
   "disclosure_status": "not_authorized"
 }

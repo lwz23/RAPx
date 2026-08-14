@@ -1,4 +1,5 @@
 import json
+import re
 import tomllib
 import unittest
 from pathlib import Path
@@ -201,10 +202,6 @@ class ActiveFindingValidationTests(unittest.TestCase):
             "unsoundaudit-v2-stdlib-bug-validation-v1",
         )
         self.assertFalse(payload["application_boundary_contains_unsafe"])
-        self.assertEqual(payload["current"], {"status": "not_started"})
-        self.assertEqual(
-            payload["upstream_duplicate_search"], {"status": "not_started"}
-        )
         self.assertEqual(payload["disclosure_status"], "not_authorized")
 
         historical = payload["historical"]
@@ -241,6 +238,146 @@ class ActiveFindingValidationTests(unittest.TestCase):
             self.assertFalse(release[name]["sink_reached"])
         self.assertEqual(release["join-growing-later"]["outcome"], "ordinary_panic")
         self.assertFalse(release["join-growing-later"]["sink_reached"])
+
+    def test_current_toolchains_are_fixed_and_upstream_duplicate_is_exact(self):
+        payload = json.loads(JOIN_RESULT.read_text())
+        current = payload["current"]
+        self.assertEqual(current["status"], "historical_fixed")
+        self.assertEqual(current["classification"], "confirmed_ub/historical_fixed")
+
+        stable = current["stable"]
+        self.assertEqual(stable["rustc_release"], "1.97.1")
+        self.assertEqual(
+            stable["rustc_commit"],
+            "8bab26f4f68e0e26f0bb7960be334d5b520ea452",
+        )
+        self.assertEqual(stable["compile_only"]["outcome"], "exit_zero")
+        self.assertEqual(stable["compile_only"]["exit_code"], 0)
+        self.assertEqual(
+            stable["compile_only"]["log_sha256"],
+            "344858cb82e1a93c1b587cd88418b381e062e438941bd540f1db6c7faf1ee467",
+        )
+        self.assertFalse(
+            stable["compile_only"]["candidate_cases_executed_natively"]
+        )
+        self.assertEqual(
+            stable["rust_src_sha256"],
+            "ef6974342cf6a89eb7ce00d32a7fa49bfa88a4e9058bbfe4ca6bee2436bad8bf",
+        )
+
+        nightly = current["nightly"]
+        self.assertEqual(nightly["rustc_release"], "1.99.0-nightly")
+        self.assertEqual(
+            nightly["rustc_commit"],
+            "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+        )
+        self.assertEqual(
+            nightly["rust_src_sha256"],
+            "40a2eb7db7c3ac9cfbc75f8869be745a1c692dd092c8e3f53a1753f09cea53f3",
+        )
+        expected_names = {
+            "stable-control",
+            "join-shrinking-first",
+            "join-growing-first",
+            "concat-growing-first",
+            "join-growing-later",
+            "join-growing-first-nonempty-separator",
+        }
+        expected_hashes = {
+            "debug_cases": {
+                "stable-control": "571b440a27265c131c494b2dda72fb7c495b73a8edcafd01e2a242ac98ad5165",
+                "join-shrinking-first": "dc9096c269baf7049800744f876eb3e2e8de56362ab2cbcd098af867274ccf0d",
+                "join-growing-first": "d1addd0eeafd0af9f799e95bb6af89ab96fef1abe564366f4d1e6edae27cba09",
+                "concat-growing-first": "c600716e3feb171c1c378f2ba6ca2598a2819846d6f4f42f4fbbe001619d40c5",
+                "join-growing-later": "8c28cd28d4b1519fa0550db13acfa821c3881ce8d84f65feaf7d6e16f055014f",
+                "join-growing-first-nonempty-separator": "932168267f926a8f80593d3bee1967cee569636345762c9d58e9d48199282689",
+            },
+            "release_cases": {
+                "stable-control": "68f530b445400969f1defe214defcec386723dbf992521b55bb17559677662da",
+                "join-shrinking-first": "390138f41a2c75f78f536a3b104f0882c174f7d60b4946ba14e0d94eb64411de",
+                "join-growing-first": "25e4182a5090798f52b93aa50832786e0f97d3969a0c66cd33eb88294179cf32",
+                "concat-growing-first": "568cdb50fa28684b1a4b33ade873a2b425d909d5c4db3b17fc23afe9f8a3a461",
+                "join-growing-later": "b601635174fe785f7d3af84bfc2c7eea5054f30a9b3aa810430ac552ab5634f4",
+                "join-growing-first-nonempty-separator": "2af0852993235b1334b53448a2b236a4fc29ae36418036e179856222ef0c65f3",
+            },
+        }
+        for profile in ("debug_cases", "release_cases"):
+            raw_cases = nightly[profile]
+            self.assertEqual(len(raw_cases), len(expected_names))
+            cases = {case["name"]: case for case in raw_cases}
+            self.assertEqual(set(cases), expected_names)
+            self.assertNotIn("miri_ub", {case["outcome"] for case in cases.values()})
+            for name in expected_names - {"join-growing-later"}:
+                self.assertEqual(
+                    cases[name]["outcome"], "exit_zero_no_miri_diagnostic"
+                )
+                self.assertEqual(cases[name]["exit_code"], 0)
+                self.assertFalse(cases[name]["sink_reached"])
+                self.assertEqual(cases[name]["log_sha256"], expected_hashes[profile][name])
+            self.assertEqual(cases["join-growing-later"]["outcome"], "ordinary_panic")
+            self.assertEqual(cases["join-growing-later"]["exit_code"], 101)
+            self.assertFalse(cases["join-growing-later"]["sink_reached"])
+            self.assertEqual(
+                cases["join-growing-later"]["log_sha256"],
+                expected_hashes[profile]["join-growing-later"],
+            )
+            for case in raw_cases:
+                self.assertRegex(case["log_sha256"], re.compile(r"^[0-9a-f]{64}$"))
+
+        duplicate = payload["upstream_duplicate_search"]
+        self.assertEqual(duplicate["status"], "duplicate_confirmed")
+        self.assertEqual(
+            duplicate["primary_fix"]["url"],
+            "https://github.com/rust-lang/rust/pull/155708",
+        )
+        self.assertEqual(
+            duplicate["primary_fix"]["title"],
+            "Fix heap overflow in slice::join caused by misbehaving Borrow",
+        )
+        self.assertEqual(duplicate["primary_fix"]["state"], "merged")
+        self.assertEqual(duplicate["primary_fix"]["milestone"], "1.97.0")
+        self.assertEqual(
+            duplicate["primary_fix"]["source_commit"],
+            "da545d0856a7d7925586accaa9dafe4068ba86ad",
+        )
+        self.assertEqual(
+            duplicate["primary_fix"]["commit_url"],
+            "https://github.com/rust-lang/rust/commit/da545d0856a7d7925586accaa9dafe4068ba86ad",
+        )
+        self.assertEqual(
+            duplicate["primary_fix"]["merged_at"], "2026-04-27T05:54:32Z"
+        )
+        self.assertEqual(
+            duplicate["primary_fix"]["merge_commit"],
+            "f4043f8c09f0663d8e97d368f7f39f36902dcf09",
+        )
+        self.assertEqual(
+            duplicate["follow_up"]["url"],
+            "https://github.com/rust-lang/rust/pull/155858",
+        )
+        self.assertEqual(
+            duplicate["follow_up"]["title"],
+            "`slice::join`: borrow only once during length calc",
+        )
+        self.assertEqual(duplicate["follow_up"]["state"], "merged")
+        self.assertEqual(duplicate["follow_up"]["milestone"], "1.97.0")
+        self.assertEqual(
+            duplicate["follow_up"]["source_commit"],
+            "b7424bac39776f3fa3a116cae5599b626c204cc5",
+        )
+        self.assertEqual(
+            duplicate["follow_up"]["commit_url"],
+            "https://github.com/rust-lang/rust/commit/b7424bac39776f3fa3a116cae5599b626c204cc5",
+        )
+        self.assertEqual(
+            duplicate["follow_up"]["merged_at"], "2026-04-28T14:55:40Z"
+        )
+        self.assertEqual(
+            duplicate["follow_up"]["merge_commit"],
+            "06fa54768c783f362da1fc4fef809e687f0a5c4c",
+        )
+        self.assertEqual(duplicate["first_fixed_release"], "1.97.0")
+        self.assertEqual(payload["disclosure_status"], "not_authorized")
 
 
 if __name__ == "__main__":
