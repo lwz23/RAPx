@@ -47,23 +47,32 @@ def load_family_populations():
     return active, suppressed_only
 
 
-def parse_audit_rows():
-    lines = AUDIT.read_text().splitlines()
+def parse_audit_rows(text=None):
+    lines = (AUDIT.read_text() if text is None else text).splitlines()
     expected_header = (
         "| family_id | unit | rule | sink | active findings | public roots | "
         "disposition | source evidence / proof status | PoC evidence |"
     )
     if lines.count(expected_header) != 1:
         raise AssertionError("audit must contain the exact nine-column table header")
+    header_index = lines.index(expected_header)
+    expected_separator = "|---|---|---|---|---:|---|---|---|---|"
+    if lines[header_index + 1] != expected_separator:
+        raise AssertionError("audit family table separator is not exact")
 
     rows = {}
-    for line in lines:
-        if not line.startswith("| `") or "family_id" in line:
-            continue
+    for line in lines[header_index + 2 :]:
+        if not line:
+            break
+        if not line.startswith("| "):
+            raise AssertionError(f"audit family table has a non-row line: {line}")
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if len(cells) != 9:
             raise AssertionError(f"audit row must contain exactly 9 cells: {line}")
-        family_id = cells[0].removeprefix("`").removesuffix("`")
+        if not re.fullmatch(r"`[0-9a-f]{64}`", cells[0]):
+            raise AssertionError(f"audit row has malformed family identity: {line}")
+        first_cell = cells[0].removeprefix("`").removesuffix("`")
+        family_id = first_cell
         if family_id in rows:
             raise AssertionError(f"duplicate audit family: {family_id}")
         rows[family_id] = cells
@@ -150,6 +159,18 @@ class ActiveFindingValidationTests(unittest.TestCase):
         for cells in rows.values():
             finding_counts[unquote_code_cell(cells[6])] += int(cells[4])
         self.assertEqual(finding_counts, {"confirmed_ub": 2, "confirmed_safe": 35})
+
+    def test_family_table_rejects_an_extra_malformed_row(self):
+        text = AUDIT.read_text()
+        marker = "\n\n## Task 1 boundary"
+        malformed = (
+            "| `not-a-family-sha` | `core` | `P1.get_unchecked` | `sink` | 0 | "
+            "0: none | `confirmed_safe` | invalid | invalid |"
+        )
+        self.assertIn(marker, text)
+        tampered = text.replace(marker, f"\n{malformed}{marker}", 1)
+        with self.assertRaisesRegex(AssertionError, "malformed family identity"):
+            parse_audit_rows(tampered)
 
     def test_active_families_are_exactly_the_prior_b_review_population(self):
         active, _ = load_family_populations()

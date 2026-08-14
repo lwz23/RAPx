@@ -132,3 +132,35 @@ Family `caabff54...441a` reaches `library/std/src/io/cursor.rs:474`. Let `P` be 
 When `P>L`, `diff=P-L<=C-L=spare_capacity_mut().len()`, proving the unchecked padding range. The fill initializes `L..P` before `set_len(P)`. Single and vectored writes then copy only prefixes whose cumulative lengths are at most `B`, and set the length only after initialization. Allocator normal return is an unsafe-trait contract guaranteeing valid storage; error, panic, or abort does not continue to the sink, and no allocator or user callback runs after the spare slice is acquired.
 
 Across all eight proof groups, the analyzer gaps are reusable guard, return-range, pointer-offset, and capacity summaries. These families must not be converted into stdlib-only hard suppressions; their findings remain useful regression targets for generic analysis improvements even though the pinned safe paths are now classified `confirmed_safe`.
+
+## Task 7 bounded result
+
+### Disposition totals
+
+| disposition | families | active findings | interpretation |
+|---|---:|---:|---|
+| `confirmed_safe` | 22 | 35 | The exact reported obligation is closed for every enumerated safe public root on the pinned source. These are analyzer false positives caused by missing generic summaries or guards. |
+| `confirmed_ub` | 1 | 2 | The `alloc::str::{join, concat}` family is real UB on the pinned historical source. It is fixed in current Rust and is an exact duplicate of merged upstream PRs #155708/#155858. |
+| `likely_safe` | 0 | 0 | No family remains at the preliminary evidence-only disposition. |
+| `poc_required` | 0 | 0 | The sole dynamic candidate was executed only under the acknowledged Miri protocol and is now classified. |
+| `inconclusive` | 0 | 0 | No active family retains an unresolved reachability or contract fact within this bounded scope. |
+
+The counts above classify the 37 active scanner findings; they do not turn that scanner count into a bug count. The wider v5 population must still be reported separately as 876 raw findings, 839 version-bound hard-suppressed findings, and 37 active findings. This post-v5 audit does not reclassify or erase the raw population.
+
+### Bug and disclosure conclusion
+
+RAPx independently selected the historical join/concat sink for dynamic investigation and the safe-only PoC exposed Miri-confirmed UB on the frozen 2024 nightly. The same defect was publicly fixed before this validation reached the current-toolchain step. Current stable 1.97.1 source closes both varying-`Borrow` paths, current-nightly Miri agrees with that repair, and upstream PRs #155708/#155858 are an exact duplicate. Therefore there is no current Rust bug to report from this family, no disclosure draft was created, and no external action was taken.
+
+The defensible research claim is limited to an independent rediscovery on a pinned historical toolchain, provided the project preserves timestamped evidence that the RAPx result predates the duplicate search. It is not a first report, zero-day, current-stable vulnerability, or evidence that every soundness issue is security-exploitable.
+
+### Precision and generalization limits
+
+- This is a one-person development audit with read-only proof cross-checks, not the frozen v4 two-reviewer precision protocol. It has no Cohen's kappa, adjudication, Wilson interval, or formal precision-pass status.
+- The standard-library population was used to guide suppression and validation, so it is development data rather than an unseen holdout. A third-party holdout is required for a broader real-project precision claim.
+- The pilot triggered only P1, P2, and P4. It provides no real-project precision measurement for P3, P5, or P6.
+- RAPx remains crate-local. These results do not establish cross-crate or third-party ecosystem precision.
+- `confirmed_safe` is pinned-source and obligation-specific. It does not certify all behavior of the APIs or future source revisions.
+- A negative Miri run is not a safety proof. Current join/concat closure rests primarily on the source repair; current Miri is supporting evidence. The other 22 families were closed by complete source/contract proofs and did not require dynamic execution.
+- The 35 false-positive findings expose concrete missing analyzer capabilities: clamped-range summaries, returned-index relations, loop-bound recognition, pointer-offset propagation, capacity/reserve contracts, and unwind-aware state updates. They should remain generic-analysis regression targets rather than becoming new stdlib allowlist entries.
+
+Within those boundaries, the active-family validation is complete: there are no unclassified active findings and no currently unfixed standard-library bug candidate awaiting disclosure.
