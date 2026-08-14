@@ -4,12 +4,22 @@ use std::collections::BTreeSet;
 pub(super) const RELATIONAL_REFINEMENT_VERSION: &str = "lightweight-relations-v1";
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(super) enum ProjectionKey {
+    Deref,
+    Downcast(u32),
+    Field(u32),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum RelationTerm {
     Place(PlaceKey),
     Length(PlaceKey),
     Capacity(PlaceKey),
     Constant(u64),
-    ReturnPayload { storage: PlaceKey, field: u32 },
+    Projection {
+        base: PlaceKey,
+        path: Vec<ProjectionKey>,
+    },
     Formal(u32),
     Return,
     Out(u32),
@@ -21,7 +31,7 @@ impl RelationTerm {
             Self::Place(place)
             | Self::Length(place)
             | Self::Capacity(place)
-            | Self::ReturnPayload { storage: place, .. } => Some(place),
+            | Self::Projection { base: place, .. } => Some(place),
             Self::Constant(_) | Self::Formal(_) | Self::Return | Self::Out(_) => None,
         }
     }
@@ -130,8 +140,17 @@ impl RelationFact {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) enum SummaryRelationTerm {
     Formal(u32),
+    FormalProjection {
+        formal: u32,
+        path: Vec<ProjectionKey>,
+    },
     Return,
+    ReturnProjection(Vec<ProjectionKey>),
     Out(u32),
+    OutProjection {
+        formal: u32,
+        path: Vec<ProjectionKey>,
+    },
     LengthFormal(u32),
     CapacityFormal(u32),
     Constant(u64),
@@ -199,7 +218,7 @@ impl RelationalPostcondition {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct ReturnCondition {
     pub(super) discriminant: u128,
-    pub(super) payload_field: u32,
+    pub(super) payload_path: Vec<ProjectionKey>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -282,33 +301,6 @@ impl RelationProof {
     pub(super) fn proves_increment_without_overflow(&self, base: &RelationTerm) -> bool {
         self.relations.iter().any(|relation| {
             matches!(relation, RelationKind::Lt(left, RelationTerm::Length(_)) if left == base)
-        })
-    }
-
-    pub(super) fn mentions_return_payload(&self, storage: &PlaceKey, field: u32) -> bool {
-        let payload = RelationTerm::ReturnPayload {
-            storage: storage.clone(),
-            field,
-        };
-        self.relations.iter().any(|relation| match relation {
-            RelationKind::Eq(left, right)
-            | RelationKind::Le(left, right)
-            | RelationKind::Lt(left, right)
-            | RelationKind::SameObject(left, right) => left == &payload || right == &payload,
-            RelationKind::AddConst { result, base, .. } => result == &payload || base == &payload,
-            RelationKind::Sub {
-                result,
-                upper,
-                lower,
-            } => result == &payload || upper == &payload || lower == &payload,
-            RelationKind::SumEq { total, left, right } => {
-                total == &payload || left == &payload || right == &payload
-            }
-            RelationKind::Within { start, end, .. }
-            | RelationKind::InitializedWithin { start, end, .. } => {
-                start == &payload || end == &payload
-            }
-            RelationKind::CapacityFor { end, .. } => end == &payload,
         })
     }
 

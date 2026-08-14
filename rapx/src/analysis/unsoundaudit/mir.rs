@@ -4,8 +4,8 @@ use super::dataflow::{
 };
 use super::perf_trace::PerfTrace;
 use super::relations::{
-    RelationFact, RelationKind, RelationProof, RelationTerm, RelationalPostcondition,
-    ReturnCondition, SummaryRelationKind, SummaryRelationTerm,
+    ProjectionKey, RelationFact, RelationKind, RelationProof, RelationTerm,
+    RelationalPostcondition, ReturnCondition, SummaryRelationKind, SummaryRelationTerm,
 };
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
@@ -288,6 +288,23 @@ struct ValidationBinding {
     proof_definition: Option<StaticWriteToken>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RangeIndexKind {
+    Full,
+    From,
+    To,
+    Between,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum RelationalObligation {
+    Within {
+        base: PlaceKey,
+        start: RelationTerm,
+        end: RelationTerm,
+    },
+}
+
 impl ValidationBinding {
     fn range(
         subject: PlaceKey,
@@ -324,7 +341,7 @@ enum ProofBinding {
 struct ReturnVariantFact {
     destination: PlaceKey,
     discriminant: u128,
-    payload_field: u32,
+    payload_path: Vec<ProjectionKey>,
 }
 
 impl From<ValidationBinding> for ProofBinding {
@@ -548,14 +565,36 @@ fn instantiate_summary_term(
             .then(|| unique_semantic_value(value))
             .flatten()
     };
+    let actual_projection = |index: u32, path: &[ProjectionKey]| {
+        let base = actual(index)?;
+        let mut path = path.to_vec();
+        let raw = call
+            .args
+            .get(index.checked_sub(1)? as usize)?
+            .place()
+            .map(canonical_storage);
+        if matches!(path.first(), Some(ProjectionKey::Deref))
+            && raw
+                .as_ref()
+                .is_some_and(|raw| *raw != canonical_storage(&base))
+        {
+            path.remove(0);
+        }
+        Some(RelationTerm::Projection { base, path })
+    };
     Some(match term {
         SummaryRelationTerm::Formal(index) => RelationTerm::Place(actual(*index)?),
+        SummaryRelationTerm::FormalProjection { formal, path } => actual_projection(*formal, path)?,
         SummaryRelationTerm::Return => match condition {
-            Some(condition) => RelationTerm::ReturnPayload {
-                storage: canonical_storage(&call.destination),
-                field: condition.payload_field,
+            Some(condition) => RelationTerm::Projection {
+                base: canonical_storage(&call.destination),
+                path: condition.payload_path.clone(),
             },
             None => RelationTerm::Place(call.destination.clone()),
+        },
+        SummaryRelationTerm::ReturnProjection(path) => RelationTerm::Projection {
+            base: canonical_storage(&call.destination),
+            path: path.clone(),
         },
         SummaryRelationTerm::Out(index) => {
             let place = mappings.iter().find_map(|mapping| match mapping {
@@ -566,6 +605,19 @@ fn instantiate_summary_term(
                 _ => None,
             })?;
             RelationTerm::Place(place.clone())
+        }
+        SummaryRelationTerm::OutProjection { formal, path } => {
+            let place = mappings.iter().find_map(|mapping| match mapping {
+                CallMapping::OutToCaller {
+                    formal_index,
+                    caller_place,
+                } if formal_index == formal => Some(caller_place),
+                _ => None,
+            })?;
+            RelationTerm::Projection {
+                base: place.clone(),
+                path: path.clone(),
+            }
         }
         SummaryRelationTerm::LengthFormal(index) => RelationTerm::Length(actual(*index)?),
         SummaryRelationTerm::CapacityFormal(index) => RelationTerm::Capacity(actual(*index)?),
@@ -832,6 +884,8 @@ struct OperandModel {
     field_origin: Option<AbstractOrigin>,
     pure_deref_base: Option<PlaceKey>,
     exact_projection: Option<PlaceKey>,
+    projection_path: Option<Vec<ProjectionKey>>,
+    range_index_kind: Option<RangeIndexKind>,
     projection_unknown: bool,
 }
 
@@ -957,6 +1011,7 @@ struct CallSite {
     point: ProgramPoint,
     destination_is_bool: bool,
     access_width: Option<u64>,
+    index_range_kind: Option<RangeIndexKind>,
 }
 
 #[derive(Clone, Debug)]
@@ -1108,6 +1163,15 @@ impl ValidationSnapshot {
         }
     }
 
+    fn proves_relational(&self, obligation: &RelationalObligation) -> bool {
+        let proof = RelationProof::from_facts(self.current_relations.iter().cloned());
+        match obligation {
+            RelationalObligation::Within { base, start, end } => {
+                proof.proves_within(base, start, end)
+            }
+        }
+    }
+
     fn entry_formal(&self, place: &PlaceKey) -> Option<BoundarySlot> {
         self.entry_formals.get(place).copied()
     }
@@ -1130,6 +1194,7 @@ struct BodyFacts {
     writes: Vec<WriteFact>,
     validation_snapshots: BTreeMap<(BasicBlock, usize), ValidationSnapshot>,
     local_bindings: BTreeMap<ProgramPoint, ValidationBinding>,
+    local_relational_obligations: BTreeMap<ProgramPoint, RelationalObligation>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -1865,6 +1930,7 @@ impl<'tcx> Engine<'tcx> {
             writes: Vec::new(),
             validation_snapshots: BTreeMap::new(),
             local_bindings: BTreeMap::new(),
+            local_relational_obligations: BTreeMap::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
@@ -2133,6 +2199,10 @@ impl<'tcx> Engine<'tcx> {
                     point: operation.semantic_point().clone(),
                     destination_is_bool: call.destination_is_bool,
                     access_width: call.access_width,
+                    index_range_kind: descriptor
+                        .args
+                        .get(1)
+                        .and_then(|operand| operand.range_index_kind),
                 });
                 if let Some(callee) = &descriptor.callee {
                     let mapping = local_call_boundary_mapping(call, state);
@@ -2498,7 +2568,9 @@ impl<'tcx> Engine<'tcx> {
                 })
                 .flatten(),
                 variant: match &**kind {
-                    AggregateKind::Adt(_, variant, ..) => Some(variant.as_u32() as u128),
+                    AggregateKind::Adt(did, variant, ..) if self.tcx.adt_def(*did).is_enum() => {
+                        Some(variant.as_u32() as u128)
+                    }
                     _ => None,
                 },
             },
@@ -2554,6 +2626,8 @@ impl<'tcx> Engine<'tcx> {
                 field_origin: None,
                 pure_deref_base: None,
                 exact_projection: None,
+                projection_path: None,
+                range_index_kind: None,
                 projection_unknown: false,
             },
             |place| self.normalize_place(body, place, point),
@@ -2589,12 +2663,48 @@ impl<'tcx> Engine<'tcx> {
         });
         let exact_projection =
             (!place.projection.is_empty() && !projection_unknown).then_some(exact.clone());
+        let projection_path = (!place.projection.is_empty() && !projection_unknown)
+            .then(|| {
+                place
+                    .projection
+                    .iter()
+                    .map(|element| match element {
+                        ProjectionElem::Deref => Some(ProjectionKey::Deref),
+                        ProjectionElem::Downcast(_, variant) => {
+                            Some(ProjectionKey::Downcast(variant.as_u32()))
+                        }
+                        ProjectionElem::Field(field, _) => {
+                            Some(ProjectionKey::Field(field.as_u32()))
+                        }
+                        _ => None,
+                    })
+                    .collect::<Option<Vec<_>>>()
+            })
+            .flatten();
         OperandModel {
             operand: CallOperand::Place(exact.clone()),
             field_origin,
             pure_deref_base,
             exact_projection,
+            projection_path,
+            range_index_kind: self.range_index_kind(place.ty(&body.local_decls, self.tcx).ty),
             projection_unknown,
+        }
+    }
+
+    fn range_index_kind(&self, ty: ty::Ty<'tcx>) -> Option<RangeIndexKind> {
+        let ty::Adt(definition, _) = ty.kind() else {
+            return None;
+        };
+        if self.tcx.crate_name(definition.did().krate).as_str() != "core" {
+            return None;
+        }
+        match self.tcx.def_path_str(definition.did()).as_str() {
+            "core::ops::range::RangeFull" => Some(RangeIndexKind::Full),
+            "core::ops::range::RangeFrom" => Some(RangeIndexKind::From),
+            "core::ops::range::RangeTo" => Some(RangeIndexKind::To),
+            "core::ops::range::Range" => Some(RangeIndexKind::Between),
+            _ => None,
         }
     }
 
@@ -2830,18 +2940,29 @@ impl<'tcx> Engine<'tcx> {
                     _ => RuleId::P1GetUnchecked,
                 };
                 let seed_id = format!("{}:{}", rule.as_str(), call.point.span.token());
+                let exact_collection = unique_semantic_value(&call.arg_values[0]);
+                if let Some(obligation) = exact_collection
+                    .as_ref()
+                    .and_then(|collection| range_index_obligation(&call, collection))
+                {
+                    facts
+                        .local_relational_obligations
+                        .insert(call.point.clone(), obligation);
+                }
                 let binding = match (&call.args[0], &call.args[1], constant_zero) {
-                    (CallOperand::Place(_), CallOperand::Place(_), false) => {
+                    (CallOperand::Place(_), CallOperand::Place(_), false)
+                        if call.index_range_kind.is_none() =>
+                    {
                         unique_semantic_value(&call.arg_values[1]).and_then(|subject| {
-                            unique_semantic_value(&call.arg_values[0]).map(|collection| {
-                                ValidationBinding {
+                            exact_collection
+                                .clone()
+                                .map(|collection| ValidationBinding {
                                     predicate: Predicate::InBounds,
                                     access_width: None,
                                     proof_definition: None,
                                     subject,
                                     collection: Some(collection),
-                                }
-                            })
+                                })
                         })
                     }
                     (CallOperand::Place(_), _, true) => unique_semantic_value(&call.arg_values[0])
@@ -3193,6 +3314,13 @@ impl<'tcx> Engine<'tcx> {
                 .validation_snapshots
                 .get(&(sink.block, sink.statement_index))
             {
+                if facts
+                    .local_relational_obligations
+                    .get(&requirement.sink.point)
+                    .is_some_and(|obligation| snapshot.proves_relational(obligation))
+                {
+                    return true;
+                }
                 return facts
                     .local_bindings
                     .get(&requirement.sink.point)
@@ -3885,7 +4013,7 @@ fn relation_storage_places(relation: &RelationFact) -> Vec<PlaceKey> {
             RelationTerm::Place(place)
             | RelationTerm::Length(place)
             | RelationTerm::Capacity(place)
-            | RelationTerm::ReturnPayload { storage: place, .. } => Some(place.clone()),
+            | RelationTerm::Projection { base: place, .. } => Some(place.clone()),
             RelationTerm::Formal(index) => Some(PlaceKey::new(format!("_{index}"))),
             RelationTerm::Return => Some(PlaceKey::new("_0")),
             RelationTerm::Out(index) => Some(out_slot(*index)),
@@ -3935,15 +4063,6 @@ fn relation_storage_places(relation: &RelationFact) -> Vec<PlaceKey> {
         }
     }
     places.into_iter().collect()
-}
-
-fn projected_field(place: &PlaceKey) -> Option<u32> {
-    let suffix = place.0.rsplit_once('.')?.1;
-    let digits = suffix
-        .chars()
-        .take_while(|character| character.is_ascii_digit())
-        .collect::<String>();
-    (!digits.is_empty()).then(|| digits.parse().ok()).flatten()
 }
 
 fn state_value(state: &ProgramState, place: &PlaceKey) -> ValueFacts {
@@ -4074,6 +4193,31 @@ fn range_binding_for_pointer(value: &ValueFacts, width: u64) -> Option<Validatio
     ))
 }
 
+fn range_index_obligation(call: &CallSite, collection: &PlaceKey) -> Option<RelationalObligation> {
+    let kind = call.index_range_kind?;
+    let range = call.arg_values.get(1)?;
+    if range.havoced {
+        return None;
+    }
+    let base = unique_semantic_value(range)?;
+    let field = |index| RelationTerm::Projection {
+        base: canonical_storage(&base),
+        path: vec![ProjectionKey::Field(index)],
+    };
+    let length = RelationTerm::Length(collection.clone());
+    let (start, end) = match kind {
+        RangeIndexKind::Full => (RelationTerm::Constant(0), length),
+        RangeIndexKind::From => (field(0), length),
+        RangeIndexKind::To => (RelationTerm::Constant(0), field(0)),
+        RangeIndexKind::Between => (field(0), field(1)),
+    };
+    Some(RelationalObligation::Within {
+        base: collection.clone(),
+        start,
+        end,
+    })
+}
+
 fn current_checked_end(state: &ProgramState, value: &ValueFacts) -> Option<CheckedEndAtom> {
     let mut atoms = value.checked_end_atoms.iter();
     let atom = atoms.next()?;
@@ -4143,7 +4287,20 @@ fn project_summary_term(
             _ => None,
         },
         RelationTerm::Constant(value) => Some(SummaryRelationTerm::Constant(*value)),
-        RelationTerm::ReturnPayload { .. } => None,
+        RelationTerm::Projection { base, path } => match project_place(base)? {
+            SummaryRelationTerm::Formal(formal) => Some(SummaryRelationTerm::FormalProjection {
+                formal,
+                path: path.clone(),
+            }),
+            SummaryRelationTerm::Return => {
+                Some(SummaryRelationTerm::ReturnProjection(path.clone()))
+            }
+            SummaryRelationTerm::Out(formal) => Some(SummaryRelationTerm::OutProjection {
+                formal,
+                path: path.clone(),
+            }),
+            _ => None,
+        },
         RelationTerm::Formal(index) => Some(SummaryRelationTerm::Formal(*index)),
         RelationTerm::Return => Some(SummaryRelationTerm::Return),
         RelationTerm::Out(index) => Some(SummaryRelationTerm::Out(*index)),
@@ -4253,7 +4410,7 @@ fn current_return_condition(state: &ProgramState) -> Option<ReturnCondition> {
             )
             .then(|| ReturnCondition {
                 discriminant: variant.discriminant,
-                payload_field: variant.payload_field,
+                payload_path: variant.payload_path.clone(),
             })
     });
     let variant = variants.next()?;
@@ -4305,14 +4462,13 @@ fn relation_term_for_operand(state: &ProgramState, operand: &OperandModel) -> Op
     if let Some(collection) = current_length_collection(state, &value) {
         return Some(RelationTerm::Length(collection));
     }
-    let place = unique_semantic_value(&value)?;
-    if let Some(field) = projected_field(&place) {
-        let storage = canonical_storage(&place);
-        if current_relation_proof(state).mentions_return_payload(&storage, field) {
-            return Some(RelationTerm::ReturnPayload { storage, field });
-        }
+    if let (Some(path), Some(place)) = (operand.projection_path.as_ref(), operand.operand.place()) {
+        return Some(RelationTerm::Projection {
+            base: canonical_storage(place),
+            path: path.clone(),
+        });
     }
-    Some(RelationTerm::Place(place))
+    Some(RelationTerm::Place(unique_semantic_value(&value)?))
 }
 
 fn normalized_relation_pending(
@@ -4363,7 +4519,7 @@ fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Op
         ValueModel::Operand(operand) | ValueModel::RefOrRaw(operand) => {
             let operand_term = relation_term_for_operand(state, operand)?;
             let result = match &operand_term {
-                RelationTerm::ReturnPayload { .. } => {
+                RelationTerm::Projection { .. } => {
                     RelationTerm::Place(unique_semantic_value(&eval_operand(state, operand))?)
                 }
                 _ => RelationTerm::Place(assignment.destination.clone()),
@@ -4423,35 +4579,55 @@ fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Op
     Some(RelationFact::new(kind))
 }
 
-fn aggregate_return_proofs(
-    state: &ProgramState,
-    assignment: &AssignmentModel,
-) -> Vec<ProofBinding> {
+fn aggregate_proofs(state: &ProgramState, assignment: &AssignmentModel) -> Vec<ProofBinding> {
     let ValueModel::Aggregate {
-        operands,
-        variant: Some(discriminant),
-        ..
+        operands, variant, ..
     } = &assignment.value
     else {
         return Vec::new();
     };
-    if assignment.destination != PlaceKey::new("_0") || operands.len() != 1 {
-        return Vec::new();
-    }
-    let Some(payload) = relation_term_for_operand(state, &operands[0]) else {
-        return Vec::new();
-    };
-    vec![
-        ProofBinding::Relation(RelationFact::new(RelationKind::Eq(
+    let fields = operands
+        .iter()
+        .enumerate()
+        .filter_map(|(field, operand)| {
+            let payload = relation_term_for_operand(state, operand)?;
+            let mut path = Vec::new();
+            if let Some(discriminant) = variant {
+                path.push(ProjectionKey::Downcast(*discriminant as u32));
+            }
+            path.push(ProjectionKey::Field(field as u32));
+            Some((
+                path.clone(),
+                ProofBinding::Relation(RelationFact::new(RelationKind::Eq(
+                    RelationTerm::Projection {
+                        base: canonical_storage(&assignment.destination),
+                        path,
+                    },
+                    payload,
+                ))),
+            ))
+        })
+        .collect::<Vec<_>>();
+    let mut proofs = fields
+        .iter()
+        .map(|(_, proof)| proof.clone())
+        .collect::<Vec<_>>();
+    if assignment.destination == PlaceKey::new("_0") && fields.len() == 1 && variant.is_some() {
+        let (payload_path, _) = &fields[0];
+        proofs.push(ProofBinding::Relation(RelationFact::new(RelationKind::Eq(
             RelationTerm::Return,
-            payload,
-        ))),
-        ProofBinding::ReturnVariant(ReturnVariantFact {
+            RelationTerm::Projection {
+                base: PlaceKey::new("_0"),
+                path: payload_path.clone(),
+            },
+        ))));
+        proofs.push(ProofBinding::ReturnVariant(ReturnVariantFact {
             destination: assignment.destination.clone(),
-            discriminant: *discriminant,
-            payload_field: 0,
-        }),
-    ]
+            discriminant: variant.expect("variant was checked"),
+            payload_path: payload_path.clone(),
+        }));
+    }
+    proofs
 }
 
 fn normalized_compare_pending(
@@ -5107,7 +5283,7 @@ fn apply_program_op(
             };
             let mut value = eval_value_model(state, &assignment.value, token);
             let relation = assignment_relation(state, assignment);
-            let aggregate_proofs = aggregate_return_proofs(state, assignment);
+            let aggregate_proofs = aggregate_proofs(state, assignment);
             let pending = match &assignment.value {
                 ValueModel::Length(_) => current_length_collection(state, &value)
                     .map(|collection| {
@@ -6280,6 +6456,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: false,
         }
     }
@@ -6290,6 +6468,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: false,
         }
     }
@@ -6365,6 +6545,7 @@ mod tests {
             point: point(1, 0),
             destination_is_bool: false,
             access_width: None,
+            index_range_kind: None,
         }
     }
 
@@ -7714,6 +7895,8 @@ mod tests {
             }),
             pure_deref_base: None,
             exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: false,
         };
         let definition = StaticWriteToken::new(0, 0);
@@ -7892,6 +8075,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: Some(place),
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: false,
         };
         let empty = BlockState::empty();
@@ -7941,6 +8126,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: Some(deref.clone()),
+            projection_path: Some(vec![ProjectionKey::Deref]),
+            range_index_kind: None,
             projection_unknown: false,
         };
         assert_eq!(
@@ -7952,6 +8139,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: Some(pointer),
             exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: false,
         };
         assert_eq!(
@@ -7964,6 +8153,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: None,
+            projection_path: None,
+            range_index_kind: None,
             projection_unknown: true,
         };
         assert!(unique_semantic_value(&eval_operand(&pointer_state, &dynamic_index)).is_none());
@@ -9899,6 +10090,177 @@ mod tests {
     }
 
     #[test]
+    fn relational_range_obligation_requires_exact_bounds_collection_and_versions() {
+        let collection = PlaceKey::new("_1");
+        let range = PlaceKey::new("_2");
+        let start = PlaceKey::new("_3");
+        let end = PlaceKey::new("_4");
+        let mut state = ProgramState::empty();
+        for place in [&collection, &range, &start, &end] {
+            seed_exact(&mut state, place);
+        }
+        for relation in [
+            RelationFact::new(RelationKind::Eq(
+                RelationTerm::Projection {
+                    base: range.clone(),
+                    path: vec![ProjectionKey::Field(0)],
+                },
+                RelationTerm::Place(start.clone()),
+            )),
+            RelationFact::new(RelationKind::Eq(
+                RelationTerm::Projection {
+                    base: range.clone(),
+                    path: vec![ProjectionKey::Field(1)],
+                },
+                RelationTerm::Place(end.clone()),
+            )),
+            RelationFact::new(RelationKind::Le(
+                RelationTerm::Place(start),
+                RelationTerm::Place(end.clone()),
+            )),
+            RelationFact::new(RelationKind::Le(
+                RelationTerm::Place(end),
+                RelationTerm::Length(collection.clone()),
+            )),
+        ] {
+            state.establish(BoundValidation::new(
+                ProofBinding::Relation(relation.clone()),
+                relation_storage_places(&relation),
+            ));
+        }
+        let call = CallSite {
+            callee: None,
+            raw_def: None,
+            disposition: BoundaryDisposition::ModeledRegistry,
+            args: vec![
+                CallOperand::Place(collection.clone()),
+                CallOperand::Place(range.clone()),
+            ],
+            arg_values: vec![exact_value(&collection), exact_value(&range)],
+            destination: PlaceKey::new("_0"),
+            point: point(0, 0),
+            destination_is_bool: false,
+            access_width: None,
+            index_range_kind: Some(RangeIndexKind::Between),
+        };
+        let obligation = range_index_obligation(&call, &collection).expect("range obligation");
+        assert!(ValidationSnapshot::capture(&state, 4).proves_relational(&obligation));
+
+        let wrong_collection = PlaceKey::new("_8");
+        seed_exact(&mut state, &wrong_collection);
+        let wrong = range_index_obligation(&call, &wrong_collection).expect("wrong obligation");
+        assert!(!ValidationSnapshot::capture(&state, 8).proves_relational(&wrong));
+
+        state.record_write(range, StaticWriteToken::new(1, 0));
+        assert!(!ValidationSnapshot::capture(&state, 4).proves_relational(&obligation));
+    }
+
+    #[test]
+    fn relational_struct_projection_survives_conditional_return_and_reborrow_mapping() {
+        let formal = PlaceKey::new("_1");
+        let start_place = PlaceKey::new("((*_1).0: usize)");
+        let returned = PlaceKey::new("_0");
+        let start_path = vec![ProjectionKey::Deref, ProjectionKey::Field(0)];
+        let end_path = vec![ProjectionKey::Deref, ProjectionKey::Field(1)];
+        let mut callee = ProgramState::empty();
+        for place in [&formal, &start_place, &returned] {
+            seed_exact(&mut callee, place);
+        }
+        let ordered = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Projection {
+                base: formal.clone(),
+                path: start_path.clone(),
+            },
+            RelationTerm::Projection {
+                base: formal.clone(),
+                path: end_path.clone(),
+            },
+        ));
+        callee.establish(BoundValidation::new(
+            ProofBinding::Relation(ordered.clone()),
+            relation_storage_places(&ordered),
+        ));
+        let start_operand = OperandModel {
+            operand: CallOperand::Place(start_place),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: None,
+            projection_path: Some(start_path),
+            range_index_kind: None,
+            projection_unknown: false,
+        };
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: returned,
+                    value: ValueModel::Aggregate {
+                        operands: vec![start_operand],
+                        range_end: None,
+                        variant: Some(1),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut callee,
+        );
+        let condition = ReturnCondition {
+            discriminant: 1,
+            payload_path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
+        };
+        let expected = RelationalPostcondition::conditional(
+            condition.clone(),
+            SummaryRelationKind::Lt(
+                SummaryRelationTerm::Return,
+                SummaryRelationTerm::FormalProjection {
+                    formal: 1,
+                    path: end_path,
+                },
+            ),
+        );
+        assert!(project_relational_postconditions(&callee, 1).contains(&expected));
+
+        let raw_reborrow = PlaceKey::new("_9");
+        let range_value = PlaceKey::new("_8");
+        let destination = PlaceKey::new("_5");
+        let call = CallSite {
+            callee: Some(FunctionKey::new("crate::next")),
+            raw_def: None,
+            disposition: BoundaryDisposition::ResolvedLocal,
+            args: vec![CallOperand::Place(raw_reborrow)],
+            arg_values: vec![exact_value(&range_value)],
+            destination: destination.clone(),
+            point: point(1, 0),
+            destination_is_bool: false,
+            access_width: None,
+            index_range_kind: None,
+        };
+        let (_, mapped) = instantiate_relational_postconditions(
+            &BTreeSet::from([expected]),
+            &call,
+            &BTreeSet::new(),
+        );
+        assert_eq!(
+            mapped.iter().next().expect("mapped relation").relation,
+            RelationFact::new(RelationKind::Lt(
+                RelationTerm::Projection {
+                    base: destination,
+                    path: condition.payload_path,
+                },
+                RelationTerm::Projection {
+                    base: range_value,
+                    path: vec![ProjectionKey::Field(1)],
+                },
+            )),
+        );
+    }
+
+    #[test]
     fn relational_normal_return_projects_and_instantiates_exact_actuals() {
         let formal = PlaceKey::new("_1");
         let local = PlaceKey::new("_2");
@@ -9941,6 +10303,7 @@ mod tests {
             point: point(2, 0),
             destination_is_bool: false,
             access_width: None,
+            index_range_kind: None,
         };
         let (instantiated, conditional) = instantiate_relational_postconditions(
             &BTreeSet::from([expected.clone()]),
@@ -10007,7 +10370,7 @@ mod tests {
 
         let condition = ReturnCondition {
             discriminant: 1,
-            payload_field: 0,
+            payload_path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
         };
         let postcondition = RelationalPostcondition::conditional(
             condition.clone(),
@@ -10030,6 +10393,7 @@ mod tests {
             point: point(1, 0),
             destination_is_bool: false,
             access_width: None,
+            index_range_kind: None,
         };
         let (unconditional, conditional) = instantiate_relational_postconditions(
             &BTreeSet::from([postcondition]),
@@ -10042,9 +10406,9 @@ mod tests {
         assert_eq!(
             mapped.relation,
             RelationFact::new(RelationKind::Lt(
-                RelationTerm::ReturnPayload {
-                    storage: destination.clone(),
-                    field: 0,
+                RelationTerm::Projection {
+                    base: destination.clone(),
+                    path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
                 },
                 RelationTerm::Length(actual.clone()),
             ))
@@ -10123,6 +10487,8 @@ mod tests {
             field_origin: None,
             pure_deref_base: None,
             exact_projection: Some(payload.clone()),
+            projection_path: Some(vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)]),
+            range_index_kind: None,
             projection_unknown: false,
         };
         let loaded = PlaceKey::new("_7");
