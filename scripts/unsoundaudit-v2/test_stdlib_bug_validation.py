@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import tomllib
@@ -50,7 +51,7 @@ def parse_audit_rows():
     lines = AUDIT.read_text().splitlines()
     expected_header = (
         "| family_id | unit | rule | sink | active findings | public roots | "
-        "disposition | source evidence / proof pending | PoC evidence |"
+        "disposition | source evidence / proof status | PoC evidence |"
     )
     if lines.count(expected_header) != 1:
         raise AssertionError("audit must contain the exact nine-column table header")
@@ -73,6 +74,27 @@ def unquote_code_cell(cell):
     if not cell.startswith("`") or not cell.endswith("`"):
         raise AssertionError(f"expected exact code cell, got: {cell}")
     return cell[1:-1]
+
+
+def stdlib_family_id(unit, finding):
+    key = {
+        "unit": unit,
+        "rule_id": finding["rule_id"],
+        "sink": finding["sink"],
+        "first_contract_failure": finding["first_contract_failure"],
+        "predicates": sorted(set(finding["obligation"]["predicates"])),
+        "subject": finding["obligation"]["subject"],
+        "source_kind": finding["source"]["kind"],
+        "propagation_depth": finding["propagation"]["depth"],
+        "validation_status": finding["validation_status"]["status"],
+    }
+    encoded = json.dumps(
+        key,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 class ActiveFindingValidationTests(unittest.TestCase):
@@ -115,11 +137,19 @@ class ActiveFindingValidationTests(unittest.TestCase):
             expected_disposition = (
                 "confirmed_ub"
                 if family_id == JOIN_CONCAT_FAMILY
-                else "likely_safe"
+                else "confirmed_safe"
             )
             disposition = unquote_code_cell(cells[6])
             self.assertIn(disposition, DISPOSITIONS)
             self.assertEqual(disposition, expected_disposition)
+
+        dispositions = [unquote_code_cell(cells[6]) for cells in rows.values()]
+        self.assertEqual(dispositions.count("confirmed_ub"), 1)
+        self.assertEqual(dispositions.count("confirmed_safe"), 22)
+        finding_counts = {"confirmed_ub": 0, "confirmed_safe": 0}
+        for cells in rows.values():
+            finding_counts[unquote_code_cell(cells[6])] += int(cells[4])
+        self.assertEqual(finding_counts, {"confirmed_ub": 2, "confirmed_safe": 35})
 
     def test_active_families_are_exactly_the_prior_b_review_population(self):
         active, _ = load_family_populations()
@@ -135,6 +165,41 @@ class ActiveFindingValidationTests(unittest.TestCase):
         for review in seen.values():
             self.assertEqual(review["label"], "B")
             self.assertEqual(review["family_disposition"], "generic_repair")
+
+    def test_every_active_finding_id_maps_to_exactly_one_audit_family(self):
+        active_families, _ = load_family_populations()
+        audit_family_ids = set(parse_audit_rows())
+        members = {family_id: [] for family_id in active_families}
+        active_finding_ids = set()
+        suppressed_finding_ids = set()
+
+        for unit in UNITS:
+            normalized = json.loads((V5 / f"{unit}.normalized.json").read_text())
+            for finding in normalized["findings"]:
+                finding_id = finding["finding_id"]
+                self.assertNotIn(finding_id, active_finding_ids)
+                active_finding_ids.add(finding_id)
+                family_id = stdlib_family_id(unit, finding)
+                self.assertIn(family_id, audit_family_ids)
+                self.assertIn(family_id, members)
+                members[family_id].append(finding_id)
+
+            ledger = json.loads(
+                (V5 / f"{unit}.suppression-ledger.json").read_text()
+            )
+            for suppressed in ledger["suppressed_findings"]:
+                finding_id = suppressed["finding"]["finding_id"]
+                self.assertNotIn(finding_id, suppressed_finding_ids)
+                suppressed_finding_ids.add(finding_id)
+
+        self.assertEqual(len(active_finding_ids), 37)
+        self.assertTrue(active_finding_ids.isdisjoint(suppressed_finding_ids))
+        for family_id, finding_ids in members.items():
+            self.assertEqual(
+                len(finding_ids),
+                active_families[family_id][1]["active_finding_count"],
+            )
+            self.assertEqual(len(finding_ids), len(set(finding_ids)))
 
     def test_no_family_is_called_a_bug_without_confirmed_ub(self):
         for line in AUDIT.read_text().splitlines():
