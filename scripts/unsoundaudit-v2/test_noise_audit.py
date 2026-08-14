@@ -380,6 +380,56 @@ class DiagnosticLabelTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "only C type invariants"):
             audit.validate_family_reviews(self.clusters, reviews)
 
+    def test_exact_suppression_spec_contains_only_audited_c_families(self) -> None:
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        allowlist = audit.build_suppression_allowlist(self.clusters, reviews)
+        report = audit.build_audit_report(
+            self.clusters,
+            self.sample,
+            audit.labels_from_family_reviews(self.clusters, self.sample, reviews),
+        )
+        entries = allowlist["entries"]
+        self.assertEqual(len(entries), 54)
+        self.assertEqual(
+            {row["family_id"] for row in entries},
+            set(report["suppression_candidate_family_ids"]),
+        )
+        self.assertEqual(allowlist["rustc_commit"], "1bc403daadbebb553ccc211a0a8eebb73989665f")
+        self.assertEqual(allowlist["entries_sha256"], audit.digest(entries))
+        self.assertTrue(
+            all(
+                set(row)
+                == {
+                    "rustc_commit",
+                    "crate_key",
+                    "rule_id",
+                    "sink_token",
+                    "first_failure_token",
+                    "canonical_obligation",
+                    "source_kind",
+                    "family_id",
+                    "evidence_sha256",
+                    "rationale",
+                }
+                for row in entries
+            )
+        )
+
+    def test_suppression_spec_is_independent_of_review_group_order(self) -> None:
+        reviews = audit.read_json(FAMILY_REVIEWS)
+        reversed_reviews = {
+            **copy.deepcopy(reviews),
+            "reviews": list(reversed(reviews["reviews"])),
+        }
+        self.assertEqual(
+            audit.canonical_bytes(
+                audit.build_suppression_allowlist(self.clusters, reviews)
+            ),
+            audit.canonical_bytes(
+                audit.build_suppression_allowlist(self.clusters, reversed_reviews)
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

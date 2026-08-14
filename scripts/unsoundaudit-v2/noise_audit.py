@@ -21,6 +21,7 @@ AUDIT_SAMPLE_SCHEMA = "unsoundaudit-v2-stdlib-noise-audit-sample-v1"
 LABEL_SCHEMA = "unsoundaudit-v2-stdlib-noise-labels-v1"
 AUDIT_REPORT_SCHEMA = "unsoundaudit-v2-stdlib-noise-audit-report-v1"
 FAMILY_REVIEW_SCHEMA = "unsoundaudit-v2-stdlib-noise-family-reviews-v1"
+SUPPRESSION_ALLOWLIST_SCHEMA = "unsoundaudit-v2-stdlib-suppression-allowlist-v1"
 NORMALIZED_SCHEMA = "unsoundaudit-v2-stdlib-unit-v1"
 SAMPLE_SCHEMA = "unsoundaudit-v2-stdlib-sample-v1"
 NORMALIZED_KEYS = {
@@ -804,6 +805,81 @@ def build_audit_report(
     }
 
 
+def operation_token(operation: dict[str, Any]) -> str:
+    return f"{operation['kind']}@{span_token(operation['span'])}"
+
+
+def build_suppression_allowlist(
+    clusters: dict[str, Any], reviews: dict[str, Any]
+) -> dict[str, Any]:
+    validated = validate_family_reviews(clusters, reviews)
+    families = {row["family_id"]: row for row in clusters["families"]}
+    entries = []
+    for review in validated["reviews"]:
+        if review["family_disposition"] != "stdlib_invariant_suppression":
+            continue
+        family = families[review["family_id"]]
+        key = family["key"]
+        canonical_obligation = (
+            "+".join(key["predicates"]) + ":" + key["subject"]
+        )
+        evidence = {
+            "family_id": review["family_id"],
+            "rustc_commit": validated["rustc_commit"],
+            "rationale": review["rationale"],
+            "evidence_spans": review["evidence_spans"],
+        }
+        entries.append(
+            {
+                "rustc_commit": validated["rustc_commit"],
+                "crate_key": key["unit"],
+                "rule_id": key["rule_id"],
+                "sink_token": operation_token(key["sink"]),
+                "first_failure_token": operation_token(
+                    key["first_contract_failure"]
+                ),
+                "canonical_obligation": canonical_obligation,
+                "source_kind": key["source_kind"],
+                "family_id": review["family_id"],
+                "evidence_sha256": digest(evidence),
+                "rationale": review["rationale"],
+            }
+        )
+    entries.sort(
+        key=lambda row: (
+            row["crate_key"],
+            row["rule_id"],
+            row["sink_token"],
+            row["canonical_obligation"],
+            row["source_kind"],
+            row["family_id"],
+        )
+    )
+    identities = [
+        (
+            row["rustc_commit"],
+            row["crate_key"],
+            row["rule_id"],
+            row["sink_token"],
+            row["first_failure_token"],
+            row["canonical_obligation"],
+            row["source_kind"],
+            row["family_id"],
+        )
+        for row in entries
+    ]
+    if len(identities) != len(set(identities)):
+        fail("suppression allowlist contains a duplicate exact matcher")
+    return {
+        "schema_version": SUPPRESSION_ALLOWLIST_SCHEMA,
+        "clusters_sha256": canonical_sha256(clusters),
+        "family_reviews_sha256": canonical_sha256(validated),
+        "rustc_commit": validated["rustc_commit"],
+        "entries_sha256": digest(entries),
+        "entries": entries,
+    }
+
+
 def atomic_write_new(path: Path, data: bytes) -> None:
     if path.exists():
         fail(f"refusing to overwrite existing audit artifact '{path.name}'")
@@ -842,6 +918,13 @@ def command_review(args: argparse.Namespace) -> None:
     atomic_write_new(args.output_dir / "audit_report.json", canonical_bytes(report))
 
 
+def command_allowlist(args: argparse.Namespace) -> None:
+    clusters = read_json(args.clusters)
+    reviews = read_json(args.family_reviews)
+    allowlist = build_suppression_allowlist(clusters, reviews)
+    atomic_write_new(args.output, canonical_bytes(allowlist))
+
+
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -858,6 +941,13 @@ def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     review.add_argument("--family-reviews", type=Path, required=True)
     review.add_argument("--output-dir", type=Path, required=True)
     review.set_defaults(handler=command_review)
+    allowlist = subcommands.add_parser(
+        "allowlist", help="compile audited C families into an exact suppression spec"
+    )
+    allowlist.add_argument("--clusters", type=Path, required=True)
+    allowlist.add_argument("--family-reviews", type=Path, required=True)
+    allowlist.add_argument("--output", type=Path, required=True)
+    allowlist.set_defaults(handler=command_allowlist)
     return parser.parse_args(argv)
 
 

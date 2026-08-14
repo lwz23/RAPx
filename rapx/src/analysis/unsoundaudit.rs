@@ -1,6 +1,7 @@
 mod dataflow;
 mod mir;
 mod perf_trace;
+mod stdlib_suppressions;
 mod summary;
 
 use crate::utils::unit_output::{
@@ -117,14 +118,6 @@ impl<'tcx> LwzCheck<'tcx> {
         )?
         .to_ascii_lowercase();
 
-        let mut findings = deduplicate_findings(findings);
-        findings.sort_by_key(|finding| finding.causal_key.canonical_json());
-        let mut counts = [0_usize; 6];
-        for finding in &findings {
-            counts[pattern_index(finding.primary)] += 1;
-        }
-        let findings = findings.iter().map(finding_json).collect::<Vec<_>>();
-
         let mut crate_types = env::var("UNSOUND_SCANNER_RAP_CRATE_TYPES")
             .unwrap_or_default()
             .split(',')
@@ -164,8 +157,53 @@ impl<'tcx> LwzCheck<'tcx> {
             rap_compiler_commit,
         };
 
+        let mut findings = deduplicate_findings(findings);
+        findings.sort_by_key(|finding| finding.causal_key.canonical_json());
+        let raw_finding_count = findings.len();
+        let (findings, suppressed) =
+            stdlib_suppressions::partition_findings(findings, &metadata.rap_compiler_commit)?;
+        maybe_write_suppression_ledger(stdlib_suppressions::ledger_json(
+            &metadata.crate_name,
+            &metadata.cargo_supplied_rustc_commit,
+            &metadata.rap_compiler_commit,
+            raw_finding_count,
+            findings.len(),
+            &suppressed,
+        ))?;
+        let mut counts = [0_usize; 6];
+        for finding in &findings {
+            counts[pattern_index(finding.primary)] += 1;
+        }
+        let findings = findings.iter().map(finding_json).collect::<Vec<_>>();
+
         Ok(unit_json(metadata, counts, findings))
     }
+}
+
+fn maybe_write_suppression_ledger(ledger: Value) -> Result<(), String> {
+    let Some(output_path) = env::var_os("UNSOUND_SCANNER_SUPPRESSION_LEDGER_OUT") else {
+        return Ok(());
+    };
+    let output_path = PathBuf::from(output_path);
+    if output_path.exists() {
+        return Err(format!(
+            "refusing to overwrite suppression ledger '{}'",
+            output_path.display()
+        ));
+    }
+    let mut bytes = serde_json::to_vec_pretty(&ledger).map_err(|error| {
+        format!(
+            "failed to serialize suppression ledger '{}': {error}",
+            output_path.display()
+        )
+    })?;
+    bytes.push(b'\n');
+    atomic_write(&output_path, &bytes).map_err(|error| {
+        format!(
+            "failed to atomically write suppression ledger '{}': {error}",
+            output_path.display()
+        )
+    })
 }
 
 fn unit_json(metadata: UnitMetadata, counts: [usize; 6], findings: Vec<Value>) -> Value {

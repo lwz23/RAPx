@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from run_fixture_suite import baseline_toolchain, canonical_existing, verify_environment
-from validate_receipt import ContractError, read_json, validate_receipt
+from validate_receipt import ContractError, read_json, validate_finding, validate_receipt
 
 
 UNITS = ("core", "alloc", "std")
@@ -29,7 +29,14 @@ LEGACY_PROTOCOL_SCHEMA_VERSIONS = (
     "unsoundaudit-v2-stdlib-pilot-protocol-v3",
 )
 PHYSICAL_PROTOCOL_SCHEMA_VERSION = "unsoundaudit-v2-stdlib-pilot-protocol-v4"
-PROTOCOL_SCHEMA_VERSIONS = (*LEGACY_PROTOCOL_SCHEMA_VERSIONS, PHYSICAL_PROTOCOL_SCHEMA_VERSION)
+SUPPRESSION_PROTOCOL_SCHEMA_VERSION = "unsoundaudit-v2-stdlib-pilot-protocol-v5"
+PHYSICAL_PROTOCOL_SCHEMA_VERSIONS = (
+    PHYSICAL_PROTOCOL_SCHEMA_VERSION,
+    SUPPRESSION_PROTOCOL_SCHEMA_VERSION,
+)
+PROTOCOL_SCHEMA_VERSIONS = (*LEGACY_PROTOCOL_SCHEMA_VERSIONS, *PHYSICAL_PROTOCOL_SCHEMA_VERSIONS)
+SUPPRESSION_LEDGER_SCHEMA = "unsoundaudit-v2-stdlib-suppression-ledger-v1"
+FAMILY_REPORT_SCHEMA = "unsoundaudit-v2-stdlib-family-report-v1"
 ANALYZER_PROFILE = "rapx-perf"
 ANALYZER_PROFILE_SIDECAR = "rapx-build-profile.json"
 ANALYZER_PROFILE_CONTRACT = {
@@ -81,8 +88,10 @@ def load_protocol(path: Path) -> dict[str, Any]:
     }
     if not isinstance(value, dict) or value.get("schema_version") not in PROTOCOL_SCHEMA_VERSIONS:
         fail("standard-library pilot protocol schema drifted")
-    if value["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION:
+    if value["schema_version"] in PHYSICAL_PROTOCOL_SCHEMA_VERSIONS:
         required.add("analyzer_profile")
+    if value["schema_version"] == SUPPRESSION_PROTOCOL_SCHEMA_VERSION:
+        required.add("suppression")
     if set(value) != required:
         fail("standard-library pilot protocol keys drifted")
     if value["unit_order"] != list(UNITS) or value["cargo_jobs"] != 1 or value["runs_per_unit"] != 2:
@@ -93,7 +102,7 @@ def load_protocol(path: Path) -> dict[str, Any]:
         fail("standard-library pilot unit set drifted")
     memory_key = (
         "physical_footprint_limit_bytes"
-        if value["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION
+        if value["schema_version"] in PHYSICAL_PROTOCOL_SCHEMA_VERSIONS
         else "rss_limit_bytes"
     )
     if value.get("analyzer_profile") not in (None, ANALYZER_PROFILE):
@@ -106,6 +115,22 @@ def load_protocol(path: Path) -> dict[str, Any]:
             fail("standard-library pilot unit resource contract drifted")
         if not isinstance(row[memory_key], int) or row[memory_key] <= 0:
             fail("standard-library pilot memory limit is invalid")
+    if value["schema_version"] == SUPPRESSION_PROTOCOL_SCHEMA_VERSION:
+        suppression = value["suppression"]
+        if not isinstance(suppression, dict) or set(suppression) != {
+            "ledger_schema_version",
+            "allowlist_entries_sha256",
+            "family_review_claim_scope",
+        }:
+            fail("standard-library pilot suppression contract drifted")
+        if (
+            suppression["ledger_schema_version"] != SUPPRESSION_LEDGER_SCHEMA
+            or not isinstance(suppression["allowlist_entries_sha256"], str)
+            or len(suppression["allowlist_entries_sha256"]) != 64
+            or suppression["family_review_claim_scope"]
+            != "single_reviewer_development_diagnostic_only"
+        ):
+            fail("standard-library pilot suppression identity drifted")
     return value
 
 
@@ -205,7 +230,7 @@ def resource_gate(protocol: dict[str, Any], unit: str) -> tuple[str, int]:
     if protocol["schema_version"] in LEGACY_PROTOCOL_SCHEMA_VERSIONS:
         return "rss", limits["rss_limit_bytes"]
     if (
-        protocol["schema_version"] == PHYSICAL_PROTOCOL_SCHEMA_VERSION
+        protocol["schema_version"] in PHYSICAL_PROTOCOL_SCHEMA_VERSIONS
         and protocol.get("analyzer_profile") == ANALYZER_PROFILE
     ):
         return "physical_footprint", limits["physical_footprint_limit_bytes"]
@@ -578,6 +603,222 @@ def normalized_unit(unit: str, receipt: dict[str, Any], protocol_sha: str, sourc
     }
 
 
+def stable_family_key(unit: str, finding: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "unit": unit,
+        "rule_id": finding["rule_id"],
+        "sink": finding["sink"],
+        "first_contract_failure": finding["first_contract_failure"],
+        "predicates": sorted(set(finding["obligation"]["predicates"])),
+        "subject": finding["obligation"]["subject"],
+        "source_kind": finding["source"]["kind"],
+        "propagation_depth": finding["propagation"]["depth"],
+        "validation_status": finding["validation_status"]["status"],
+    }
+
+
+def stdlib_family_id(unit: str, finding: dict[str, Any]) -> str:
+    encoded = json.dumps(
+        stable_family_key(unit, finding),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def operation_token(operation: dict[str, Any]) -> str:
+    span = operation["span"]
+    return (
+        f"{operation['kind']}@{span['path']}:"
+        f"{span['start']['line']}:{span['start']['column']}-"
+        f"{span['end']['line']}:{span['end']['column']}"
+    )
+
+
+def validate_suppression_ledger(
+    ledger: Any,
+    receipt: dict[str, Any],
+    protocol: dict[str, Any],
+    unit: str,
+) -> dict[str, Any]:
+    keys = {
+        "schema_version",
+        "crate_key",
+        "cargo_supplied_rustc_commit",
+        "rap_compiler_commit",
+        "rustc_commit",
+        "allowlist_entries_sha256",
+        "raw_finding_count",
+        "suppressed_finding_count",
+        "active_finding_count",
+        "suppressed_findings",
+    }
+    if not isinstance(ledger, dict) or set(ledger) != keys:
+        fail("suppression ledger keys drifted")
+    suppression = protocol.get("suppression")
+    if (
+        protocol.get("schema_version") != SUPPRESSION_PROTOCOL_SCHEMA_VERSION
+        or not isinstance(suppression, dict)
+        or ledger["schema_version"] != SUPPRESSION_LEDGER_SCHEMA
+        or ledger["crate_key"] != unit
+        or ledger["allowlist_entries_sha256"]
+        != suppression["allowlist_entries_sha256"]
+        or ledger["active_finding_count"] != receipt["finding_count"]
+        or not isinstance(ledger["suppressed_findings"], list)
+        or ledger["suppressed_finding_count"] != len(ledger["suppressed_findings"])
+        or ledger["raw_finding_count"]
+        != ledger["active_finding_count"] + ledger["suppressed_finding_count"]
+    ):
+        fail("suppression ledger identity or counts drifted")
+    for field in (
+        "cargo_supplied_rustc_commit",
+        "rap_compiler_commit",
+        "rustc_commit",
+    ):
+        if ledger[field] != receipt[field] or ledger[field] != protocol["rustc_commit"]:
+            fail(f"suppression ledger {field} drifted")
+
+    row_keys = {
+        "family_id",
+        "evidence_sha256",
+        "rationale",
+        "allowlist_entry",
+        "finding",
+    }
+    entry_keys = {
+        "rustc_commit",
+        "crate_key",
+        "rule_id",
+        "sink_token",
+        "first_failure_token",
+        "canonical_obligation",
+        "source_kind",
+        "family_id",
+        "evidence_sha256",
+        "rationale",
+    }
+    finding_ids = set()
+    causal_order = []
+    for index, row in enumerate(ledger["suppressed_findings"]):
+        if not isinstance(row, dict) or set(row) != row_keys:
+            fail("suppression ledger row keys drifted")
+        entry = row["allowlist_entry"]
+        finding = row["finding"]
+        if not isinstance(entry, dict) or set(entry) != entry_keys:
+            fail("suppression allowlist entry keys drifted")
+        finding_id, causal = validate_finding(finding, index, unit)
+        if finding_id in finding_ids:
+            fail("suppression ledger contains a duplicate finding")
+        finding_ids.add(finding_id)
+        causal_order.append(causal)
+        family_id = stdlib_family_id(unit, finding)
+        if (
+            row["family_id"] != family_id
+            or entry["family_id"] != family_id
+            or row["evidence_sha256"] != entry["evidence_sha256"]
+            or row["rationale"] != entry["rationale"]
+            or entry["rustc_commit"] != protocol["rustc_commit"]
+            or entry["crate_key"] != unit
+            or entry["rule_id"] != finding["rule_id"]
+            or entry["sink_token"] != operation_token(finding["sink"])
+            or entry["first_failure_token"]
+            != operation_token(finding["first_contract_failure"])
+            or entry["canonical_obligation"]
+            != finding["causal_key"]["canonical_obligation"]
+            or entry["source_kind"] != finding["source"]["kind"]
+            or not isinstance(entry["evidence_sha256"], str)
+            or len(entry["evidence_sha256"]) != 64
+            or not isinstance(entry["rationale"], str)
+            or not entry["rationale"].strip()
+        ):
+            fail("suppression ledger row does not exactly match its finding")
+    if causal_order != sorted(causal_order):
+        fail("suppression ledger findings are not canonically ordered")
+    return ledger
+
+
+def family_report(
+    unit: str,
+    receipt: dict[str, Any],
+    ledger: dict[str, Any],
+    protocol_sha: str,
+) -> dict[str, Any]:
+    grouped: dict[str, dict[str, Any]] = {}
+    rows = [
+        ("active", finding) for finding in receipt["findings"]
+    ] + [
+        ("suppressed", row["finding"])
+        for row in ledger["suppressed_findings"]
+    ]
+    for disposition, finding in rows:
+        identity = stdlib_family_id(unit, finding)
+        family = grouped.setdefault(
+            identity,
+            {
+                "family_id": identity,
+                "key": stable_family_key(unit, finding),
+                "active_finding_ids": [],
+                "suppressed_finding_ids": [],
+                "public_roots": set(),
+                "ranked": [],
+            },
+        )
+        if family["key"] != stable_family_key(unit, finding):
+            fail("family report hash collision")
+        family[f"{disposition}_finding_ids"].append(finding["finding_id"])
+        family["public_roots"].add(finding["public_safe_root"]["def_path"])
+        local_calls = sum(
+            step["kind"] == "local_call"
+            for step in finding["propagation"]["witness"]
+        )
+        family["ranked"].append(
+            (
+                local_calls,
+                finding["finding_id"],
+                {
+                    "finding_id": finding["finding_id"],
+                    "disposition": disposition,
+                    "propagation": finding["propagation"],
+                },
+            )
+        )
+    families = []
+    for identity in sorted(grouped):
+        family = grouped[identity]
+        ranked = sorted(family.pop("ranked"))
+        active = sorted(family.pop("active_finding_ids"))
+        suppressed = sorted(family.pop("suppressed_finding_ids"))
+        roots = sorted(family.pop("public_roots"))
+        families.append(
+            {
+                **family,
+                "active_finding_count": len(active),
+                "suppressed_finding_count": len(suppressed),
+                "raw_finding_count": len(active) + len(suppressed),
+                "public_root_count": len(roots),
+                "public_roots": roots,
+                "representative_shortest": ranked[0][2],
+                "representative_longest": ranked[-1][2],
+                "audit_disposition": (
+                    "stdlib_invariant_suppression"
+                    if suppressed and not active
+                    else "active_retain_or_generic_repair"
+                ),
+            }
+        )
+    return {
+        "schema_version": FAMILY_REPORT_SCHEMA,
+        "unit": unit,
+        "protocol_sha256": protocol_sha,
+        "raw_finding_count": ledger["raw_finding_count"],
+        "active_finding_count": ledger["active_finding_count"],
+        "suppressed_finding_count": ledger["suppressed_finding_count"],
+        "family_count": len(families),
+        "families": families,
+    }
+
+
 def select_unit_receipt(receipt_dir: Path, schema: dict[str, Any], unit: str, rustc_commit: str) -> dict[str, Any]:
     successes = []
     for path in sorted(receipt_dir.glob("*.json")):
@@ -638,8 +879,16 @@ def main() -> int:
         output_created = True
         (output_root / "logs").mkdir()
         (output_root / "receipts").mkdir()
+        suppression_enabled = (
+            protocol["schema_version"] == SUPPRESSION_PROTOCOL_SCHEMA_VERSION
+        )
+        if suppression_enabled:
+            (output_root / "ledgers").mkdir()
         limits = protocol["units"][args.unit]
         semantic_runs: list[bytes] = []
+        ledger_runs: list[bytes] = []
+        family_report_runs: list[bytes] = []
+        protocol_sha = sha256(protocol_path)
         with tempfile.TemporaryDirectory(prefix=f"rapx-stdlib-driver-{args.unit}.") as driver_text:
             driver = Path(driver_text).resolve()
             write_driver(driver, args.unit)
@@ -659,6 +908,10 @@ def main() -> int:
                         environment["UNSOUND_SCANNER_RAP_JSON_DIR"] = str(receipt_dir)
                         environment["UNSOUND_SCANNER_PROJECT_ROOT"] = str(unit_root)
                         environment["UNSOUND_SCANNER_SOURCE_ROOT"] = str(source_root)
+                        if suppression_enabled:
+                            environment["UNSOUND_SCANNER_SUPPRESSION_LEDGER_OUT"] = str(
+                                output_root / "ledgers" / f"run-{run_number}.json"
+                            )
                         command = [str(cargo_rapx), "rapx", "-unsoundaudit", "--", *arguments]
                     result = run_limited(
                         command, driver, environment, output_root / "logs" / f"{phase}-{run_number}.log",
@@ -673,16 +926,53 @@ def main() -> int:
                             receipt = select_unit_receipt(receipt_dir, schema, args.unit, rustc_commit)
                         except (ContractError, OSError) as error:
                             raise PilotFailure("route_failure", str(error)) from error
-                        normalized = canonical_json(normalized_unit(args.unit, receipt, sha256(protocol_path), rust_kloc(unit_root)))
+                        normalized = canonical_json(
+                            normalized_unit(
+                                args.unit, receipt, protocol_sha, rust_kloc(unit_root)
+                            )
+                        )
                         semantic_runs.append(normalized)
+                        if suppression_enabled:
+                            try:
+                                ledger_path = output_root / "ledgers" / f"run-{run_number}.json"
+                                ledger = validate_suppression_ledger(
+                                    read_json(ledger_path), receipt, protocol, args.unit
+                                )
+                                ledger_runs.append(canonical_json(ledger))
+                                family_report_runs.append(
+                                    canonical_json(
+                                        family_report(
+                                            args.unit, receipt, ledger, protocol_sha
+                                        )
+                                    )
+                                )
+                            except (ContractError, OSError, ValueError) as error:
+                                raise PilotFailure("route_failure", str(error)) from error
         if len(semantic_runs) != 2 or semantic_runs[0] != semantic_runs[1]:
             raise PilotFailure("route_failure", "nondeterminism: normalized receipts differ")
         (output_root / f"{args.unit}.normalized.json").write_bytes(semantic_runs[0])
+        if suppression_enabled:
+            if (
+                len(ledger_runs) != 2
+                or ledger_runs[0] != ledger_runs[1]
+                or len(family_report_runs) != 2
+                or family_report_runs[0] != family_report_runs[1]
+            ):
+                raise PilotFailure(
+                    "route_failure",
+                    "nondeterminism: suppression ledgers or family reports differ",
+                )
+            (output_root / f"{args.unit}.suppression-ledger.json").write_bytes(
+                ledger_runs[0]
+            )
+            (output_root / f"{args.unit}.family-report.json").write_bytes(
+                family_report_runs[0]
+            )
         execution = {
             "schema_version": "unsoundaudit-v2-stdlib-execution-v1",
             "unit": args.unit,
             "status": "success",
-            "protocol_sha256": sha256(protocol_path),
+            "protocol_sha256": protocol_sha,
             "executions": executions,
             "raw_logs_committed": False,
         }

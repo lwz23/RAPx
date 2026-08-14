@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import subprocess
@@ -21,6 +22,76 @@ PROTOCOL_V2 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v2.json"
 PROTOCOL_V3 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v3.json"
 PROTOCOL_V4 = REPO_ROOT / "tests/unsoundaudit-v2/stdlib_pilot_protocol_v4.json"
 V3_FAILURE = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/core.v3.failure.json"
+V4_ROOT = REPO_ROOT / "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4"
+SUPPRESSION_ALLOWLIST = V4_ROOT / "noise-audit/suppression_allowlist.json"
+PINNED_RUSTC_COMMIT = "1bc403daadbebb553ccc211a0a8eebb73989665f"
+
+
+def v5_protocol() -> dict[str, object]:
+    value = json.loads(PROTOCOL_V4.read_text(encoding="utf-8"))
+    value["schema_version"] = pilot.SUPPRESSION_PROTOCOL_SCHEMA_VERSION
+    value["rap_source_commit"] = "f" * 40
+    value["sample_seed"] = "unsoundaudit-v2-stdlib-pilot-suppression-v5-test"
+    value["suppression"] = {
+        "ledger_schema_version": pilot.SUPPRESSION_LEDGER_SCHEMA,
+        "allowlist_entries_sha256": "95b5cf503b9942aac2c787053c1f0c6c40b8caa07472965e8059ea8becfacd21",
+        "family_review_claim_scope": "single_reviewer_development_diagnostic_only",
+    }
+    return value
+
+
+def suppression_example() -> tuple[str, dict[str, object], dict[str, object]]:
+    allowlist = json.loads(SUPPRESSION_ALLOWLIST.read_text(encoding="utf-8"))
+    populations = {
+        unit: json.loads((V4_ROOT / f"{unit}.normalized.json").read_text(encoding="utf-8"))
+        for unit in pilot.UNITS
+    }
+    for entry in allowlist["entries"]:
+        unit = entry["crate_key"]
+        for candidate in populations[unit]["findings"]:
+            if pilot.stdlib_family_id(unit, candidate) == entry["family_id"]:
+                return unit, candidate, entry
+    raise AssertionError("frozen allowlist must match a frozen v4 finding")
+
+
+def suppression_receipt(unit: str, active: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "crate_name": unit,
+        "cargo_supplied_rustc_commit": PINNED_RUSTC_COMMIT,
+        "rap_compiler_commit": PINNED_RUSTC_COMMIT,
+        "rustc_commit": PINNED_RUSTC_COMMIT,
+        "finding_count": len(active),
+        "findings": active,
+    }
+
+
+def suppression_ledger(
+    unit: str,
+    finding_value: dict[str, object],
+    entry: dict[str, object],
+    *,
+    active_count: int = 0,
+) -> dict[str, object]:
+    return {
+        "schema_version": pilot.SUPPRESSION_LEDGER_SCHEMA,
+        "crate_key": unit,
+        "cargo_supplied_rustc_commit": PINNED_RUSTC_COMMIT,
+        "rap_compiler_commit": PINNED_RUSTC_COMMIT,
+        "rustc_commit": PINNED_RUSTC_COMMIT,
+        "allowlist_entries_sha256": v5_protocol()["suppression"]["allowlist_entries_sha256"],
+        "raw_finding_count": active_count + 1,
+        "suppressed_finding_count": 1,
+        "active_finding_count": active_count,
+        "suppressed_findings": [
+            {
+                "family_id": entry["family_id"],
+                "evidence_sha256": entry["evidence_sha256"],
+                "rationale": entry["rationale"],
+                "allowlist_entry": copy.deepcopy(entry),
+                "finding": copy.deepcopy(finding_value),
+            }
+        ],
+    }
 
 
 def finding(index: int, rule_id: str, depth: str) -> dict[str, object]:
@@ -128,6 +199,32 @@ class PilotProtocolTests(unittest.TestCase):
             arguments = pilot.cargo_arguments(value, unit)
             self.assertNotIn("--release", arguments)
             self.assertNotIn("--profile", arguments)
+
+    def test_v5_protocol_adds_only_the_closed_suppression_contract(self) -> None:
+        value = v5_protocol()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "v5.json"
+            path.write_bytes(pilot.canonical_json(value))
+            loaded = pilot.load_protocol(path)
+            self.assertEqual(
+                loaded["suppression"],
+                {
+                    "ledger_schema_version": pilot.SUPPRESSION_LEDGER_SCHEMA,
+                    "allowlist_entries_sha256": "95b5cf503b9942aac2c787053c1f0c6c40b8caa07472965e8059ea8becfacd21",
+                    "family_review_claim_scope": "single_reviewer_development_diagnostic_only",
+                },
+            )
+            for mutation in (
+                {"unexpected": True},
+                {"ledger_schema_version": "wrong"},
+                {"allowlist_entries_sha256": "short"},
+                {"family_review_claim_scope": "formal_precision"},
+            ):
+                changed = copy.deepcopy(value)
+                changed["suppression"].update(mutation)
+                path.write_bytes(pilot.canonical_json(changed))
+                with self.assertRaisesRegex(ContractError, "suppression"):
+                    pilot.load_protocol(path)
 
 
 class PilotRunnerTests(unittest.TestCase):
@@ -405,6 +502,153 @@ class PilotRunnerTests(unittest.TestCase):
         encoded = pilot.canonical_json(normalized)
         self.assertNotIn(b"/private", encoded)
         self.assertNotIn(b"elapsed", encoded)
+
+    def test_suppression_ledger_requires_every_exact_identity_field(self) -> None:
+        unit, finding_value, entry = suppression_example()
+        receipt = suppression_receipt(unit, [])
+        ledger = suppression_ledger(unit, finding_value, entry)
+        protocol = v5_protocol()
+        self.assertEqual(
+            pilot.validate_suppression_ledger(ledger, receipt, protocol, unit),
+            ledger,
+        )
+
+        mutations = {
+            "commit": ("rustc_commit", "0" * 40),
+            "crate": ("crate_key", "std" if unit != "std" else "core"),
+            "rule": ("rule_id", "P1.get_unchecked"),
+            "sink_span": ("sink_token", entry["sink_token"] + ":changed"),
+            "failure_span": (
+                "first_failure_token",
+                entry["first_failure_token"] + ":changed",
+            ),
+            "obligation": ("canonical_obligation", "nonnull:wrong"),
+            "source": ("source_kind", "public_parameter"),
+            "family": ("family_id", "0" * 64),
+        }
+        for name, (field, wrong) in mutations.items():
+            with self.subTest(name=name):
+                changed = copy.deepcopy(ledger)
+                changed["suppressed_findings"][0]["allowlist_entry"][field] = wrong
+                if field == "family_id":
+                    changed["suppressed_findings"][0]["family_id"] = wrong
+                with self.assertRaises(ContractError):
+                    pilot.validate_suppression_ledger(
+                        changed, receipt, protocol, unit
+                    )
+
+    def test_suppression_ledger_reconciles_counts_and_rejects_missing_or_duplicates(self) -> None:
+        unit, finding_value, entry = suppression_example()
+        receipt = suppression_receipt(unit, [])
+        protocol = v5_protocol()
+        ledger = suppression_ledger(unit, finding_value, entry)
+
+        for field in (
+            "raw_finding_count",
+            "suppressed_finding_count",
+            "active_finding_count",
+        ):
+            with self.subTest(field=field):
+                changed = copy.deepcopy(ledger)
+                changed[field] += 1
+                with self.assertRaises(ContractError):
+                    pilot.validate_suppression_ledger(
+                        changed, receipt, protocol, unit
+                    )
+
+        duplicate = copy.deepcopy(ledger)
+        duplicate["suppressed_findings"].append(
+            copy.deepcopy(duplicate["suppressed_findings"][0])
+        )
+        duplicate["suppressed_finding_count"] = 2
+        duplicate["raw_finding_count"] = 2
+        with self.assertRaisesRegex(ContractError, "duplicate"):
+            pilot.validate_suppression_ledger(duplicate, receipt, protocol, unit)
+
+        missing = copy.deepcopy(ledger)
+        missing.pop("suppressed_findings")
+        with self.assertRaisesRegex(ContractError, "keys drifted"):
+            pilot.validate_suppression_ledger(missing, receipt, protocol, unit)
+
+    def test_family_report_is_permutation_stable_and_preserves_root_fanout(self) -> None:
+        allowlist = json.loads(SUPPRESSION_ALLOWLIST.read_text(encoding="utf-8"))
+        entries = {row["family_id"]: row for row in allowlist["entries"]}
+        selected: tuple[str, list[dict[str, object]], dict[str, object]] | None = None
+        for unit in pilot.UNITS:
+            population = json.loads(
+                (V4_ROOT / f"{unit}.normalized.json").read_text(encoding="utf-8")
+            )
+            grouped: dict[str, list[dict[str, object]]] = {}
+            for finding_value in population["findings"]:
+                identity = pilot.stdlib_family_id(unit, finding_value)
+                if identity in entries:
+                    grouped.setdefault(identity, []).append(finding_value)
+            for identity, findings in grouped.items():
+                roots = {row["public_safe_root"]["def_path"] for row in findings}
+                ranked = sorted(
+                    findings,
+                    key=lambda row: (
+                        sum(
+                            step["kind"] == "local_call"
+                            for step in row["propagation"]["witness"]
+                        ),
+                        row["finding_id"],
+                    ),
+                )
+                if (
+                    len(roots) >= 2
+                    and sum(
+                        step["kind"] == "local_call"
+                        for step in ranked[0]["propagation"]["witness"]
+                    )
+                    < sum(
+                        step["kind"] == "local_call"
+                        for step in ranked[-1]["propagation"]["witness"]
+                    )
+                ):
+                    selected = (unit, [ranked[0], ranked[-1]], entries[identity])
+                    break
+            if selected is not None:
+                break
+        self.assertIsNotNone(selected, "frozen v4 suppression population has root fanout")
+        unit, findings, entry = selected
+        receipt = suppression_receipt(unit, [copy.deepcopy(findings[0])])
+        ledger = suppression_ledger(
+            unit, findings[1], entry, active_count=receipt["finding_count"]
+        )
+        report = pilot.family_report(unit, receipt, ledger, "a" * 64)
+        self.assertEqual(report["raw_finding_count"], 2)
+        self.assertEqual(report["active_finding_count"], 1)
+        self.assertEqual(report["suppressed_finding_count"], 1)
+        family = report["families"][0]
+        self.assertEqual(family["public_root_count"], 2)
+        self.assertEqual(family["raw_finding_count"], 2)
+        self.assertEqual(
+            family["representative_shortest"]["finding_id"],
+            findings[0]["finding_id"],
+        )
+        self.assertEqual(
+            family["representative_longest"]["finding_id"],
+            findings[1]["finding_id"],
+        )
+        self.assertLess(
+            len(family["representative_shortest"]["propagation"]["witness"]),
+            len(family["representative_longest"]["propagation"]["witness"]),
+        )
+
+        reversed_receipt = suppression_receipt(
+            unit, list(reversed(receipt["findings"]))
+        )
+        reversed_ledger = copy.deepcopy(ledger)
+        reversed_ledger["suppressed_findings"].reverse()
+        self.assertEqual(
+            pilot.canonical_json(report),
+            pilot.canonical_json(
+                pilot.family_report(
+                    unit, reversed_receipt, reversed_ledger, "a" * 64
+                )
+            ),
+        )
 
     def test_nonempty_driver_and_unsupported_unit_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
