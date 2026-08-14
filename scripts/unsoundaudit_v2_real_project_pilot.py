@@ -1050,6 +1050,8 @@ def run_scans(
             canonical_rows.append(row)
             if receipt is not None:
                 canonical_runs.append(receipt)
+            else:
+                break
         if len(canonical_runs) != 2:
             failed_targets += 1
             continue
