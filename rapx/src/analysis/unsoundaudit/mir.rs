@@ -2698,23 +2698,21 @@ impl<'tcx> Engine<'tcx> {
         let ty::Adt(definition, arguments) = ty.kind() else {
             return None;
         };
-        if self.tcx.crate_name(definition.did().krate).as_str() != "core" {
-            return None;
-        }
-        let name = self.tcx.item_name(definition.did());
-        if name.as_str() != "RangeFull"
-            && (arguments.is_empty()
-                || !matches!(arguments.type_at(0).kind(), ty::Uint(ty::UintTy::Usize)))
-        {
-            return None;
-        }
-        match name.as_str() {
-            "RangeFull" => Some(RangeIndexKind::Full),
-            "RangeFrom" => Some(RangeIndexKind::From),
-            "RangeTo" => Some(RangeIndexKind::To),
-            "Range" => Some(RangeIndexKind::Between),
+        let lang_items = self.tcx.lang_items();
+        let kind = match definition.did() {
+            def_id if Some(def_id) == lang_items.range_full_struct() => {
+                return Some(RangeIndexKind::Full)
+            }
+            def_id if Some(def_id) == lang_items.range_from_struct() => RangeIndexKind::From,
+            def_id if Some(def_id) == lang_items.range_to_struct() => RangeIndexKind::To,
+            def_id if Some(def_id) == lang_items.range_struct() => RangeIndexKind::Between,
+            _ => return None,
+        };
+        let element = arguments.iter().find_map(|argument| match argument.unpack() {
+            ty::GenericArgKind::Type(element) => Some(element),
             _ => None,
-        }
+        })?;
+        matches!(element.kind(), ty::Uint(ty::UintTy::Usize)).then_some(kind)
     }
 
     fn normalize_call(
