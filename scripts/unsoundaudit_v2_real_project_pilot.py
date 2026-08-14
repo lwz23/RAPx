@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -473,22 +474,36 @@ def _run_logged(
 ) -> subprocess.CompletedProcess[str]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             argv,
             cwd=cwd,
             env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            timeout=900,
+            start_new_session=True,
         )
-        output = result.stdout
-    except subprocess.TimeoutExpired as error:
-        partial = error.stdout or ""
-        if isinstance(partial, bytes):
-            partial = partial.decode("utf-8", errors="replace")
-        output = partial + "\ncommand timed out after 900 seconds\n"
-        result = subprocess.CompletedProcess(argv, 124, output, None)
+        try:
+            output, _ = process.communicate(timeout=900)
+            result = subprocess.CompletedProcess(argv, process.returncode, output, None)
+        except subprocess.TimeoutExpired as error:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                remaining, _ = process.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                remaining, _ = process.communicate()
+            partial = error.output or ""
+            if isinstance(partial, bytes):
+                partial = partial.decode("utf-8", errors="replace")
+            output = (remaining or partial) + "\ncommand timed out after 900 seconds\n"
+            result = subprocess.CompletedProcess(argv, 124, output, None)
     except OSError as error:
         output = f"command launch failed: {error}\n"
         result = subprocess.CompletedProcess(argv, 127, output, None)
