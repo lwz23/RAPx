@@ -939,6 +939,8 @@ enum RegistryValueModel {
     Empty,
     MaybeUninit(bool),
     Length(OperandModel),
+    SliceIterator(OperandModel),
+    SlicePosition(OperandModel),
     SelectedOpenBehavior {
         token: String,
     },
@@ -2797,6 +2799,10 @@ impl<'tcx> Engine<'tcx> {
                 value = RegistryValueModel::MaybeUninit(true);
             } else if self.is_slice_len(did) && !operands.is_empty() {
                 value = RegistryValueModel::Length(operands[0].clone());
+            } else if self.is_slice_iterator_constructor(did) && !operands.is_empty() {
+                value = RegistryValueModel::SliceIterator(operands[0].clone());
+            } else if self.is_slice_iterator_position(did) && !operands.is_empty() {
+                value = RegistryValueModel::SlicePosition(operands[0].clone());
             } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
                 value = RegistryValueModel::SelectedOpenBehavior {
                     token: format!("trait-return:{}", self.tcx.def_path_str(did)),
@@ -3688,6 +3694,8 @@ impl<'tcx> Engine<'tcx> {
             || self.is_maybe_uninit_constructor(did, "uninit")
             || self.is_maybe_uninit_constructor(did, "new")
             || self.is_slice_len(did)
+            || self.is_slice_iterator_constructor(did)
+            || self.is_slice_iterator_position(did)
             || self.tcx.is_diagnostic_item(sym::assume_init, did)
             || self.tcx.is_diagnostic_item(sym::str_from_utf8, did)
             || self
@@ -3755,6 +3763,38 @@ impl<'tcx> Engine<'tcx> {
 
     fn is_slice_len(&self, did: DefId) -> bool {
         self.tcx.lang_items().slice_len_fn() == Some(did)
+    }
+
+    fn is_slice_iterator_constructor(&self, did: DefId) -> bool {
+        self.tcx
+            .opt_item_name(did)
+            .is_some_and(|name| matches!(name.as_str(), "iter" | "iter_mut"))
+            && self
+                .tcx
+                .impl_of_method(did)
+                .is_some_and(|impl_id| self.tcx.type_of(impl_id).skip_binder().is_slice())
+    }
+
+    fn is_slice_iterator_position(&self, did: DefId) -> bool {
+        if !self
+            .tcx
+            .opt_item_name(did)
+            .is_some_and(|name| matches!(name.as_str(), "position" | "rposition"))
+        {
+            return false;
+        }
+        self.tcx.impl_of_method(did).is_some_and(|impl_id| {
+            let self_ty = self.tcx.type_of(impl_id).skip_binder();
+            let Some(adt) = self_ty.ty_adt_def() else {
+                return false;
+            };
+            self.tcx.crate_name(adt.did().krate).as_str() == "core"
+                && matches!(
+                    self.tcx.item_name(adt.did()).as_str(),
+                    "Iter" | "IterMut"
+                )
+                && self.tcx.def_path_str(adt.did()).starts_with("core::slice::iter::")
+        })
     }
 
     fn is_pointer_is_null(&self, did: DefId) -> bool {
@@ -4266,6 +4306,69 @@ fn current_relation_proof(state: &ProgramState) -> RelationProof {
             )
             .then(|| relation.clone())
     }))
+}
+
+#[derive(Clone, Debug)]
+enum RegistryRelationEffect {
+    Unconditional(RelationFact),
+    Pending {
+        relation: RelationFact,
+        polarity: bool,
+    },
+}
+
+fn current_slice_iterator_base(
+    state: &ProgramState,
+    iterator: &OperandModel,
+) -> Option<PlaceKey> {
+    let iterator = unique_semantic_value(&eval_operand(state, iterator))?;
+    let mut bases = current_relation_proof(state)
+        .facts()
+        .filter_map(|fact| match fact.kind {
+            RelationKind::Eq(RelationTerm::Length(left), RelationTerm::Length(right))
+                if left == iterator && right != iterator =>
+            {
+                Some(right)
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    (bases.len() == 1).then(|| bases.pop_first().expect("one iterator base"))
+}
+
+fn registry_relation_effects(
+    state: &ProgramState,
+    call: &CallModel,
+) -> Vec<RegistryRelationEffect> {
+    match &call.value {
+        RegistryValueModel::SliceIterator(slice) => {
+            let Some(collection) = unique_semantic_value(&eval_operand(state, slice)) else {
+                return Vec::new();
+            };
+            vec![RegistryRelationEffect::Unconditional(RelationFact::new(
+                RelationKind::Eq(
+                    RelationTerm::Length(call.descriptor.destination.clone()),
+                    RelationTerm::Length(collection),
+                ),
+            ))]
+        }
+        RegistryValueModel::SlicePosition(iterator) => {
+            let Some(collection) = current_slice_iterator_base(state, iterator) else {
+                return Vec::new();
+            };
+            vec![RegistryRelationEffect::Pending {
+                relation: RelationFact::new(RelationKind::Lt(
+                    RelationTerm::Projection {
+                        base: call.descriptor.destination.clone(),
+                        path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
+                    },
+                    RelationTerm::Length(collection),
+                )),
+                polarity: true,
+            }]
+        }
+        _ => Vec::new(),
+    }
 }
 
 fn project_summary_term(
@@ -4887,7 +4990,9 @@ fn eval_registry_value(
 ) -> ValueFacts {
     let definition = StaticWriteToken::new(point.block, point.statement);
     match model {
-        RegistryValueModel::Empty => ValueFacts {
+        RegistryValueModel::Empty
+        | RegistryValueModel::SliceIterator(_)
+        | RegistryValueModel::SlicePosition(_) => ValueFacts {
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -5410,6 +5515,7 @@ fn apply_program_edge_with_outputs(
         if *normal_target != Some(target) {
             return;
         }
+        let registry_relation_effects = registry_relation_effects(state, call);
         let mut return_value = eval_registry_value(state, &call.value, point);
         if let Some(PredicateModel::Utf8Result { bytes }) = &call.predicate {
             let bytes_value = eval_operand(state, bytes);
@@ -5451,6 +5557,22 @@ fn apply_program_edge_with_outputs(
                 StaticWriteToken::new(point.block, point.statement),
             );
         }
+        let mut pending = Vec::new();
+        for effect in registry_relation_effects {
+            match effect {
+                RegistryRelationEffect::Unconditional(relation) => {
+                    state.establish(BoundValidation::new(
+                        ProofBinding::Relation(relation.clone()),
+                        relation_storage_places(&relation),
+                    ));
+                }
+                RegistryRelationEffect::Pending { relation, polarity } => pending.push((
+                    ProofBinding::Relation(relation.clone()),
+                    polarity,
+                    relation_storage_places(&relation),
+                )),
+            }
+        }
         if let Some(outputs) = local_outputs.get(point) {
             for relation in &outputs.relations {
                 state.establish(BoundValidation::new(
@@ -5458,25 +5580,21 @@ fn apply_program_edge_with_outputs(
                     relation_storage_places(relation),
                 ));
             }
-            let pending = outputs
-                .conditional_relations
-                .iter()
-                .filter_map(|conditional| {
-                    let polarity = match conditional.condition.discriminant {
-                        0 => false,
-                        1 => true,
-                        _ => return None,
-                    };
-                    Some((
-                        ProofBinding::Relation(conditional.relation.clone()),
-                        polarity,
-                        relation_storage_places(&conditional.relation),
-                    ))
-                })
-                .collect::<Vec<_>>();
-            if !pending.is_empty() {
-                state.set_pending(call.descriptor.destination.clone(), pending);
-            }
+            pending.extend(outputs.conditional_relations.iter().filter_map(|conditional| {
+                let polarity = match conditional.condition.discriminant {
+                    0 => false,
+                    1 => true,
+                    _ => return None,
+                };
+                Some((
+                    ProofBinding::Relation(conditional.relation.clone()),
+                    polarity,
+                    relation_storage_places(&conditional.relation),
+                ))
+            }));
+        }
+        if !pending.is_empty() {
+            state.set_pending(call.descriptor.destination.clone(), pending);
         }
         return;
     }
@@ -10583,6 +10701,123 @@ mod tests {
                 ),
             ),
         ));
+    }
+
+    #[test]
+    fn slice_position_establishes_an_exact_same_slice_bound_only_on_some() {
+        let slice = PlaceKey::new("_1");
+        let iterator = PlaceKey::new("_2");
+        let position = PlaceKey::new("_3");
+        let mut state = ProgramState::empty();
+        seed_exact(&mut state, &slice);
+
+        let iterator_target = BasicBlock::from_usize(1);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(iterator_target),
+                point: point(0, 0),
+                call: CallModel {
+                    descriptor: CallDescriptor {
+                        callee: None,
+                        raw_def: None,
+                        disposition: BoundaryDisposition::ModeledRegistry,
+                        args: vec![place_operand(&slice.0)],
+                        destination: iterator.clone(),
+                    },
+                    value: RegistryValueModel::SliceIterator(place_operand(&slice.0)),
+                    predicate: None,
+                    mutable_actuals: Vec::new(),
+                    ffi_out_actuals: Vec::new(),
+                    destination_is_bool: false,
+                    access_width: None,
+                    legacy_write: false,
+                    destination_out_formal: None,
+                },
+            },
+            iterator_target,
+            &mut state,
+        );
+        assert!(current_relation_proof(&state).proves_le(
+            &RelationTerm::Length(iterator.clone()),
+            &RelationTerm::Length(slice.clone()),
+        ));
+
+        let position_target = BasicBlock::from_usize(2);
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(position_target),
+                point: point(1, 0),
+                call: CallModel {
+                    descriptor: CallDescriptor {
+                        callee: None,
+                        raw_def: None,
+                        disposition: BoundaryDisposition::ModeledRegistry,
+                        args: vec![place_operand(&iterator.0)],
+                        destination: position.clone(),
+                    },
+                    value: RegistryValueModel::SlicePosition(place_operand(&iterator.0)),
+                    predicate: None,
+                    mutable_actuals: Vec::new(),
+                    ffi_out_actuals: Vec::new(),
+                    destination_is_bool: false,
+                    access_width: None,
+                    legacy_write: false,
+                    destination_out_formal: None,
+                },
+            },
+            position_target,
+            &mut state,
+        );
+
+        let discriminant = PlaceKey::new("_4");
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(2, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: discriminant.clone(),
+                    value: ValueModel::Discriminant(place_operand(&position.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            position_target,
+            0,
+            &mut state,
+        );
+        let switch = EdgeTerm::Switch {
+            condition: discriminant,
+            false_target: BasicBlock::from_usize(3),
+            true_target: BasicBlock::from_usize(4),
+        };
+        let mut on_some = state.clone();
+        apply_program_edge(&switch, BasicBlock::from_usize(4), &mut on_some);
+        let mut on_none = state;
+        apply_program_edge(&switch, BasicBlock::from_usize(3), &mut on_none);
+
+        let payload = RelationTerm::Projection {
+            base: position,
+            path: vec![ProjectionKey::Downcast(1), ProjectionKey::Field(0)],
+        };
+        let bound = RelationTerm::Length(slice);
+        assert!(current_relation_proof(&on_some).proves_lt(&payload, &bound));
+        assert!(!current_relation_proof(&on_none).proves_lt(&payload, &bound));
+
+        let mut ambiguous = ProgramState::empty();
+        seed_exact(&mut ambiguous, &iterator);
+        for base in [PlaceKey::new("_7"), PlaceKey::new("_8")] {
+            seed_exact(&mut ambiguous, &base);
+            let relation = RelationFact::new(RelationKind::Eq(
+                RelationTerm::Length(iterator.clone()),
+                RelationTerm::Length(base),
+            ));
+            ambiguous.establish(BoundValidation::new(
+                ProofBinding::Relation(relation.clone()),
+                relation_storage_places(&relation),
+            ));
+        }
+        assert!(current_slice_iterator_base(&ambiguous, &place_operand(&iterator.0)).is_none());
     }
 
     #[test]
