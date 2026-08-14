@@ -904,6 +904,11 @@ enum ValueModel {
         left: OperandModel,
         right: OperandModel,
     },
+    CheckedBinary {
+        op: BinOp,
+        left: OperandModel,
+        right: OperandModel,
+    },
     Aggregate {
         operands: Vec<OperandModel>,
         range_end: Option<PlaceKey>,
@@ -2559,11 +2564,23 @@ impl<'tcx> Engine<'tcx> {
             Rvalue::Discriminant(place) => {
                 ValueModel::Discriminant(self.normalize_place(body, *place, point))
             }
-            Rvalue::BinaryOp(op, operands) => ValueModel::Compare {
-                op: *op,
-                left: self.normalize_operand(body, &operands.0, point),
-                right: self.normalize_operand(body, &operands.1, point),
-            },
+            Rvalue::BinaryOp(op, operands) => {
+                let left = self.normalize_operand(body, &operands.0, point);
+                let right = self.normalize_operand(body, &operands.1, point);
+                if *op == BinOp::AddWithOverflow {
+                    ValueModel::CheckedBinary {
+                        op: BinOp::Add,
+                        left,
+                        right,
+                    }
+                } else {
+                    ValueModel::Compare {
+                        op: *op,
+                        left,
+                        right,
+                    }
+                }
+            }
             Rvalue::Aggregate(kind, operands) => ValueModel::Aggregate {
                 operands: operands
                     .iter()
@@ -3799,9 +3816,16 @@ impl<'tcx> Engine<'tcx> {
         let Some(adt) = receiver.ty_adt_def() else {
             return false;
         };
+        let path = self.tcx.def_path_str(adt.did());
         self.tcx.crate_name(adt.did().krate).as_str() == "core"
             && matches!(self.tcx.item_name(adt.did()).as_str(), "Iter" | "IterMut")
-            && self.tcx.def_path_str(adt.did()).starts_with("core::slice::iter::")
+            && matches!(
+                path.as_str(),
+                "core::slice::iter::Iter"
+                    | "core::slice::iter::IterMut"
+                    | "std::slice::Iter"
+                    | "std::slice::IterMut"
+            )
     }
 
     fn is_pointer_is_null(&self, did: DefId) -> bool {
@@ -4693,6 +4717,34 @@ fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Op
                 lower,
             }
         }
+        ValueModel::CheckedBinary {
+            op: BinOp::Add,
+            left,
+            right,
+        } => {
+            let left = relation_term_for_operand(state, left)?;
+            let right = relation_term_for_operand(state, right)?;
+            let (base, addend) = match (left, right) {
+                (base, RelationTerm::Constant(addend)) | (RelationTerm::Constant(addend), base) => {
+                    (base, addend)
+                }
+                _ => return None,
+            };
+            if addend != 0
+                && !(addend == 1
+                    && current_relation_proof(state).proves_increment_without_overflow(&base))
+            {
+                return None;
+            }
+            RelationKind::AddConst {
+                result: RelationTerm::Projection {
+                    base: assignment.destination.clone(),
+                    path: vec![ProjectionKey::Field(0)],
+                },
+                base,
+                addend,
+            }
+        }
         _ => return None,
     };
     Some(RelationFact::new(kind))
@@ -4941,7 +4993,7 @@ fn eval_value_model(
             result.havoced = false;
             result
         }
-        ValueModel::Compare { left, right, .. } => {
+        ValueModel::Compare { left, right, .. } | ValueModel::CheckedBinary { left, right, .. } => {
             let mut result =
                 join_value_facts([eval_operand(state, left), eval_operand(state, right)]);
             result.value_flow.clear();
@@ -5459,6 +5511,7 @@ fn apply_program_op(
                 }) | ValueModel::Length(_)
                     | ValueModel::Discriminant(_)
                     | ValueModel::Compare { .. }
+                    | ValueModel::CheckedBinary { .. }
                     | ValueModel::Aggregate { .. }
             );
             if defines_fresh_identity {
@@ -10749,6 +10802,24 @@ mod tests {
             &RelationTerm::Length(slice.clone()),
         ));
 
+        let iterator_receiver = PlaceKey::new("_20");
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(1, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: iterator_receiver.clone(),
+                    value: ValueModel::RefOrRaw(place_operand(&iterator.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            iterator_target,
+            0,
+            &mut state,
+        );
+
         let position_target = BasicBlock::from_usize(2);
         apply_program_edge(
             &EdgeTerm::CallNormal {
@@ -10759,10 +10830,10 @@ mod tests {
                         callee: None,
                         raw_def: None,
                         disposition: BoundaryDisposition::ModeledRegistry,
-                        args: vec![place_operand(&iterator.0)],
+                        args: vec![place_operand(&iterator_receiver.0)],
                         destination: position.clone(),
                     },
-                    value: RegistryValueModel::SlicePosition(place_operand(&iterator.0)),
+                    value: RegistryValueModel::SlicePosition(place_operand(&iterator_receiver.0)),
                     predicate: None,
                     mutable_actuals: Vec::new(),
                     ffi_out_actuals: Vec::new(),
@@ -11693,7 +11764,80 @@ mod tests {
         apply_program_op(&add, BasicBlock::from_usize(0), 0, &mut state);
         assert!(current_relation_proof(&state).proves_le(
             &RelationTerm::Place(next),
-            &RelationTerm::Length(collection),
+            &RelationTerm::Length(collection.clone()),
         ));
+
+        let checked = PlaceKey::new("_4");
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 1)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: checked.clone(),
+                    value: ValueModel::CheckedBinary {
+                        op: BinOp::Add,
+                        left: place_operand(&index.0),
+                        right: constant_operand(1),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            1,
+            &mut state,
+        );
+        let checked_value = PlaceKey::new("(_4.0: usize)");
+        let checked_operand = OperandModel {
+            operand: CallOperand::Place(checked_value.clone()),
+            field_origin: None,
+            pure_deref_base: None,
+            exact_projection: Some(checked_value.clone()),
+            projection_path: Some(vec![ProjectionKey::Field(0)]),
+            range_index_kind: None,
+            projection_unknown: false,
+        };
+        let checked_result = PlaceKey::new("_5");
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 2)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: checked_result.clone(),
+                    value: ValueModel::Operand(checked_operand),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            2,
+            &mut state,
+        );
+        assert!(current_relation_proof(&state).proves_le(
+            &RelationTerm::Place(checked_value),
+            &RelationTerm::Length(collection.clone()),
+        ));
+
+        let mut unproved = ProgramState::empty();
+        seed_exact(&mut unproved, &collection);
+        seed_exact(&mut unproved, &index);
+        assert!(assignment_relation(
+            &unproved,
+            &AssignmentModel {
+                destination: PlaceKey::new("_6"),
+                value: ValueModel::CheckedBinary {
+                    op: BinOp::Add,
+                    left: place_operand(&index.0),
+                    right: constant_operand(1),
+                },
+                field_origin: None,
+                raw_read_source: None,
+                legacy_write: false,
+                out_formal: None,
+            },
+        )
+        .is_none());
     }
 }
