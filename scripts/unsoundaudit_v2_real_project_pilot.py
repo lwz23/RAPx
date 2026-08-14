@@ -903,7 +903,6 @@ class RealScanRunner:
         self.shared_cargo_home.mkdir(parents=True, exist_ok=False)
         (self.result_root / "scan-logs").mkdir(parents=True, exist_ok=False)
         (self.result_root / "raw-receipts").mkdir(parents=True, exist_ok=False)
-        (self.result_root / "scan-targets").mkdir(parents=True, exist_ok=False)
 
     def run(
         self, admission: dict[str, Any], profile_name: str, run_number: int
@@ -923,28 +922,27 @@ class RealScanRunner:
 
         run_label = f"{label}-{profile_name}-{run_number}"
         receipt_dir = self.result_root / "raw-receipts" / run_label
-        target_dir = self.result_root / "scan-targets" / run_label
         receipt_dir.mkdir()
-        target_dir.mkdir()
         profile = self.profiles[profile_name]
         argv = _scan_argv(profile, admission)
-        environment = dict(os.environ)
-        environment.update(
-            {
-                "CARGO_HOME": str(self.shared_cargo_home),
-                "CARGO_TARGET_DIR": str(target_dir),
-                "CARGO_BUILD_JOBS": "1",
-                "UNSOUND_SCANNER_RAP_JSON_DIR": str(receipt_dir),
-                "UNSOUND_SCANNER_PROJECT_ROOT": str(repository),
-            }
-        )
-        started = time.monotonic()
-        result = _run_logged(
-            argv,
-            repository,
-            self.result_root / "scan-logs" / f"{run_label}.log",
-            environment,
-        )
+        with tempfile.TemporaryDirectory(prefix=f"rapx-scan-target-{run_label}-") as target_name:
+            environment = dict(os.environ)
+            environment.update(
+                {
+                    "CARGO_HOME": str(self.shared_cargo_home),
+                    "CARGO_TARGET_DIR": target_name,
+                    "CARGO_BUILD_JOBS": "1",
+                    "UNSOUND_SCANNER_RAP_JSON_DIR": str(receipt_dir),
+                    "UNSOUND_SCANNER_PROJECT_ROOT": str(repository),
+                }
+            )
+            started = time.monotonic()
+            result = _run_logged(
+                argv,
+                repository,
+                self.result_root / "scan-logs" / f"{run_label}.log",
+                environment,
+            )
         elapsed_ms = int((time.monotonic() - started) * 1000)
         row: dict[str, Any] = {
             "schema": "rapx-real-project-scan-attempt-v1",
