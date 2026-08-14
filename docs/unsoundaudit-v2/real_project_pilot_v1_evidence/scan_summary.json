@@ -1,0 +1,13 @@
+{
+  "deterministic_targets": 6,
+  "failed_or_nondeterministic_targets": 2,
+  "findings_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "incomplete_admission": true,
+  "profile_stable_finding_count": 0,
+  "profile_stable_nonzero_targets": 0,
+  "profile_unstable_nonzero_targets": 0,
+  "scans_sha256": "37e900bb525775301fe50f38d4f5a16edceaa5859083f3d7e131327f37f090ac",
+  "schema": "rapx-real-project-scan-summary-v1",
+  "selected_targets": 8,
+  "unique_root_cause_count": 0
+}

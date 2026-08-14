@@ -217,6 +217,48 @@ class RealProjectPilotTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "hash differs"):
             PILOT.verify_scans(root)
 
+    def test_zero_scan_reconciliation_records_cancelled_second_run(self) -> None:
+        root = Path(tempfile.mkdtemp(prefix="rapx-zero-scan-reconciliation-"))
+        rows = [
+            {
+                "repository": "owner/project",
+                "profile": "rapx-perf",
+                "run_number": 1,
+                "exit_code": 124,
+                "status": "analyzer_failed",
+            },
+            {
+                "repository": "owner/project",
+                "profile": "rapx-perf",
+                "run_number": 2,
+                "exit_code": -15,
+                "status": "analyzer_failed",
+            },
+        ]
+        (root / "scans.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        (root / "findings.jsonl").write_text("", encoding="utf-8")
+        (root / "scan_summary.json").write_text(
+            json.dumps(
+                {
+                    "schema": "rapx-real-project-scan-summary-v1",
+                    "selected_targets": 1,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        summary = PILOT.reconcile_zero_scan_determinism(root)
+        reconciled = [
+            json.loads(line) for line in (root / "scans.jsonl").read_text().splitlines()
+        ]
+        self.assertEqual(0, summary["deterministic_targets"])
+        self.assertEqual(1, summary["failed_or_nondeterministic_targets"])
+        self.assertEqual("analyzer_failed", reconciled[0]["status"])
+        self.assertEqual("cancelled_after_first_failure", reconciled[1]["status"])
+        self.assertIn("900-second", reconciled[1]["cancellation_reason"])
+
     def test_sanitized_runtime_rows_remove_absolute_paths(self) -> None:
         runtime = Path("/private/tmp/pilot-run")
         admission = {

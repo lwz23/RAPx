@@ -1,0 +1,19 @@
+{
+  "binaries_or_caches_committed": false,
+  "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+  "evidence_files": {
+    "admissions.jsonl": "6a9e1b281284ff9350ee04facb11454dba4c029f9ecd2536b925f990f6530bb9",
+    "findings.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "human_review.md": "6ba2b10a711f74ff1b9f7aa0577f9f8c92a2782bdbb559a22d3488d8c722bc69",
+    "review_ledger.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scan_summary.json": "03750b720ba3d6e8e8090b4cb65dde5da8d806b523434d7491dd5dae85ff4fe2",
+    "scans.jsonl": "37e900bb525775301fe50f38d4f5a16edceaa5859083f3d7e131327f37f090ac",
+    "summary.md": "1096023b70ccda285e385402267f9a2093e5a6b425c5ba088af061d8adb84aa6"
+  },
+  "profile_contract_sha256": "65d90a47369f6be4d5fd97ef9099e640063b3ad7aa81a1c1c4057c4da255c3fa",
+  "rap_source_commit": "75ded1f25f3d5a1d81d899c2fe070e34d1f5f8ad",
+  "raw_logs_committed": false,
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "schema": "rapx-real-project-pilot-receipt-manifest-v1",
+  "selection_manifest_sha256": "844bfbfe4246a91d6df6e7556aaab573762fad1c800aab6f76f6e30834139fff"
+}

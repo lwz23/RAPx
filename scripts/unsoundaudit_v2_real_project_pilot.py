@@ -1187,6 +1187,16 @@ def reconcile_zero_scan_determinism(result_root: Path) -> dict[str, Any]:
     for repository, group in sorted(groups.items()):
         if any(row.get("profile") != "rapx-perf" for row in group):
             raise ValueError("zero-scan reconciliation refuses diagnostic profile rows")
+        ordered_group = sorted(group, key=lambda value: value["run_number"])
+        if (
+            len(ordered_group) == 2
+            and ordered_group[0].get("exit_code") == 124
+            and ordered_group[1].get("exit_code") == -signal.SIGTERM
+        ):
+            ordered_group[1]["status"] = "cancelled_after_first_failure"
+            ordered_group[1]["cancellation_reason"] = (
+                "first canonical run had already reached the 900-second fail-closed gate"
+            )
         success = [row for row in group if row.get("status") == "success"]
         if len(success) != 2:
             failed += 1
@@ -1324,6 +1334,13 @@ def export_review(result_root: Path) -> dict[str, Any]:
     admissions = _read_jsonl(admissions_path) if admissions_path.is_file() else []
     admitted = sum(row.get("status") == "admitted" for row in admissions)
     control_failures = sum(row.get("status") == "control_failed" for row in admissions)
+    admission_failures = sum(
+        row.get("status") not in {"admitted", "reserve_exhausted"}
+        for row in admissions
+    )
+    reserve_exhausted = any(
+        row.get("status") == "reserve_exhausted" for row in admissions
+    )
     disposition_counts = {name: 0 for name in sorted(REVIEW_DISPOSITIONS)}
     for row in review_rows:
         disposition_counts[row["disposition"]] += 1
@@ -1332,8 +1349,11 @@ def export_review(result_root: Path) -> dict[str, Any]:
         "",
         "本结果只描述静态候选生成与人工审计状态，不构成真实缺陷率或生态覆盖结论。",
         "",
-        f"- 预定目标：{scan_summary['selected_targets']}",
+        f"- 预注册目标：{5 * len(STRATA)}",
         f"- 已准入目标：{admitted}",
+        f"- 准入失败尝试：{admission_failures}",
+        f"- reserve exhausted：{'是' if reserve_exhausted else '否'}",
+        f"- 本轮扫描目标：{scan_summary['selected_targets']}",
         f"- control failure：{control_failures}",
         f"- analyzer/nondeterminism failure：{scan_summary['failed_or_nondeterministic_targets']}",
         f"- canonical 双跑确定性目标：{scan_summary['deterministic_targets']}",
