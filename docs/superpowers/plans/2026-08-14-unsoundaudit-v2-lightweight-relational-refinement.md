@@ -160,7 +160,6 @@ pub(super) enum RelationKind {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(super) struct RelationFact {
     pub kind: RelationKind,
-    pub definition: StaticWriteToken,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]

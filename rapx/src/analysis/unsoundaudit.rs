@@ -1,6 +1,7 @@
 mod dataflow;
 mod mir;
 mod perf_trace;
+mod relations;
 mod stdlib_suppressions;
 mod summary;
 

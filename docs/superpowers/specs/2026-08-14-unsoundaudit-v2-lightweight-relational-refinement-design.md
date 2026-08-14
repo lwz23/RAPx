@@ -78,7 +78,7 @@ The first implementation supports only relations needed by the audited proof gro
 - `CapacityFor { base, end }`, meaning `end <= Capacity(base)`;
 - `SameObject(left, right)` for exact collection/pointer identity.
 
-Facts contain only static terms and definition points, so the lattice is finite. `ProofBinding::Relation` facts intersect at CFG joins using the existing must lattice. An unsupported operand, opaque mutation, mixed object identity, unknown projection, or mismatched version prevents proof.
+Facts contain only terms drawn from finite MIR places, constants and boundary slots, so the lattice is finite. A relation's semantic identity intentionally excludes its evidence location, allowing the same relation established at distinct predecessor points to survive must intersection. `BoundValidation` separately seals the reaching-definition versions. `ProofBinding::Relation` facts intersect at CFG joins using the existing must lattice. An unsupported operand, opaque mutation, mixed object identity, unknown projection, or mismatched version prevents proof.
 
 ### Arithmetic closure
 
