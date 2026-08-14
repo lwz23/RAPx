@@ -1,0 +1,768 @@
+{
+  "finding_count": 5,
+  "findings": [
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:core::ops::ControlFlow::Continue::0",
+        "crate": "std",
+        "first_contract_failure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "public_root": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "sink_or_exposure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "source_origin": "internal_derived:private-field:core::ops::ControlFlow::Continue::0@library/std/src/io/cursor.rs:446:22-451:8"
+      },
+      "finding_id": "563beab0751b0fe50cb7f47750ecb8cc53ba29fee2336821829109323d5de31b",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:core::ops::ControlFlow::Continue::0"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "io::cursor::reserve_and_pad",
+          "io::cursor::vec_write"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 591
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 5,
+                "line": 591
+              }
+            }
+          },
+          {
+            "function": "io::cursor::vec_write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 50,
+                "line": 592
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 9,
+                "line": 592
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 507
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 19,
+                "line": 507
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 474
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 13,
+                "line": 474
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "span": {
+          "end": {
+            "column": 57,
+            "line": 591
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 5,
+            "line": 591
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:core::ops::ControlFlow::Continue::0",
+        "span": {
+          "end": {
+            "column": 8,
+            "line": 451
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 22,
+            "line": 446
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:core::ops::ControlFlow::Continue::0",
+        "crate": "std",
+        "first_contract_failure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "public_root": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+        "sink_or_exposure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "source_origin": "internal_derived:private-field:core::ops::ControlFlow::Continue::0@library/std/src/io/cursor.rs:446:22-451:8"
+      },
+      "finding_id": "0de2017c005f721a3b353c27e221f1015dab3be74120e9a719c6f7cce0bde2cd",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:core::ops::ControlFlow::Continue::0"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "io::cursor::reserve_and_pad",
+          "io::cursor::vec_write_vectored"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 76,
+                "line": 595
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 5,
+                "line": 595
+              }
+            }
+          },
+          {
+            "function": "io::cursor::vec_write_vectored",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 60,
+                "line": 596
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 9,
+                "line": 596
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 544
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 19,
+                "line": 544
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 474
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 13,
+                "line": 474
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+        "span": {
+          "end": {
+            "column": 76,
+            "line": 595
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 5,
+            "line": 595
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:core::ops::ControlFlow::Continue::0",
+        "span": {
+          "end": {
+            "column": 8,
+            "line": 451
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 22,
+            "line": 446
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:core::ops::ControlFlow::Continue::0",
+        "crate": "std",
+        "first_contract_failure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "public_root": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "sink_or_exposure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "source_origin": "internal_derived:private-field:core::ops::ControlFlow::Continue::0@library/std/src/io/cursor.rs:446:22-451:8"
+      },
+      "finding_id": "2d9ea2886eecac206f3aaa8df7316d1e5e95d9e8f18cbd0e3342462e6f48f60a",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:core::ops::ControlFlow::Continue::0"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "io::cursor::reserve_and_pad",
+          "io::cursor::vec_write"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 615
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 5,
+                "line": 615
+              }
+            }
+          },
+          {
+            "function": "io::cursor::vec_write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 55,
+                "line": 616
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 9,
+                "line": 616
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 507
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 19,
+                "line": 507
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 474
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 13,
+                "line": 474
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "span": {
+          "end": {
+            "column": 57,
+            "line": 615
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 5,
+            "line": 615
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:core::ops::ControlFlow::Continue::0",
+        "span": {
+          "end": {
+            "column": 8,
+            "line": 451
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 22,
+            "line": 446
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:core::ops::ControlFlow::Continue::0",
+        "crate": "std",
+        "first_contract_failure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "public_root": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+        "sink_or_exposure": "get_unchecked@library/std/src/io/cursor.rs:474:13-474:44",
+        "source_origin": "internal_derived:private-field:core::ops::ControlFlow::Continue::0@library/std/src/io/cursor.rs:446:22-451:8"
+      },
+      "finding_id": "33c96658355c7e4130c5b90e7107e4e2bef46e5bfbe336b007511230698e497f",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:core::ops::ControlFlow::Continue::0"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "io::cursor::reserve_and_pad",
+          "io::cursor::vec_write_vectored"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 76,
+                "line": 619
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 5,
+                "line": 619
+              }
+            }
+          },
+          {
+            "function": "io::cursor::vec_write_vectored",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 65,
+                "line": 620
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 9,
+                "line": 620
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 544
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 19,
+                "line": 544
+              }
+            }
+          },
+          {
+            "function": "io::cursor::reserve_and_pad",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 44,
+                "line": 474
+              },
+              "path": "library/std/src/io/cursor.rs",
+              "start": {
+                "column": 13,
+                "line": 474
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+        "span": {
+          "end": {
+            "column": 76,
+            "line": 619
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 5,
+            "line": 619
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 44,
+            "line": 474
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 13,
+            "line": 474
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:core::ops::ControlFlow::Continue::0",
+        "span": {
+          "end": {
+            "column": 8,
+            "line": 451
+          },
+          "path": "library/std/src/io/cursor.rs",
+          "start": {
+            "column": 22,
+            "line": 446
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:core::ops::Range::end",
+        "crate": "std",
+        "first_contract_failure": "get_unchecked@library/std/src/ffi/os_str.rs:1052:30-1052:69",
+        "public_root": "ffi::os_str::OsStr::slice_encoded_bytes",
+        "sink_or_exposure": "get_unchecked@library/std/src/ffi/os_str.rs:1052:30-1052:69",
+        "source_origin": "internal_derived:private-field:core::ops::Range::end@library/std/src/ffi/os_str.rs:1042:28-1042:31"
+      },
+      "finding_id": "01ab62eaa36c5061ba4f4f10e3bbad644b4b617058f8cad8638d8234a37d9384",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 69,
+            "line": 1052
+          },
+          "path": "library/std/src/ffi/os_str.rs",
+          "start": {
+            "column": 30,
+            "line": 1052
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:core::ops::Range::end"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 85,
+                "line": 1040
+              },
+              "path": "library/std/src/ffi/os_str.rs",
+              "start": {
+                "column": 5,
+                "line": 1040
+              }
+            }
+          },
+          {
+            "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 69,
+                "line": 1052
+              },
+              "path": "library/std/src/ffi/os_str.rs",
+              "start": {
+                "column": 30,
+                "line": 1052
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "ffi::os_str::OsStr::slice_encoded_bytes",
+        "span": {
+          "end": {
+            "column": 85,
+            "line": 1040
+          },
+          "path": "library/std/src/ffi/os_str.rs",
+          "start": {
+            "column": 5,
+            "line": 1040
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 69,
+            "line": 1052
+          },
+          "path": "library/std/src/ffi/os_str.rs",
+          "start": {
+            "column": 30,
+            "line": 1052
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:core::ops::Range::end",
+        "span": {
+          "end": {
+            "column": 31,
+            "line": 1042
+          },
+          "path": "library/std/src/ffi/os_str.rs",
+          "start": {
+            "column": 28,
+            "line": 1042
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    }
+  ],
+  "pattern_counts": {
+    "pattern1": 0,
+    "pattern2": 0,
+    "pattern3": 0,
+    "pattern4": 5,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "protocol_sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92",
+  "schema_version": "unsoundaudit-v2-stdlib-unit-v1",
+  "source_census": {
+    "rust_file_count": 611,
+    "rust_kloc": 156.899,
+    "rust_line_count": 156899
+  },
+  "toolchain": {
+    "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "unit": "std"
+}

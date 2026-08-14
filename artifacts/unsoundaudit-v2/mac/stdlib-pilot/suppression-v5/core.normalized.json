@@ -1,0 +1,3288 @@
+{
+  "finding_count": 22,
+  "findings": [
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "public_root": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/array/iter.rs:281:5-281:69"
+      },
+      "finding_id": "53dfe141f902876b466b5220b3147b372c97dbc81c3f48ea97ba9d0b1dae6468",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 69,
+                "line": 281
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 281
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 289
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 289
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+        "span": {
+          "end": {
+            "column": 69,
+            "line": 281
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 281
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 69,
+            "line": 281
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 281
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "public_root": "<char::ToLowercase as iter::traits::iterator::Iterator>::advance_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/char/mod.rs:480:1-488:2"
+      },
+      "finding_id": "3a3f3b3669ed8234380bf6bcd336e4c0d9eb1f0c97b2116ba5d81a63ae5066ac",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+          "<char::CaseMappingIter as iter::traits::iterator::Iterator>::advance_by"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<char::ToLowercase as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 488
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 480
+              }
+            }
+          },
+          {
+            "function": "<char::CaseMappingIter as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 488
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 480
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 29,
+                "line": 547
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 547
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 289
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 289
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<char::ToLowercase as iter::traits::iterator::Iterator>::advance_by",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 488
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 480
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 488
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 480
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "public_root": "<char::ToUppercase as iter::traits::iterator::Iterator>::advance_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:289:25-289:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/char/mod.rs:490:1-498:2"
+      },
+      "finding_id": "74eff0d978057057961f25e02f618cc5ef5c613148b0f09b51ee309c45ef7830",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+          "<char::CaseMappingIter as iter::traits::iterator::Iterator>::advance_by"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<char::ToUppercase as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 498
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 490
+              }
+            }
+          },
+          {
+            "function": "<char::CaseMappingIter as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 498
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 490
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 29,
+                "line": 547
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 547
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::iterator::Iterator>::advance_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 289
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 289
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<char::ToUppercase as iter::traits::iterator::Iterator>::advance_by",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 498
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 490
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 289
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 289
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 498
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 490
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "public_root": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/array/iter.rs:336:5-336:74"
+      },
+      "finding_id": "fb686a8aee3376d9b663f26c3af148f90e252d0bb3316eb65494e12dba0abc08",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 74,
+                "line": 336
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 336
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 344
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 344
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "span": {
+          "end": {
+            "column": 74,
+            "line": 336
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 336
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 74,
+            "line": 336
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 336
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "public_root": "<char::ToLowercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/char/mod.rs:480:1-488:2"
+      },
+      "finding_id": "c1699e62c422929dc2474a4698fae7b9b00cd43f3d13d9b7b3912af80dbb939c",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+          "<char::CaseMappingIter as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<char::ToLowercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 488
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 480
+              }
+            }
+          },
+          {
+            "function": "<char::CaseMappingIter as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 488
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 480
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 34,
+                "line": 569
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 569
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 344
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 344
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<char::ToLowercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 488
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 480
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 488
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 480
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:arg:2",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "public_root": "<char::ToUppercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "sink_or_exposure": "get_unchecked@library/core/src/array/iter.rs:344:25-344:67",
+        "source_origin": "public_parameter:arg:2@library/core/src/char/mod.rs:490:1-498:2"
+      },
+      "finding_id": "f53615a86814236216264eb55d6b6220c1f318212395fa436766caf457926aa4",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+          "<char::CaseMappingIter as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<char::ToUppercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 498
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 490
+              }
+            }
+          },
+          {
+            "function": "<char::CaseMappingIter as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 2,
+                "line": 498
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 1,
+                "line": 490
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 34,
+                "line": 569
+              },
+              "path": "library/core/src/char/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 569
+              }
+            }
+          },
+          {
+            "function": "<array::iter::IntoIter<T, N> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 67,
+                "line": 344
+              },
+              "path": "library/core/src/array/iter.rs",
+              "start": {
+                "column": 25,
+                "line": 344
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<char::ToUppercase as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 498
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 490
+          }
+        }
+      },
+      "rule_id": "P1.get_unchecked",
+      "secondary_source_kinds": [
+        "internal_derived"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 67,
+            "line": 344
+          },
+          "path": "library/core/src/array/iter.rs",
+          "start": {
+            "column": 25,
+            "line": 344
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 2,
+            "line": 498
+          },
+          "path": "library/core/src/char/mod.rs",
+          "start": {
+            "column": 1,
+            "line": 490
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:470:31-470:58",
+        "public_root": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:470:31-470:58",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:466:18-466:21"
+      },
+      "finding_id": "ff3ab1860b75c824057bcd4317dffdafc462595ef6365e074b8b1adcba8a2df3",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 470
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 993
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 993
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 26,
+                "line": 994
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 9,
+                "line": 994
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 58,
+                "line": 470
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 31,
+                "line": 470
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "span": {
+          "end": {
+            "column": 47,
+            "line": 993
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 993
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 470
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 466
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 466
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:470:31-470:58",
+        "public_root": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:470:31-470:58",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:466:18-466:21"
+      },
+      "finding_id": "051bd63a3c77824557eb15823e0e9297623012d4c4d8657e86cc63038abf6f7d",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 470
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 459
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 459
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 58,
+                "line": 470
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 31,
+                "line": 470
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "span": {
+          "end": {
+            "column": 42,
+            "line": 459
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 459
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 470
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 466
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 466
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:470:60-470:91",
+        "public_root": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:470:60-470:91",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:466:18-466:21"
+      },
+      "finding_id": "520f63debc3da9a4fcf77b74877331597c08a3bb0127447c22daf696f635072f",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 470
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 993
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 993
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 26,
+                "line": 994
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 9,
+                "line": 994
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 91,
+                "line": 470
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 60,
+                "line": 470
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::RSplit<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "span": {
+          "end": {
+            "column": 47,
+            "line": 993
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 993
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 470
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 466
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 466
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:470:60-470:91",
+        "public_root": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:470:60-470:91",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:466:18-466:21"
+      },
+      "finding_id": "fb9b792d8f6911a7e1ccfa7929eb9988139e149b6f626e02420317cde51ce61d",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 470
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 459
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 459
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 91,
+                "line": 470
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 60,
+                "line": 470
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "span": {
+          "end": {
+            "column": 42,
+            "line": 459
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 459
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 470
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 470
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 466
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 466
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:507:31-507:58",
+        "public_root": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:507:31-507:58",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:503:18-503:21"
+      },
+      "finding_id": "1b07c55bc8afb814c50c65bab5d770797cf1b13004b9b1fd4d352884a748c1aa",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 507
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 977
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 977
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 31,
+                "line": 978
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 9,
+                "line": 978
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 58,
+                "line": 507
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 31,
+                "line": 507
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "span": {
+          "end": {
+            "column": 42,
+            "line": 977
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 977
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 507
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 503
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:507:31-507:58",
+        "public_root": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:507:31-507:58",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:503:18-503:21"
+      },
+      "finding_id": "05386c100e500f6a3b55e3fe64ee1d4318dcf4f7aa8f19e4c4c0d9a6042de846",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 507
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 496
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 496
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 58,
+                "line": 507
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 31,
+                "line": 507
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "span": {
+          "end": {
+            "column": 47,
+            "line": 496
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 496
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 58,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 31,
+            "line": 507
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 503
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:507:60-507:91",
+        "public_root": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:507:60-507:91",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:503:18-503:21"
+      },
+      "finding_id": "8a6101c3218933bebeaed56eaf5ca4c0110e4aa11f52736680760f1571bd180b",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 507
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 42,
+                "line": 977
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 977
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 31,
+                "line": 978
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 9,
+                "line": 978
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 91,
+                "line": 507
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 60,
+                "line": 507
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "span": {
+          "end": {
+            "column": 42,
+            "line": 977
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 977
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 507
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 503
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/iter.rs:507:60-507:91",
+        "public_root": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/iter.rs:507:60-507:91",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/iter.rs:503:18-503:21"
+      },
+      "finding_id": "5a6e124729602cc6d4aa85815ca7fa0d9a4ad76b18e38f0f04819d39d241d534",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 507
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [],
+        "depth": "intra_procedural",
+        "local_call_count": 0,
+        "witness": [
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 47,
+                "line": 496
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 5,
+                "line": 496
+              }
+            }
+          },
+          {
+            "function": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 91,
+                "line": 507
+              },
+              "path": "library/core/src/slice/iter.rs",
+              "start": {
+                "column": 60,
+                "line": 507
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "span": {
+          "end": {
+            "column": 47,
+            "line": 496
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 5,
+            "line": 496
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 91,
+            "line": 507
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 60,
+            "line": 507
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 21,
+            "line": 503
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/mod.rs:4504:28-4504:52",
+        "public_root": "slice::<impl [T]>::get_many_mut",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/mod.rs:4504:28-4504:52",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/mod.rs:4503:17-4503:18"
+      },
+      "finding_id": "fe644e936774a2227a8189d49d0d7a2a8917fb716d84bec24ce94db4cfddda19",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 52,
+            "line": 4504
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 28,
+            "line": 4504
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "slice::<impl [T]>::get_many_unchecked_mut"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "slice::<impl [T]>::get_many_mut",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 49,
+                "line": 4533
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 5,
+                "line": 4530
+              }
+            }
+          },
+          {
+            "function": "slice::<impl [T]>::get_many_unchecked_mut",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 4539
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 21,
+                "line": 4539
+              }
+            }
+          },
+          {
+            "function": "slice::<impl [T]>::get_many_unchecked_mut",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 52,
+                "line": 4504
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 28,
+                "line": 4504
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "slice::<impl [T]>::get_many_mut",
+        "span": {
+          "end": {
+            "column": 49,
+            "line": 4533
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 4530
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [
+        "public_parameter"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 52,
+            "line": 4504
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 28,
+            "line": 4504
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 18,
+            "line": 4503
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 17,
+            "line": 4503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:field:option::Option::Some::0",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/slice/mod.rs:4505:18-4505:49",
+        "public_root": "slice::<impl [T]>::get_many_mut",
+        "sink_or_exposure": "get_unchecked@library/core/src/slice/mod.rs:4505:18-4505:49",
+        "source_origin": "literal_public_field:field:option::Option::Some::0@library/core/src/slice/mod.rs:4503:17-4503:18"
+      },
+      "finding_id": "ad154fb01c793c64b484e51720520b2a85115c8ce6bddfccb3dbb9acaedd9ee3",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 49,
+            "line": 4505
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 4505
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "field:option::Option::Some::0"
+      },
+      "primary_pattern": "pattern2",
+      "propagation": {
+        "boundaries": [
+          "slice::<impl [T]>::get_many_unchecked_mut"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 1,
+        "witness": [
+          {
+            "function": "slice::<impl [T]>::get_many_mut",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 49,
+                "line": 4533
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 5,
+                "line": 4530
+              }
+            }
+          },
+          {
+            "function": "slice::<impl [T]>::get_many_unchecked_mut",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 57,
+                "line": 4539
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 21,
+                "line": 4539
+              }
+            }
+          },
+          {
+            "function": "slice::<impl [T]>::get_many_unchecked_mut",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 49,
+                "line": 4505
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 18,
+                "line": 4505
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "slice::<impl [T]>::get_many_mut",
+        "span": {
+          "end": {
+            "column": 49,
+            "line": 4533
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 4530
+          }
+        }
+      },
+      "rule_id": "P2.get_unchecked",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 49,
+            "line": 4505
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 4505
+          }
+        }
+      },
+      "source": {
+        "kind": "literal_public_field",
+        "origin_key": "field:option::Option::Some::0",
+        "span": {
+          "end": {
+            "column": 18,
+            "line": 4503
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 17,
+            "line": 4503
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:hash::sip::Hasher::ntail",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "public_root": "<hash::sip::SipHasher as hash::Hasher>::write",
+        "sink_or_exposure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "source_origin": "internal_derived:private-field:hash::sip::Hasher::ntail@library/core/src/hash/sip.rs:266:26-266:36"
+      },
+      "finding_id": "03fe881b26b683f15daf2c5209b4601c1ba904845db2f83c9addfebfb1eae2bf",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:hash::sip::Hasher::ntail"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "<hash::sip::Hasher<S> as hash::Hasher>::write",
+          "hash::sip::u8to64_le"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<hash::sip::SipHasher as hash::Hasher>::write",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 36,
+                "line": 217
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 5,
+                "line": 217
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 33,
+                "line": 218
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 218
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 301
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 30,
+                "line": 301
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 55,
+                "line": 137
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 27,
+                "line": 137
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<hash::sip::SipHasher as hash::Hasher>::write",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 217
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 5,
+            "line": 217
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [
+        "public_parameter"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:hash::sip::Hasher::ntail",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 266
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 26,
+            "line": 266
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:hash::sip::Hasher::ntail",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "public_root": "<hash::sip::SipHasher as hash::Hasher>::write_str",
+        "sink_or_exposure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "source_origin": "internal_derived:private-field:hash::sip::Hasher::ntail@library/core/src/hash/sip.rs:266:26-266:36"
+      },
+      "finding_id": "82752560fe55d1f29c337c772d9817867ef83aa21096c38e412f5dd5fe5279bb",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:hash::sip::Hasher::ntail"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "<hash::sip::Hasher<S> as hash::Hasher>::write",
+          "<hash::sip::Hasher<S> as hash::Hasher>::write_str",
+          "hash::sip::u8to64_le"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 3,
+        "witness": [
+          {
+            "function": "<hash::sip::SipHasher as hash::Hasher>::write_str",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 222
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 5,
+                "line": 222
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write_str",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 35,
+                "line": 223
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 223
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 33,
+                "line": 309
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 309
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 301
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 30,
+                "line": 301
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 55,
+                "line": 137
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 27,
+                "line": 137
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<hash::sip::SipHasher as hash::Hasher>::write_str",
+        "span": {
+          "end": {
+            "column": 37,
+            "line": 222
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 5,
+            "line": 222
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:hash::sip::Hasher::ntail",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 266
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 26,
+            "line": 266
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:hash::sip::Hasher::ntail",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "public_root": "<hash::sip::SipHasher13 as hash::Hasher>::write",
+        "sink_or_exposure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "source_origin": "internal_derived:private-field:hash::sip::Hasher::ntail@library/core/src/hash/sip.rs:266:26-266:36"
+      },
+      "finding_id": "6b5ee325b279f8c977fe844ac7ac269b1f34444b78248d4f229466d71c08c3af",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:hash::sip::Hasher::ntail"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "<hash::sip::Hasher<S> as hash::Hasher>::write",
+          "hash::sip::u8to64_le"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 2,
+        "witness": [
+          {
+            "function": "<hash::sip::SipHasher13 as hash::Hasher>::write",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 36,
+                "line": 235
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 5,
+                "line": 235
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 31,
+                "line": 236
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 236
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 301
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 30,
+                "line": 301
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 55,
+                "line": 137
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 27,
+                "line": 137
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<hash::sip::SipHasher13 as hash::Hasher>::write",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 235
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 5,
+            "line": 235
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [
+        "public_parameter"
+      ],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:hash::sip::Hasher::ntail",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 266
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 26,
+            "line": 266
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "in_bounds:private-field:hash::sip::Hasher::ntail",
+        "crate": "core",
+        "first_contract_failure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "public_root": "<hash::sip::SipHasher13 as hash::Hasher>::write_str",
+        "sink_or_exposure": "get_unchecked@library/core/src/hash/sip.rs:137:27-137:55",
+        "source_origin": "internal_derived:private-field:hash::sip::Hasher::ntail@library/core/src/hash/sip.rs:266:26-266:36"
+      },
+      "finding_id": "8a2deefa3294123c99f57eef851569d0d5f3cd4237e5c59192ef76914f145c75",
+      "first_contract_failure": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "in_bounds"
+        ],
+        "subject": "private-field:hash::sip::Hasher::ntail"
+      },
+      "primary_pattern": "pattern4",
+      "propagation": {
+        "boundaries": [
+          "<hash::sip::Hasher<S> as hash::Hasher>::write",
+          "<hash::sip::Hasher<S> as hash::Hasher>::write_str",
+          "hash::sip::u8to64_le"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 3,
+        "witness": [
+          {
+            "function": "<hash::sip::SipHasher13 as hash::Hasher>::write_str",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 240
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 5,
+                "line": 240
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write_str",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 33,
+                "line": 241
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 241
+              }
+            }
+          },
+          {
+            "function": "<hash::sip::Hasher<S> as hash::Hasher>::write",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 33,
+                "line": 309
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 9,
+                "line": 309
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 301
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 30,
+                "line": 301
+              }
+            }
+          },
+          {
+            "function": "hash::sip::u8to64_le",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 55,
+                "line": 137
+              },
+              "path": "library/core/src/hash/sip.rs",
+              "start": {
+                "column": 27,
+                "line": 137
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "<hash::sip::SipHasher13 as hash::Hasher>::write_str",
+        "span": {
+          "end": {
+            "column": 37,
+            "line": 240
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 5,
+            "line": 240
+          }
+        }
+      },
+      "rule_id": "P4.bounds",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "get_unchecked",
+        "span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        }
+      },
+      "source": {
+        "kind": "internal_derived",
+        "origin_key": "private-field:hash::sip::Hasher::ntail",
+        "span": {
+          "end": {
+            "column": 36,
+            "line": 266
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 26,
+            "line": 266
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "valid_for_read:arg:2",
+        "crate": "core",
+        "first_contract_failure": "raw_read@library/core/src/ptr/mod.rs:1434:9-1434:46",
+        "public_root": "slice::<impl [T]>::rotate_left",
+        "sink_or_exposure": "raw_read@library/core/src/ptr/mod.rs:1434:9-1434:46",
+        "source_origin": "public_parameter:arg:2@library/core/src/slice/mod.rs:3456:5-3456:46"
+      },
+      "finding_id": "0b605ce62040c82f7b00402c35f642fbb9899ffbe487837609ece247eb9ae0c3",
+      "first_contract_failure": {
+        "kind": "raw_read",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 1434
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 9,
+            "line": 1434
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "valid_for_read"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "mem::replace",
+          "ptr::mut_ptr::<impl *mut T>::replace",
+          "ptr::read",
+          "ptr::replace",
+          "slice::rotate::ptr_rotate"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 5,
+        "witness": [
+          {
+            "function": "slice::<impl [T]>::rotate_left",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 3456
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 5,
+                "line": 3456
+              }
+            }
+          },
+          {
+            "function": "slice::rotate::ptr_rotate",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 51,
+                "line": 3464
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 13,
+                "line": 3464
+              }
+            }
+          },
+          {
+            "function": "ptr::mut_ptr::<impl *mut T>::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 111
+              },
+              "path": "library/core/src/slice/rotate.rs",
+              "start": {
+                "column": 32,
+                "line": 111
+              }
+            }
+          },
+          {
+            "function": "ptr::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 36,
+                "line": 1536
+              },
+              "path": "library/core/src/ptr/mut_ptr.rs",
+              "start": {
+                "column": 18,
+                "line": 1536
+              }
+            }
+          },
+          {
+            "function": "mem::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 1282
+              },
+              "path": "library/core/src/ptr/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 1282
+              }
+            }
+          },
+          {
+            "function": "ptr::read",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 871
+              },
+              "path": "library/core/src/mem/mod.rs",
+              "start": {
+                "column": 22,
+                "line": 871
+              }
+            }
+          },
+          {
+            "function": "ptr::read",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 1434
+              },
+              "path": "library/core/src/ptr/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 1434
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "slice::<impl [T]>::rotate_left",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 3456
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 3456
+          }
+        }
+      },
+      "rule_id": "P1.raw_read",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "raw_read",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 1434
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 9,
+            "line": 1434
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 3456
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 3456
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    },
+    {
+      "causal_key": {
+        "canonical_obligation": "valid_for_read:arg:2",
+        "crate": "core",
+        "first_contract_failure": "raw_read@library/core/src/ptr/mod.rs:1434:9-1434:46",
+        "public_root": "slice::<impl [T]>::rotate_right",
+        "sink_or_exposure": "raw_read@library/core/src/ptr/mod.rs:1434:9-1434:46",
+        "source_origin": "public_parameter:arg:2@library/core/src/slice/mod.rs:3501:5-3501:45"
+      },
+      "finding_id": "131c7e8c8be48fd0a06db08e960560ead498c481d2dca272746586db347ccf4f",
+      "first_contract_failure": {
+        "kind": "raw_read",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 1434
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 9,
+            "line": 1434
+          }
+        }
+      },
+      "heuristic_candidate_generator": true,
+      "limitations": [
+        "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported"
+      ],
+      "obligation": {
+        "predicates": [
+          "valid_for_read"
+        ],
+        "subject": "arg:2"
+      },
+      "primary_pattern": "pattern1",
+      "propagation": {
+        "boundaries": [
+          "mem::replace",
+          "ptr::mut_ptr::<impl *mut T>::replace",
+          "ptr::read",
+          "ptr::replace",
+          "slice::rotate::ptr_rotate"
+        ],
+        "depth": "inter_procedural",
+        "local_call_count": 5,
+        "witness": [
+          {
+            "function": "slice::<impl [T]>::rotate_right",
+            "kind": "entry",
+            "span": {
+              "end": {
+                "column": 45,
+                "line": 3501
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 5,
+                "line": 3501
+              }
+            }
+          },
+          {
+            "function": "slice::rotate::ptr_rotate",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 51,
+                "line": 3509
+              },
+              "path": "library/core/src/slice/mod.rs",
+              "start": {
+                "column": 13,
+                "line": 3509
+              }
+            }
+          },
+          {
+            "function": "ptr::mut_ptr::<impl *mut T>::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 53,
+                "line": 111
+              },
+              "path": "library/core/src/slice/rotate.rs",
+              "start": {
+                "column": 32,
+                "line": 111
+              }
+            }
+          },
+          {
+            "function": "ptr::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 36,
+                "line": 1536
+              },
+              "path": "library/core/src/ptr/mut_ptr.rs",
+              "start": {
+                "column": 18,
+                "line": 1536
+              }
+            }
+          },
+          {
+            "function": "mem::replace",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 1282
+              },
+              "path": "library/core/src/ptr/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 1282
+              }
+            }
+          },
+          {
+            "function": "ptr::read",
+            "kind": "local_call",
+            "span": {
+              "end": {
+                "column": 37,
+                "line": 871
+              },
+              "path": "library/core/src/mem/mod.rs",
+              "start": {
+                "column": 22,
+                "line": 871
+              }
+            }
+          },
+          {
+            "function": "ptr::read",
+            "kind": "sink",
+            "span": {
+              "end": {
+                "column": 46,
+                "line": 1434
+              },
+              "path": "library/core/src/ptr/mod.rs",
+              "start": {
+                "column": 9,
+                "line": 1434
+              }
+            }
+          }
+        ]
+      },
+      "public_safe_root": {
+        "def_path": "slice::<impl [T]>::rotate_right",
+        "span": {
+          "end": {
+            "column": 45,
+            "line": 3501
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 3501
+          }
+        }
+      },
+      "rule_id": "P1.raw_read",
+      "secondary_source_kinds": [],
+      "sink": {
+        "kind": "raw_read",
+        "span": {
+          "end": {
+            "column": 46,
+            "line": 1434
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 9,
+            "line": 1434
+          }
+        }
+      },
+      "source": {
+        "kind": "public_parameter",
+        "origin_key": "arg:2",
+        "span": {
+          "end": {
+            "column": 45,
+            "line": 3501
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 3501
+          }
+        }
+      },
+      "validation_status": {
+        "facts": [],
+        "status": "missing"
+      }
+    }
+  ],
+  "pattern_counts": {
+    "pattern1": 8,
+    "pattern2": 10,
+    "pattern3": 0,
+    "pattern4": 4,
+    "pattern5": 0,
+    "pattern6": 0
+  },
+  "protocol_sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92",
+  "schema_version": "unsoundaudit-v2-stdlib-unit-v1",
+  "source_census": {
+    "rust_file_count": 400,
+    "rust_kloc": 169.027,
+    "rust_line_count": 169027
+  },
+  "toolchain": {
+    "cargo_supplied_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "rap_compiler_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f"
+  },
+  "unit": "core"
+}

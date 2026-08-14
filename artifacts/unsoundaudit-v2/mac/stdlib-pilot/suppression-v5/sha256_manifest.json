@@ -1,0 +1,147 @@
+{
+  "schema_version": "unsoundaudit-v2-stdlib-suppression-v5-sha256-manifest-v1",
+  "algorithm": "sha256",
+  "status": "performance_determinism_and_adjusted_usability_pass_single_reviewer_precision_only",
+  "tested_source_commit": "470b650897d77fa60b3ff4afa07b905dd2d52f14",
+  "tested_source_tree": "939d9372e61b81ed2fbb8de0758e4fb5b3445938",
+  "protocol_commit": "e31e879752e442fa5960dfdf2dc2c28cf22dc626",
+  "branch": "feature/unsoundaudit-v2-p1-p6",
+  "entries": [
+    {
+      "path": "tests/unsoundaudit-v2/stdlib_pilot_protocol_v5.json",
+      "role": "formal_suppression_protocol",
+      "size": 2686,
+      "sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92"
+    },
+    {
+      "path": "tests/unsoundaudit-v2/rap-unit-v2.schema.json",
+      "role": "unchanged_closed_receipt_schema",
+      "size": 16822,
+      "sha256": "7fa374f7ddff0799fec22cb098b0525d2ca87cab5d623a304b6ebd45b166418c"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/clusters.json",
+      "role": "v4_immutable_family_population",
+      "size": 175926,
+      "sha256": "bef9fd7f524d89652a8146465d84d646dfaedc3e1039758b8348401ffe340dc6"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/audit_sample.json",
+      "role": "single_reviewer_diagnostic_sample",
+      "size": 716115,
+      "sha256": "310552febc457b493ea82b367746933fe7a05d21b163d9eac5a268f1b16378c9"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/family_reviews.json",
+      "role": "single_reviewer_family_evidence",
+      "size": 16948,
+      "sha256": "0751762ddd5d247e4068e0d7bab2da2c759d25d5fc17eedbc3cc94afbc9b2861"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/labels.json",
+      "role": "single_reviewer_diagnostic_labels",
+      "size": 331719,
+      "sha256": "8353447052d8fb2303f106de4905af5423d641c1bc8602f5433f9be160227a31"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/audit_report.json",
+      "role": "single_reviewer_diagnostic_report",
+      "size": 32156,
+      "sha256": "cb9322c8ae80ddb6efece122f19d762620389a9164d0298ddb5421ff6626b85b"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/performance-v4/noise-audit/suppression_allowlist.json",
+      "role": "exact_audited_c_family_allowlist",
+      "size": 47956,
+      "sha256": "52e48dd883494e087cba57a37d339dc10e6cab72c047fe42dcb165d333d984ec"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/core.execution.json",
+      "role": "core_resource_execution",
+      "size": 1528,
+      "sha256": "3c2cdb6fe6fbcf9bb5ab6f240beb6791b2e806b99048208e8725a939847cca82"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/core.normalized.json",
+      "role": "core_active_population",
+      "size": 94328,
+      "sha256": "191469eca25bc98eefd925345be03d5035912f4ea1c61eb8f89d8e1a9d13f7f6"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/core.suppression-ledger.json",
+      "role": "core_complete_suppression_ledger",
+      "size": 1614689,
+      "sha256": "b9232388432ce61a1cccee32dc42a80a419e1c77cc4869f8df0e4b1f4e56eac6"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/core.family-report.json",
+      "role": "core_deterministic_family_report",
+      "size": 229577,
+      "sha256": "a5b21114d4478ae808b546461084b94b229d8957a8cb7ad43d6cb745eb1b749d"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/alloc.execution.json",
+      "role": "alloc_resource_execution",
+      "size": 1524,
+      "sha256": "e709e7f0a5557cb2bc440a3f25b0d9b5944db1640b01515659d521a6918c42ae"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/alloc.normalized.json",
+      "role": "alloc_active_population",
+      "size": 40471,
+      "sha256": "621252dc38835f27b3d3680a532fbf7047867c6604b1f02ae310d1bdc0c7499f"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/alloc.suppression-ledger.json",
+      "role": "alloc_complete_suppression_ledger",
+      "size": 4232453,
+      "sha256": "cf24044384f307e2131cc1feb993d910349b404a613560bd87d8ef4cf2bc5ce5"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/alloc.family-report.json",
+      "role": "alloc_deterministic_family_report",
+      "size": 255349,
+      "sha256": "074a65eb3d85da7defc79c872eb995f72d34c6c8a059ce6a692df72f1e609ab8"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/std.execution.json",
+      "role": "std_resource_execution",
+      "size": 1523,
+      "sha256": "603d2c9eaeeeacccb306f619b91d43383f0ec15b774408a9cbd691873f8b9b64"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/std.normalized.json",
+      "role": "std_active_population",
+      "size": 21968,
+      "sha256": "16480367a5a15cba69095712f680e98adc3f65f65d525ccf66e86355d24e5347"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/std.suppression-ledger.json",
+      "role": "std_complete_suppression_ledger",
+      "size": 685333,
+      "sha256": "ffb3f0bda6bc03bf0f9c53e917eb42721ba462536cf1cec0c912578680e36ab1"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/std.family-report.json",
+      "role": "std_deterministic_family_report",
+      "size": 63370,
+      "sha256": "26f05bea6298ee0d415ab0a49ff428f2c2a8a445f1acf72d9daeb29156677fbe"
+    },
+    {
+      "path": "artifacts/unsoundaudit-v2/mac/stdlib-pilot/suppression-v5/summary.json",
+      "role": "v5_bounded_campaign_summary",
+      "size": 8950,
+      "sha256": "4730c99a30adbfaf39f496f5e222e9fd3da0db5a9707bae33fad5ac7bfda7432"
+    },
+    {
+      "path": "docs/unsoundaudit-v2/STDLIB_PILOT_V5.md",
+      "role": "bounded_single_reviewer_v5_report",
+      "size": 4950,
+      "sha256": "c3d2675f60686e435f730f89bceebe750ad895214d6436bec894ca2c1a1c431f"
+    }
+  ],
+  "raw_logs_committed": false,
+  "raw_receipts_committed": false,
+  "targets_or_binaries_committed": false,
+  "self_excluded": true
+}

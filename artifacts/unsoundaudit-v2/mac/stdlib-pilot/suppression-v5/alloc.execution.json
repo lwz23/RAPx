@@ -1,0 +1,51 @@
+{
+  "analyzer": {
+    "cargo_rapx_sha256": "fd31b464d9f9a47c812dfe672a4020d7987ebda0d67ba298e4d9b3fbd7b14f48",
+    "debug": 1,
+    "debug_assertions": true,
+    "incremental": false,
+    "opt_level": 3,
+    "overflow_checks": true,
+    "profile": "rapx-perf",
+    "rapx_sha256": "4ddc92f6cf58c377c4b53923f16fb9d6331268bbb87608e46da6d30f6502f248",
+    "schema_version": "unsoundaudit-v2-rap-binary-profile-v1",
+    "target_cargo_profile": "dev"
+  },
+  "executions": [
+    {
+      "classification": "success",
+      "elapsed_seconds": 31.237,
+      "max_physical_footprint_bytes": 797148792,
+      "max_rss_bytes": 835354624,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "control",
+      "returncode": 0,
+      "run": 0
+    },
+    {
+      "classification": "success",
+      "elapsed_seconds": 72.159,
+      "max_physical_footprint_bytes": 812517992,
+      "max_rss_bytes": 870678528,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "scan",
+      "returncode": 0,
+      "run": 1
+    },
+    {
+      "classification": "success",
+      "elapsed_seconds": 78.031,
+      "max_physical_footprint_bytes": 809699896,
+      "max_rss_bytes": 892059648,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "scan",
+      "returncode": 0,
+      "run": 2
+    }
+  ],
+  "protocol_sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92",
+  "raw_logs_committed": false,
+  "schema_version": "unsoundaudit-v2-stdlib-execution-v1",
+  "status": "success",
+  "unit": "alloc"
+}

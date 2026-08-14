@@ -1,0 +1,237 @@
+{
+  "schema_version": "unsoundaudit-v2-stdlib-suppression-v5-summary-v1",
+  "status": "performance_determinism_and_adjusted_usability_pass_single_reviewer_precision_only",
+  "tested_source": {
+    "commit": "470b650897d77fa60b3ff4afa07b905dd2d52f14",
+    "tree": "939d9372e61b81ed2fbb8de0758e4fb5b3445938"
+  },
+  "protocol": {
+    "commit": "e31e879752e442fa5960dfdf2dc2c28cf22dc626",
+    "path": "tests/unsoundaudit-v2/stdlib_pilot_protocol_v5.json",
+    "sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92"
+  },
+  "toolchain": {
+    "channel": "nightly-2024-10-12",
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "audit": {
+    "claim_scope": "single_reviewer_development_diagnostic_only",
+    "raw_findings": 876,
+    "families": 77,
+    "diagnostic_sample": 124,
+    "sample_labels": {
+      "A": 0,
+      "B": 33,
+      "C": 91,
+      "D": 0,
+      "E": 0,
+      "U": 0
+    },
+    "population_weighted_classes": {
+      "B": 37,
+      "C": 839
+    },
+    "active_families": 23,
+    "suppressed_families": 54,
+    "fabricated_edges": 0,
+    "formal_precision_claim": false,
+    "allowlist_sha256": "52e48dd883494e087cba57a37d339dc10e6cab72c047fe42dcb165d333d984ec",
+    "allowlist_entries_sha256": "95b5cf503b9942aac2c787053c1f0c6c40b8caa07472965e8059ea8becfacd21"
+  },
+  "fresh_unit_gate": {
+    "passed": 141,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 0,
+    "cargo_jobs": 1,
+    "isolated_cargo_home": true,
+    "fresh_target": true,
+    "log_sha256": "fd9641cba2dc560004164125b8975ffeb654a91fb7066d160dd865461e6d9c71"
+  },
+  "fresh_binary_gate": {
+    "profile": "rapx-perf",
+    "target_cargo_profile": "dev",
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "build_log_sha256": "b22303ee286c66a334c6be61144b8a6b9718d20807c488a3c089ba9f89a29996",
+    "cargo_rapx_sha256": "fd31b464d9f9a47c812dfe672a4020d7987ebda0d67ba298e4d9b3fbd7b14f48",
+    "rapx_sha256": "4ddc92f6cf58c377c4b53923f16fb9d6331268bbb87608e46da6d30f6502f248",
+    "profile_sidecar_sha256": "2157a8bcc771a402e903b95eaeca10d43fa5be37cbec5a30f4805a4ec45f1b59"
+  },
+  "no_build_runner_gate": {
+    "passed": 50,
+    "failed": 0,
+    "python_bytecode_disabled": true,
+    "log_sha256": "e74bbd51ea680da64e6c4093750dc17ccfcceb123f06e002952b783891b48f46"
+  },
+  "synthetic_equivalence": {
+    "challenge": {
+      "rapx_perf_runs": 2,
+      "case_count": 27,
+      "normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
+      "byte_identical": true
+    },
+    "original": {
+      "rapx_perf_runs": 2,
+      "case_count": 27,
+      "normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+      "byte_identical": true
+    },
+    "profile_equivalence": {
+      "profiles": [
+        "debug",
+        "release",
+        "rapx-perf"
+      ],
+      "canonical_finding_sets_equal": true,
+      "stock_release_role": "diagnostic_only"
+    }
+  },
+  "formal_units": {
+    "core": {
+      "wall_time_limit_seconds": 900,
+      "physical_footprint_limit_bytes": 8589934592,
+      "control": {
+        "elapsed_seconds": 34.942,
+        "max_physical_footprint_bytes": 798033576,
+        "max_rss_bytes": 856457216
+      },
+      "scan_1": {
+        "elapsed_seconds": 151.741,
+        "max_physical_footprint_bytes": 2045972176,
+        "max_rss_bytes": 1655177216,
+        "selected_receipt_sha256": "22d78848f218c49588d97c82598844b914052dc6ed395ca8539873e133d04ae0"
+      },
+      "scan_2": {
+        "elapsed_seconds": 149.04,
+        "max_physical_footprint_bytes": 2005520104,
+        "max_rss_bytes": 1733754880,
+        "selected_receipt_sha256": "7860c6b0fbd31057b163d1d8c1c09b84a613020bf4d1b7970dd69cd082743602"
+      },
+      "skip_receipts_per_scan": 4,
+      "raw_finding_count": 269,
+      "suppressed_finding_count": 247,
+      "active_finding_count": 22,
+      "active_family_count": 16,
+      "suppressed_family_count": 25,
+      "normalized_sha256": "191469eca25bc98eefd925345be03d5035912f4ea1c61eb8f89d8e1a9d13f7f6",
+      "suppression_ledger_sha256": "b9232388432ce61a1cccee32dc42a80a419e1c77cc4869f8df0e4b1f4e56eac6",
+      "family_report_sha256": "a5b21114d4478ae808b546461084b94b229d8957a8cb7ad43d6cb745eb1b749d",
+      "execution_sha256": "3c2cdb6fe6fbcf9bb5ab6f240beb6791b2e806b99048208e8725a939847cca82",
+      "source_census": {
+        "rust_file_count": 400,
+        "rust_line_count": 169027,
+        "rust_kloc": 169.027
+      }
+    },
+    "alloc": {
+      "wall_time_limit_seconds": 1800,
+      "physical_footprint_limit_bytes": 10737418240,
+      "control": {
+        "elapsed_seconds": 31.237,
+        "max_physical_footprint_bytes": 797148792,
+        "max_rss_bytes": 835354624
+      },
+      "scan_1": {
+        "elapsed_seconds": 72.159,
+        "max_physical_footprint_bytes": 812517992,
+        "max_rss_bytes": 870678528,
+        "selected_receipt_sha256": "fe3910d0395d714ea96e3e22c2317b116458d8456dc2cf3bdb57494e2af7e1b4"
+      },
+      "scan_2": {
+        "elapsed_seconds": 78.031,
+        "max_physical_footprint_bytes": 809699896,
+        "max_rss_bytes": 892059648,
+        "selected_receipt_sha256": "2a2c133052b65cf5697804a9dc288c744da8f010e62b5fba0a15bb6915f25693"
+      },
+      "skip_receipts_per_scan": 5,
+      "raw_finding_count": 501,
+      "suppressed_finding_count": 491,
+      "active_finding_count": 10,
+      "active_family_count": 5,
+      "suppressed_family_count": 22,
+      "normalized_sha256": "621252dc38835f27b3d3680a532fbf7047867c6604b1f02ae310d1bdc0c7499f",
+      "suppression_ledger_sha256": "cf24044384f307e2131cc1feb993d910349b404a613560bd87d8ef4cf2bc5ce5",
+      "family_report_sha256": "074a65eb3d85da7defc79c872eb995f72d34c6c8a059ce6a692df72f1e609ab8",
+      "execution_sha256": "e709e7f0a5557cb2bc440a3f25b0d9b5944db1640b01515659d521a6918c42ae",
+      "source_census": {
+        "rust_file_count": 110,
+        "rust_line_count": 68839,
+        "rust_kloc": 68.839
+      }
+    },
+    "std": {
+      "wall_time_limit_seconds": 3600,
+      "physical_footprint_limit_bytes": 12884901888,
+      "control": {
+        "elapsed_seconds": 76.535,
+        "max_physical_footprint_bytes": 794887824,
+        "max_rss_bytes": 845725696
+      },
+      "scan_1": {
+        "elapsed_seconds": 136.849,
+        "max_physical_footprint_bytes": 816777808,
+        "max_rss_bytes": 900448256,
+        "selected_receipt_sha256": "b59c9816086a68e985571ac2374575d48a5e61713f02203ea9d688a93397c28e"
+      },
+      "scan_2": {
+        "elapsed_seconds": 134.38,
+        "max_physical_footprint_bytes": 810273384,
+        "max_rss_bytes": 877051904,
+        "selected_receipt_sha256": "7cb8d778319643b5157cdafc019f2e5abf818d472933f19444f7070580c94304"
+      },
+      "skip_receipts_per_scan": 25,
+      "raw_finding_count": 106,
+      "suppressed_finding_count": 101,
+      "active_finding_count": 5,
+      "active_family_count": 2,
+      "suppressed_family_count": 7,
+      "normalized_sha256": "16480367a5a15cba69095712f680e98adc3f65f65d525ccf66e86355d24e5347",
+      "suppression_ledger_sha256": "ffb3f0bda6bc03bf0f9c53e917eb42721ba462536cf1cec0c912578680e36ab1",
+      "family_report_sha256": "26f05bea6298ee0d415ab0a49ff428f2c2a8a445f1acf72d9daeb29156677fbe",
+      "execution_sha256": "603d2c9eaeeeacccb306f619b91d43383f0ec15b774408a9cbd691873f8b9b64",
+      "source_census": {
+        "rust_file_count": 611,
+        "rust_line_count": 156899,
+        "rust_kloc": 156.899
+      }
+    }
+  },
+  "population_gate": {
+    "raw_findings": 876,
+    "suppressed_findings": 839,
+    "active_findings": 37,
+    "total_rust_kloc": 394.765,
+    "raw_findings_per_kloc": 2.219042,
+    "active_findings_per_kloc": 0.093727,
+    "max_active_findings_total": 500,
+    "max_active_findings_per_kloc": 0.5,
+    "status": "adjusted_usability_thresholds_pass"
+  },
+  "reconciliation": {
+    "v5_active_union_ledger_equals_v4_raw_by_finding_id": true,
+    "all_23_b_families_active": true,
+    "all_54_c_families_suppressed": true,
+    "unexplained_a_or_b_disappearances": 0
+  },
+  "reporting_boundary": {
+    "raw_count_must_be_reported": true,
+    "suppressed_count_must_be_reported": true,
+    "active_count_must_be_reported": true,
+    "single_reviewer_only": true,
+    "cohens_kappa_computed": false,
+    "wilson_interval_computed": false,
+    "p3_p5_p6_real_project_precision_measured": false,
+    "cross_crate_precision_measured": false,
+    "third_party_holdout_measured": false,
+    "formal_precision_claim": "not_made"
+  },
+  "local_evidence": {
+    "raw_receipts_committed": false,
+    "raw_logs_committed": false,
+    "targets_or_binaries_committed": false,
+    "note": "Committed evidence contains normalized active populations, complete suppression ledgers, deterministic family reports, and resource summaries. Raw receipts/logs and binaries remain local and are bound by hashes."
+  }
+}

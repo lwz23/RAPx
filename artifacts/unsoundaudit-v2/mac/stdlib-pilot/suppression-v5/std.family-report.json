@@ -1,0 +1,2032 @@
+{
+  "active_finding_count": 5,
+  "families": [
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "0ff8507c4b8bec3963e2f7a62bc8eecb39e2a9d59e512312b3eb3ad5bd58f30a",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 98,
+              "line": 53
+            },
+            "path": "library/std/src/io/buffered/bufreader/buffer.rs",
+            "start": {
+              "column": 53,
+              "line": 53
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 98,
+              "line": 53
+            },
+            "path": "library/std/src/io/buffered/bufreader/buffer.rs",
+            "start": {
+              "column": 53,
+              "line": 53
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::buffered::bufreader::buffer::Buffer::filled",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 32,
+      "public_roots": [
+        "<&io::stdio::Stdin as io::Read>::read",
+        "<&io::stdio::Stdin as io::Read>::read_buf",
+        "<&io::stdio::Stdin as io::Read>::read_buf_exact",
+        "<&io::stdio::Stdin as io::Read>::read_exact",
+        "<&io::stdio::Stdin as io::Read>::read_to_end",
+        "<&io::stdio::Stdin as io::Read>::read_to_string",
+        "<&io::stdio::Stdin as io::Read>::read_vectored",
+        "<io::buffered::bufreader::BufReader<R> as io::BufRead>::fill_buf",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_buf",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_buf_exact",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_exact",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_to_end",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_to_string",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_vectored",
+        "<io::stdio::Stdin as io::Read>::read",
+        "<io::stdio::Stdin as io::Read>::read_buf",
+        "<io::stdio::Stdin as io::Read>::read_buf_exact",
+        "<io::stdio::Stdin as io::Read>::read_exact",
+        "<io::stdio::Stdin as io::Read>::read_to_end",
+        "<io::stdio::Stdin as io::Read>::read_to_string",
+        "<io::stdio::Stdin as io::Read>::read_vectored",
+        "<io::stdio::StdinLock<'_> as io::BufRead>::fill_buf",
+        "<io::stdio::StdinLock<'_> as io::Read>::read",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_buf",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_buf_exact",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_exact",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_to_end",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_to_string",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_vectored",
+        "io::buffered::bufreader::BufReader::<R>::buffer",
+        "io::buffered::bufreader::BufReader::<R>::peek"
+      ],
+      "raw_finding_count": 32,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "eef4439b0597117ca7ee0ab90aa64dfd73f2f481cd8b634827f1cb8e3b7aa329",
+        "propagation": {
+          "boundaries": [
+            "<io::buffered::bufreader::BufReader<R> as io::BufRead>::fill_buf",
+            "<io::buffered::bufreader::BufReader<R> as io::Read>::read_buf",
+            "<io::stdio::StdinLock<'_> as io::Read>::read_buf",
+            "io::buffered::bufreader::buffer::Buffer::buffer",
+            "io::buffered::bufreader::buffer::Buffer::fill_buf"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 5,
+          "witness": [
+            {
+              "function": "<io::stdio::Stdin as io::Read>::read_buf",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 70,
+                  "line": 436
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 5,
+                  "line": 436
+                }
+              }
+            },
+            {
+              "function": "<io::stdio::StdinLock<'_> as io::Read>::read_buf",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 34,
+                  "line": 437
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 9,
+                  "line": 437
+                }
+              }
+            },
+            {
+              "function": "<io::buffered::bufreader::BufReader<R> as io::Read>::read_buf",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 33,
+                  "line": 504
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 9,
+                  "line": 504
+                }
+              }
+            },
+            {
+              "function": "<io::buffered::bufreader::BufReader<R> as io::BufRead>::fill_buf",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 359
+                },
+                "path": "library/std/src/io/buffered/bufreader.rs",
+                "start": {
+                  "column": 23,
+                  "line": 359
+                }
+              }
+            },
+            {
+              "function": "io::buffered::bufreader::buffer::Buffer::fill_buf",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 43,
+                  "line": 450
+                },
+                "path": "library/std/src/io/buffered/bufreader.rs",
+                "start": {
+                  "column": 9,
+                  "line": 450
+                }
+              }
+            },
+            {
+              "function": "io::buffered::bufreader::buffer::Buffer::buffer",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 25,
+                  "line": 154
+                },
+                "path": "library/std/src/io/buffered/bufreader/buffer.rs",
+                "start": {
+                  "column": 12,
+                  "line": 154
+                }
+              }
+            },
+            {
+              "function": "io::buffered::bufreader::buffer::Buffer::buffer",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 98,
+                  "line": 53
+                },
+                "path": "library/std/src/io/buffered/bufreader/buffer.rs",
+                "start": {
+                  "column": 53,
+                  "line": 53
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "6642105e1acfee7471211413d374dc8f05aec9a39cf7c69666d2b706d70c30ba",
+        "propagation": {
+          "boundaries": [
+            "io::buffered::bufreader::buffer::Buffer::buffer"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 1,
+          "witness": [
+            {
+              "function": "io::buffered::bufreader::BufReader::<R>::buffer",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 34,
+                  "line": 222
+                },
+                "path": "library/std/src/io/buffered/bufreader.rs",
+                "start": {
+                  "column": 5,
+                  "line": 222
+                }
+              }
+            },
+            {
+              "function": "io::buffered::bufreader::buffer::Buffer::buffer",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 26,
+                  "line": 223
+                },
+                "path": "library/std/src/io/buffered/bufreader.rs",
+                "start": {
+                  "column": 9,
+                  "line": 223
+                }
+              }
+            },
+            {
+              "function": "io::buffered::bufreader::buffer::Buffer::buffer",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 98,
+                  "line": 53
+                },
+                "path": "library/std/src/io/buffered/bufreader/buffer.rs",
+                "start": {
+                  "column": 53,
+                  "line": 53
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 32
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "3364dcf773e4a57a728fa2aabd9caf9d2ab0ef8c8b22fef987bd91dfcf01bb5a",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 65,
+              "line": 226
+            },
+            "path": "library/std/src/sync/mpmc/array.rs",
+            "start": {
+              "column": 33,
+              "line": 226
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 65,
+              "line": 226
+            },
+            "path": "library/std/src/sync/mpmc/array.rs",
+            "start": {
+              "column": 33,
+              "line": 226
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:sync::mpmc::array::Channel::mark_bit",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 14,
+      "public_roots": [
+        "<sync::mpmc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpmc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpmc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpsc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "sync::mpmc::Receiver::<T>::recv",
+        "sync::mpmc::Receiver::<T>::recv_deadline",
+        "sync::mpmc::Receiver::<T>::recv_timeout",
+        "sync::mpmc::Receiver::<T>::try_recv",
+        "sync::mpsc::Receiver::<T>::recv",
+        "sync::mpsc::Receiver::<T>::recv_deadline",
+        "sync::mpsc::Receiver::<T>::recv_timeout",
+        "sync::mpsc::Receiver::<T>::try_recv"
+      ],
+      "raw_finding_count": 14,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "e2c3c6569aa4d008b58bf01fdef7f970ed34e99730262951c8923009973da910",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::Receiver::<T>::try_recv",
+            "sync::mpmc::array::Channel::<T>::start_recv",
+            "sync::mpmc::array::Channel::<T>::try_recv",
+            "sync::mpsc::Receiver::<T>::try_recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 4,
+          "witness": [
+            {
+              "function": "<sync::mpsc::TryIter<'a, T> as core::iter::Iterator>::next",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 36,
+                  "line": 1055
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 1055
+                }
+              }
+            },
+            {
+              "function": "sync::mpsc::Receiver::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 27,
+                  "line": 1056
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 1056
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::Receiver::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 30,
+                  "line": 789
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 789
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 59,
+                  "line": 907
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 44,
+                  "line": 907
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 34,
+                  "line": 366
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 12,
+                  "line": 366
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_recv",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 65,
+                  "line": 226
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 33,
+                  "line": 226
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "bea61b379c14b0daf5d46ab055efd453ba1c0bffb67c22dcc80763390cc1f61d",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::array::Channel::<T>::recv",
+            "sync::mpmc::array::Channel::<T>::start_recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "sync::mpmc::Receiver::<T>::recv",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 47,
+                  "line": 971
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 971
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 59,
+                  "line": 973
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 44,
+                  "line": 973
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 378
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 16,
+                  "line": 378
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_recv",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 65,
+                  "line": 226
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 33,
+                  "line": 226
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 14
+    },
+    {
+      "active_finding_count": 1,
+      "audit_disposition": "active_retain_or_generic_repair",
+      "family_id": "4261bfac9813d7755a546cd2d6a4c128400aaa26dc74473874773b5d724d88fc",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 69,
+              "line": 1052
+            },
+            "path": "library/std/src/ffi/os_str.rs",
+            "start": {
+              "column": 30,
+              "line": 1052
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "intra_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 69,
+              "line": 1052
+            },
+            "path": "library/std/src/ffi/os_str.rs",
+            "start": {
+              "column": 30,
+              "line": 1052
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:core::ops::Range::end",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 1,
+      "public_roots": [
+        "ffi::os_str::OsStr::slice_encoded_bytes"
+      ],
+      "raw_finding_count": 1,
+      "representative_longest": {
+        "disposition": "active",
+        "finding_id": "01ab62eaa36c5061ba4f4f10e3bbad644b4b617058f8cad8638d8234a37d9384",
+        "propagation": {
+          "boundaries": [],
+          "depth": "intra_procedural",
+          "local_call_count": 0,
+          "witness": [
+            {
+              "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 85,
+                  "line": 1040
+                },
+                "path": "library/std/src/ffi/os_str.rs",
+                "start": {
+                  "column": 5,
+                  "line": 1040
+                }
+              }
+            },
+            {
+              "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 69,
+                  "line": 1052
+                },
+                "path": "library/std/src/ffi/os_str.rs",
+                "start": {
+                  "column": 30,
+                  "line": 1052
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "active",
+        "finding_id": "01ab62eaa36c5061ba4f4f10e3bbad644b4b617058f8cad8638d8234a37d9384",
+        "propagation": {
+          "boundaries": [],
+          "depth": "intra_procedural",
+          "local_call_count": 0,
+          "witness": [
+            {
+              "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 85,
+                  "line": 1040
+                },
+                "path": "library/std/src/ffi/os_str.rs",
+                "start": {
+                  "column": 5,
+                  "line": 1040
+                }
+              }
+            },
+            {
+              "function": "ffi::os_str::OsStr::slice_encoded_bytes",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 69,
+                  "line": 1052
+                },
+                "path": "library/std/src/ffi/os_str.rs",
+                "start": {
+                  "column": 30,
+                  "line": 1052
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 0
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "7c7ed2a01829cd3173ac18151c8e1db4ffa4ca0a42e60805b3b28725a728bb23",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 63,
+              "line": 93
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 33,
+              "line": 93
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 63,
+              "line": 93
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 33,
+              "line": 93
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:core::prelude::v1::Some::0",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 14,
+      "public_roots": [
+        "<sync::mpmc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpmc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpmc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpsc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "sync::mpmc::Receiver::<T>::recv",
+        "sync::mpmc::Receiver::<T>::recv_deadline",
+        "sync::mpmc::Receiver::<T>::recv_timeout",
+        "sync::mpmc::Receiver::<T>::try_recv",
+        "sync::mpsc::Receiver::<T>::recv",
+        "sync::mpsc::Receiver::<T>::recv_deadline",
+        "sync::mpsc::Receiver::<T>::recv_timeout",
+        "sync::mpsc::Receiver::<T>::try_recv"
+      ],
+      "raw_finding_count": 14,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "cd20b93a8e98872cd1eee3188acfb3ba887568d3f3ce99b424b9855b123b1b4b",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::Receiver::<T>::try_recv",
+            "sync::mpmc::list::Block::<T>::destroy",
+            "sync::mpmc::list::Channel::<T>::read",
+            "sync::mpmc::list::Channel::<T>::try_recv",
+            "sync::mpsc::Receiver::<T>::try_recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 5,
+          "witness": [
+            {
+              "function": "<sync::mpsc::TryIter<'a, T> as core::iter::Iterator>::next",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 36,
+                  "line": 1055
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 1055
+                }
+              }
+            },
+            {
+              "function": "sync::mpsc::Receiver::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 27,
+                  "line": 1056
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 1056
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::Receiver::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 30,
+                  "line": 789
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 789
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 58,
+                  "line": 908
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 43,
+                  "line": 908
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 414
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 22,
+                  "line": 414
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Block::<T>::destroy",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 41,
+                  "line": 381
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 17,
+                  "line": 381
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Block::<T>::destroy",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 63,
+                  "line": 93
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 33,
+                  "line": 93
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "24e6fe65d906e47aa12a03899a78437f8175423eadc9faa1fcbc76a372e975c3",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::list::Block::<T>::destroy",
+            "sync::mpmc::list::Channel::<T>::read",
+            "sync::mpmc::list::Channel::<T>::try_recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 3,
+          "witness": [
+            {
+              "function": "sync::mpmc::Receiver::<T>::try_recv",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 54,
+                  "line": 905
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 905
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 58,
+                  "line": 908
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 43,
+                  "line": 908
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 414
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 22,
+                  "line": 414
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Block::<T>::destroy",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 41,
+                  "line": 381
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 17,
+                  "line": 381
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Block::<T>::destroy",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 63,
+                  "line": 93
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 33,
+                  "line": 93
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 14
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "9673c9f36f2f771923fcbb9733306c7c48ea9d625b1d343a4258c11560677ba9",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 57,
+              "line": 385
+            },
+            "path": "library/std/src/io/mod.rs",
+            "start": {
+              "column": 29,
+              "line": 385
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 57,
+              "line": 385
+            },
+            "path": "library/std/src/io/mod.rs",
+            "start": {
+              "column": 29,
+              "line": 385
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:io::Guard::len",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 13,
+      "public_roots": [
+        "<&fs::File as io::Read>::read_to_string",
+        "<&io::stdio::Stdin as io::Read>::read_to_string",
+        "<fs::File as io::Read>::read_to_string",
+        "<io::buffered::bufreader::BufReader<R> as io::Read>::read_to_string",
+        "<io::stdio::Stdin as io::Read>::read_to_string",
+        "<io::stdio::StdinLock<'_> as io::BufRead>::read_line",
+        "<io::stdio::StdinLock<'_> as io::Read>::read_to_string",
+        "fs::<impl io::Read for alloc_crate::sync::Arc<fs::File>>::read_to_string",
+        "fs::read_to_string",
+        "io::BufRead::read_line",
+        "io::Read::read_to_string",
+        "io::impls::<impl io::Read for alloc_crate::collections::VecDeque<u8, A>>::read_to_string",
+        "io::stdio::Stdin::read_line"
+      ],
+      "raw_finding_count": 13,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "eb13d29744a3631795a54a6c4557a449010132361e2a10a0d29f6b5ff99f4fb1",
+        "propagation": {
+          "boundaries": [
+            "<io::buffered::bufreader::BufReader<R> as io::Read>::read_to_string",
+            "<io::stdio::StdinLock<'_> as io::Read>::read_to_string",
+            "io::append_to_string"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 3,
+          "witness": [
+            {
+              "function": "<&io::stdio::Stdin as io::Read>::read_to_string",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 72,
+                  "line": 478
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 5,
+                  "line": 478
+                }
+              }
+            },
+            {
+              "function": "<io::stdio::StdinLock<'_> as io::Read>::read_to_string",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 40,
+                  "line": 479
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 9,
+                  "line": 479
+                }
+              }
+            },
+            {
+              "function": "<io::buffered::bufreader::BufReader<R> as io::Read>::read_to_string",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 39,
+                  "line": 521
+                },
+                "path": "library/std/src/io/stdio.rs",
+                "start": {
+                  "column": 9,
+                  "line": 521
+                }
+              }
+            },
+            {
+              "function": "io::append_to_string",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 79,
+                  "line": 432
+                },
+                "path": "library/std/src/io/buffered/bufreader.rs",
+                "start": {
+                  "column": 22,
+                  "line": 432
+                }
+              }
+            },
+            {
+              "function": "io::append_to_string",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 57,
+                  "line": 385
+                },
+                "path": "library/std/src/io/mod.rs",
+                "start": {
+                  "column": 29,
+                  "line": 385
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "367b9f4f3ae778aa91f3128f40fc20e0641e23d7fcc7964a1df653a4d94853fa",
+        "propagation": {
+          "boundaries": [
+            "io::append_to_string"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 1,
+          "witness": [
+            {
+              "function": "io::impls::<impl io::Read for alloc_crate::collections::VecDeque<u8, A>>::read_to_string",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 72,
+                  "line": 479
+                },
+                "path": "library/std/src/io/impls.rs",
+                "start": {
+                  "column": 5,
+                  "line": 479
+                }
+              }
+            },
+            {
+              "function": "io::append_to_string",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 72,
+                  "line": 481
+                },
+                "path": "library/std/src/io/impls.rs",
+                "start": {
+                  "column": 18,
+                  "line": 481
+                }
+              }
+            },
+            {
+              "function": "io::append_to_string",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 57,
+                  "line": 385
+                },
+                "path": "library/std/src/io/mod.rs",
+                "start": {
+                  "column": 29,
+                  "line": 385
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 13
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "bddfdddede77d18cc1604be7bda5d8662b73e0716bb0965e49dbbee916926bb5",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 65,
+              "line": 142
+            },
+            "path": "library/std/src/sync/mpmc/array.rs",
+            "start": {
+              "column": 33,
+              "line": 142
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 65,
+              "line": 142
+            },
+            "path": "library/std/src/sync/mpmc/array.rs",
+            "start": {
+              "column": 33,
+              "line": 142
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:sync::mpmc::array::Channel::mark_bit",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 7,
+      "public_roots": [
+        "sync::mpmc::Sender::<T>::send",
+        "sync::mpmc::Sender::<T>::send_deadline",
+        "sync::mpmc::Sender::<T>::send_timeout",
+        "sync::mpmc::Sender::<T>::try_send",
+        "sync::mpsc::Sender::<T>::send",
+        "sync::mpsc::SyncSender::<T>::send",
+        "sync::mpsc::SyncSender::<T>::try_send"
+      ],
+      "raw_finding_count": 7,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "e4380b3c1346e88af2edafae0cc85d84d92803b04b7521055b8894813c325ee8",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::Sender::<T>::send",
+            "sync::mpmc::array::Channel::<T>::send",
+            "sync::mpmc::array::Channel::<T>::start_send"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 3,
+          "witness": [
+            {
+              "function": "sync::mpmc::Sender::<T>::send_timeout",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 93,
+                  "line": 418
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 418
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::Sender::<T>::send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 35,
+                  "line": 422
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 21,
+                  "line": 422
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 62,
+                  "line": 384
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 42,
+                  "line": 384
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 327
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 16,
+                  "line": 327
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_send",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 65,
+                  "line": 142
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 33,
+                  "line": 142
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "1ad874896dc4b3c4f9d8c089925952efa31dad20ba627db29e8154f90436c144",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::array::Channel::<T>::send",
+            "sync::mpmc::array::Channel::<T>::start_send"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "sync::mpmc::Sender::<T>::send_deadline",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 94,
+                  "line": 449
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 449
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 72,
+                  "line": 451
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 42,
+                  "line": 451
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 327
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 16,
+                  "line": 327
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::array::Channel::<T>::start_send",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 65,
+                  "line": 142
+                },
+                "path": "library/std/src/sync/mpmc/array.rs",
+                "start": {
+                  "column": 33,
+                  "line": 142
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 7
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "c49c6db440fb07af8fc9b867a294f08f0654d2f323133006d06a7f5550c99b15",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 374
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 24,
+              "line": 374
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 374
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 24,
+              "line": 374
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:sync::mpmc::select::Token::list",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 14,
+      "public_roots": [
+        "<sync::mpmc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpmc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpmc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::IntoIter<T> as core::iter::Iterator>::next",
+        "<sync::mpsc::Iter<'a, T> as core::iter::Iterator>::next",
+        "<sync::mpsc::TryIter<'a, T> as core::iter::Iterator>::next",
+        "sync::mpmc::Receiver::<T>::recv",
+        "sync::mpmc::Receiver::<T>::recv_deadline",
+        "sync::mpmc::Receiver::<T>::recv_timeout",
+        "sync::mpmc::Receiver::<T>::try_recv",
+        "sync::mpsc::Receiver::<T>::recv",
+        "sync::mpsc::Receiver::<T>::recv_deadline",
+        "sync::mpsc::Receiver::<T>::recv_timeout",
+        "sync::mpsc::Receiver::<T>::try_recv"
+      ],
+      "raw_finding_count": 14,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "f3b38a1b5f3efe6675a3cddd186160bd8f4d111708594ab63d3541d7a47ccbef",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::Receiver::<T>::recv",
+            "sync::mpmc::list::Channel::<T>::read",
+            "sync::mpmc::list::Channel::<T>::recv",
+            "sync::mpsc::Receiver::<T>::recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 4,
+          "witness": [
+            {
+              "function": "<sync::mpsc::Iter<'a, T> as core::iter::Iterator>::next",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 36,
+                  "line": 1046
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 1046
+                }
+              }
+            },
+            {
+              "function": "sync::mpsc::Receiver::<T>::recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 23,
+                  "line": 1047
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 1047
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::Receiver::<T>::recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 26,
+                  "line": 848
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 848
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 58,
+                  "line": 974
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 43,
+                  "line": 974
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 44,
+                  "line": 426
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 28,
+                  "line": 426
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 60,
+                  "line": 374
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 24,
+                  "line": 374
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "273ac31831cb0cf39563612c34608cd051ee69a31b6389818a789b812d39d37d",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::list::Channel::<T>::read",
+            "sync::mpmc::list::Channel::<T>::try_recv"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "sync::mpmc::Receiver::<T>::try_recv",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 54,
+                  "line": 905
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 905
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::try_recv",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 58,
+                  "line": 908
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 43,
+                  "line": 908
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 38,
+                  "line": 414
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 22,
+                  "line": 414
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::read",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 60,
+                  "line": 374
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 24,
+                  "line": 374
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 14
+    },
+    {
+      "active_finding_count": 4,
+      "audit_disposition": "active_retain_or_generic_repair",
+      "family_id": "caabff54fe0affca2dc400cd21e607de93f40a44b3837bae8a8767650b9f441a",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 44,
+              "line": 474
+            },
+            "path": "library/std/src/io/cursor.rs",
+            "start": {
+              "column": 13,
+              "line": 474
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 44,
+              "line": 474
+            },
+            "path": "library/std/src/io/cursor.rs",
+            "start": {
+              "column": 13,
+              "line": 474
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:core::ops::ControlFlow::Continue::0",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 4,
+      "public_roots": [
+        "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+        "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+        "<io::cursor::Cursor<alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored"
+      ],
+      "raw_finding_count": 4,
+      "representative_longest": {
+        "disposition": "active",
+        "finding_id": "563beab0751b0fe50cb7f47750ecb8cc53ba29fee2336821829109323d5de31b",
+        "propagation": {
+          "boundaries": [
+            "io::cursor::reserve_and_pad",
+            "io::cursor::vec_write"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 57,
+                  "line": 591
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 5,
+                  "line": 591
+                }
+              }
+            },
+            {
+              "function": "io::cursor::vec_write",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 50,
+                  "line": 592
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 9,
+                  "line": 592
+                }
+              }
+            },
+            {
+              "function": "io::cursor::reserve_and_pad",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 57,
+                  "line": 507
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 19,
+                  "line": 507
+                }
+              }
+            },
+            {
+              "function": "io::cursor::reserve_and_pad",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 44,
+                  "line": 474
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 13,
+                  "line": 474
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "active",
+        "finding_id": "0de2017c005f721a3b353c27e221f1015dab3be74120e9a719c6f7cce0bde2cd",
+        "propagation": {
+          "boundaries": [
+            "io::cursor::reserve_and_pad",
+            "io::cursor::vec_write_vectored"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "<io::cursor::Cursor<&mut alloc_crate::vec::Vec<u8, A>> as io::Write>::write_vectored",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 76,
+                  "line": 595
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 5,
+                  "line": 595
+                }
+              }
+            },
+            {
+              "function": "io::cursor::vec_write_vectored",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 60,
+                  "line": 596
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 9,
+                  "line": 596
+                }
+              }
+            },
+            {
+              "function": "io::cursor::reserve_and_pad",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 57,
+                  "line": 544
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 19,
+                  "line": 544
+                }
+              }
+            },
+            {
+              "function": "io::cursor::reserve_and_pad",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 44,
+                  "line": 474
+                },
+                "path": "library/std/src/io/cursor.rs",
+                "start": {
+                  "column": 13,
+                  "line": 474
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 0
+    },
+    {
+      "active_finding_count": 0,
+      "audit_disposition": "stdlib_invariant_suppression",
+      "family_id": "d35696492e0273604e90074ee6648265e6dd15b50cb9b7a4ae11e370c6093a5e",
+      "key": {
+        "first_contract_failure": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 268
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 24,
+              "line": 268
+            }
+          }
+        },
+        "predicates": [
+          "in_bounds"
+        ],
+        "propagation_depth": "inter_procedural",
+        "rule_id": "P4.bounds",
+        "sink": {
+          "kind": "get_unchecked",
+          "span": {
+            "end": {
+              "column": 60,
+              "line": 268
+            },
+            "path": "library/std/src/sync/mpmc/list.rs",
+            "start": {
+              "column": 24,
+              "line": 268
+            }
+          }
+        },
+        "source_kind": "internal_derived",
+        "subject": "private-field:sync::mpmc::select::Token::list",
+        "unit": "std",
+        "validation_status": "missing"
+      },
+      "public_root_count": 7,
+      "public_roots": [
+        "sync::mpmc::Sender::<T>::send",
+        "sync::mpmc::Sender::<T>::send_deadline",
+        "sync::mpmc::Sender::<T>::send_timeout",
+        "sync::mpmc::Sender::<T>::try_send",
+        "sync::mpsc::Sender::<T>::send",
+        "sync::mpsc::SyncSender::<T>::send",
+        "sync::mpsc::SyncSender::<T>::try_send"
+      ],
+      "raw_finding_count": 7,
+      "representative_longest": {
+        "disposition": "suppressed",
+        "finding_id": "667d41c53f46c081fe5cf1727a9aca903bda5432f6108ba62e2f130433640bfa",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::Sender::<T>::try_send",
+            "sync::mpmc::list::Channel::<T>::send",
+            "sync::mpmc::list::Channel::<T>::try_send",
+            "sync::mpmc::list::Channel::<T>::write"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 4,
+          "witness": [
+            {
+              "function": "sync::mpsc::SyncSender::<T>::try_send",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 64,
+                  "line": 731
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 731
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::Sender::<T>::try_send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 31,
+                  "line": 732
+                },
+                "path": "library/std/src/sync/mpsc/mod.rs",
+                "start": {
+                  "column": 9,
+                  "line": 732
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::try_send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 59,
+                  "line": 347
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 41,
+                  "line": 347
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 29,
+                  "line": 392
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 9,
+                  "line": 392
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::write",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 40,
+                  "line": 406
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 18,
+                  "line": 406
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::write",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 60,
+                  "line": 268
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 24,
+                  "line": 268
+                }
+              }
+            }
+          ]
+        }
+      },
+      "representative_shortest": {
+        "disposition": "suppressed",
+        "finding_id": "80cb0a46c51005c71aa459f61e825fed5a7cfcd462230aa870d42c2dfdeeb85e",
+        "propagation": {
+          "boundaries": [
+            "sync::mpmc::list::Channel::<T>::send",
+            "sync::mpmc::list::Channel::<T>::write"
+          ],
+          "depth": "inter_procedural",
+          "local_call_count": 2,
+          "witness": [
+            {
+              "function": "sync::mpmc::Sender::<T>::send",
+              "kind": "entry",
+              "span": {
+                "end": {
+                  "column": 59,
+                  "line": 382
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 5,
+                  "line": 382
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::send",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 61,
+                  "line": 385
+                },
+                "path": "library/std/src/sync/mpmc/mod.rs",
+                "start": {
+                  "column": 41,
+                  "line": 385
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::write",
+              "kind": "local_call",
+              "span": {
+                "end": {
+                  "column": 40,
+                  "line": 406
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 18,
+                  "line": 406
+                }
+              }
+            },
+            {
+              "function": "sync::mpmc::list::Channel::<T>::write",
+              "kind": "sink",
+              "span": {
+                "end": {
+                  "column": 60,
+                  "line": 268
+                },
+                "path": "library/std/src/sync/mpmc/list.rs",
+                "start": {
+                  "column": 24,
+                  "line": 268
+                }
+              }
+            }
+          ]
+        }
+      },
+      "suppressed_finding_count": 7
+    }
+  ],
+  "family_count": 9,
+  "protocol_sha256": "23c6698feeaacc5eb1f3fc0fe0fc360c2b3c2856450df80b12add2d483deea92",
+  "raw_finding_count": 106,
+  "schema_version": "unsoundaudit-v2-stdlib-family-report-v1",
+  "suppressed_finding_count": 101,
+  "unit": "std"
+}
