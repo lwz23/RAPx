@@ -2058,6 +2058,14 @@ impl<'tcx> Engine<'tcx> {
             else {
                 continue;
             };
+            if local_requirement_is_proven(
+                snapshot,
+                None,
+                facts.local_relational_obligations.get(&requirement.sink.point),
+            ) {
+                facts.summary_seed.requirements.remove(&requirement);
+                continue;
+            }
             let Some(binding) = facts.local_bindings.get(&requirement.sink.point) else {
                 continue;
             };
@@ -3321,17 +3329,11 @@ impl<'tcx> Engine<'tcx> {
                 .validation_snapshots
                 .get(&(sink.block, sink.statement_index))
             {
-                if facts
-                    .local_relational_obligations
-                    .get(&requirement.sink.point)
-                    .is_some_and(|obligation| snapshot.proves_relational(obligation))
-                {
-                    return true;
-                }
-                return facts
-                    .local_bindings
-                    .get(&requirement.sink.point)
-                    .is_some_and(|binding| snapshot.proves(binding));
+                return local_requirement_is_proven(
+                    snapshot,
+                    facts.local_bindings.get(&requirement.sink.point),
+                    facts.local_relational_obligations.get(&requirement.sink.point),
+                );
             }
         }
         if matches!(
@@ -5619,6 +5621,15 @@ fn strong_write_out_formal(
 
 fn state_proves_local_binding(state: &ProgramState, binding: Option<&ValidationBinding>) -> bool {
     binding.is_some_and(|binding| state.has_current_validation(binding, binding.storage_places()))
+}
+
+fn local_requirement_is_proven(
+    snapshot: &ValidationSnapshot,
+    binding: Option<&ValidationBinding>,
+    relational: Option<&RelationalObligation>,
+) -> bool {
+    relational.is_some_and(|obligation| snapshot.proves_relational(obligation))
+        || binding.is_some_and(|binding| snapshot.proves(binding))
 }
 
 fn migrated_validation_predicate(requirement: &ContractRequirement) -> Option<Predicate> {
@@ -10151,7 +10162,13 @@ mod tests {
             index_range_kind: Some(RangeIndexKind::Between),
         };
         let obligation = range_index_obligation(&call, &collection).expect("range obligation");
-        assert!(ValidationSnapshot::capture(&state, 4).proves_relational(&obligation));
+        let snapshot = ValidationSnapshot::capture(&state, 4);
+        assert!(snapshot.proves_relational(&obligation));
+        assert!(local_requirement_is_proven(
+            &snapshot,
+            None,
+            Some(&obligation)
+        ));
         let mut range_to = call.clone();
         range_to.index_range_kind = Some(RangeIndexKind::To);
         let range_to = range_index_obligation(&range_to, &collection).expect("range-to obligation");
@@ -10163,7 +10180,13 @@ mod tests {
         assert!(!ValidationSnapshot::capture(&state, 8).proves_relational(&wrong));
 
         state.record_write(range, StaticWriteToken::new(1, 0));
-        assert!(!ValidationSnapshot::capture(&state, 4).proves_relational(&obligation));
+        let stale = ValidationSnapshot::capture(&state, 4);
+        assert!(!stale.proves_relational(&obligation));
+        assert!(!local_requirement_is_proven(
+            &stale,
+            None,
+            Some(&obligation)
+        ));
     }
 
     #[test]
