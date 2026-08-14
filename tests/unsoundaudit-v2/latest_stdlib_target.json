@@ -5,7 +5,7 @@
   },
   "nightly": {
     "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
-    "channel": "nightly-2026-08-13",
+    "channel": "nightly-2026-08-14",
     "miri_version": "miri 0.1.0 (ba28ff76f3 2026-08-13)",
     "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b"
   },

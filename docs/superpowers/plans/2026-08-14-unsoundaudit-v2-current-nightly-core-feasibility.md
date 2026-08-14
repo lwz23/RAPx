@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Determine at bounded cost whether RAPx can compile on the frozen 2026-08-13 nightly and produce useful new or changed P1–P6 families from one current `core` scan.
+**Goal:** Determine at bounded cost whether RAPx can compile on the frozen `nightly-2026-08-14` toolchain (rustc commit dated 2026-08-13) and produce useful new or changed P1–P6 families from one current `core` scan.
 
 **Architecture:** Make only the known rustc-private API adaptations, preserve analyzer semantics, and validate them against the existing synthetic suites. Run one development `core` scan and compare its families with the historical population using existing family keys plus a conservative exact-source-tree diff. Stop before `alloc`, `std`, a formal protocol, or a generalized dependency-diff framework unless the current `core` result contains a credible high-value signal.
 
-**Tech Stack:** Rust nightly `2026-08-13`, rustc-private MIR APIs, Cargo `-Z build-std`, existing Python no-build tools, Git, JSON/SHA-256, `rapx-perf`, macOS physical-footprint monitoring.
+**Tech Stack:** Rust channel `nightly-2026-08-14`, rustc-private MIR APIs, Cargo `-Z build-std`, existing Python no-build tools, Git, JSON/SHA-256, `rapx-perf`, macOS physical-footprint monitoring.
 
 ---
 
@@ -47,7 +47,7 @@ class CurrentNightlyTargetTests(unittest.TestCase):
         self.assertEqual(set(value["nightly"]), {
             "cargo_commit", "channel", "miri_version", "rustc_commit",
         })
-        self.assertEqual(value["nightly"]["channel"], "nightly-2026-08-13")
+        self.assertEqual(value["nightly"]["channel"], "nightly-2026-08-14")
         self.assertEqual(value["nightly"]["miri_version"],
                          "miri 0.1.0 (ba28ff76f3 2026-08-13)")
         self.assertEqual(value["stable"], {
@@ -90,7 +90,7 @@ Expected: FAIL only because `latest_stdlib_target.json` is missing.
   },
   "nightly": {
     "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
-    "channel": "nightly-2026-08-13",
+    "channel": "nightly-2026-08-14",
     "miri_version": "miri 0.1.0 (ba28ff76f3 2026-08-13)",
     "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b"
   },
@@ -136,15 +136,15 @@ The current probe has 39 errors and log SHA-256 `e0aaff14ed86d9f39e34e108e66961b
 First require the dated alias to resolve to the frozen commit. Installing the alias is allowed only if it resolves exactly; otherwise stop:
 
 ```bash
-rustup toolchain install nightly-2026-08-13 --profile minimal \
+rustup toolchain install nightly-2026-08-14 --profile minimal \
   --component rustc-dev,rust-src,llvm-tools-preview,rustfmt,miri
-rustc +nightly-2026-08-13 -Vv | \
+rustc +nightly-2026-08-14 -Vv | \
   grep 'commit-hash: ba28ff76f353a722f31c4f3dd2ac4e437d36411b'
 ```
 
 ```toml
 [toolchain]
-channel = "nightly-2026-08-13"
+channel = "nightly-2026-08-14"
 components = ["rustc-dev", "rust-src", "llvm-tools-preview", "rustfmt", "miri"]
 ```
 
@@ -373,7 +373,7 @@ Compare current family keys with historical v4 core families. Mark for review:
 
 - every new current family;
 - every family whose sink, first failure, obligation, source kind, or propagation depth differs;
-- every matched family whose source, root, sink, first-failure, or witness span names a relative `library/core` file whose bytes differ between the installed exact `nightly-2024-10-12` and `nightly-2026-08-13` rust-src trees.
+- every matched family whose source, root, sink, first-failure, or witness span names a relative `library/core` file whose bytes differ between the installed exact `nightly-2024-10-12` and `nightly-2026-08-14` rust-src trees.
 
 Compute the changed-file set by relative path and SHA-256 over the two installed trees; do not clone the full `rust-lang/rust` repository and do not attempt function-level dependency reconstruction. Rank the review queue deterministically by: new family first; then P1/raw-read families touching changed files; then other changed-file families; finally `(rule_id, family_id)`. Close at most the first 20 families in this feasibility phase. Record the remainder as `not_reviewed_feasibility_budget` and unchanged matches as `not_reaudited`; neither status is a safety classification or suppression decision. This human-review budget does not truncate RAPx propagation or remove findings.
 
