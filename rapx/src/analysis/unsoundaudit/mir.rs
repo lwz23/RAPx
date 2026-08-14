@@ -2530,6 +2530,9 @@ impl<'tcx> Engine<'tcx> {
             Rvalue::Use(operand) => {
                 ValueModel::Operand(self.normalize_operand(body, operand, point))
             }
+            Rvalue::CopyForDeref(place) => {
+                ValueModel::Operand(self.normalize_place(body, *place, point))
+            }
             Rvalue::Cast(
                 CastKind::PointerCoercion(ty::adjustment::PointerCoercion::Unsize, _),
                 operand,
@@ -2980,10 +2983,17 @@ impl<'tcx> Engine<'tcx> {
                 };
                 let seed_id = format!("{}:{}", rule.as_str(), call.point.span.token());
                 let exact_collection = unique_semantic_value(&call.arg_values[0]);
-                if let Some(obligation) = exact_collection
-                    .as_ref()
-                    .and_then(|collection| range_index_obligation(&call, collection))
-                {
+                let location = call.point.point_location();
+                let relational_obligation = facts
+                    .validation_snapshots
+                    .get(&(location.block, location.statement_index))
+                    .and_then(|snapshot| proven_range_index_obligation(snapshot, &call))
+                    .or_else(|| {
+                        exact_collection
+                            .as_ref()
+                            .and_then(|collection| range_index_obligation(&call, collection))
+                    });
+                if let Some(obligation) = relational_obligation {
                     facts
                         .local_relational_obligations
                         .insert(call.point.clone(), obligation);
@@ -4275,15 +4285,14 @@ fn range_binding_for_pointer(value: &ValueFacts, width: u64) -> Option<Validatio
     ))
 }
 
-fn range_index_obligation(call: &CallSite, collection: &PlaceKey) -> Option<RelationalObligation> {
+fn range_index_obligation_for_base(
+    call: &CallSite,
+    collection: &PlaceKey,
+    base: &PlaceKey,
+) -> Option<RelationalObligation> {
     let kind = call.index_range_kind?;
-    let range = call.arg_values.get(1)?;
-    if range.havoced {
-        return None;
-    }
-    let base = unique_semantic_value(range)?;
     let field = |index| RelationTerm::Projection {
-        base: canonical_storage(&base),
+        base: canonical_storage(base),
         path: vec![ProjectionKey::Field(index)],
     };
     let length = RelationTerm::Length(collection.clone());
@@ -4297,6 +4306,52 @@ fn range_index_obligation(call: &CallSite, collection: &PlaceKey) -> Option<Rela
         base: collection.clone(),
         start,
         end,
+    })
+}
+
+fn range_index_obligation(call: &CallSite, collection: &PlaceKey) -> Option<RelationalObligation> {
+    let range = call.arg_values.get(1)?;
+    if range.havoced {
+        return None;
+    }
+    let base = unique_semantic_value(range)?;
+    range_index_obligation_for_base(call, collection, &base)
+}
+
+fn equivalent_semantic_candidates(
+    snapshot: &ValidationSnapshot,
+    value: &ValueFacts,
+) -> Option<BTreeSet<PlaceKey>> {
+    if value.semantic_unknown || value.havoced {
+        return None;
+    }
+    let candidates = semantic_place_candidates(value);
+    let first = candidates.first()?;
+    let proof = RelationProof::from_facts(snapshot.current_relations.iter().cloned());
+    candidates
+        .iter()
+        .all(|candidate| {
+            proof.proves_same_value(
+                &RelationTerm::Place(first.clone()),
+                &RelationTerm::Place(candidate.clone()),
+            )
+        })
+        .then_some(candidates)
+}
+
+fn proven_range_index_obligation(
+    snapshot: &ValidationSnapshot,
+    call: &CallSite,
+) -> Option<RelationalObligation> {
+    let collections = equivalent_semantic_candidates(snapshot, call.arg_values.first()?)?;
+    let ranges = equivalent_semantic_candidates(snapshot, call.arg_values.get(1)?)?;
+    collections.iter().find_map(|collection| {
+        ranges.iter().find_map(|range| {
+            let obligation = range_index_obligation_for_base(call, collection, range)?;
+            snapshot
+                .proves_relational(&obligation)
+                .then_some(obligation)
+        })
     })
 }
 
@@ -10353,6 +10408,44 @@ mod tests {
         range_to.index_range_kind = Some(RangeIndexKind::To);
         let range_to = range_index_obligation(&range_to, &collection).expect("range-to obligation");
         assert!(ValidationSnapshot::capture(&state, 4).proves_relational(&range_to));
+
+        let collection_alias = PlaceKey::new("_5");
+        let range_alias = PlaceKey::new("_6");
+        seed_exact(&mut state, &collection_alias);
+        seed_exact(&mut state, &range_alias);
+        for relation in [
+            RelationFact::new(RelationKind::Eq(
+                RelationTerm::Place(collection.clone()),
+                RelationTerm::Place(collection_alias.clone()),
+            )),
+            RelationFact::new(RelationKind::Eq(
+                RelationTerm::Place(range.clone()),
+                RelationTerm::Place(range_alias.clone()),
+            )),
+        ] {
+            state.establish(BoundValidation::new(
+                ProofBinding::Relation(relation.clone()),
+                relation_storage_places(&relation),
+            ));
+        }
+        let alias_snapshot = ValidationSnapshot::capture(&state, 6);
+        let mut aliased_call = call.clone();
+        aliased_call.arg_values[0]
+            .exact_roots
+            .insert(collection_alias.clone());
+        aliased_call.arg_values[1]
+            .exact_roots
+            .insert(range_alias.clone());
+        assert!(proven_range_index_obligation(&alias_snapshot, &aliased_call).is_some());
+
+        let unrelated = PlaceKey::new("_7");
+        seed_exact(&mut state, &unrelated);
+        aliased_call.arg_values[0].exact_roots.insert(unrelated);
+        assert!(proven_range_index_obligation(
+            &ValidationSnapshot::capture(&state, 7),
+            &aliased_call,
+        )
+        .is_none());
 
         let wrong_collection = PlaceKey::new("_8");
         seed_exact(&mut state, &wrong_collection);

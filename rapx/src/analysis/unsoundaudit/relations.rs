@@ -260,6 +260,22 @@ impl RelationProof {
             .contains(&RelationKind::Lt(left.clone(), right.clone()))
     }
 
+    pub(super) fn proves_same_value(&self, left: &RelationTerm, right: &RelationTerm) -> bool {
+        left == right
+            || self
+                .relations
+                .contains(&RelationKind::Eq(left.clone(), right.clone()))
+            || self
+                .relations
+                .contains(&RelationKind::Eq(right.clone(), left.clone()))
+            || self
+                .relations
+                .contains(&RelationKind::SameObject(left.clone(), right.clone()))
+            || self
+                .relations
+                .contains(&RelationKind::SameObject(right.clone(), left.clone()))
+    }
+
     pub(super) fn proves_in_bounds(&self, subject: &RelationTerm, collection: &PlaceKey) -> bool {
         self.proves_lt(subject, &RelationTerm::Length(collection.clone()))
     }
@@ -440,6 +456,17 @@ mod tests {
         let proof = RelationProof::from_kinds([RelationKind::Lt(place("i"), length("slice_a"))]);
         assert!(proof.proves_in_bounds(&place("i"), &PlaceKey::new("slice_a")));
         assert!(!proof.proves_in_bounds(&place("i"), &PlaceKey::new("slice_b")));
+    }
+
+    #[test]
+    fn same_value_requires_explicit_equality_or_object_identity() {
+        let proof = RelationProof::from_kinds([
+            RelationKind::Eq(place("alias_a"), place("alias_b")),
+            RelationKind::Le(place("ordered_a"), place("ordered_b")),
+            RelationKind::Le(place("ordered_b"), place("ordered_a")),
+        ]);
+        assert!(proof.proves_same_value(&place("alias_a"), &place("alias_b")));
+        assert!(!proof.proves_same_value(&place("ordered_a"), &place("ordered_b")));
     }
 
     #[test]
