@@ -1,0 +1,19 @@
+{
+  "schema": "rapx-real-project-pilot-inputs-v1",
+  "purpose_zh": "P1-P6 真实项目候选质量 pilot 的冻结抽样输入；不含 RAP 扫描结果。",
+  "files": [
+    {
+      "path": "hybrid500_roster.jsonl",
+      "sha256": "aed1cda65e90bdd47583c93ff955f9e98ab9d3820527fdb5160083d0d92a2372",
+      "records": 500,
+      "source_path_on_linux": "results/tse_iue_external_validation/run_20260806_github_discovery_v3/roster.jsonl"
+    },
+    {
+      "path": "final_bug_instances_v3.jsonl",
+      "sha256": "6be010f88af0cda8532819af12b76a635f552f4c4e706ac0909bf80e1668dd29",
+      "records": 82,
+      "source_path_on_linux": "results/tse_iue_external_validation/run_20260806_github_discovery_v3/production/pattern_reaudit_v3_capability_corrected/final/final_bug_instances_v3.jsonl"
+    }
+  ],
+  "integrity_command": "shasum -a 256 hybrid500_roster.jsonl final_bug_instances_v3.jsonl"
+}
