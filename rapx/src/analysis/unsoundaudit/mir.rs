@@ -3823,6 +3823,8 @@ impl<'tcx> Engine<'tcx> {
                 path.as_str(),
                 "core::slice::iter::Iter"
                     | "core::slice::iter::IterMut"
+                    | "slice::iter::Iter"
+                    | "slice::iter::IterMut"
                     | "std::slice::Iter"
                     | "std::slice::IterMut"
             )
