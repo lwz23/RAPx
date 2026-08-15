@@ -32,14 +32,14 @@
 - Create: `scripts/unsoundaudit-v3/validate_receipt.py`
 - Test: `scripts/unsoundaudit-v3/test_contract.py`
 
-- [ ] Write schema RED tests for closed keys, site-ID uniqueness, census reconciliation, partial lower-bound counts, coverage failures, opaque contracts, and deduplicated code blocks.
-- [ ] Define owned `UnsafeSiteKind`, `UnsafeSiteSeed`, `OperandAnchor`, `ResultAnchor`, `OwnerCensus`, binding status, coverage failure, contract precision, and v3 finding DTOs.
-- [ ] Define `site_id = SHA-256(adapter_id, owner def-path hash, owner-local traversal ordinal, kind)` and reject duplicate IDs.
-- [ ] Define `analysis_status = complete | partial`; any unbound, ambiguous, elided-without-equivalent-event, or collector fault makes the receipt partial.
-- [ ] Define `contract_precision = precise | generic | opaque` independently from binding and analysis status.
-- [ ] Preserve observed partial findings but mark observed counts as lower bounds; validators must reject presentation of partial zero as complete zero.
-- [ ] Keep v1/v2 schemas and validators byte-for-byte unchanged after Task 0.
-- [ ] Run focused Rust/Python tests, `git diff --check`, and commit.
+- [x] Write schema RED tests for closed keys, site-ID uniqueness, census reconciliation, partial lower-bound counts, coverage failures, opaque contracts, and deduplicated code blocks.
+- [x] Define owned `UnsafeSiteKind`, `UnsafeSiteSeed`, `OperandAnchor`, `ResultAnchor`, `OwnerCensus`, binding status, coverage failure, contract precision, and v3 finding DTOs.
+- [x] Define `site_id = SHA-256(adapter_id, owner def-path hash, owner-local traversal ordinal, kind)` and reject duplicate IDs.
+- [x] Define `analysis_status = complete | partial`; any unbound, ambiguous, elided-without-equivalent-event, or collector fault makes the receipt partial.
+- [x] Define `contract_precision = precise | generic | opaque` independently from binding and analysis status.
+- [x] Preserve observed partial findings but mark observed counts as lower bounds; validators must reject presentation of partial zero as complete zero.
+- [x] Keep v1/v2 schemas and validators byte-for-byte unchanged after Task 0.
+- [x] Run focused Rust/Python tests, `git diff --check`, and commit.
 
 ### Task 2: Add exact toolchain adapter manifests and census store
 

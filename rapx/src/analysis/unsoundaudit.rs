@@ -4,6 +4,7 @@ mod perf_trace;
 mod relations;
 mod stdlib_suppressions;
 mod summary;
+mod unsafe_site;
 
 use crate::utils::unit_output::{
     atomic_write, build_verification_receipt_from_environment, embedded_rap_compiler_commit,
