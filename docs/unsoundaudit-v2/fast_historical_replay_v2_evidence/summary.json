@@ -1,0 +1,299 @@
+{
+  "analyzer": {
+    "base_commit": "6f00b777ea80080cf5a8aede8ab5beb7606f65c5",
+    "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+    "historical_scan_cargo_rapx_sha256": "34dd731bbd4db49187fd1a54451437437512a1ae7645265f9c2f47e00283a191",
+    "historical_scan_mir_rs_sha256": "8f5d8d9b90682a90fb18acd31d1db71f03f554b63e8ee6d1cdbcb420df198a71",
+    "historical_scan_rapx_sha256": "6434fbecc2c04c3868dbb43d41fc5a6a6c7d357457f407b108d5db5506b7b744",
+    "final_validation_cargo_rapx_sha256": "f133ba46a2c809793f347499fa74940e17b163f93e7a9f1acc5e889069eedfac",
+    "final_validation_mir_rs_sha256": "e3b5e74a2a2aba9331b7c110b3eed1551bd23155d43d4d25258594cea0ccee09",
+    "final_validation_rapx_sha256": "a9c58c89dea361fd437c56638d9459d261d4615060ee840abfa5bece60428848",
+    "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+    "summary_rs_sha256": "a085164d8313a23d917740bfae8f669631680be16f65ad55f5f7ffd7e8b27dd1"
+  },
+  "cases": [
+    {
+      "capability_tier": "existing_rule",
+      "case_id": 1,
+      "fixed": {"status": "invalid_input"},
+      "package": "smallvec",
+      "pre_fix": {"status": "invalid_input"},
+      "repo_issue": "servo/rust-smallvec #343"
+    },
+    {
+      "capability_tier": "existing_rule",
+      "case_id": 2,
+      "expected_rule_id": "P3.unchecked_utf8",
+      "fixed": {
+        "elapsed_seconds": 186.696,
+        "expected_rule_finding_count": 0,
+        "finding_count": 0,
+        "lock_sha256": "47e5d7113fc415339bcf5c73cdb4ef0254964669072eb7c86c6e43e5adef00a3",
+        "max_physical_footprint_bytes": 2646724592,
+        "outcome": "fixed_clean",
+        "source_commit": "3cb216edcaab67b5de9ccc97cdcf2468a466f0d7",
+        "status": "success"
+      },
+      "package": "gix-attributes",
+      "pre_fix": {
+        "elapsed_seconds": 182.825,
+        "expected_rule_finding_count": 2,
+        "finding_count": 2,
+        "lock_sha256": "47e5d7113fc415339bcf5c73cdb4ef0254964669072eb7c86c6e43e5adef00a3",
+        "max_physical_footprint_bytes": 2642890760,
+        "outcome": "detected",
+        "source_commit": "a807dd1ffb05efd177700d065095249e6c4b3c68",
+        "status": "success",
+        "target_finding_ids": [
+          "d29282d8703a37051d2ba5f7bf1002273d05668ec077ff356f0a12ed5911afd6",
+          "fee9844314f2f23ccefa9034cf832afb72413939425d093587cf76f142d4fb2f"
+        ]
+      },
+      "repo_issue": "GitoxideLabs/gitoxide #1460",
+      "vulnerable_path": "gix-attributes/src/state.rs"
+    },
+    {
+      "capability_tier": "out_of_scope",
+      "case_id": 3,
+      "expected_rule_id": "P2.union_field_validity",
+      "fixed": {
+        "elapsed_seconds": 3.445,
+        "expected_rule_finding_count": 0,
+        "finding_count": 0,
+        "lock_sha256": "d16b380a617237732b42b61572734e475ee1ba8b13045010241712954a0bd2d6",
+        "max_physical_footprint_bytes": 118393064,
+        "outcome": "fixed_clean",
+        "source_commit": "6faa521f32fc11db9fc43a248a64463ce288b48d",
+        "status": "success"
+      },
+      "package": "libc",
+      "pre_fix": {
+        "elapsed_seconds": 3.224,
+        "expected_rule_finding_count": 0,
+        "finding_count": 0,
+        "lock_sha256": "d16b380a617237732b42b61572734e475ee1ba8b13045010241712954a0bd2d6",
+        "max_physical_footprint_bytes": 113592528,
+        "outcome": "validated_out_of_scope",
+        "source_commit": "96ed9c65448a9f9f5c9095bf537435ffecff627a",
+        "status": "success"
+      },
+      "repo_issue": "rust-lang/libc #3560",
+      "vulnerable_path": "src/unix/bsd/apple/mod.rs"
+    },
+    {
+      "capability_tier": "general_extension",
+      "case_id": 4,
+      "expected_rule_id": "P3.assume_init_uninitialized",
+      "fixed": {
+        "elapsed_seconds": 11.731,
+        "expected_rule_finding_count": 0,
+        "finding_count": 0,
+        "generated_lock": true,
+        "lock_sha256": "0fe398b85ab2455b2f7ffc62a1fc3ac0c102e0795c9189cfa6190d75b98c6200",
+        "max_physical_footprint_bytes": 95012952,
+        "outcome": "fixed_clean",
+        "source_commit": "a96f71a84d108f9b7506908b8e1c5da9524bc4da",
+        "status": "success"
+      },
+      "package": "lru",
+      "pre_fix": {
+        "elapsed_seconds": 11.233,
+        "expected_rule_finding_count": 6,
+        "finding_count": 6,
+        "generated_lock": true,
+        "lock_sha256": "0fe398b85ab2455b2f7ffc62a1fc3ac0c102e0795c9189cfa6190d75b98c6200",
+        "max_physical_footprint_bytes": 96225392,
+        "outcome": "detected",
+        "source_commit": "53f53f6e762405be5a73ca87becb25d308e9d34b",
+        "status": "success",
+        "target_finding_ids": [
+          "13acea256fd4dd3dfea1a5a8f02e7ba63ad589cfcd2044b7f38c6a4809c1e72e",
+          "5aa4b05d82e2a467a23b70c25768fbdeb8ec0507f2d4472e53d7818df9ba2af5",
+          "671ac66247cc4de06e6e7fb7517c2bef3b19bf78ef5c09f850a7880f47236f00",
+          "75d5a72dc6e8532e00e7560d7f0b96bc3f7e5b8aba6565cec0bc57621fcc6000",
+          "adef1eedc9e1ec7dfc36163c7169a7eb6c04c0a622144b008c38c3ef3758cb57",
+          "b514eb07abe5eee7acecbbc9788a68ce48b81d4f9a47c8a521e620a7eebdcff8"
+        ]
+      },
+      "repo_issue": "jeromefroe/lru-rs #73",
+      "vulnerable_path": "src/lib.rs"
+    },
+    {
+      "capability_tier": "out_of_scope",
+      "case_id": 5,
+      "fixed": {"status": "invalid_input"},
+      "package": "http",
+      "pre_fix": {"status": "invalid_input"},
+      "repo_issue": "hyperium/http #639"
+    },
+    {
+      "capability_tier": "existing_rule",
+      "case_id": 6,
+      "fixed": {"status": "invalid_input"},
+      "package": "bumpalo",
+      "pre_fix": {"status": "invalid_input"},
+      "repo_issue": "fitzgen/bumpalo #164"
+    },
+    {
+      "capability_tier": "out_of_scope",
+      "case_id": 7,
+      "expected_rule_id": "P1.raw_read",
+      "fixed": {
+        "elapsed_seconds": 1.485,
+        "expected_rule_finding_count": 0,
+        "finding_count": 2,
+        "lock_sha256": "822f7eef9cdf5962e17519a76137ddeb5b49b16c32ab47a2c70d518f39a5e105",
+        "max_physical_footprint_bytes": 73648288,
+        "outcome": "fixed_clean",
+        "source_commit": "0c0f9311bbce0c41a6705db2b0957ff772111ce7",
+        "status": "success"
+      },
+      "package": "rand_core",
+      "pre_fix": {
+        "elapsed_seconds": 1.258,
+        "expected_rule_finding_count": 0,
+        "finding_count": 2,
+        "lock_sha256": "822f7eef9cdf5962e17519a76137ddeb5b49b16c32ab47a2c70d518f39a5e105",
+        "max_physical_footprint_bytes": 74483872,
+        "outcome": "validated_out_of_scope",
+        "source_commit": "9828cdf0201f816e4e4bff07834d849a10be80e9",
+        "status": "success"
+      },
+      "repo_issue": "rust-random/rand #779",
+      "vulnerable_path": "rand_core/src/block.rs"
+    },
+    {
+      "capability_tier": "existing_rule",
+      "case_id": 8,
+      "expected_rule_id": "P4.bounds",
+      "fixed": {
+        "elapsed_seconds": 1.471,
+        "expected_rule_finding_count": 0,
+        "finding_count": 0,
+        "lock_sha256": "7e957900fc1e38a217cfb72b5f0916332c876067bfeb7ec9ea735a81cb066ebd",
+        "max_physical_footprint_bytes": 64424048,
+        "outcome": "fixed_clean",
+        "source_commit": "9b9a89f0557b2a3d701e3cd3c37ce35773d7d494",
+        "status": "success"
+      },
+      "package": "rand_core",
+      "pre_fix": {
+        "elapsed_seconds": 1.524,
+        "expected_rule_finding_count": 2,
+        "finding_count": 2,
+        "lock_sha256": "7e957900fc1e38a217cfb72b5f0916332c876067bfeb7ec9ea735a81cb066ebd",
+        "max_physical_footprint_bytes": 65669232,
+        "outcome": "detected",
+        "source_commit": "54e219d7b269ae9e2440193938958870051d5716",
+        "status": "success",
+        "target_finding_ids": [
+          "0cf511b4032da27ea049ecdac80e5d595124f0e28f3a078b49ea55e4247a737f",
+          "6afb3a8d4c8232a6284fa8746799e988b8fdd6dd36b4c183051656f708fd27f1"
+        ]
+      },
+      "repo_issue": "rust-random/rand #1158",
+      "vulnerable_path": "rand_core/src/block.rs"
+    },
+    {
+      "capability_tier": "out_of_scope",
+      "case_id": 9,
+      "expected_rule_id": "P6.ffi_out_invalid_value",
+      "features": ["socket"],
+      "fixed": {
+        "elapsed_seconds": 10.931,
+        "expected_rule_finding_count": 0,
+        "finding_count": 2,
+        "lock_sha256": "ba3d52528a7e712c8305f1916e38827d5b977d4cc8e477b9a12faeec763ff1a1",
+        "max_physical_footprint_bytes": 339429776,
+        "outcome": "fixed_clean",
+        "source_commit": "8e91b28b64bdd18fc6fa61af8e89947ad7fb97bf",
+        "status": "success"
+      },
+      "package": "nix",
+      "pre_fix": {
+        "elapsed_seconds": 11.443,
+        "expected_rule_finding_count": 0,
+        "finding_count": 2,
+        "lock_sha256": "ba3d52528a7e712c8305f1916e38827d5b977d4cc8e477b9a12faeec763ff1a1",
+        "max_physical_footprint_bytes": 339806560,
+        "outcome": "validated_out_of_scope",
+        "source_commit": "12fb35434f04dccf941c3e1e52fb98df6cea41e6",
+        "status": "success"
+      },
+      "repo_issue": "nix-rust/nix #1819",
+      "vulnerable_path": "src/sys/socket/sockopt.rs"
+    },
+    {
+      "capability_tier": "out_of_scope",
+      "case_id": 10,
+      "expected_rule_id": "P6.ffi_out_param",
+      "features": ["sqlite"],
+      "fixed": {
+        "elapsed_seconds": 322.693,
+        "expected_rule_finding_count": 0,
+        "finding_count": 1,
+        "lock_sha256": "ce79caf8e4c75feee326e6ce61019ac7c9506149689eee35b3529ad791840779",
+        "max_physical_footprint_bytes": 1996017264,
+        "outcome": "fixed_clean",
+        "source_commit": "49aa163f1a9c793da6d591e10481fbfb6c044b51",
+        "status": "success"
+      },
+      "package": "diesel",
+      "pre_fix": {
+        "elapsed_seconds": 329.761,
+        "expected_rule_finding_count": 0,
+        "finding_count": 1,
+        "lock_sha256": "ce79caf8e4c75feee326e6ce61019ac7c9506149689eee35b3529ad791840779",
+        "max_physical_footprint_bytes": 1660669480,
+        "outcome": "validated_out_of_scope",
+        "source_commit": "08911c8420f4e2ff732a3b263a5a4f3df0f745d2",
+        "status": "success",
+        "unrelated_finding": {
+          "finding_id": "2788ab6c0299624679e16aa7b511fe568f70177d7e4cd376195316f2670aec42",
+          "first_failure_path": "diesel/src/sqlite/connection/raw.rs",
+          "rule_id": "P6.ffi_out_param"
+        }
+      },
+      "repo_issue": "diesel-rs/diesel #4223",
+      "vulnerable_path": "diesel/src/sqlite/connection/stmt.rs"
+    }
+  ],
+  "classification_counts": {
+    "detected": 3,
+    "input_invalid": 3,
+    "not_run": 0,
+    "out_of_scope": 4,
+    "partial": 0,
+    "successful_zero": 0
+  },
+  "in_scope_recall": {
+    "denominator": 3,
+    "detected": 3,
+    "rate": 1.0
+  },
+  "inputs": {
+    "case_manifest_sha256": "f18b37420cdacd672d753e3280debf0b9b14a18cff56ddcaab8cad1f2f254344",
+    "new_schema_sha256": "2c78f54466fa3de5b133fb5cb546b71029a95ed91cc202b7a5e95c3ab1fc2bbc",
+    "old_schema_sha256": "7fa374f7ddff0799fec22cb098b0525d2ca87cab5d623a304b6ebd45b166418c",
+    "runner_sha256": "942f9ad4aacbd1f5f075caf389a147157dabd266978832d0f058ae0506ff4c93"
+  },
+  "limits": {
+    "physical_footprint_bytes": 8589934592,
+    "wall_seconds_per_package": 900
+  },
+  "schema": "rapx-fast-historical-replay-evidence-v2",
+  "verification": {
+    "challenge_27_normalized_sha256": "33ca7788b5f52aa264285929395fecfb69afa5ac6c8e56f478163b1cd9b483f6",
+    "challenge_27_two_runs_byte_identical": true,
+    "current_nightly_compile_check": "passed",
+    "full_rust_test_count": 168,
+    "full_rust_test_log_sha256": "32fa462430f27761715f0b214592662f59b85db0173301f24ab3526acdb6418f",
+    "gitoxide_final_fixed_result_sha256": "5bff9d26deae828a08a72f7d507323d70131a054677bc738261a7b81d4cd6842",
+    "gitoxide_final_pre_fix_result_sha256": "be0262e340248fd97e0cdae60c549050a5167c64f04b40bc06dd1dce8c30c86b",
+    "guard_nonnull_match_negative": "passed_with_zero_findings",
+    "original_27_normalized_sha256": "3fa14cafd01a58b17a57094ae4c785d4dda306835adcb433219245e102edc0aa",
+    "original_27_two_runs_byte_identical": true,
+    "profile_equivalence_newly_rerun": false,
+    "v1_evidence_byte_immutable": true
+  }
+}

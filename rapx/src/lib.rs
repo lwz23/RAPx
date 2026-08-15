@@ -6,6 +6,7 @@ pub mod utils;
 pub mod analysis;
 
 extern crate rustc_abi;
+#[rustversion::since(1.96)]
 extern crate rustc_attr_ir;
 extern crate rustc_data_structures;
 extern crate rustc_driver;

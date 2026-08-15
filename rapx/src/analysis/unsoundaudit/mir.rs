@@ -17,26 +17,96 @@ use super::summary::{
     StableSpan, UnresolvedPredecessor, UnresolvedRouteCycle, UnresolvedRouteFact,
     UnresolvedRouteNode, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
+#[rustversion::since(1.96)]
 use rustc_abi::ExternAbi;
+#[rustversion::since(1.96)]
 use rustc_attr_ir::lang_items::LangItem;
+#[rustversion::since(1.96)]
+use rustc_hir::ConstContext;
+#[rustversion::before(1.96)]
+use rustc_hir::LangItem;
 use rustc_hir::{
     def::DefKind,
     def_id::{DefId, LocalDefId, LOCAL_CRATE},
-    ConstContext, Mutability, Safety,
+    Mutability, Safety,
 };
 use rustc_index::IndexVec;
+#[rustversion::before(1.96)]
+use rustc_middle::mir::tcx::PlaceTy;
+#[rustversion::since(1.96)]
+use rustc_middle::mir::PlaceTy;
 use rustc_middle::{
     middle::privacy::Level,
     mir::{
-        AggregateKind, BasicBlock, BinOp, Body, CastKind, Location, Operand, Place, PlaceTy,
-        ProjectionElem, Rvalue, StatementKind, TerminatorKind, UnOp, RETURN_PLACE,
+        AggregateKind, BasicBlock, BinOp, Body, CastKind, Const as MirConst, Location, Operand,
+        Place, ProjectionElem, Rvalue, StatementKind, TerminatorKind, UnOp, RETURN_PLACE,
     },
-    ty::{self, Instance, InstanceKind, TyCtxt, TypeVisitableExt},
+    ty::{self, Instance, InstanceKind, Ty, TyCtxt, TypeVisitableExt},
 };
-use rustc_span::{sym, Span, Spanned, Symbol};
+#[rustversion::before(1.96)]
+use rustc_span::source_map::Spanned;
+use rustc_span::{sym, Span};
+#[rustversion::before(1.96)]
+use rustc_span::{FileName, FileNameDisplayPreference};
+#[rustversion::since(1.96)]
+use rustc_span::{FileName, Spanned, Symbol};
+#[rustversion::before(1.96)]
+use rustc_target::spec::abi::Abi;
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+
+const CANDIDATE_LIFECYCLE_TRACE_ENV: &str = "UNSOUND_SCANNER_CANDIDATE_LIFECYCLE_TRACE";
+
+type CandidateLifecycleEvent = BTreeMap<String, serde_json::Value>;
+
+fn candidate_lifecycle_event(
+    stage: &str,
+    owner: &FunctionKey,
+    requirement: &ContractRequirement,
+) -> CandidateLifecycleEvent {
+    BTreeMap::from([
+        ("stage".into(), stage.into()),
+        ("owner".into(), owner.0.clone().into()),
+        ("rule_id".into(), requirement.rule.as_str().into()),
+        ("seed_id".into(), requirement.seed_id.clone().into()),
+        (
+            "subject".into(),
+            format!("{:?}", requirement.subject.origins).into(),
+        ),
+        (
+            "return_exposure".into(),
+            requirement.return_exposure.into(),
+        ),
+    ])
+}
+
+fn write_candidate_lifecycle_trace(events: &[CandidateLifecycleEvent]) -> Result<(), String> {
+    let Some(path) = env::var_os(CANDIDATE_LIFECYCLE_TRACE_ENV) else {
+        return Ok(());
+    };
+    if path.is_empty() {
+        return Err(format!("{CANDIDATE_LIFECYCLE_TRACE_ENV} is empty"));
+    }
+    let path = PathBuf::from(path);
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .map_err(|error| format!("create candidate lifecycle trace {}: {error}", path.display()))?;
+    for event in events {
+        serde_json::to_writer(&mut output, event)
+            .map_err(|error| format!("serialize candidate lifecycle trace: {error}"))?;
+        output
+            .write_all(b"\n")
+            .map_err(|error| format!("write candidate lifecycle trace: {error}"))?;
+    }
+    output
+        .flush()
+        .map_err(|error| format!("flush candidate lifecycle trace: {error}"))
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct LengthAtom {
@@ -898,6 +968,7 @@ enum ValueModel {
         known_length: Option<u64>,
     },
     RefOrRaw(OperandModel),
+    PointerCast(OperandModel),
     Discriminant(OperandModel),
     Length(OperandModel),
     Compare {
@@ -926,6 +997,7 @@ struct CallModel {
     mutable_actuals: Vec<PlaceKey>,
     ffi_out_actuals: Vec<PlaceKey>,
     destination_is_bool: bool,
+    destination_restricted: bool,
     access_width: Option<u64>,
     legacy_write: bool,
     destination_out_formal: Option<u32>,
@@ -944,6 +1016,10 @@ struct CallDescriptor {
 enum RegistryValueModel {
     Empty,
     MaybeUninit(bool),
+    AssumeInit {
+        source: OperandModel,
+        restricted_target: bool,
+    },
     Length(OperandModel),
     SliceIterator(OperandModel),
     SlicePosition(OperandModel),
@@ -1021,6 +1097,7 @@ struct CallSite {
     destination: PlaceKey,
     point: ProgramPoint,
     destination_is_bool: bool,
+    destination_restricted: bool,
     access_width: Option<u64>,
     index_range_kind: Option<RangeIndexKind>,
 }
@@ -1458,6 +1535,152 @@ impl<'tcx> Engine<'tcx> {
             [("summary_count", solved.len() as u64)],
         )?;
         let seeds = self.summary_seeds();
+        let lifecycle_enabled = env::var_os(CANDIDATE_LIFECYCLE_TRACE_ENV).is_some();
+        let mut candidate_lifecycle = if lifecycle_enabled {
+            self.bodies
+                .iter()
+                .flat_map(|(owner, facts)| {
+                    facts
+                        .summary_seed
+                        .requirements
+                        .iter()
+                        .map(|requirement| {
+                            let mut event =
+                                candidate_lifecycle_event("body_seed", owner, requirement);
+                            event.insert("body_included".into(), true.into());
+                            event.insert("dangerous_call_recognized".into(), true.into());
+                            event.insert("requirement_generated".into(), true.into());
+                            let point = requirement.sink.point.point_location();
+                            let binding = facts.local_bindings.get(&requirement.sink.point);
+                            let snapshot = facts
+                                .validation_snapshots
+                                .get(&(point.block, point.statement_index));
+                            event.insert(
+                                "local_binding".into(),
+                                format!("{binding:?}").into(),
+                            );
+                            event.insert(
+                                "validation_snapshot".into(),
+                                format!("{snapshot:?}").into(),
+                            );
+                            event.insert(
+                                "snapshot_proves_binding".into(),
+                                snapshot
+                                    .zip(binding)
+                                    .is_some_and(|(snapshot, binding)| snapshot.proves(binding))
+                                    .into(),
+                            );
+                            event.insert(
+                                "predicate_facts".into(),
+                                format!("{:?}", facts.predicates).into(),
+                            );
+                            event
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        for (owner, facts) in self.bodies.iter().filter(|_| lifecycle_enabled) {
+            for relation in &facts.summary_seed.relational_postconditions {
+                if !matches!(relation.relation, SummaryRelationKind::SameObject(_, _)) {
+                    continue;
+                }
+                candidate_lifecycle.push(BTreeMap::from([
+                    ("stage".into(), "relation_summary".into()),
+                    ("owner".into(), owner.0.clone().into()),
+                    ("relation".into(), format!("{relation:?}").into()),
+                ]));
+            }
+            for call in facts
+                .calls
+                .iter()
+                .filter(|call| call.disposition == BoundaryDisposition::ExactFfiOut)
+            {
+                candidate_lifecycle.push(BTreeMap::from([
+                    ("stage".into(), "ffi_boundary".into()),
+                    ("owner".into(), owner.0.clone().into()),
+                    ("point".into(), call.point.span.token().into()),
+                    (
+                        "actual_exact_roots".into(),
+                        format!(
+                            "{:?}",
+                            call.arg_values
+                                .iter()
+                                .map(|value| &value.exact_roots)
+                                .collect::<Vec<_>>()
+                        )
+                        .into(),
+                    ),
+                    (
+                        "actual_value_flow".into(),
+                        format!(
+                            "{:?}",
+                            call.arg_values
+                                .iter()
+                                .map(|value| &value.value_flow)
+                                .collect::<Vec<_>>()
+                        )
+                        .into(),
+                    ),
+                ]));
+            }
+        }
+        for (owner, facts) in self.bodies.iter().filter(|_| lifecycle_enabled) {
+            for call in &facts.calls {
+                if call.disposition != BoundaryDisposition::ResolvedLocal {
+                    continue;
+                }
+                let Some(callee) = call.callee.as_ref() else {
+                    continue;
+                };
+                let Some(callee_facts) = self.bodies.get(callee) else {
+                    continue;
+                };
+                let actuals = call
+                    .arg_values
+                    .iter()
+                    .map(|value| value.value.clone())
+                    .collect::<Vec<_>>();
+                for requirement in callee_facts
+                    .summary_seed
+                    .requirements
+                    .iter()
+                    .filter(|requirement| requirement.rule == RuleId::P6FfiOutInvalidValue)
+                {
+                    let mut instantiated = requirement.clone();
+                    instantiated.subject = instantiated.subject.substitute(&actuals);
+                    let mut event =
+                        candidate_lifecycle_event("call_boundary", owner, &instantiated);
+                    event.insert("callee".into(), callee.0.clone().into());
+                    event.insert(
+                        "destination_restricted".into(),
+                        call.destination_restricted.into(),
+                    );
+                    event.insert(
+                        "actual_ffi_output".into(),
+                        call.arg_values
+                            .iter()
+                            .map(|value| value.ffi_output)
+                            .collect::<Vec<_>>()
+                            .into(),
+                    );
+                    event.insert(
+                        "actual_origins".into(),
+                        format!(
+                            "{:?}",
+                            call.arg_values
+                                .iter()
+                                .map(|value| &value.value.origins)
+                                .collect::<Vec<_>>()
+                        )
+                        .into(),
+                    );
+                    candidate_lifecycle.push(event);
+                }
+            }
+        }
 
         trace.event(
             "finding_materialize",
@@ -1484,18 +1707,32 @@ impl<'tcx> Engine<'tcx> {
                 )
                 .collect::<BTreeSet<_>>();
             for requirement in &unresolved {
-                if requirement.return_exposure
+                let return_exposure_pass = !(requirement.return_exposure
                     && summary
                         .return_value
                         .origins
-                        .is_disjoint(&requirement.subject.origins)
-                {
+                        .is_disjoint(&requirement.subject.origins));
+                let source = return_exposure_pass
+                    .then(|| self.classify_source(facts, requirement))
+                    .flatten();
+                let discharged = self.is_discharged(facts, requirement);
+                if lifecycle_enabled {
+                    let mut lifecycle =
+                        candidate_lifecycle_event("root_classification", root, requirement);
+                    lifecycle.insert("public_safe_root".into(), true.into());
+                    lifecycle.insert("deduplicated".into(), true.into());
+                    lifecycle.insert("return_exposure_pass".into(), return_exposure_pass.into());
+                    lifecycle.insert("source_classified".into(), source.is_some().into());
+                    lifecycle.insert("locally_discharged".into(), discharged.into());
+                    candidate_lifecycle.push(lifecycle);
+                }
+                if !return_exposure_pass {
                     continue;
                 }
-                let Some(source) = self.classify_source(facts, requirement) else {
+                let Some(source) = source else {
                     continue;
                 };
-                if self.is_discharged(facts, requirement) {
+                if discharged {
                     continue;
                 }
                 let roots = unresolved_routes_for_requirement(root, summary, requirement);
@@ -1514,8 +1751,14 @@ impl<'tcx> Engine<'tcx> {
                     witness,
                 };
                 findings.push(self.finding(root, facts, selected));
+                if lifecycle_enabled {
+                    let mut lifecycle = candidate_lifecycle_event("emission", root, requirement);
+                    lifecycle.insert("emitted".into(), true.into());
+                    candidate_lifecycle.push(lifecycle);
+                }
             }
         }
+        write_candidate_lifecycle_trace(&candidate_lifecycle)?;
         trace.event(
             "finding_materialize",
             "end",
@@ -1661,6 +1904,12 @@ impl<'tcx> Engine<'tcx> {
                         .collection
                         .as_ref()
                         .map(|value| value.substitute(&actuals));
+                    if !p6_requirement_matches_call_destination(
+                        &caller_requirement,
+                        call.destination_restricted,
+                    ) {
+                        continue;
+                    }
                     propagate_unresolved_route(
                         &mut derived,
                         node,
@@ -1744,8 +1993,9 @@ impl<'tcx> Engine<'tcx> {
                 let Some(program) = self.programs.get(caller_key) else {
                     continue;
                 };
+                let output_mapping = boundary.mapping.clone();
                 let mut mapped = map_structured_local_outputs(
-                    &boundary.mapping,
+                    &output_mapping,
                     summary,
                     &actuals,
                     &program.out_formals,
@@ -1754,7 +2004,7 @@ impl<'tcx> Engine<'tcx> {
                 let (relations, conditional_relations) = instantiate_relational_postconditions(
                     &summary.relational_postconditions,
                     call,
-                    &boundary.mapping,
+                    &output_mapping,
                 );
                 mapped.relations.extend(relations);
                 mapped.conditional_relations.extend(conditional_relations);
@@ -1816,11 +2066,7 @@ impl<'tcx> Engine<'tcx> {
             .filter(|id| {
                 let did = id.to_def_id();
                 let kind = self.tcx.def_kind(did);
-                matches!(kind, DefKind::Fn | DefKind::AssocFn)
-                    && supports_optimized_mir_body(
-                        kind,
-                        self.tcx.hir_body_const_context(*id),
-                    )
+                supports_local_optimized_mir_body(self.tcx, *id, kind)
                     && self.tcx.is_mir_available(did)
             })
             .collect::<Vec<_>>();
@@ -2041,7 +2287,7 @@ impl<'tcx> Engine<'tcx> {
             .out_dependencies
             .extend(reachable_out_dependencies(
                 &program.edges,
-                program.out_formals.values().copied(),
+                (1..=program.arg_count).map(|index| index as u32),
                 &solved,
                 definite_outs,
             ));
@@ -2217,6 +2463,30 @@ impl<'tcx> Engine<'tcx> {
                     .iter()
                     .map(|operand| operand.operand.clone())
                     .collect::<Vec<_>>();
+                let p6_assume_init = match &call.value {
+                    RegistryValueModel::AssumeInit {
+                        restricted_target,
+                        ..
+                    } => *restricted_target,
+                    _ => false,
+                };
+                if normal_edge_state.is_some() && p6_assume_init {
+                    if let Some(subject) = descriptor
+                        .args
+                        .first()
+                        .zip(arg_values.first())
+                        .and_then(|(_, value)| ffi_invalid_value_subject(value))
+                    {
+                        facts
+                            .summary_seed
+                            .requirements
+                            .insert(ffi_invalid_value_requirement(
+                            &facts.function,
+                            operation.semantic_point(),
+                            subject,
+                        ));
+                    }
+                }
                 facts.calls.push(CallSite {
                     callee: descriptor.callee.clone(),
                     raw_def: descriptor.raw_def,
@@ -2226,6 +2496,7 @@ impl<'tcx> Engine<'tcx> {
                     destination: descriptor.destination.clone(),
                     point: operation.semantic_point().clone(),
                     destination_is_bool: call.destination_is_bool,
+                    destination_restricted: call.destination_restricted,
                     access_width: call.access_width,
                     index_range_kind: descriptor
                         .args
@@ -2508,10 +2779,7 @@ impl<'tcx> Engine<'tcx> {
             function: function.clone(),
             root_span: self.stable_span(self.tcx.def_span(caller))?,
             arg_count: body.arg_count,
-            has_self: self
-                .tcx
-                .opt_associated_item(caller)
-                .is_some_and(|item| item.is_method()),
+            has_self: associated_item_has_self(self.tcx, caller),
             out_formals: body
                 .args_iter()
                 .filter(|arg| is_mutable_call_actual(body.local_decls[*arg].ty))
@@ -2537,84 +2805,95 @@ impl<'tcx> Engine<'tcx> {
         legacy_write: bool,
     ) -> AssignmentModel {
         let destination_key = place_key(destination);
-        let value = match rvalue {
-            Rvalue::Use(operand, _) => {
-                ValueModel::Operand(self.normalize_operand(body, operand, point))
-            }
-            Rvalue::CopyForDeref(place) => {
-                ValueModel::Operand(self.normalize_place(body, *place, point))
-            }
-            Rvalue::Cast(
-                CastKind::PointerCoercion(ty::adjustment::PointerCoercion::Unsize, _),
-                operand,
-                _,
-            ) => ValueModel::Unsize {
-                operand: self.normalize_operand(body, operand, point),
-                known_length: match operand.ty(&body.local_decls, self.tcx).kind() {
-                    ty::Ref(_, inner, _) => match inner.kind() {
-                        ty::Array(_, length) => length.try_to_target_usize(self.tcx),
+        let value = if let Some(operand) = rvalue_use_operand(rvalue) {
+            ValueModel::Operand(self.normalize_operand(body, operand, point))
+        } else if let Some(place) = rvalue_len_place(rvalue) {
+            ValueModel::Length(self.normalize_place(body, place, point))
+        } else {
+            match rvalue {
+                Rvalue::CopyForDeref(place) => {
+                    ValueModel::Operand(self.normalize_place(body, *place, point))
+                }
+                Rvalue::Cast(
+                    CastKind::PointerCoercion(ty::adjustment::PointerCoercion::Unsize, _),
+                    operand,
+                    _,
+                ) => ValueModel::Unsize {
+                    operand: self.normalize_operand(body, operand, point),
+                    known_length: match operand.ty(&body.local_decls, self.tcx).kind() {
+                        ty::Ref(_, inner, _) => match inner.kind() {
+                            ty::Array(_, length) => target_usize_from_const(self.tcx, *length),
+                            _ => None,
+                        },
                         _ => None,
                     },
-                    _ => None,
                 },
-            },
-            Rvalue::Cast(_, _, _) => ValueModel::Unknown,
-            Rvalue::Ref(_, _, place) | Rvalue::RawPtr(_, place) => {
-                let mut operand = self.normalize_place(body, *place, point);
-                if matches!(place.projection.as_ref(), [ProjectionElem::Deref]) {
-                    operand.pure_deref_base = Some(place_key(Place::from(place.local)));
-                    operand.exact_projection = None;
-                    operand.projection_unknown = false;
+                Rvalue::Cast(_, operand, target)
+                    if matches!(operand.ty(&body.local_decls, self.tcx).kind(), ty::RawPtr(..))
+                        && matches!(target.kind(), ty::RawPtr(..)) =>
+                {
+                    ValueModel::PointerCast(self.normalize_operand(body, operand, point))
                 }
-                ValueModel::RefOrRaw(operand)
-            }
-            Rvalue::UnaryOp(UnOp::PtrMetadata, operand) => operand
-                .place()
-                .map(|place| ValueModel::Length(self.normalize_place(body, place, point)))
-                .unwrap_or(ValueModel::Unknown),
-            Rvalue::Discriminant(place) => {
-                ValueModel::Discriminant(self.normalize_place(body, *place, point))
-            }
-            Rvalue::BinaryOp(op, operands) => {
-                let left = self.normalize_operand(body, &operands.0, point);
-                let right = self.normalize_operand(body, &operands.1, point);
-                if *op == BinOp::AddWithOverflow {
-                    ValueModel::CheckedBinary {
-                        op: BinOp::Add,
-                        left,
-                        right,
+                Rvalue::Cast(_, _, _) => ValueModel::Unknown,
+                Rvalue::Ref(_, _, place) | Rvalue::RawPtr(_, place) => {
+                    let mut operand = self.normalize_place(body, *place, point);
+                    if matches!(place.projection.as_ref(), [ProjectionElem::Deref]) {
+                        operand.pure_deref_base = Some(place_key(Place::from(place.local)));
+                        operand.exact_projection = None;
+                        operand.projection_unknown = false;
                     }
-                } else {
-                    ValueModel::Compare {
-                        op: *op,
-                        left,
-                        right,
+                    ValueModel::RefOrRaw(operand)
+                }
+                Rvalue::UnaryOp(UnOp::PtrMetadata, operand) => operand
+                    .place()
+                    .map(|place| ValueModel::Length(self.normalize_place(body, place, point)))
+                    .unwrap_or(ValueModel::Unknown),
+                Rvalue::Discriminant(place) => {
+                    ValueModel::Discriminant(self.normalize_place(body, *place, point))
+                }
+                Rvalue::BinaryOp(op, operands) => {
+                    let left = self.normalize_operand(body, &operands.0, point);
+                    let right = self.normalize_operand(body, &operands.1, point);
+                    if *op == BinOp::AddWithOverflow {
+                        ValueModel::CheckedBinary {
+                            op: BinOp::Add,
+                            left,
+                            right,
+                        }
+                    } else {
+                        ValueModel::Compare {
+                            op: *op,
+                            left,
+                            right,
+                        }
                     }
                 }
-            }
-            Rvalue::Aggregate(kind, operands) => ValueModel::Aggregate {
-                operands: operands
-                    .iter()
-                    .map(|operand| self.normalize_operand(body, operand, point))
-                    .collect(),
-                range_end: matches!(&**kind, AggregateKind::Adt(did, ..)
-                    if self.tcx.item_name(*did).as_str() == "RangeTo")
-                .then(|| {
-                    operands
+                Rvalue::Aggregate(kind, operands) => ValueModel::Aggregate {
+                    operands: operands
                         .iter()
-                        .next()
-                        .and_then(|operand| operand.place())
-                        .map(place_key)
-                })
-                .flatten(),
-                variant: match &**kind {
-                    AggregateKind::Adt(did, variant, ..) if self.tcx.adt_def(*did).is_enum() => {
-                        Some(variant.as_u32() as u128)
-                    }
-                    _ => None,
+                        .map(|operand| self.normalize_operand(body, operand, point))
+                        .collect(),
+                    range_end: matches!(&**kind, AggregateKind::Adt(did, ..)
+                    if self.tcx.item_name(*did).as_str() == "RangeTo")
+                    .then(|| {
+                        operands
+                            .iter()
+                            .next()
+                            .and_then(|operand| operand.place())
+                            .map(place_key)
+                    })
+                    .flatten(),
+                    variant: match &**kind {
+                        AggregateKind::Adt(did, variant, ..)
+                            if self.tcx.adt_def(*did).is_enum() =>
+                        {
+                            Some(variant.as_u32() as u128)
+                        }
+                        _ => None,
+                    },
                 },
-            },
-            _ => ValueModel::Unknown,
+                _ => ValueModel::Unknown,
+            }
         };
         let field_origin = self
             .field_info(body, destination)
@@ -2631,19 +2910,16 @@ impl<'tcx> Engine<'tcx> {
                     }
                 }
             });
-        let raw_read_source = match rvalue {
-            Rvalue::Use(operand, _) => operand
-                .place()
-                .filter(|place| {
-                    place
-                        .projection
-                        .iter()
-                        .any(|element| matches!(element, ProjectionElem::Deref))
-                        && matches!(body.local_decls[place.local].ty.kind(), ty::RawPtr(..))
-                })
-                .map(|place| self.normalize_place(body, Place::from(place.local), point)),
-            _ => None,
-        };
+        let raw_read_source = rvalue_use_operand(rvalue)
+            .and_then(Operand::place)
+            .filter(|place| {
+                place
+                    .projection
+                    .iter()
+                    .any(|element| matches!(element, ProjectionElem::Deref))
+                    && matches!(body.local_decls[place.local].ty.kind(), ty::RawPtr(..))
+            })
+            .map(|place| self.normalize_place(body, Place::from(place.local), point));
         AssignmentModel {
             destination: destination_key,
             value,
@@ -2818,6 +3094,7 @@ impl<'tcx> Engine<'tcx> {
             Vec::new()
         };
 
+        let destination_ty = destination.ty(&body.local_decls, self.tcx).ty;
         let mut value = RegistryValueModel::Empty;
         let mut predicate = None;
         if let Some((did, generic_args)) = raw {
@@ -2825,6 +3102,11 @@ impl<'tcx> Engine<'tcx> {
                 value = RegistryValueModel::MaybeUninit(false);
             } else if self.is_maybe_uninit_constructor(did, "new") {
                 value = RegistryValueModel::MaybeUninit(true);
+            } else if self.tcx.is_diagnostic_item(sym::assume_init, did) && !operands.is_empty() {
+                value = RegistryValueModel::AssumeInit {
+                    source: operands[0].clone(),
+                    restricted_target: has_restricted_validity(destination_ty),
+                };
             } else if self.is_slice_len(did) && !operands.is_empty() {
                 value = RegistryValueModel::Length(operands[0].clone());
             } else if self.is_slice_iterator_constructor(did) && !operands.is_empty() {
@@ -2854,15 +3136,9 @@ impl<'tcx> Engine<'tcx> {
                 };
             } else if self.is_option_try_branch(did) && !operands.is_empty() {
                 value = RegistryValueModel::CheckedTryBranch(operands[0].clone());
-            } else if self
-                .tcx
-                .is_diagnostic_item(Symbol::intern("mem_size_of"), did)
-            {
-                if let Ok(layout) = self.tcx.layout_of(
-                    ty::TypingEnv::post_analysis(self.tcx, caller)
-                        .as_query_input(generic_args.type_at(0)),
-                ) {
-                    value = RegistryValueModel::Constant(layout.size.bytes());
+            } else if is_mem_size_of(self.tcx, did) {
+                if let Some(size) = type_layout_size(self.tcx, caller, generic_args.type_at(0)) {
+                    value = RegistryValueModel::Constant(size);
                 }
             } else if self.is_slice_prefix_index(did) && operands.len() >= 2 {
                 if let Some(range) = operands[1].operand.place().cloned() {
@@ -2878,7 +3154,9 @@ impl<'tcx> Engine<'tcx> {
                     base: operands[0].clone(),
                     offset: operands[1].clone(),
                 };
-            } else if self.is_pointer_cast(did) && !operands.is_empty() {
+            } else if (self.is_pointer_cast(did) || self.is_maybe_uninit_as_mut_ptr(did))
+                && !operands.is_empty()
+            {
                 value = RegistryValueModel::PointerCast(operands[0].clone());
             }
 
@@ -2908,14 +3186,7 @@ impl<'tcx> Engine<'tcx> {
                 };
         }
 
-        let destination_ty = destination.ty(&body.local_decls, self.tcx).ty;
-        let access_width = self
-            .tcx
-            .layout_of(
-                ty::TypingEnv::post_analysis(self.tcx, caller).as_query_input(destination_ty),
-            )
-            .ok()
-            .map(|layout| layout.size.bytes());
+        let access_width = type_layout_size(self.tcx, caller, destination_ty);
         CallModel {
             descriptor: CallDescriptor {
                 callee,
@@ -2929,6 +3200,7 @@ impl<'tcx> Engine<'tcx> {
             mutable_actuals,
             ffi_out_actuals,
             destination_is_bool: destination_ty.is_bool(),
+            destination_restricted: has_restricted_validity(destination_ty),
             access_width,
             legacy_write,
             destination_out_formal: out_formal_index(body, destination),
@@ -3069,37 +3341,20 @@ impl<'tcx> Engine<'tcx> {
                     sink_function: facts.function.clone(),
                 });
             } else if self.tcx.is_diagnostic_item(sym::assume_init, did) && !call.args.is_empty() {
-                let initialization = &call.arg_values[0].maybe_uninit_initialized;
-                if initialization == &BTreeSet::from([false])
-                    && call.destination_is_bool
-                    && self.place_reaches_return(facts, &call.destination)
-                {
-                    let origin = AbstractOrigin::InternalLocal {
-                        function: facts.function.clone(),
-                        place: call.destination.clone(),
-                    };
-                    facts.summary_seed.requirements.insert(ContractRequirement {
-                        seed_id: format!("P3.assume_init:{}", call.point.span.token()),
-                        collection: None,
-                        subject: AbstractValue::new([origin.clone()]),
-                        source_hint: Some(SourceKind::InternalUnsafeOrigin),
-                        internal_derivation: false,
-                        source_span: call.point.span.clone(),
-                        first_failure: Operation {
-                            kind: OperationKind::AssumeInitBool,
-                            point: call.point.clone(),
-                        },
-                        sink: Operation {
-                            kind: OperationKind::InvalidValueExposure,
-                            point: call.point.clone(),
-                        },
-                        predicates: BTreeSet::from([Predicate::Initialized, Predicate::ValidBool]),
-                        access_width: None,
-                        rule: RuleId::P3AssumeInitBool,
-                        return_exposure: true,
-                        sink_function: facts.function.clone(),
-                    });
-                    facts.summary_seed.return_value.origins.insert(origin);
+                let initialization = &call.arg_values[0];
+                if definitely_uninitialized(initialization) {
+                    let legacy_bool_return = call.destination_is_bool
+                        && self.place_reaches_return(facts, &call.destination);
+                    let requirement =
+                        assume_init_requirement(&facts.function, &call, legacy_bool_return);
+                    if legacy_bool_return {
+                        facts
+                            .summary_seed
+                            .return_value
+                            .origins
+                            .extend(requirement.subject.origins.iter().cloned());
+                    }
+                    facts.summary_seed.requirements.insert(requirement);
                 }
             } else if self
                 .tcx
@@ -3118,33 +3373,19 @@ impl<'tcx> Engine<'tcx> {
                         },
                     );
                 }
-                let origin = AbstractOrigin::InternalLocal {
-                    function: facts.function.clone(),
-                    place: call.destination.clone(),
-                };
-                facts.summary_seed.requirements.insert(ContractRequirement {
-                    seed_id: format!("P3.utf8:{}", call.point.span.token()),
-                    collection: None,
-                    subject: AbstractValue::new([origin.clone()]),
-                    source_hint: Some(SourceKind::InternalUnsafeOrigin),
-                    internal_derivation: false,
-                    source_span: call.point.span.clone(),
-                    first_failure: Operation {
-                        kind: OperationKind::FromUtf8Unchecked,
-                        point: call.point.clone(),
-                    },
-                    sink: Operation {
-                        kind: OperationKind::InvalidValueExposure,
-                        point: call.point.clone(),
-                    },
-                    predicates: BTreeSet::from([Predicate::ValidUtf8]),
-                    access_width: None,
-                    rule: RuleId::P3UncheckedUtf8,
-                    return_exposure: true,
-                    sink_function: facts.function.clone(),
-                });
+                facts
+                    .summary_seed
+                    .requirements
+                    .insert(unchecked_utf8_requirement(&facts.function, &call));
                 if self.place_reaches_return(facts, &call.destination) {
-                    facts.summary_seed.return_value.origins.insert(origin);
+                    facts
+                        .summary_seed
+                        .return_value
+                        .origins
+                        .insert(AbstractOrigin::InternalLocal {
+                            function: facts.function.clone(),
+                            place: call.destination.clone(),
+                        });
                 }
             } else if self.is_nonnull_new_unchecked(did) && !call.args.is_empty() {
                 let subject = call.arg_values[0].value.clone();
@@ -3263,10 +3504,17 @@ impl<'tcx> Engine<'tcx> {
         )
     }
 
+    #[rustversion::since(1.96)]
     fn associated_impl(&self, did: DefId) -> Option<DefId> {
         self.tcx.opt_associated_item(did)?.impl_container(self.tcx)
     }
 
+    #[rustversion::before(1.96)]
+    fn associated_impl(&self, did: DefId) -> Option<DefId> {
+        self.tcx.opt_associated_item(did)?.impl_container(self.tcx)
+    }
+
+    #[rustversion::since(1.96)]
     fn associated_trait(&self, did: DefId) -> Option<DefId> {
         let item = self.tcx.opt_associated_item(did)?;
         match item.container {
@@ -3274,6 +3522,11 @@ impl<'tcx> Engine<'tcx> {
             ty::AssocContainer::TraitImpl(Ok(trait_item)) => Some(self.tcx.parent(trait_item)),
             ty::AssocContainer::TraitImpl(Err(_)) | ty::AssocContainer::InherentImpl => None,
         }
+    }
+
+    #[rustversion::before(1.96)]
+    fn associated_trait(&self, did: DefId) -> Option<DefId> {
+        self.tcx.trait_of_item(did)
     }
 
     fn is_selected_open_behavior(&self, did: DefId) -> bool {
@@ -3304,7 +3557,7 @@ impl<'tcx> Engine<'tcx> {
                 .subject
                 .origins
                 .iter()
-                .find(|origin| origin_matches_kind(origin, kind))
+                .find(|origin| origin_matches_requirement_source(requirement, origin, kind))
                 .cloned()?;
             return Some(Source {
                 kind,
@@ -3683,10 +3936,7 @@ impl<'tcx> Engine<'tcx> {
         ) {
             return None;
         }
-        operand.constant()?.const_.try_eval_target_usize(
-            self.tcx,
-            ty::TypingEnv::post_analysis(self.tcx, body.source.def_id()),
-        )
+        eval_operand_target_usize(self.tcx, body.source.def_id(), operand.constant()?.const_)
     }
 
     fn symbolic_array_lengths(
@@ -3761,12 +4011,7 @@ impl<'tcx> Engine<'tcx> {
         raw: DefId,
         args: ty::GenericArgsRef<'tcx>,
     ) -> Option<FunctionKey> {
-        if let Ok(Some(instance)) = Instance::try_resolve(
-            self.tcx,
-            ty::TypingEnv::post_analysis(self.tcx, caller),
-            raw,
-            args,
-        ) {
+        if let Some(instance) = resolve_instance(self.tcx, caller, raw, args) {
             if let InstanceKind::Item(target) = instance.def {
                 if target.is_local() && self.tcx.is_mir_available(target) {
                     return Some(FunctionKey::new(self.tcx.def_path_str(target)));
@@ -3784,11 +4029,21 @@ impl<'tcx> Engine<'tcx> {
             && self.tcx.fn_sig(did).skip_binder().safety() == Safety::Safe
     }
 
+    #[rustversion::since(1.96)]
     fn is_exact_foreign_c(&self, did: DefId) -> bool {
         self.tcx.is_foreign_item(did)
             && matches!(
                 self.tcx.fn_sig(did).skip_binder().abi(),
                 ExternAbi::C { unwind: false }
+            )
+    }
+
+    #[rustversion::before(1.96)]
+    fn is_exact_foreign_c(&self, did: DefId) -> bool {
+        self.tcx.is_foreign_item(did)
+            && matches!(
+                self.tcx.fn_sig(did).skip_binder().abi(),
+                Abi::C { unwind: false }
             )
     }
 
@@ -3804,9 +4059,7 @@ impl<'tcx> Engine<'tcx> {
             || self
                 .tcx
                 .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
-            || self
-                .tcx
-                .is_diagnostic_item(Symbol::intern("mem_size_of"), did)
+            || is_mem_size_of(self.tcx, did)
             || self.is_slice_is_empty(did)
             || self.is_pointer_is_null(did)
             || self.is_result_is_err(did)
@@ -3817,6 +4070,7 @@ impl<'tcx> Engine<'tcx> {
             || self.is_slice_as_ptr(did)
             || self.is_wrapping_add(did)
             || self.is_pointer_cast(did)
+            || self.is_maybe_uninit_as_mut_ptr(did)
             || self.is_read_unaligned(did)
     }
 
@@ -4067,6 +4321,19 @@ impl<'tcx> Engine<'tcx> {
             })
     }
 
+    fn is_maybe_uninit_as_mut_ptr(&self, did: DefId) -> bool {
+        self.tcx
+            .opt_item_name(did)
+            .is_some_and(|name| name.as_str() == "as_mut_ptr")
+            && self.associated_impl(did).is_some_and(|impl_id| {
+                self.tcx
+                    .type_of(impl_id)
+                    .skip_binder()
+                    .ty_adt_def()
+                    .is_some_and(|adt| self.tcx.is_lang_item(adt.did(), LangItem::MaybeUninit))
+            })
+    }
+
     fn is_read_unaligned(&self, did: DefId) -> bool {
         self.tcx.is_diagnostic_item(sym::ptr_read_unaligned, did)
             || (self
@@ -4132,12 +4399,8 @@ impl<'tcx> Engine<'tcx> {
         let span = span.source_callsite();
         let source_map = self.tcx.sess.source_map();
         let (file, lo_line, lo_column, hi_line, hi_column) = source_map.span_to_location_info(span);
-        let local = file
-            .as_ref()
-            .map(|file| file.name.prefer_local_unconditionally().to_string());
-        let remapped = file
-            .as_ref()
-            .map(|file| file.name.prefer_remapped_unconditionally().to_string());
+        let local = file.as_ref().map(|file| local_file_name(&file.name));
+        let remapped = file.as_ref().map(|file| remapped_file_name(&file.name));
         stable_span_from_locations(
             &self.source_root,
             local.as_deref(),
@@ -4164,9 +4427,161 @@ impl<'tcx> Engine<'tcx> {
     }
 }
 
+#[rustversion::before(1.96)]
+fn local_file_name(name: &FileName) -> String {
+    name.display(FileNameDisplayPreference::Local).to_string()
+}
+
+#[rustversion::since(1.96)]
+fn local_file_name(name: &FileName) -> String {
+    name.prefer_local_unconditionally().to_string()
+}
+
+#[rustversion::before(1.96)]
+fn remapped_file_name(name: &FileName) -> String {
+    name.display(FileNameDisplayPreference::Remapped)
+        .to_string()
+}
+
+#[rustversion::since(1.96)]
+fn remapped_file_name(name: &FileName) -> String {
+    name.prefer_remapped_unconditionally().to_string()
+}
+
+#[rustversion::before(1.96)]
+fn associated_item_has_self(tcx: TyCtxt<'_>, did: DefId) -> bool {
+    tcx.opt_associated_item(did)
+        .is_some_and(|item| item.fn_has_self_parameter)
+}
+
+#[rustversion::since(1.96)]
+fn associated_item_has_self(tcx: TyCtxt<'_>, did: DefId) -> bool {
+    tcx.opt_associated_item(did)
+        .is_some_and(|item| item.is_method())
+}
+
+#[rustversion::before(1.96)]
+fn rvalue_use_operand<'a, 'tcx>(rvalue: &'a Rvalue<'tcx>) -> Option<&'a Operand<'tcx>> {
+    match rvalue {
+        Rvalue::Use(operand) => Some(operand),
+        _ => None,
+    }
+}
+
+#[rustversion::since(1.96)]
+fn rvalue_use_operand<'a, 'tcx>(rvalue: &'a Rvalue<'tcx>) -> Option<&'a Operand<'tcx>> {
+    match rvalue {
+        Rvalue::Use(operand, _) => Some(operand),
+        _ => None,
+    }
+}
+
+#[rustversion::before(1.96)]
+fn rvalue_len_place<'tcx>(rvalue: &Rvalue<'tcx>) -> Option<Place<'tcx>> {
+    match rvalue {
+        Rvalue::Len(place) => Some(*place),
+        _ => None,
+    }
+}
+
+#[rustversion::since(1.96)]
+fn rvalue_len_place<'tcx>(_rvalue: &Rvalue<'tcx>) -> Option<Place<'tcx>> {
+    None
+}
+
+#[rustversion::before(1.96)]
+fn is_mem_size_of(tcx: TyCtxt<'_>, did: DefId) -> bool {
+    tcx.is_diagnostic_item(sym::mem_size_of, did)
+}
+
+#[rustversion::since(1.96)]
+fn is_mem_size_of(tcx: TyCtxt<'_>, did: DefId) -> bool {
+    tcx.is_diagnostic_item(Symbol::intern("mem_size_of"), did)
+}
+
+#[rustversion::before(1.96)]
+fn type_layout_size<'tcx>(tcx: TyCtxt<'tcx>, caller: DefId, ty: Ty<'tcx>) -> Option<u64> {
+    tcx.layout_of(tcx.param_env(caller).and(ty))
+        .ok()
+        .map(|layout| layout.size.bytes())
+}
+
+#[rustversion::since(1.96)]
+fn type_layout_size<'tcx>(tcx: TyCtxt<'tcx>, caller: DefId, ty: Ty<'tcx>) -> Option<u64> {
+    tcx.layout_of(ty::TypingEnv::post_analysis(tcx, caller).as_query_input(ty))
+        .ok()
+        .map(|layout| layout.size.bytes())
+}
+
+#[rustversion::before(1.96)]
+fn resolve_instance<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    caller: DefId,
+    raw: DefId,
+    args: ty::GenericArgsRef<'tcx>,
+) -> Option<Instance<'tcx>> {
+    Instance::try_resolve(tcx, tcx.param_env(caller), raw, args)
+        .ok()
+        .flatten()
+}
+
+#[rustversion::since(1.96)]
+fn resolve_instance<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    caller: DefId,
+    raw: DefId,
+    args: ty::GenericArgsRef<'tcx>,
+) -> Option<Instance<'tcx>> {
+    Instance::try_resolve(tcx, ty::TypingEnv::post_analysis(tcx, caller), raw, args)
+        .ok()
+        .flatten()
+}
+
+#[rustversion::before(1.96)]
+fn target_usize_from_const<'tcx>(tcx: TyCtxt<'tcx>, value: ty::Const<'tcx>) -> Option<u64> {
+    value.try_eval_target_usize(tcx, ty::ParamEnv::empty())
+}
+
+#[rustversion::since(1.96)]
+fn target_usize_from_const<'tcx>(tcx: TyCtxt<'tcx>, value: ty::Const<'tcx>) -> Option<u64> {
+    value.try_to_target_usize(tcx)
+}
+
+#[rustversion::before(1.96)]
+fn eval_operand_target_usize<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    caller: DefId,
+    value: MirConst<'tcx>,
+) -> Option<u64> {
+    value.try_eval_target_usize(tcx, tcx.param_env(caller))
+}
+
+#[rustversion::since(1.96)]
+fn eval_operand_target_usize<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    caller: DefId,
+    value: MirConst<'tcx>,
+) -> Option<u64> {
+    value.try_eval_target_usize(tcx, ty::TypingEnv::post_analysis(tcx, caller))
+}
+
+#[rustversion::since(1.96)]
+fn supports_local_optimized_mir_body(tcx: TyCtxt<'_>, id: LocalDefId, kind: DefKind) -> bool {
+    supports_optimized_mir_body(kind, tcx.hir_body_const_context(id))
+}
+
+#[rustversion::before(1.96)]
+fn supports_local_optimized_mir_body(_tcx: TyCtxt<'_>, _id: LocalDefId, kind: DefKind) -> bool {
+    matches!(kind, DefKind::Fn | DefKind::AssocFn)
+}
+
+#[rustversion::since(1.96)]
 fn supports_optimized_mir_body(kind: DefKind, context: Option<ConstContext>) -> bool {
     matches!(kind, DefKind::Fn | DefKind::AssocFn)
-        && !matches!(context, Some(ConstContext::Const { .. } | ConstContext::Static(_)))
+        && !matches!(
+            context,
+            Some(ConstContext::Const { .. } | ConstContext::Static(_))
+        )
 }
 
 impl From<AbstractValue> for ValueFacts {
@@ -4331,6 +4746,137 @@ fn unique_semantic_value(value: &ValueFacts) -> Option<PlaceKey> {
         (Some(root), None) => Some(root),
         _ => None,
     }
+}
+
+fn assume_init_requirement(
+    function: &FunctionKey,
+    call: &CallSite,
+    legacy_bool_return: bool,
+) -> ContractRequirement {
+    let origin = AbstractOrigin::InternalLocal {
+        function: function.clone(),
+        place: call.destination.clone(),
+    };
+    ContractRequirement {
+        seed_id: format!("P3.assume_init:{}", call.point.span.token()),
+        collection: None,
+        subject: AbstractValue::new([origin]),
+        source_hint: Some(SourceKind::InternalUnsafeOrigin),
+        internal_derivation: false,
+        source_span: call.point.span.clone(),
+        first_failure: Operation {
+            kind: OperationKind::AssumeInitBool,
+            point: call.point.clone(),
+        },
+        sink: Operation {
+            kind: OperationKind::InvalidValueExposure,
+            point: call.point.clone(),
+        },
+        predicates: if legacy_bool_return {
+            BTreeSet::from([Predicate::Initialized, Predicate::ValidBool])
+        } else {
+            BTreeSet::from([Predicate::Initialized])
+        },
+        access_width: None,
+        rule: if legacy_bool_return {
+            RuleId::P3AssumeInitBool
+        } else {
+            RuleId::P3AssumeInitUninitialized
+        },
+        return_exposure: legacy_bool_return,
+        sink_function: function.clone(),
+    }
+}
+
+fn definitely_uninitialized(value: &ValueFacts) -> bool {
+    value.maybe_uninit_initialized == BTreeSet::from([false]) && !value.havoced && !value.ffi_output
+}
+
+const FFI_UNINITIALIZED_OUTPUT_PREFIX: &str = "ffi-uninit-out:";
+
+fn is_uninitialized_ffi_output_origin(origin: &AbstractOrigin) -> bool {
+    matches!(origin, AbstractOrigin::FfiOutput { token, .. }
+        if token.starts_with(FFI_UNINITIALIZED_OUTPUT_PREFIX))
+}
+
+fn ffi_invalid_value_subject(value: &ValueFacts) -> Option<AbstractValue> {
+    let ffi_origins = value
+        .value
+        .origins
+        .iter()
+        .filter(|origin| is_uninitialized_ffi_output_origin(origin))
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    (!ffi_origins.is_empty()).then(|| AbstractValue::new(ffi_origins))
+}
+
+fn unchecked_utf8_requirement(function: &FunctionKey, call: &CallSite) -> ContractRequirement {
+    ContractRequirement {
+        seed_id: format!("P3.utf8:{}", call.point.span.token()),
+        collection: None,
+        subject: call
+            .arg_values
+            .first()
+            .map(|value| value.value.clone())
+            .unwrap_or_default(),
+        source_hint: None,
+        internal_derivation: false,
+        source_span: call.point.span.clone(),
+        first_failure: Operation {
+            kind: OperationKind::FromUtf8Unchecked,
+            point: call.point.clone(),
+        },
+        sink: Operation {
+            kind: OperationKind::InvalidValueExposure,
+            point: call.point.clone(),
+        },
+        predicates: BTreeSet::from([Predicate::ValidUtf8]),
+        access_width: None,
+        rule: RuleId::P3UncheckedUtf8,
+        return_exposure: false,
+        sink_function: function.clone(),
+    }
+}
+
+fn ffi_invalid_value_requirement(
+    function: &FunctionKey,
+    point: &ProgramPoint,
+    subject: AbstractValue,
+) -> ContractRequirement {
+    ContractRequirement {
+        seed_id: format!("P6.ffi-invalid-value:{}", point.span.token()),
+        collection: None,
+        subject,
+        source_hint: Some(SourceKind::FfiOutput),
+        internal_derivation: false,
+        source_span: point.span.clone(),
+        first_failure: Operation {
+            kind: OperationKind::InvalidValueExposure,
+            point: point.clone(),
+        },
+        sink: Operation {
+            kind: OperationKind::InvalidValueExposure,
+            point: point.clone(),
+        },
+        predicates: BTreeSet::from([Predicate::ValidForType]),
+        access_width: None,
+        rule: RuleId::P6FfiOutInvalidValue,
+        return_exposure: false,
+        sink_function: function.clone(),
+    }
+}
+
+fn p6_requirement_matches_call_destination(
+    requirement: &ContractRequirement,
+    destination_restricted: bool,
+) -> bool {
+    requirement.rule != RuleId::P6FfiOutInvalidValue
+        || !requirement
+            .subject
+            .origins
+            .iter()
+            .any(is_uninitialized_ffi_output_origin)
+        || destination_restricted
 }
 
 fn unique_place(places: &BTreeSet<PlaceKey>) -> Option<PlaceKey> {
@@ -4583,6 +5129,7 @@ fn registry_relation_effects(
     call: &CallModel,
 ) -> Vec<RegistryRelationEffect> {
     match &call.value {
+        RegistryValueModel::PointerCast(_) => Vec::new(),
         RegistryValueModel::SliceIterator(slice) => {
             let Some(collection) = unique_semantic_value(&eval_operand(state, slice)) else {
                 return Vec::new();
@@ -4772,7 +5319,12 @@ fn project_summary_relation(
             }
         }
         RelationKind::SameObject(left, right) => {
-            SummaryRelationKind::SameObject(term(left)?, term(right)?)
+            let left = term(left)?;
+            let right = term(right)?;
+            if left == right {
+                return None;
+            }
+            SummaryRelationKind::SameObject(left, right)
         }
     })
 }
@@ -4921,7 +5473,7 @@ fn normalized_relation_pending(
 fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Option<RelationFact> {
     let kind =
         match &assignment.value {
-            ValueModel::Operand(operand) | ValueModel::RefOrRaw(operand) => {
+            ValueModel::Operand(operand) => {
                 let operand_term = relation_term_for_operand(state, operand)?;
                 let result = match &operand_term {
                     RelationTerm::Projection { .. } => {
@@ -4931,6 +5483,11 @@ fn assignment_relation(state: &ProgramState, assignment: &AssignmentModel) -> Op
                 };
                 RelationKind::Eq(result, operand_term)
             }
+            ValueModel::PointerCast(_) => return None,
+            ValueModel::RefOrRaw(operand) => RelationKind::Eq(
+                RelationTerm::Place(assignment.destination.clone()),
+                relation_term_for_operand(state, operand)?,
+            ),
             ValueModel::Length(collection) => {
                 let collection = unique_semantic_value(&eval_operand(state, collection))?;
                 RelationKind::Eq(
@@ -5239,6 +5796,12 @@ fn eval_value_model(
             result
         }
         ValueModel::RefOrRaw(place) => eval_operand(state, place),
+        ValueModel::PointerCast(operand) => {
+            let mut result = eval_operand(state, operand);
+            result.exact_roots.clear();
+            result.semantic_unknown = true;
+            result
+        }
         ValueModel::Discriminant(operand) => {
             let mut result = eval_operand(state, operand);
             result.exact_roots.clear();
@@ -5351,6 +5914,11 @@ fn eval_registry_value(
             known_length_unknown: true,
             ..ValueFacts::default()
         },
+        RegistryValueModel::AssumeInit { source, .. } => {
+            let mut result = eval_operand(state, source);
+            result.maybe_uninit_initialized.clear();
+            result
+        }
         RegistryValueModel::Length(collection) => {
             let mut result = eval_operand(state, collection);
             let candidates = semantic_place_candidates(&result);
@@ -5858,6 +6426,22 @@ fn apply_program_edge_with_outputs(
         }
         let registry_relation_effects = registry_relation_effects(state, call);
         let mut return_value = eval_registry_value(state, &call.value, point);
+        if matches!(call.value, RegistryValueModel::Empty)
+            && matches!(
+                call.descriptor.disposition,
+                BoundaryDisposition::OpaqueDirect | BoundaryDisposition::OpaqueIndirect
+            )
+        {
+            return_value = join_value_facts(
+                call.descriptor
+                    .args
+                    .iter()
+                    .map(|operand| eval_operand(state, operand)),
+            );
+            return_value.havoced = true;
+            return_value.exact_roots.clear();
+            return_value.semantic_unknown = true;
+        }
         if let Some(PredicateModel::Utf8Result { bytes }) = &call.predicate {
             let bytes_value = eval_operand(state, bytes);
             let candidates = semantic_place_candidates(&bytes_value);
@@ -6427,12 +7011,21 @@ fn apply_call_side_effects(call: &CallModel, point: &ProgramPoint, state: &mut P
     for actual in &call.ffi_out_actuals {
         for target in state_alias_closure(state, actual) {
             let mut output = state_value(state, &target);
+            let was_definitely_uninitialized = output.maybe_uninit_initialized
+                == BTreeSet::from([false])
+                && !output.havoced;
             output.exact_roots.insert(target.clone());
             output.ffi_output = true;
             output.value.origins.insert(AbstractOrigin::FfiOutput {
                 token: format!("ffi-out:{}", point.span.token()),
                 span: point.span.clone(),
             });
+            if was_definitely_uninitialized {
+                output.value.origins.insert(AbstractOrigin::FfiOutput {
+                    token: format!("{FFI_UNINITIALIZED_OUTPUT_PREFIX}{}", point.span.token()),
+                    span: point.span.clone(),
+                });
+            }
             state.record_may_write(target.clone(), token);
             state.set_value(target.clone(), output);
             invalidate_relation_evidence(state, &target);
@@ -6472,8 +7065,7 @@ fn apply_call_return(
             vec![(binding.clone(), false, binding.storage_places())]
         }
         Some(PredicateModel::IsNull { pointer })
-            if !state_value(state, pointer).havoced
-                && unique_semantic_value(&semantic_value_at(state, pointer)).is_some() =>
+            if unique_semantic_value(&semantic_value_at(state, pointer)).is_some() =>
         {
             let pointer = unique_semantic_value(&semantic_value_at(state, pointer))
                 .expect("the match guard established one semantic place");
@@ -6542,7 +7134,16 @@ fn boundary_mutation_write_kind(disposition: BoundaryDisposition) -> Option<Writ
 
 fn is_exact_ffi_out_ty(ty: ty::Ty<'_>) -> bool {
     matches!(ty.kind(), ty::RawPtr(inner, Mutability::Mut)
-        if matches!(inner.kind(), ty::RawPtr(_, Mutability::Mut)))
+        if matches!(inner.kind(), ty::RawPtr(_, Mutability::Mut))
+            || has_restricted_validity(*inner))
+}
+
+fn has_restricted_validity(ty: ty::Ty<'_>) -> bool {
+    match ty.kind() {
+        ty::Bool | ty::Char => true,
+        ty::Adt(definition, _) => definition.is_enum(),
+        _ => false,
+    }
 }
 
 fn is_mutable_call_actual(ty: ty::Ty<'_>) -> bool {
@@ -6769,7 +7370,10 @@ fn is_in_bounds_guard(op: BinOp) -> bool {
 fn is_internal_invalid_value_rule(rule: RuleId) -> bool {
     matches!(
         rule,
-        RuleId::P3LifetimeTransmute | RuleId::P3AssumeInitBool | RuleId::P3UncheckedUtf8
+        RuleId::P3LifetimeTransmute
+            | RuleId::P3AssumeInitBool
+            | RuleId::P3AssumeInitUninitialized
+            | RuleId::P3UncheckedUtf8
     )
 }
 
@@ -6866,6 +7470,16 @@ fn origin_matches_kind(origin: &AbstractOrigin, kind: SourceKind) -> bool {
     )
 }
 
+fn origin_matches_requirement_source(
+    requirement: &ContractRequirement,
+    origin: &AbstractOrigin,
+    kind: SourceKind,
+) -> bool {
+    origin_matches_kind(origin, kind)
+        && (requirement.rule != RuleId::P6FfiOutInvalidValue
+            || is_uninitialized_ffi_output_origin(origin))
+}
+
 fn origin_token(origin: &AbstractOrigin) -> String {
     match origin {
         AbstractOrigin::Formal(index) => format!("arg:{index}"),
@@ -6915,12 +7529,10 @@ mod tests {
     use super::super::summary::scc_cycle_token;
     use super::*;
 
+    #[rustversion::since(1.96)]
     #[test]
     fn current_comptime_functions_are_not_sent_to_optimized_mir() {
-        assert!(supports_optimized_mir_body(
-            DefKind::Fn,
-            None,
-        ));
+        assert!(supports_optimized_mir_body(DefKind::Fn, None,));
         assert!(supports_optimized_mir_body(
             DefKind::AssocFn,
             Some(ConstContext::ConstFn),
@@ -7044,6 +7656,7 @@ mod tests {
             destination: PlaceKey::new("_0"),
             point: point(1, 0),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             index_range_kind: None,
         }
@@ -7425,6 +8038,7 @@ mod tests {
             mutable_actuals: vec![reference],
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -7611,6 +8225,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -7927,6 +8542,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: Some(1),
@@ -8039,6 +8655,7 @@ mod tests {
             mutable_actuals: vec![reference.clone()],
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -9067,6 +9684,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -9113,6 +9731,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -9739,10 +10358,185 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
         }
+    }
+
+    fn historical_gitoxide_unchecked_utf8_call() -> CallSite {
+        CallSite {
+            callee: None,
+            raw_def: None,
+            disposition: BoundaryDisposition::ModeledRegistry,
+            args: vec![CallOperand::Place(PlaceKey::new("_1"))],
+            arg_values: vec![ValueFacts {
+                value: AbstractValue::new([AbstractOrigin::Formal(1)]),
+                exact_roots: BTreeSet::from([PlaceKey::new("_1")]),
+                ..ValueFacts::default()
+            }],
+            destination: PlaceKey::new("_2"),
+            point: point(1, 0),
+            destination_is_bool: false,
+            destination_restricted: false,
+            access_width: None,
+            index_range_kind: None,
+        }
+    }
+
+    #[test]
+    fn historical_gitoxide_unchecked_utf8_is_immediate_and_bound_to_input_bytes() {
+        let function = FunctionKey::new("gix_attributes::ValueRef::from_bytes");
+        let requirement =
+            unchecked_utf8_requirement(&function, &historical_gitoxide_unchecked_utf8_call());
+        assert_eq!(
+            requirement.subject,
+            AbstractValue::new([AbstractOrigin::Formal(1)])
+        );
+        assert_eq!(requirement.source_hint, None);
+        assert!(!requirement.return_exposure);
+        assert_eq!(requirement.rule, RuleId::P3UncheckedUtf8);
+        assert_eq!(
+            requirement.predicates,
+            BTreeSet::from([Predicate::ValidUtf8])
+        );
+    }
+
+    #[test]
+    fn historical_lru_assume_init_is_immediate_for_arbitrary_types() {
+        let function = FunctionKey::new("lru::LruCache::new");
+        let mut call = historical_gitoxide_unchecked_utf8_call();
+        call.destination = PlaceKey::new("_entry");
+        call.destination_is_bool = false;
+        let requirement = assume_init_requirement(&function, &call, false);
+        assert_eq!(requirement.rule, RuleId::P3AssumeInitUninitialized);
+        assert_eq!(
+            requirement.predicates,
+            BTreeSet::from([Predicate::Initialized])
+        );
+        assert_eq!(
+            requirement.source_hint,
+            Some(SourceKind::InternalUnsafeOrigin)
+        );
+        assert!(!requirement.return_exposure);
+        assert_eq!(requirement.sink.point, call.point);
+
+        let definitely_uninit = ValueFacts {
+            maybe_uninit_initialized: BTreeSet::from([false]),
+            ..ValueFacts::default()
+        };
+        assert!(definitely_uninitialized(&definitely_uninit));
+
+        let mut branch_join = definitely_uninit.clone();
+        branch_join.maybe_uninit_initialized.insert(true);
+        assert!(!definitely_uninitialized(&branch_join));
+
+        let mut opaque_write = definitely_uninit;
+        opaque_write.havoced = true;
+        assert!(!definitely_uninitialized(&opaque_write));
+    }
+
+    #[test]
+    fn legacy_returned_bool_assume_init_keeps_its_existing_rule_identity() {
+        let function = FunctionKey::new("fixture::returned_bool");
+        let mut call = historical_gitoxide_unchecked_utf8_call();
+        call.destination = PlaceKey::new("_0");
+        call.destination_is_bool = true;
+        let requirement = assume_init_requirement(&function, &call, true);
+        assert_eq!(requirement.rule, RuleId::P3AssumeInitBool);
+        assert_eq!(
+            requirement.predicates,
+            BTreeSet::from([Predicate::Initialized, Predicate::ValidBool])
+        );
+        assert!(requirement.return_exposure);
+    }
+
+    #[test]
+    fn historical_ffi_enum_assume_init_is_an_immediate_invalid_value_requirement() {
+        let source_place = PlaceKey::new("_1");
+        let ffi_origin = AbstractOrigin::FfiOutput {
+            token: format!("{FFI_UNINITIALIZED_OUTPUT_PREFIX}test"),
+            span: point(0, 0).span,
+        };
+        let source = ValueFacts {
+            value: AbstractValue::new([ffi_origin.clone()]),
+            exact_roots: BTreeSet::from([source_place.clone()]),
+            maybe_uninit_initialized: BTreeSet::from([false]),
+            ffi_output: true,
+            ..ValueFacts::default()
+        };
+        assert!(!definitely_uninitialized(&source));
+        assert_eq!(
+            ffi_invalid_value_subject(&source),
+            Some(AbstractValue::new([ffi_origin.clone()]))
+        );
+
+        let mut initialized_before_ffi = source.clone();
+        initialized_before_ffi.maybe_uninit_initialized = BTreeSet::from([true]);
+        initialized_before_ffi.value.origins = BTreeSet::from([AbstractOrigin::FfiOutput {
+            token: "ffi-out:test".into(),
+            span: point(0, 1).span,
+        }]);
+        assert_eq!(ffi_invalid_value_subject(&initialized_before_ffi), None);
+
+        let requirement = ffi_invalid_value_requirement(
+            &FunctionKey::new("nix::getsockopt"),
+            &point(1, 0),
+            source.value.clone(),
+        );
+        assert_eq!(requirement.rule, RuleId::P6FfiOutInvalidValue);
+        assert_eq!(requirement.subject, AbstractValue::new([ffi_origin]));
+        assert_eq!(
+            requirement.predicates,
+            BTreeSet::from([Predicate::ValidForType])
+        );
+        assert!(!requirement.return_exposure);
+
+        let mut state = BlockState::empty();
+        state.set_value(source_place.clone(), source);
+        let assumed = eval_registry_value(
+            &state,
+            &RegistryValueModel::AssumeInit {
+                source: place_operand(&source_place.0),
+                restricted_target: true,
+            },
+            &point(1, 0),
+        );
+        assert!(assumed.ffi_output);
+        assert!(assumed.maybe_uninit_initialized.is_empty());
+    }
+
+    #[test]
+    fn historical_ffi_invalid_value_requires_a_concrete_uninitialized_ffi_origin() {
+        let special = AbstractOrigin::FfiOutput {
+            token: format!("{FFI_UNINITIALIZED_OUTPUT_PREFIX}test"),
+            span: point(0, 0).span,
+        };
+        let ordinary = AbstractOrigin::FfiOutput {
+            token: "ffi-out:test".into(),
+            span: point(0, 1).span,
+        };
+        let requirement = ffi_invalid_value_requirement(
+            &FunctionKey::new("wrapper"),
+            &point(1, 0),
+            AbstractValue::new([special.clone()]),
+        );
+        assert!(origin_matches_requirement_source(
+            &requirement,
+            &special,
+            SourceKind::FfiOutput
+        ));
+        assert!(!origin_matches_requirement_source(
+            &requirement,
+            &ordinary,
+            SourceKind::FfiOutput
+        ));
+        assert!(!p6_requirement_matches_call_destination(
+            &requirement,
+            false
+        ));
+        assert!(p6_requirement_matches_call_destination(&requirement, true));
     }
 
     fn task9_is_err_call(checked: &PlaceKey, destination: &PlaceKey) -> CallModel {
@@ -9761,6 +10555,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: true,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10014,6 +10809,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10049,6 +10845,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10093,6 +10890,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10131,9 +10929,10 @@ mod tests {
             },
             value: RegistryValueModel::Empty,
             predicate: None,
-            mutable_actuals: Vec::new(),
+            mutable_actuals: vec![actual.clone()],
             ffi_out_actuals: vec![actual],
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10159,6 +10958,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: true,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10183,6 +10983,106 @@ mod tests {
     }
 
     #[test]
+    fn copied_ffi_output_is_null_guard_proves_the_original_pointer_binding() {
+        let output = PlaceKey::new("_1");
+        let actual = PlaceKey::new("_2");
+        let checked = PlaceKey::new("_6");
+        let condition = PlaceKey::new("_5");
+        let normal = BasicBlock::from_usize(1);
+        let false_target = BasicBlock::from_usize(2);
+        let true_target = BasicBlock::from_usize(3);
+        let mut state = BlockState::empty();
+        state.set_value(
+            actual.clone(),
+            ValueFacts {
+                value_flow: BTreeSet::from([output.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let ffi = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ExactFfiOut,
+                args: Vec::new(),
+                destination: PlaceKey::new("_0"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: vec![actual.clone()],
+            ffi_out_actuals: vec![actual],
+            destination_is_bool: false,
+            destination_restricted: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        apply_call_side_effects(&ffi, &point(0, 0), &mut state);
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 1)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: checked.clone(),
+                    value: ValueModel::Operand(place_operand(&output.0)),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+            },
+            BasicBlock::from_usize(0),
+            1,
+            &mut state,
+        );
+        let is_null = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::ModeledRegistry,
+                args: vec![place_operand(&checked.0)],
+                destination: condition.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: Some(PredicateModel::IsNull {
+                pointer: checked,
+            }),
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: true,
+            destination_restricted: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        apply_program_edge(
+            &EdgeTerm::CallNormal {
+                normal_target: Some(normal),
+                point: point(0, 2),
+                call: is_null,
+            },
+            normal,
+            &mut state,
+        );
+        apply_program_edge(
+            &EdgeTerm::Switch {
+                condition,
+                false_target,
+                true_target,
+            },
+            false_target,
+            &mut state,
+        );
+        let binding = ValidationBinding {
+            predicate: Predicate::NonNull,
+            access_width: None,
+            proof_definition: None,
+            subject: output,
+            collection: None,
+        };
+        assert!(ValidationSnapshot::capture(&state, 0).proves(&binding));
+    }
+
+    #[test]
     fn generic_result_identity_allows_is_empty_to_establish_nonempty() {
         let slice = PlaceKey::new("_3");
         let condition = PlaceKey::new("_4");
@@ -10202,6 +11102,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10231,6 +11132,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: true,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10276,6 +11178,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10356,6 +11259,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10443,6 +11347,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: vec![actual.clone()],
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -10640,6 +11545,7 @@ mod tests {
             destination: PlaceKey::new("_0"),
             point: point(0, 0),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             index_range_kind: Some(RangeIndexKind::Between),
         };
@@ -10791,6 +11697,7 @@ mod tests {
             destination: destination.clone(),
             point: point(1, 0),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             index_range_kind: None,
         };
@@ -10856,6 +11763,7 @@ mod tests {
             destination: destination.clone(),
             point: point(2, 0),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             index_range_kind: None,
         };
@@ -10946,6 +11854,7 @@ mod tests {
             destination: destination.clone(),
             point: point(1, 0),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             index_range_kind: None,
         };
@@ -10983,6 +11892,7 @@ mod tests {
             mutable_actuals: Vec::new(),
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,
@@ -11131,6 +12041,7 @@ mod tests {
                     mutable_actuals: Vec::new(),
                     ffi_out_actuals: Vec::new(),
                     destination_is_bool: false,
+                    destination_restricted: false,
                     access_width: None,
                     legacy_write: false,
                     destination_out_formal: None,
@@ -11180,6 +12091,7 @@ mod tests {
                     mutable_actuals: Vec::new(),
                     ffi_out_actuals: Vec::new(),
                     destination_is_bool: false,
+                    destination_restricted: false,
                     access_width: None,
                     legacy_write: false,
                     destination_out_formal: None,
@@ -11299,6 +12211,7 @@ mod tests {
                     mutable_actuals: Vec::new(),
                     ffi_out_actuals: Vec::new(),
                     destination_is_bool: false,
+                    destination_restricted: false,
                     access_width: None,
                     legacy_write: false,
                     destination_out_formal: None,
@@ -11331,6 +12244,7 @@ mod tests {
                     mutable_actuals: vec![iterator.clone()],
                     ffi_out_actuals: Vec::new(),
                     destination_is_bool: false,
+                    destination_restricted: false,
                     access_width: None,
                     legacy_write: false,
                     destination_out_formal: None,
@@ -11442,6 +12356,7 @@ mod tests {
                 mutable_actuals: Vec::new(),
                 ffi_out_actuals: Vec::new(),
                 destination_is_bool: false,
+                destination_restricted: false,
                 access_width: None,
                 legacy_write: false,
                 destination_out_formal: None,
@@ -11541,6 +12456,7 @@ mod tests {
             mutable_actuals: vec![actual.clone()],
             ffi_out_actuals: Vec::new(),
             destination_is_bool: false,
+            destination_restricted: false,
             access_width: None,
             legacy_write: false,
             destination_out_formal: None,

@@ -171,6 +171,7 @@
               "referent_outlives_reference",
               "initialized",
               "valid_bool",
+              "valid_for_type",
               "valid_utf8"
             ]
           }
@@ -278,11 +279,13 @@
             "P2.get_unchecked",
             "P3.lifetime_transmute",
             "P3.assume_init_bool",
+            "P3.assume_init_uninitialized",
             "P3.unchecked_utf8",
             "P4.bounds",
             "P4.offset",
             "P5.1.nonempty",
             "P6.ffi_out_param",
+            "P6.ffi_out_invalid_value",
             "P6.open_trait_index"
           ]
         },
@@ -368,6 +371,16 @@
           } }
         },
         {
+          "if": { "properties": { "rule_id": { "const": "P3.assume_init_uninitialized" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern3" },
+            "source": { "properties": { "kind": { "const": "internal_unsafe_origin" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "assume_init" } } },
+            "sink": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "obligation": { "properties": { "predicates": { "const": ["initialized"] } } }
+          } }
+        },
+        {
           "if": { "properties": { "rule_id": { "const": "P3.unchecked_utf8" } }, "required": ["rule_id"] },
           "then": { "properties": {
             "primary_pattern": { "const": "pattern3" },
@@ -415,6 +428,16 @@
             "first_contract_failure": { "properties": { "kind": { "const": "nonnull_new_unchecked" } } },
             "sink": { "properties": { "kind": { "const": "nonnull_new_unchecked" } } },
             "obligation": { "properties": { "predicates": { "const": ["nonnull"] } } }
+          } }
+        },
+        {
+          "if": { "properties": { "rule_id": { "const": "P6.ffi_out_invalid_value" } }, "required": ["rule_id"] },
+          "then": { "properties": {
+            "primary_pattern": { "const": "pattern6" },
+            "source": { "properties": { "kind": { "const": "ffi_output" } } },
+            "first_contract_failure": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "sink": { "properties": { "kind": { "const": "invalid_value_exposure" } } },
+            "obligation": { "properties": { "predicates": { "const": ["valid_for_type"] } } }
           } }
         },
         {

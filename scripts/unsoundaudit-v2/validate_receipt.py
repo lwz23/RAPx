@@ -78,6 +78,7 @@ PREDICATES = {
     "referent_outlives_reference",
     "initialized",
     "valid_bool",
+    "valid_for_type",
     "valid_utf8",
 }
 OPERATION_KINDS = {
@@ -109,6 +110,13 @@ RULE_MATRIX = {
         "invalid_value_exposure",
         ("initialized", "valid_bool"),
     ),
+    "P3.assume_init_uninitialized": (
+        "pattern3",
+        "internal_unsafe_origin",
+        "assume_init",
+        "invalid_value_exposure",
+        ("initialized",),
+    ),
     "P3.unchecked_utf8": (
         "pattern3",
         "internal_unsafe_origin",
@@ -137,6 +145,13 @@ RULE_MATRIX = {
         "nonnull_new_unchecked",
         "nonnull_new_unchecked",
         ("nonnull",),
+    ),
+    "P6.ffi_out_invalid_value": (
+        "pattern6",
+        "ffi_output",
+        "invalid_value_exposure",
+        "invalid_value_exposure",
+        ("valid_for_type",),
     ),
     "P6.open_trait_index": (
         "pattern6",

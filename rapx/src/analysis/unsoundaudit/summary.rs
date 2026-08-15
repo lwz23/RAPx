@@ -175,6 +175,7 @@ pub enum Predicate {
     ReferentOutlivesReference,
     Initialized,
     ValidBool,
+    ValidForType,
     ValidUtf8,
 }
 
@@ -189,6 +190,7 @@ impl Predicate {
             Self::ReferentOutlivesReference => "referent_outlives_reference",
             Self::Initialized => "initialized",
             Self::ValidBool => "valid_bool",
+            Self::ValidForType => "valid_for_type",
             Self::ValidUtf8 => "valid_utf8",
         }
     }
@@ -1079,11 +1081,13 @@ pub enum RuleId {
     P2GetUnchecked,
     P3LifetimeTransmute,
     P3AssumeInitBool,
+    P3AssumeInitUninitialized,
     P3UncheckedUtf8,
     P4Bounds,
     P4Offset,
     P51Nonempty,
     P6FfiOutParam,
+    P6FfiOutInvalidValue,
     P6OpenTraitIndex,
 }
 
@@ -1096,11 +1100,13 @@ impl RuleId {
             Self::P2GetUnchecked => "P2.get_unchecked",
             Self::P3LifetimeTransmute => "P3.lifetime_transmute",
             Self::P3AssumeInitBool => "P3.assume_init_bool",
+            Self::P3AssumeInitUninitialized => "P3.assume_init_uninitialized",
             Self::P3UncheckedUtf8 => "P3.unchecked_utf8",
             Self::P4Bounds => "P4.bounds",
             Self::P4Offset => "P4.offset",
             Self::P51Nonempty => "P5.1.nonempty",
             Self::P6FfiOutParam => "P6.ffi_out_param",
+            Self::P6FfiOutInvalidValue => "P6.ffi_out_invalid_value",
             Self::P6OpenTraitIndex => "P6.open_trait_index",
         }
     }

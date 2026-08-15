@@ -18,8 +18,10 @@ from validate_receipt import ContractError, read_json
 DEPTHS = ("intra_procedural", "inter_procedural", "recursive")
 RULE_IDS = (
     "P1.raw_read", "P1.get_unchecked", "P2.raw_read", "P2.get_unchecked",
-    "P3.lifetime_transmute", "P3.assume_init_bool", "P3.unchecked_utf8",
-    "P4.bounds", "P4.offset", "P5.1.nonempty", "P6.ffi_out_param", "P6.open_trait_index",
+    "P3.lifetime_transmute", "P3.assume_init_bool", "P3.assume_init_uninitialized",
+    "P3.unchecked_utf8",
+    "P4.bounds", "P4.offset", "P5.1.nonempty", "P6.ffi_out_param",
+    "P6.ffi_out_invalid_value", "P6.open_trait_index",
 )
 
 
