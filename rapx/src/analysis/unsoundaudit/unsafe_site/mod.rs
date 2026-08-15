@@ -9,6 +9,10 @@ use serde_json::Value;
 
 use super::summary::{sha256_hex, FunctionKey, StableSpan};
 
+mod current_2026;
+mod legacy_2024;
+mod store;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum UnsafeSiteKind {
     UnsafeCall,
@@ -228,6 +232,23 @@ pub struct AdapterManifest {
     pub emitted_kinds: BTreeSet<UnsafeSiteKind>,
 }
 
+pub fn adapter_for_commit(rustc_commit: &str) -> Result<AdapterManifest, String> {
+    match rustc_commit {
+        legacy_2024::RUSTC_COMMIT => Ok(legacy_2024::manifest()),
+        current_2026::RUSTC_COMMIT => Ok(current_2026::manifest()),
+        _ => Err(format!(
+            "unsupported rustc commit {rustc_commit}; UnsoundAudit v3 supports only {} and {}",
+            legacy_2024::RUSTC_COMMIT,
+            current_2026::RUSTC_COMMIT
+        )),
+    }
+}
+
+pub(crate) fn begin_census_invocation(rustc_commit: &str) -> Result<u64, String> {
+    adapter_for_commit(rustc_commit)?.validate()?;
+    store::begin_global_invocation()
+}
+
 impl AdapterManifest {
     pub fn validate(&self) -> Result<(), String> {
         if self.adapter_id.is_empty()
@@ -444,6 +465,8 @@ pub struct CodeBlock {
 mod tests {
     use super::*;
     use crate::analysis::unsoundaudit::summary::StablePosition;
+    use std::sync::Arc;
+    use std::thread;
 
     fn span(line: u32) -> RawSpanAnchor {
         RawSpanAnchor::new(
@@ -559,5 +582,94 @@ mod tests {
         }
         .validate()
         .is_err());
+    }
+
+    #[test]
+    fn adapter_manifests_are_exact_and_unsupported_commits_fail_closed() {
+        let legacy = adapter_for_commit(legacy_2024::RUSTC_COMMIT).unwrap();
+        assert_eq!(legacy.adapter_id, "rustc-nightly-2024-10-12-1bc403");
+        assert_eq!(
+            legacy.checker_sha256,
+            "bde4d27635e54d8ca0582ef8decd204c3089591e5c540322891d7aaf1a182023"
+        );
+        assert!(legacy
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::RestrictedValidityInitialization));
+        assert!(legacy
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::LayoutConstrainedBorrow));
+        assert!(!legacy
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::UnsafeFieldUse));
+        legacy.validate().unwrap();
+
+        let current = adapter_for_commit(current_2026::RUSTC_COMMIT).unwrap();
+        assert_eq!(current.adapter_id, "rustc-nightly-2026-08-14-ba28ff");
+        assert_eq!(
+            current.checker_sha256,
+            "25b4b8e22ff7d561dda2a9abf429ab5bef035d246ec0200b9b887f7713fca346"
+        );
+        assert!(current
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::UnsafeBinderCast));
+        assert!(current
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::ExplicitDropCall));
+        assert!(!current
+            .emitted_kinds
+            .contains(&UnsafeSiteKind::RestrictedValidityInitialization));
+        current.validate().unwrap();
+
+        let error = adapter_for_commit("0000000000000000000000000000000000000000").unwrap_err();
+        assert!(error.contains("unsupported rustc commit"));
+    }
+
+    #[test]
+    fn census_store_is_generation_scoped_thread_safe_and_owner_sorted() {
+        let store = Arc::new(store::CensusStore::default());
+        store.begin(7).unwrap();
+        let mut workers = Vec::new();
+        for index in (0..16).rev() {
+            let store = Arc::clone(&store);
+            workers.push(thread::spawn(move || {
+                let owner = FunctionKey::new(format!("sample::owner_{index:02}"));
+                store
+                    .record_owner(
+                        7,
+                        OwnerCensus {
+                            owner,
+                            collector_ran: true,
+                            sites: Vec::new(),
+                        },
+                    )
+                    .unwrap();
+            }));
+        }
+        for worker in workers {
+            worker.join().unwrap();
+        }
+        let snapshot = store.snapshot(7).unwrap();
+        let owners = snapshot
+            .owners
+            .keys()
+            .map(|owner| owner.0.clone())
+            .collect::<Vec<_>>();
+        let mut sorted = owners.clone();
+        sorted.sort();
+        assert_eq!(owners, sorted);
+        assert_eq!(owners.len(), 16);
+        assert!(snapshot.failures.is_empty());
+
+        assert!(store.snapshot(8).is_err());
+        assert!(store
+            .record_owner(
+                8,
+                OwnerCensus {
+                    owner: FunctionKey::new("sample::wrong_generation"),
+                    collector_ran: true,
+                    sites: Vec::new(),
+                },
+            )
+            .is_err());
     }
 }

@@ -49,13 +49,13 @@
 - Create: `rapx/src/analysis/unsoundaudit/unsafe_site/current_2026.rs`
 - Modify: `rapx/src/lib.rs`
 
-- [ ] Write RED tests for the two accepted rustc commits, checker source digests, emitted kind sets, a third unsupported nightly, stable owner-local ordering, and concurrent owner insertion.
-- [ ] Freeze 2024 adapter manifest: rustc `1bc403daadbebb553ccc211a0a8eebb73989665f`, checker SHA-256 `bde4d27635e54d8ca0582ef8decd204c3089591e5c540322891d7aaf1a182023`.
-- [ ] Freeze current adapter manifest: rustc `ba28ff76f353a722f31c4f3dd2ac4e437d36411b`, checker SHA-256 `25b4b8e22ff7d561dda2a9abf429ab5bef035d246ec0200b9b887f7713fca346`.
-- [ ] Implement an invocation-generation-scoped, thread-safe owned census store; write an `OwnerCensus` even when an owner contains zero sites.
-- [ ] Reject unsupported commits before analysis output creation.
-- [ ] Preserve the existing 2024 extern-rlib query override when installing the census wrapper.
-- [ ] Run adapter unit tests under both toolchains and commit.
+- [x] Write RED tests for the two accepted rustc commits, checker source digests, emitted kind sets, a third unsupported nightly, stable owner-local ordering, and concurrent owner insertion.
+- [x] Freeze 2024 adapter manifest: rustc `1bc403daadbebb553ccc211a0a8eebb73989665f`, checker SHA-256 `bde4d27635e54d8ca0582ef8decd204c3089591e5c540322891d7aaf1a182023`.
+- [x] Freeze current adapter manifest: rustc `ba28ff76f353a722f31c4f3dd2ac4e437d36411b`, checker SHA-256 `25b4b8e22ff7d561dda2a9abf429ab5bef035d246ec0200b9b887f7713fca346`.
+- [x] Implement an invocation-generation-scoped, thread-safe owned census store; write an `OwnerCensus` even when an owner contains zero sites.
+- [x] Reject unsupported commits before analysis output creation.
+- [x] Preserve the existing 2024 extern-rlib query override when installing the census wrapper.
+- [x] Run adapter unit tests under both toolchains and commit.
 
 ### Task 3: Mirror rustc `check_unsafety` in THIR
 

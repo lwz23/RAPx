@@ -96,6 +96,12 @@ impl Default for RapCallback {
 
 impl Callbacks for RapCallback {
     fn config(&mut self, config: &mut Config) {
+        if self.unsoundaudit {
+            let commit = crate::utils::unit_output::embedded_rap_compiler_commit()
+                .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
+            analysis::unsoundaudit::unsafe_site::begin_census_invocation(&commit)
+                .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
+        }
         configure_override_queries(config);
     }
 
