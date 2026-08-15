@@ -6,6 +6,9 @@ use super::contract_catalog::{
     structural_candidate, ContractCatalog, ContractDescriptor, KnownContractModel,
     StructuralSiteCandidate,
 };
+use super::candidate::{
+    build_structural_candidates, CandidateCallEdge, CandidateOwner, StructuralFindingCandidate,
+};
 use super::endpoint_flow::{
     EndpointEdge, EndpointEdgeKind, EndpointFlowGraph, EndpointNode, ExternalSourceKind,
 };
@@ -1045,6 +1048,10 @@ struct CallDescriptor {
 #[derive(Clone, Debug)]
 enum RegistryValueModel {
     Empty,
+    ExternalBehavior {
+        kind: ExternalSourceKind,
+        token: String,
+    },
     MaybeUninit(bool),
     AssumeInit {
         source: OperandModel,
@@ -1320,6 +1327,7 @@ struct BodyFacts {
     structural_sites: BTreeMap<String, StructuralSiteCandidate>,
     contract_descriptors: BTreeMap<String, ContractDescriptor>,
     contract_sites_by_point: BTreeMap<ProgramPoint, BTreeSet<String>>,
+    bound_sites: BTreeMap<String, BoundUnsafeSite>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -1600,6 +1608,24 @@ impl<'tcx> Engine<'tcx> {
                 ),
             ],
         )?;
+        let structural_candidates = self.structural_candidates();
+        trace.event(
+            "structural_candidates",
+            "end",
+            [
+                ("candidate_count", structural_candidates.len() as u64),
+                (
+                    "opaque_candidate_count",
+                    structural_candidates
+                        .iter()
+                        .filter(|candidate| {
+                            candidate.contract.precision
+                                == unsafe_site::ContractPrecision::Opaque
+                        })
+                        .count() as u64,
+                ),
+            ],
+        )?;
         trace.event("full_summary_solve", "begin", [])?;
         let solved = self.solve_current_summaries(&graph);
         trace.event(
@@ -1838,6 +1864,62 @@ impl<'tcx> Engine<'tcx> {
             [("finding_count", findings.len() as u64)],
         )?;
         Ok(findings)
+    }
+
+    fn structural_candidates(&self) -> Vec<StructuralFindingCandidate> {
+        let owners = self
+            .bodies
+            .iter()
+            .map(|(function, facts)| {
+                (
+                    function.clone(),
+                    CandidateOwner {
+                        function: function.clone(),
+                        root_span: facts.root_span.clone(),
+                        public_safe: self.is_public_safe_root(facts.def_id),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let calls = self
+            .bodies
+            .iter()
+            .flat_map(|(caller, facts)| {
+                facts.calls.iter().filter_map(move |call| {
+                    (call.disposition == BoundaryDisposition::ResolvedLocal)
+                        .then(|| call.callee.clone())
+                        .flatten()
+                        .map(|callee| CandidateCallEdge {
+                            caller: caller.clone(),
+                            callee,
+                            point: call.point.clone(),
+                        })
+                })
+            })
+            .collect::<BTreeSet<_>>();
+        let structural_sites = self
+            .bodies
+            .values()
+            .flat_map(|facts| facts.structural_sites.clone())
+            .collect::<BTreeMap<_, _>>();
+        let contracts = self
+            .bodies
+            .values()
+            .flat_map(|facts| facts.contract_descriptors.clone())
+            .collect::<BTreeMap<_, _>>();
+        let bound_sites = self
+            .bodies
+            .values()
+            .flat_map(|facts| facts.bound_sites.clone())
+            .collect::<BTreeMap<_, _>>();
+        build_structural_candidates(
+            &self.endpoint_graph,
+            &structural_sites,
+            &contracts,
+            &bound_sites,
+            &owners,
+            &calls,
+        )
     }
 
     fn solve_local_out_must(&self) -> BTreeMap<FunctionKey, BTreeSet<u32>> {
@@ -2446,6 +2528,7 @@ impl<'tcx> Engine<'tcx> {
             structural_sites: BTreeMap::new(),
             contract_descriptors: BTreeMap::new(),
             contract_sites_by_point: BTreeMap::new(),
+            bound_sites: BTreeMap::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
@@ -2948,7 +3031,32 @@ impl<'tcx> Engine<'tcx> {
             &mut facts.structural_sites,
             &mut facts.contract_descriptors,
             &mut facts.contract_sites_by_point,
+            &mut facts.bound_sites,
         );
+        if let ProgramOpKind::Assign(assignment) = &operation.kind {
+            if let Some(AbstractOrigin::PublicField { def_path, .. }) = &assignment.field_origin {
+                let value = eval_value_model(
+                    state,
+                    &assignment.value,
+                    StaticWriteToken::new(block.index() as u32, index as u32),
+                );
+                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
+                let exposure = EndpointNode::Exposure {
+                    owner: program.function.clone(),
+                    token: format!("public-field-store:{def_path}"),
+                    point: operation.semantic_point().clone(),
+                };
+                facts.endpoint_graph.insert_node(exposure.clone());
+                for source in value.endpoint_sources {
+                    facts.endpoint_graph.insert_edge(EndpointEdge {
+                        from: source,
+                        to: exposure.clone(),
+                        kind: EndpointEdgeKind::Exposure,
+                        point: operation.point.clone(),
+                    });
+                }
+            }
+        }
         if let ProgramOpKind::Call(call) = &operation.kind {
             if let Some(callee) = &call.descriptor.callee {
                 for (argument, operand) in call.descriptor.args.iter().enumerate() {
@@ -3504,6 +3612,11 @@ impl<'tcx> Engine<'tcx> {
             } else if disposition == BoundaryDisposition::SelectedOpenBehavior {
                 value = RegistryValueModel::SelectedOpenBehavior {
                     token: format!("trait-return:{}", self.tcx.def_path_str(did)),
+                };
+            } else if self.is_exact_foreign_c(did) {
+                value = RegistryValueModel::ExternalBehavior {
+                    kind: ExternalSourceKind::FfiReturn,
+                    token: format!("ffi-return:{}", self.tcx.def_path_str(did)),
                 };
             } else if self.is_associated_slice_as_ref(did, body, args, destination) {
                 value = RegistryValueModel::GenericCapability {
@@ -6330,6 +6443,21 @@ fn eval_registry_value(
     let definition = StaticWriteToken::new(point.block, point.statement);
     match model {
         RegistryValueModel::RangeIntoIterator(range) => eval_operand(state, range),
+        RegistryValueModel::ExternalBehavior { kind, token } => ValueFacts {
+            endpoint_sources: BTreeSet::from([EndpointNode::ExternalBehavior {
+                owner: point.function.clone(),
+                kind: *kind,
+                token: token.clone(),
+                span: point.span.clone(),
+            }]),
+            may_be_non_length: true,
+            semantic_unknown: true,
+            utf8_relation_unknown: true,
+            checked_end_unknown: true,
+            range_limit_unknown: true,
+            known_length_unknown: true,
+            ..ValueFacts::default()
+        },
         RegistryValueModel::Empty
         | RegistryValueModel::SliceIterator(_)
         | RegistryValueModel::SlicePosition(_)
@@ -6410,6 +6538,11 @@ fn eval_registry_value(
                 span: point.span.clone(),
             }]),
             generic_capability: true,
+            endpoint_sources: BTreeSet::from([EndpointNode::GenericCapability {
+                owner: point.function.clone(),
+                token: token.clone(),
+                span: point.span.clone(),
+            }]),
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -6779,6 +6912,7 @@ fn record_site_contracts(
     structural_sites: &mut BTreeMap<String, StructuralSiteCandidate>,
     descriptors: &mut BTreeMap<String, ContractDescriptor>,
     sites_by_point: &mut BTreeMap<ProgramPoint, BTreeSet<String>>,
+    bound_sites: &mut BTreeMap<String, BoundUnsafeSite>,
 ) {
     let catalog = ContractCatalog::full();
     for site in &operation.unsafe_sites {
@@ -6796,6 +6930,7 @@ fn record_site_contracts(
             .entry(point)
             .or_default()
             .insert(site_id.clone());
+        bound_sites.insert(site_id.clone(), site.clone());
         descriptors.insert(site_id, catalog.describe(site, known_contract));
     }
 }
@@ -8392,15 +8527,18 @@ mod tests {
         let mut candidates = BTreeMap::new();
         let mut descriptors = BTreeMap::new();
         let mut sites_by_point = BTreeMap::new();
+        let mut bound_sites = BTreeMap::new();
         record_site_contracts(
             &operation,
             None,
             &mut candidates,
             &mut descriptors,
             &mut sites_by_point,
+            &mut bound_sites,
         );
         assert_eq!(candidates, BTreeMap::from([(site_id.clone(), expected_candidate)]));
         assert_eq!(descriptors.len(), operation.unsafe_sites.len());
+        assert_eq!(bound_sites.len(), operation.unsafe_sites.len());
         assert_eq!(sites_by_point[&point(0, 0)], BTreeSet::from([site_id.clone()]));
         assert_eq!(
             descriptors[&site_id].precision,

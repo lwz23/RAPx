@@ -35,6 +35,11 @@ pub(super) enum EndpointNode {
         token: String,
         point: ProgramPoint,
     },
+    GenericCapability {
+        owner: FunctionKey,
+        token: String,
+        span: StableSpan,
+    },
     UnsafeOperand {
         owner: FunctionKey,
         site_id: String,
@@ -265,6 +270,7 @@ mod tests {
             | EndpointNode::UnsafeOperand { owner, .. }
             | EndpointNode::UnsafeResult { owner, .. }
             | EndpointNode::InternalDerivation { owner, .. }
+            | EndpointNode::GenericCapability { owner, .. }
             | EndpointNode::ExternalBehavior { owner, .. }
             | EndpointNode::Exposure { owner, .. } => owner.clone(),
             EndpointNode::PublicField { .. } => FunctionKey::new("crate::field"),

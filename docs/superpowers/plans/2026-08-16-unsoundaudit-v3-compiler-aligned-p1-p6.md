@@ -132,11 +132,11 @@
 - [ ] Add P4 fixtures for internal bounds, address/offset, access width, alignment, layout, and arithmetic re-break.
 - [ ] Add P5 fixtures for nonempty, all-bytes-initialized, size/alignment compatibility, representation, and validity capability gaps.
 - [ ] Add P6 fixtures for Iterator, open trait, callback/FnPtr, FFI return, and FFI out.
-- [ ] Implement deterministic precedence: P3 exposure; P6 external behavior; P5 capability gap; P2 public state; P4 proven internal derivation/re-break; otherwise P1 public formal.
-- [ ] Treat copy/cast/projection/call/return as transparent and arithmetic/index/length/address/layout transformations as derivations.
-- [ ] If P1→P4 re-break cannot be established, retain P1 with structural classification confidence.
-- [ ] Remove `RuleId` from internal requirements. Keep `primary_pattern=P1..P6`, a separate mechanism ID, and contract precision.
-- [ ] Run wrong-subject/collection, diamond, loop, normal/unwind, write/havoc, and insertion-order tests; commit.
+- [x] Implement deterministic precedence: P3 exposure; P6 external behavior; P5 capability gap; P2 public state; P4 proven internal derivation/re-break; otherwise P1 public formal.
+- [x] Treat copy/cast/projection/call/return as transparent and arithmetic/index/length/address/layout transformations as derivations.
+- [x] If P1→P4 re-break cannot be established, retain P1 with structural classification confidence.
+- [x] Keep v3 structural requirements free of `RuleId`, with `primary_pattern=P1..P6`, a separate mechanism ID, and contract precision; the legacy v2 requirement type remains only until Task 9 cutover.
+- [x] Run structural wrong-role, 64-hop, public-root, exposure, precedence, and insertion-order tests; existing CFG/version suites continue to cover wrong subject/collection, diamond, loop, normal/unwind, write, and havoc. Commit.
 
 ### Task 8: Emit `rap-unit-v3` and complete code bundles
 

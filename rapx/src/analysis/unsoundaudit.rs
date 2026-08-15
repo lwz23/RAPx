@@ -1,4 +1,5 @@
 mod contract_catalog;
+mod candidate;
 mod dataflow;
 mod endpoint_flow;
 mod mir;
