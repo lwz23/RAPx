@@ -145,13 +145,13 @@
 - Modify: `rapx/src/utils/unit_output.rs`
 - Modify: `scripts/unsoundaudit-v3/validate_receipt.py`
 
-- [ ] Write serialization RED tests for complete/partial receipts, deterministic code dictionaries, normalized paths, missing source/docs, and finding-ID stability.
-- [ ] Emit root, source, first failure, unsafe site, optional exposure, contract precision/model/obligation, binding confidence, exact witness, and code references.
-- [ ] Build a deduplicated dictionary containing complete local function bodies for the safe root, every causal function, unsafe-site owner, and exposure owner.
-- [ ] Include local/external unsafe signatures and `# Safety` docs when available; record a deterministic unavailable reason otherwise.
-- [ ] Compute v3 finding IDs from pattern, site, source, first failure, root, and exposure; exclude witness choice, code text, profile, and contract-model version.
-- [ ] Keep the CLI `-unsoundaudit`; write only v3. Retain v1/v2 read-only validation tools.
-- [ ] Start v3 with all v2 stdlib suppression disabled and commit.
+- [x] Write serialization RED tests for complete/partial receipts, deterministic code dictionaries, normalized paths, missing source/docs, and finding-ID stability.
+- [x] Emit root, source, first failure, unsafe site, optional exposure, contract precision/model/obligation, binding confidence, exact witness, and code references.
+- [x] Build a deduplicated dictionary containing complete local function bodies for the safe root, every causal function, unsafe-site owner, and exposure owner.
+- [x] Include local/external unsafe signatures and `# Safety` docs when available; record a deterministic unavailable reason otherwise.
+- [x] Compute v3 finding IDs from pattern, site, source, first failure, root, and exposure; exclude witness choice, code text, profile, and contract-model version.
+- [x] Keep the CLI `-unsoundaudit`; write only v3. Retain v1/v2 read-only validation tools.
+- [x] Start v3 with all v2 stdlib suppression disabled and commit.
 
 ### Task 9: Cut over and remove legacy discovery authority
 

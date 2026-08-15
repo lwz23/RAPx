@@ -8,6 +8,7 @@ mod relations;
 mod stdlib_suppressions;
 mod summary;
 pub(crate) mod unsafe_site;
+mod v3_output;
 
 use crate::utils::unit_output::{
     atomic_write, build_verification_receipt_from_environment, embedded_rap_compiler_commit,
@@ -19,29 +20,29 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeSet;
 use std::env;
 use std::path::PathBuf;
-use summary::{deduplicate_findings, Finding, Operation, Pattern, StableSpan};
+use summary::{Finding, Operation, Pattern, StableSpan};
 
 const LIMITATION: &str =
     "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported";
 
-struct UnitMetadata {
-    project_root: String,
-    unit_id: String,
-    rustc_invocation_id: String,
-    package_id: String,
-    package_name: String,
-    package_version: String,
-    crate_name: String,
-    crate_types: Vec<String>,
-    target_kind: String,
-    target_triple: String,
-    manifest_path: String,
-    source_path: String,
-    extra_filename: String,
-    rustc_path: String,
-    cargo_supplied_rustc_path: String,
-    cargo_supplied_rustc_commit: String,
-    rap_compiler_commit: String,
+pub(super) struct UnitMetadata {
+    pub project_root: String,
+    pub unit_id: String,
+    pub rustc_invocation_id: String,
+    pub package_id: String,
+    pub package_name: String,
+    pub package_version: String,
+    pub crate_name: String,
+    pub crate_types: Vec<String>,
+    pub target_kind: String,
+    pub target_triple: String,
+    pub manifest_path: String,
+    pub source_path: String,
+    pub extra_filename: String,
+    pub rustc_path: String,
+    pub cargo_supplied_rustc_path: String,
+    pub cargo_supplied_rustc_commit: String,
+    pub rap_compiler_commit: String,
 }
 
 pub struct LwzCheck<'tcx> {
@@ -67,14 +68,17 @@ impl<'tcx> LwzCheck<'tcx> {
             return Ok(());
         }
         trace.event("analysis", "begin", [])?;
-        let findings = match mir::analyze(self.tcx, &mut trace) {
-            Ok(findings) => {
+        let analysis = match mir::analyze(self.tcx, &mut trace) {
+            Ok(analysis) => {
                 trace.event(
                     "analysis",
                     "end",
-                    [("success", 1), ("finding_count", findings.len() as u64)],
+                    [
+                        ("success", 1),
+                        ("finding_count", analysis.structural_candidates.len() as u64),
+                    ],
                 )?;
-                findings
+                analysis
             }
             Err(error) => {
                 trace.event("analysis", "end", [("success", 0)])?;
@@ -82,7 +86,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         };
         trace.event("receipt", "begin", [])?;
-        match self.maybe_write_json_summary(findings) {
+        match self.maybe_write_json_summary(analysis) {
             Ok(()) => trace.event("receipt", "end", [("success", 1)]),
             Err(error) => {
                 trace.event("receipt", "end", [("success", 0)])?;
@@ -92,12 +96,12 @@ impl<'tcx> LwzCheck<'tcx> {
         trace.finish()
     }
 
-    fn maybe_write_json_summary(&self, findings: Vec<Finding>) -> Result<(), String> {
+    fn maybe_write_json_summary(&self, analysis: mir::AnalysisOutput) -> Result<(), String> {
         let Some(output_path) = env::var_os("UNSOUND_SCANNER_RAP_JSON_OUT") else {
             return Ok(());
         };
         let output_path = PathBuf::from(output_path);
-        let summary = self.build_json_summary(findings)?;
+        let summary = self.build_json_summary(analysis)?;
         let mut bytes = serde_json::to_vec_pretty(&summary).map_err(|error| {
             format!(
                 "failed to serialize RAP JSON output '{}': {error}",
@@ -113,7 +117,7 @@ impl<'tcx> LwzCheck<'tcx> {
         })
     }
 
-    fn build_json_summary(&self, findings: Vec<Finding>) -> Result<Value, String> {
+    fn build_json_summary(&self, analysis: mir::AnalysisOutput) -> Result<Value, String> {
         // The verification challenge remains fail-closed, but its machine-specific
         // evidence is intentionally not embedded in the closed rap-unit-v2 schema.
         let _ = build_verification_receipt_from_environment()?;
@@ -156,7 +160,10 @@ impl<'tcx> LwzCheck<'tcx> {
             crate_name: environment("UNSOUND_SCANNER_RAP_CRATE_NAME"),
             crate_types,
             target_kind: environment("UNSOUND_SCANNER_RAP_TARGET_KIND"),
-            target_triple: environment("UNSOUND_SCANNER_RAP_TARGET_TRIPLE"),
+            target_triple: env::var("UNSOUND_SCANNER_RAP_TARGET_TRIPLE")
+                .ok()
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| self.tcx.sess.target.llvm_target.to_string()),
             manifest_path: environment("UNSOUND_SCANNER_RAP_MANIFEST_PATH"),
             source_path: environment("UNSOUND_SCANNER_RAP_SOURCE_PATH"),
             extra_filename: environment("UNSOUND_SCANNER_RAP_EXTRA_FILENAME"),
@@ -166,26 +173,7 @@ impl<'tcx> LwzCheck<'tcx> {
             rap_compiler_commit,
         };
 
-        let mut findings = deduplicate_findings(findings);
-        findings.sort_by_key(|finding| finding.causal_key.canonical_json());
-        let raw_finding_count = findings.len();
-        let (findings, suppressed) =
-            stdlib_suppressions::partition_findings(findings, &metadata.rap_compiler_commit)?;
-        maybe_write_suppression_ledger(stdlib_suppressions::ledger_json(
-            &metadata.crate_name,
-            &metadata.cargo_supplied_rustc_commit,
-            &metadata.rap_compiler_commit,
-            raw_finding_count,
-            findings.len(),
-            &suppressed,
-        ))?;
-        let mut counts = [0_usize; 6];
-        for finding in &findings {
-            counts[pattern_index(finding.primary)] += 1;
-        }
-        let findings = findings.iter().map(finding_json).collect::<Vec<_>>();
-
-        Ok(unit_json(metadata, counts, findings))
+        v3_output::build_receipt(metadata, analysis)
     }
 }
 

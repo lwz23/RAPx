@@ -1363,7 +1363,16 @@ struct Engine<'tcx> {
     endpoint_graph: EndpointFlowGraph,
 }
 
-pub fn analyze(tcx: TyCtxt<'_>, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
+pub(super) struct AnalysisOutput {
+    pub legacy_findings: Vec<Finding>,
+    pub structural_candidates: Vec<StructuralFindingCandidate>,
+    pub binding_records: BTreeMap<String, SiteBindingRecord>,
+    pub endpoint_graph: EndpointFlowGraph,
+    pub owner_spans: BTreeMap<FunctionKey, StableSpan>,
+    pub owner_code_spans: BTreeMap<FunctionKey, StableSpan>,
+}
+
+pub fn analyze(tcx: TyCtxt<'_>, trace: &mut PerfTrace) -> Result<AnalysisOutput, String> {
     Engine::new(tcx)?.run(trace)
 }
 
@@ -1486,7 +1495,7 @@ impl<'tcx> Engine<'tcx> {
         })
     }
 
-    fn run(mut self, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
+    fn run(mut self, trace: &mut PerfTrace) -> Result<AnalysisOutput, String> {
         trace.event("collect_ids", "begin", [])?;
         let ids = self.local_function_ids();
         let binding_ids = self.local_binding_ids()?;
@@ -1863,7 +1872,37 @@ impl<'tcx> Engine<'tcx> {
             "end",
             [("finding_count", findings.len() as u64)],
         )?;
-        Ok(findings)
+        let owner_spans = self
+            .bodies
+            .iter()
+            .map(|(owner, facts)| (owner.clone(), facts.root_span.clone()))
+            .collect();
+        let owner_code_spans = self
+            .bodies
+            .iter()
+            .map(|(owner, facts)| {
+                self.owner_code_span(facts)
+                    .map(|span| (owner.clone(), span))
+            })
+            .collect::<Result<_, _>>()?;
+        Ok(AnalysisOutput {
+            legacy_findings: findings,
+            structural_candidates,
+            binding_records: self.binding_records,
+            endpoint_graph: self.endpoint_graph,
+            owner_spans,
+            owner_code_spans,
+        })
+    }
+
+    fn owner_code_span(&self, facts: &BodyFacts) -> Result<StableSpan, String> {
+        let body_span = hir_body_value_span(self.tcx, facts.def_id).ok_or_else(|| {
+            format!(
+                "cannot locate HIR body for causal function {}",
+                facts.function.0
+            )
+        })?;
+        merge_function_code_span(&facts.root_span, &self.stable_span(body_span)?)
     }
 
     fn structural_candidates(&self) -> Vec<StructuralFindingCandidate> {
@@ -5116,6 +5155,33 @@ fn supports_local_optimized_mir_body(tcx: TyCtxt<'_>, id: LocalDefId, kind: DefK
 #[rustversion::before(1.96)]
 fn supports_local_optimized_mir_body(_tcx: TyCtxt<'_>, _id: LocalDefId, kind: DefKind) -> bool {
     matches!(kind, DefKind::Fn | DefKind::AssocFn)
+}
+
+#[rustversion::before(1.96)]
+fn hir_body_value_span(tcx: TyCtxt<'_>, id: LocalDefId) -> Option<Span> {
+    tcx.hir().maybe_body_owned_by(id).map(|body| body.value.span)
+}
+
+#[rustversion::since(1.96)]
+fn hir_body_value_span(tcx: TyCtxt<'_>, id: LocalDefId) -> Option<Span> {
+    tcx.hir_maybe_body_owned_by(id).map(|body| body.value.span)
+}
+
+fn merge_function_code_span(
+    definition: &StableSpan,
+    body: &StableSpan,
+) -> Result<StableSpan, String> {
+    if definition.path != body.path {
+        return Err(format!(
+            "causal function definition and body use different source paths: '{}' and '{}'",
+            definition.path, body.path
+        ));
+    }
+    Ok(StableSpan::new(
+        definition.path.clone(),
+        definition.start.clone().min(body.start.clone()),
+        definition.end.clone().max(body.end.clone()),
+    ))
 }
 
 #[rustversion::since(1.96)]
