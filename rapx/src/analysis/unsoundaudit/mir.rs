@@ -2,6 +2,10 @@ use super::dataflow::{
     replay_final_entries, solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin,
     StaticWriteToken,
 };
+use super::contract_catalog::{
+    structural_candidate, ContractCatalog, ContractDescriptor, KnownContractModel,
+    StructuralSiteCandidate,
+};
 use super::endpoint_flow::{
     EndpointEdge, EndpointEdgeKind, EndpointFlowGraph, EndpointNode, ExternalSourceKind,
 };
@@ -1313,6 +1317,9 @@ struct BodyFacts {
     local_relational_obligations: BTreeMap<ProgramPoint, RelationalObligation>,
     endpoint_graph: EndpointFlowGraph,
     endpoint_snapshots: BTreeMap<(String, unsafe_site::OperandRole), BTreeSet<EndpointNode>>,
+    structural_sites: BTreeMap<String, StructuralSiteCandidate>,
+    contract_descriptors: BTreeMap<String, ContractDescriptor>,
+    contract_sites_by_point: BTreeMap<ProgramPoint, BTreeSet<String>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -2436,6 +2443,9 @@ impl<'tcx> Engine<'tcx> {
             local_relational_obligations: BTreeMap::new(),
             endpoint_graph: EndpointFlowGraph::default(),
             endpoint_snapshots: BTreeMap::new(),
+            structural_sites: BTreeMap::new(),
+            contract_descriptors: BTreeMap::new(),
+            contract_sites_by_point: BTreeMap::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
@@ -2674,6 +2684,13 @@ impl<'tcx> Engine<'tcx> {
                     );
                 }
                 if let Some(source) = &assignment.raw_read_source {
+                    if !has_contract_model_id(
+                        facts,
+                        operation.semantic_point(),
+                        "raw_pointer_access_v1",
+                    ) {
+                        return;
+                    }
                     let subject = eval_operand(state, source).value;
                     facts.summary_seed.requirements.insert(ContractRequirement {
                         seed_id: format!("P1.raw:{}", operation.semantic_point().span.token()),
@@ -2918,6 +2935,20 @@ impl<'tcx> Engine<'tcx> {
         facts: &mut BodyFacts,
     ) {
         let operation = &program.operations[block][index];
+        let known_contract = match &operation.kind {
+            ProgramOpKind::Call(call) => call
+                .descriptor
+                .raw_def
+                .and_then(|did| self.known_contract_model(did)),
+            ProgramOpKind::Assign(_) | ProgramOpKind::Nop => None,
+        };
+        record_site_contracts(
+            operation,
+            known_contract,
+            &mut facts.structural_sites,
+            &mut facts.contract_descriptors,
+            &mut facts.contract_sites_by_point,
+        );
         if let ProgramOpKind::Call(call) = &operation.kind {
             if let Some(callee) = &call.descriptor.callee {
                 for (argument, operand) in call.descriptor.args.iter().enumerate() {
@@ -3588,10 +3619,9 @@ impl<'tcx> Engine<'tcx> {
         }
 
         for call in facts.calls.clone() {
-            let Some(did) = call.raw_def else {
-                continue;
-            };
-            if self.is_get_unchecked(did) && call.args.len() >= 2 {
+            if has_contract_model(facts, &call.point, KnownContractModel::GetUnchecked)
+                && call.args.len() >= 2
+            {
                 let collection = call.arg_values[0].value.clone();
                 let index_subject = call.arg_values[1].value.clone();
                 let constant_zero = matches!(call.args[1], CallOperand::Constant(0));
@@ -3693,7 +3723,9 @@ impl<'tcx> Engine<'tcx> {
                     return_exposure: false,
                     sink_function: facts.function.clone(),
                 });
-            } else if self.tcx.is_diagnostic_item(sym::assume_init, did) && !call.args.is_empty() {
+            } else if has_contract_model(facts, &call.point, KnownContractModel::AssumeInit)
+                && !call.args.is_empty()
+            {
                 let initialization = &call.arg_values[0];
                 if definitely_uninitialized(initialization) {
                     let legacy_bool_return = call.destination_is_bool
@@ -3709,9 +3741,11 @@ impl<'tcx> Engine<'tcx> {
                     }
                     facts.summary_seed.requirements.insert(requirement);
                 }
-            } else if self
-                .tcx
-                .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
+            } else if has_contract_model(
+                facts,
+                &call.point,
+                KnownContractModel::FromUtf8Unchecked,
+            )
                 && !call.args.is_empty()
             {
                 if let Some(subject) = call.arg_values.first().and_then(unique_semantic_value) {
@@ -3740,7 +3774,12 @@ impl<'tcx> Engine<'tcx> {
                             place: call.destination.clone(),
                         });
                 }
-            } else if self.is_nonnull_new_unchecked(did) && !call.args.is_empty() {
+            } else if has_contract_model(
+                facts,
+                &call.point,
+                KnownContractModel::NonNullNewUnchecked,
+            ) && !call.args.is_empty()
+            {
                 let subject = call.arg_values[0].value.clone();
                 if subject
                     .origins
@@ -3784,7 +3823,9 @@ impl<'tcx> Engine<'tcx> {
                         sink_function: facts.function.clone(),
                     });
                 }
-            } else if self.is_read_unaligned(did) && !call.args.is_empty() {
+            } else if has_contract_model(facts, &call.point, KnownContractModel::ReadUnaligned)
+                && !call.args.is_empty()
+            {
                 let pointer = call.arg_values[0].value.clone();
                 if let (Some(width), Some(pointer_facts)) =
                     (call.access_width, call.arg_values.first())
@@ -4425,6 +4466,25 @@ impl<'tcx> Engine<'tcx> {
             || self.is_pointer_cast(did)
             || self.is_maybe_uninit_as_mut_ptr(did)
             || self.is_read_unaligned(did)
+    }
+
+    fn known_contract_model(&self, did: DefId) -> Option<KnownContractModel> {
+        if self.is_get_unchecked(did) {
+            Some(KnownContractModel::GetUnchecked)
+        } else if self.is_read_unaligned(did) {
+            Some(KnownContractModel::ReadUnaligned)
+        } else if self.is_nonnull_new_unchecked(did) {
+            Some(KnownContractModel::NonNullNewUnchecked)
+        } else if self.tcx.is_diagnostic_item(sym::assume_init, did) {
+            Some(KnownContractModel::AssumeInit)
+        } else if self
+            .tcx
+            .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
+        {
+            Some(KnownContractModel::FromUtf8Unchecked)
+        } else {
+            None
+        }
     }
 
     fn is_get_unchecked(&self, did: DefId) -> bool {
@@ -6713,6 +6773,54 @@ fn capture_bound_endpoint_sites(
     }
 }
 
+fn record_site_contracts(
+    operation: &ProgramOp,
+    known_contract: Option<KnownContractModel>,
+    structural_sites: &mut BTreeMap<String, StructuralSiteCandidate>,
+    descriptors: &mut BTreeMap<String, ContractDescriptor>,
+    sites_by_point: &mut BTreeMap<ProgramPoint, BTreeSet<String>>,
+) {
+    let catalog = ContractCatalog::full();
+    for site in &operation.unsafe_sites {
+        let site_id = site.seed.site_id();
+        if let Some(candidate) = structural_candidate(site) {
+            structural_sites.insert(site_id.clone(), candidate);
+        }
+        let point = operation.point.clone().unwrap_or_else(|| ProgramPoint {
+            function: site.seed.owner.clone(),
+            block: site.solver.block,
+            statement: site.solver.statement,
+            span: site.seed.raw_span.stable.clone(),
+        });
+        sites_by_point
+            .entry(point)
+            .or_default()
+            .insert(site_id.clone());
+        descriptors.insert(site_id, catalog.describe(site, known_contract));
+    }
+}
+
+fn has_contract_model(
+    facts: &BodyFacts,
+    point: &ProgramPoint,
+    model: KnownContractModel,
+) -> bool {
+    has_contract_model_id(facts, point, model.as_str())
+}
+
+fn has_contract_model_id(facts: &BodyFacts, point: &ProgramPoint, model_id: &str) -> bool {
+    facts
+        .contract_sites_by_point
+        .get(point)
+        .into_iter()
+        .flatten()
+        .filter_map(|site_id| facts.contract_descriptors.get(site_id))
+        .any(|descriptor| {
+            descriptor.precision != unsafe_site::ContractPrecision::Opaque
+                && descriptor.model_id.as_deref() == Some(model_id)
+        })
+}
+
 fn install_unsafe_result_sites(sites: &[BoundUnsafeSite], state: &mut ProgramState) {
     for site in sites {
         let Some(result_place) = &site.result_place else {
@@ -8270,6 +8378,34 @@ mod tests {
             owner: FunctionKey::new("crate::f"),
             site_id: operation.unsafe_sites[0].seed.site_id(),
         }));
+    }
+
+    #[test]
+    fn v3_catalog_records_bound_sites_but_does_not_own_structural_discovery() {
+        let operation = ProgramOp {
+            point: Some(point(0, 0)),
+            kind: ProgramOpKind::Nop,
+            unsafe_sites: vec![bound_endpoint_site("_1")],
+        };
+        let site_id = operation.unsafe_sites[0].seed.site_id();
+        let expected_candidate = structural_candidate(&operation.unsafe_sites[0]).unwrap();
+        let mut candidates = BTreeMap::new();
+        let mut descriptors = BTreeMap::new();
+        let mut sites_by_point = BTreeMap::new();
+        record_site_contracts(
+            &operation,
+            None,
+            &mut candidates,
+            &mut descriptors,
+            &mut sites_by_point,
+        );
+        assert_eq!(candidates, BTreeMap::from([(site_id.clone(), expected_candidate)]));
+        assert_eq!(descriptors.len(), operation.unsafe_sites.len());
+        assert_eq!(sites_by_point[&point(0, 0)], BTreeSet::from([site_id.clone()]));
+        assert_eq!(
+            descriptors[&site_id].precision,
+            unsafe_site::ContractPrecision::Generic
+        );
     }
 
     #[test]

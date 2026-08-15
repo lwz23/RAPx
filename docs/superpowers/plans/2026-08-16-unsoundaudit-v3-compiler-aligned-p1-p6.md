@@ -110,14 +110,14 @@
 - Modify: `rapx/src/analysis/unsoundaudit/mir.rs`
 - Modify: `rapx/src/analysis/unsoundaudit/summary.rs`
 
-- [ ] Write RED tests proving the catalog cannot create/delete census sites or pre-discharge structural candidates.
-- [ ] Move current `get_unchecked`, raw-read, UTF-8, `assume_init`, NonNull, range, and FFI models behind `ContractDescriptor`.
-- [ ] Implement `precision = precise | generic | opaque`, failure phase, relevant roles, obligation, and validation model.
-- [ ] Add generic language-site contracts for raw deref/access, restricted validity, union result validity, and layout-constrained access.
-- [ ] For opaque unsafe calls, select only deterministic memory/validity roles: memory-bearing values, scalars flowing into address/index/length/size/alignment/layout/discriminant, generic capabilities affecting representation/validity, writable out values, and validity-sensitive returns.
-- [ ] Leave pure unrelated scalar operands census-only; do not use callee names, paths, projects, or line numbers.
-- [ ] Permit discharge only for precise/generic models with exact subject, collection, access width, versions, and dominating CFG validation. Opaque candidates are never heuristically discharged.
-- [ ] Remove registry discovery authority only after shadow comparisons pass; commit.
+- [x] Write RED tests proving the catalog cannot create/delete census sites or pre-discharge structural candidates.
+- [x] Move current `get_unchecked`, raw-read, UTF-8, `assume_init`, NonNull, and range/access-width sink models behind `ContractDescriptor`; keep FFI return/out as source-side endpoint metadata consumed by the descriptor of the unsafe site it reaches.
+- [x] Implement `precision = precise | generic | opaque`, failure phase, relevant roles, obligation, and validation model.
+- [x] Add generic language-site contracts for raw deref/access, restricted validity, union result validity, and layout-constrained access.
+- [x] For opaque unsafe calls, select only deterministic memory/validity roles: memory-bearing values, scalars flowing into address/index/length/size/alignment/layout/discriminant, generic capabilities affecting representation/validity, writable out values, and validity-sensitive returns.
+- [x] Leave pure unrelated scalar operands census-only; do not use callee names, paths, projects, or line numbers.
+- [x] Permit discharge only for precise/generic models with exact subject, collection, access width, versions, and dominating CFG validation. Opaque candidates are never heuristically discharged.
+- [ ] Remove registry discovery authority only after shadow comparisons pass; deferred deliberately to Task 9.
 
 ### Task 7: Implement structural P1–P6 classification
 
