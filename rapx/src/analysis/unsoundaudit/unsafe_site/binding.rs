@@ -19,6 +19,7 @@ use rustc_span::Span;
 use rustc_target::abi::{FieldIdx, VariantIdx};
 use serde_json::json;
 
+use super::super::summary::PlaceKey;
 use super::{
     BindingStatus, FunctionKey, OperandRole, RawSpanAnchor, UnsafeSiteKind, UnsafeSiteSeed,
 };
@@ -27,6 +28,10 @@ use super::{
 pub(crate) enum MirStage {
     Built,
     Solver,
+}
+
+fn place_key(place: Place<'_>) -> PlaceKey {
+    PlaceKey::new(format!("{place:?}"))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -41,6 +46,7 @@ pub(crate) struct MirEventLocation {
 pub(crate) struct MirOperandAnchor {
     pub role: OperandRole,
     pub type_fingerprint: String,
+    pub place: Option<PlaceKey>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -53,6 +59,7 @@ pub(crate) struct MirEventAnchor {
     pub indirect_call: bool,
     pub operands: Vec<MirOperandAnchor>,
     pub result_type: Option<String>,
+    pub result_place: Option<PlaceKey>,
     pub shape: String,
     pub location: MirEventLocation,
 }
@@ -65,6 +72,7 @@ pub(crate) struct SiteBindingRecord {
     pub solver_candidate_count: usize,
     pub built: Option<MirEventLocation>,
     pub solver: Option<MirEventLocation>,
+    pub(crate) solver_event: Option<MirEventAnchor>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -72,6 +80,8 @@ pub(crate) struct BoundUnsafeSite {
     pub seed: UnsafeSiteSeed,
     pub built: MirEventLocation,
     pub solver: MirEventLocation,
+    pub operands: Vec<MirOperandAnchor>,
+    pub result_place: Option<PlaceKey>,
 }
 
 impl BoundUnsafeSite {
@@ -86,6 +96,18 @@ impl BoundUnsafeSite {
                 .solver
                 .clone()
                 .expect("bound site has solver MIR location"),
+            operands: record
+                .solver_event
+                .as_ref()
+                .expect("bound site has solver MIR event")
+                .operands
+                .clone(),
+            result_place: record
+                .solver_event
+                .as_ref()
+                .expect("bound site has solver MIR event")
+                .result_place
+                .clone(),
         })
     }
 }
@@ -218,6 +240,7 @@ pub(crate) fn bind_owner(
             solver_candidate_count: solver_candidates[index].len(),
             built: None,
             solver: None,
+            solver_event: None,
         })
         .collect::<Vec<_>>();
 
@@ -240,6 +263,7 @@ pub(crate) fn bind_owner(
                 records[index].status = BindingStatus::BoundExact;
                 records[index].built = Some(ordered_built[built].location.clone());
                 records[index].solver = Some(ordered_solver[solver].location.clone());
+                records[index].solver_event = Some((*ordered_solver[solver]).clone());
             }
         }
     }
@@ -363,15 +387,14 @@ fn compatible(site: &UnsafeSiteSeed, event: &MirEventAnchor) -> bool {
         _ if site.callee != event.callee => return false,
         _ => {}
     }
-    let operands = site
-        .operands
-        .iter()
-        .map(|operand| MirOperandAnchor {
-            role: operand.role.clone(),
-            type_fingerprint: operand.type_fingerprint.clone(),
-        })
-        .collect::<Vec<_>>();
-    operands == event.operands
+    site.operands.len() == event.operands.len()
+        && site
+            .operands
+            .iter()
+            .zip(&event.operands)
+            .all(|(site, event)| {
+                site.role == event.role && site.type_fingerprint == event.type_fingerprint
+            })
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -491,6 +514,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                             false,
                             Vec::new(),
                             Some(destination.ty(&body.local_decls, tcx).ty),
+                            Some(place_key(*destination)),
                             &mut events,
                         )?;
                     }
@@ -507,6 +531,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                             false,
                             Vec::new(),
                             Some(destination.ty(&body.local_decls, tcx).ty),
+                            Some(place_key(*destination)),
                             &mut events,
                         )?;
                     }
@@ -525,6 +550,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                     false,
                     Vec::new(),
                     Some(destination.ty(&body.local_decls, tcx).ty),
+                    Some(place_key(*destination)),
                     &mut events,
                 )?;
             }
@@ -545,11 +571,16 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                 let raw = func.const_fn_def().map(|(def, _)| def);
                 let (kind, callee, indirect) = classify_call(tcx, owner_id, function_ty, raw);
                 if let Some(kind) = kind {
-                    let mut operands = vec![(OperandRole::Callee, function_ty)];
+                    let mut operands = vec![(
+                        OperandRole::Callee,
+                        function_ty,
+                        func.place().map(place_key),
+                    )];
                     operands.extend(args.iter().enumerate().map(|(index, argument)| {
                         (
                             OperandRole::Argument(index as u32),
                             argument.node.ty(&body.local_decls, tcx),
+                            argument.node.place().map(place_key),
                         )
                     }));
                     push_event(
@@ -564,18 +595,24 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                         indirect,
                         operands,
                         Some(destination.ty(&body.local_decls, tcx).ty),
+                        Some(place_key(*destination)),
                         &mut events,
                     )?;
                 }
                 if raw.is_some_and(|def| is_explicit_drop(tcx, def)) {
-                    let operands = std::iter::once((OperandRole::Callee, function_ty))
-                        .chain(args.iter().enumerate().map(|(index, argument)| {
-                            (
-                                OperandRole::Argument(index as u32),
-                                argument.node.ty(&body.local_decls, tcx),
-                            )
-                        }))
-                        .collect();
+                    let operands = std::iter::once((
+                        OperandRole::Callee,
+                        function_ty,
+                        func.place().map(place_key),
+                    ))
+                    .chain(args.iter().enumerate().map(|(index, argument)| {
+                        (
+                            OperandRole::Argument(index as u32),
+                            argument.node.ty(&body.local_decls, tcx),
+                            argument.node.place().map(place_key),
+                        )
+                    }))
+                    .collect();
                     push_event(
                         tcx,
                         body,
@@ -588,6 +625,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                         false,
                         operands,
                         Some(destination.ty(&body.local_decls, tcx).ty),
+                        Some(place_key(*destination)),
                         &mut events,
                     )?;
                 }
@@ -605,6 +643,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                     false,
                     Vec::new(),
                     Some(tcx.types.unit),
+                    None,
                     &mut events,
                 )?;
             }
@@ -625,8 +664,9 @@ fn push_event<'tcx>(
     kind: UnsafeSiteKind,
     callee: Option<String>,
     indirect_call: bool,
-    operands: Vec<(OperandRole, Ty<'tcx>)>,
+    operands: Vec<(OperandRole, Ty<'tcx>, Option<PlaceKey>)>,
     result_type: Option<Ty<'tcx>>,
+    result_place: Option<PlaceKey>,
     events: &mut Vec<MirEventAnchor>,
 ) -> Result<(), String> {
     let hir_context = body
@@ -644,12 +684,14 @@ fn push_event<'tcx>(
         indirect_call,
         operands: operands
             .into_iter()
-            .map(|(role, ty)| MirOperandAnchor {
+            .map(|(role, ty, place)| MirOperandAnchor {
                 role,
                 type_fingerprint: super::type_fingerprint(tcx, ty),
+                place,
             })
             .collect(),
         result_type: result_type.map(|ty| super::type_fingerprint(tcx, ty)),
+        result_place,
         shape: kind.as_str().to_string(),
         location: MirEventLocation {
             stage,
@@ -678,7 +720,7 @@ impl<'tcx> Visitor<'tcx> for PlaceEventCollector<'_, 'tcx> {
         }
         let source_info = self.body.source_info(location);
         let mut place_ty = Place::from(place.local).ty(&self.body.local_decls, self.tcx);
-        for (_, element) in place.as_ref().iter_projections() {
+        for (base, element) in place.as_ref().iter_projections() {
             let result_ty = place_ty.projection_ty(self.tcx, element);
             let event = match element {
                 ProjectionElem::Deref if is_raw_pointer(place_ty.ty) => {
@@ -745,7 +787,7 @@ impl<'tcx> Visitor<'tcx> for PlaceEventCollector<'_, 'tcx> {
                 let operands = if kind == UnsafeSiteKind::UnsafeBinderCast {
                     Vec::new()
                 } else {
-                    vec![(role, operand_ty)]
+                    vec![(role, operand_ty, Some(place_key(base.to_place(self.tcx))))]
                 };
                 if let Err(error) = push_event(
                     self.tcx,
@@ -759,6 +801,7 @@ impl<'tcx> Visitor<'tcx> for PlaceEventCollector<'_, 'tcx> {
                     false,
                     operands,
                     Some(result_ty),
+                    Some(place_key(*place)),
                     &mut self.events,
                 ) {
                     self.errors.push(error);
@@ -1099,12 +1142,14 @@ mod tests {
                 .map(|operand| MirOperandAnchor {
                     role: operand.role.clone(),
                     type_fingerprint: operand.type_fingerprint.clone(),
+                    place: None,
                 })
                 .collect(),
             result_type: site
                 .result
                 .as_ref()
                 .map(|result| result.type_fingerprint.clone()),
+            result_place: None,
             shape: site.kind.as_str().to_string(),
             location: MirEventLocation {
                 stage,
@@ -1142,10 +1187,10 @@ mod tests {
             event(&indirect, MirStage::Built, 2, 0),
             event(&direct, MirStage::Built, 1, 0),
         ];
-        let solver = vec![
-            event(&direct, MirStage::Solver, 3, 1),
-            event(&indirect, MirStage::Solver, 4, 1),
-        ];
+        let mut direct_solver = event(&direct, MirStage::Solver, 3, 1);
+        direct_solver.operands[1].place = Some(PlaceKey::new("_1"));
+        direct_solver.result_place = Some(PlaceKey::new("_2"));
+        let solver = vec![direct_solver, event(&indirect, MirStage::Solver, 4, 1)];
         let records = bind_owner(&sites, &built, &solver).unwrap();
         assert_eq!(records.len(), 2);
         assert!(records
@@ -1155,6 +1200,9 @@ mod tests {
         assert_eq!(records[0].solver.as_ref().unwrap().block, 3);
         assert_eq!(records[1].built.as_ref().unwrap().block, 2);
         assert_eq!(records[1].solver.as_ref().unwrap().block, 4);
+        let bound = BoundUnsafeSite::from_record(&direct, &records[0]).unwrap();
+        assert_eq!(bound.operands[1].place, Some(PlaceKey::new("_1")));
+        assert_eq!(bound.result_place, Some(PlaceKey::new("_2")));
     }
 
     #[test]

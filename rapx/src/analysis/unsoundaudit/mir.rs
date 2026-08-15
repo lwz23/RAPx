@@ -2,6 +2,9 @@ use super::dataflow::{
     replay_final_entries, solve_cfg, BlockState, BoundValidation, DataflowResult, MayJoin,
     StaticWriteToken,
 };
+use super::endpoint_flow::{
+    EndpointEdge, EndpointEdgeKind, EndpointFlowGraph, EndpointNode, ExternalSourceKind,
+};
 use super::perf_trace::PerfTrace;
 use super::relations::{
     ProjectionKey, RelationFact, RelationKind, RelationProof, RelationTerm,
@@ -20,8 +23,8 @@ use super::summary::{
 use super::unsafe_site::{
     self,
     binding::{
-        bind_owner, enumerate_mir_events, BoundUnsafeSite, MirEventAnchor, MirStage,
-        SiteBindingRecord,
+        bind_owner, enumerate_mir_events, BoundUnsafeSite, MirEventAnchor, MirEventLocation,
+        MirOperandAnchor, MirStage, SiteBindingRecord,
     },
     BindingStatus, CoverageFailure, CoverageFailureKind,
 };
@@ -178,6 +181,8 @@ struct ValueFacts {
     ffi_output: bool,
     open_behavior: bool,
     havoced: bool,
+    endpoint_sources: BTreeSet<EndpointNode>,
+    endpoint_edges: BTreeSet<EndpointEdge>,
 }
 
 fn extend_fact_set<T: Clone + Ord>(current: &mut BTreeSet<T>, incoming: &BTreeSet<T>) -> bool {
@@ -354,6 +359,8 @@ impl MayJoin for ValueFacts {
         changed |= join_fact_flag(&mut self.ffi_output, other.ffi_output);
         changed |= join_fact_flag(&mut self.open_behavior, other.open_behavior);
         changed |= join_fact_flag(&mut self.havoced, other.havoced);
+        changed |= extend_fact_set(&mut self.endpoint_sources, &other.endpoint_sources);
+        changed |= extend_fact_set(&mut self.endpoint_edges, &other.endpoint_edges);
         changed
     }
 }
@@ -1304,6 +1311,8 @@ struct BodyFacts {
     validation_snapshots: BTreeMap<(BasicBlock, usize), ValidationSnapshot>,
     local_bindings: BTreeMap<ProgramPoint, ValidationBinding>,
     local_relational_obligations: BTreeMap<ProgramPoint, RelationalObligation>,
+    endpoint_graph: EndpointFlowGraph,
+    endpoint_snapshots: BTreeMap<(String, unsafe_site::OperandRole), BTreeSet<EndpointNode>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -1336,6 +1345,7 @@ struct Engine<'tcx> {
     built_unsafe_events: BTreeMap<FunctionKey, Vec<MirEventAnchor>>,
     solver_unsafe_events: BTreeMap<FunctionKey, Vec<MirEventAnchor>>,
     binding_records: BTreeMap<String, SiteBindingRecord>,
+    endpoint_graph: EndpointFlowGraph,
 }
 
 pub fn analyze(tcx: TyCtxt<'_>, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
@@ -1457,6 +1467,7 @@ impl<'tcx> Engine<'tcx> {
             built_unsafe_events: BTreeMap::new(),
             solver_unsafe_events: BTreeMap::new(),
             binding_records: BTreeMap::new(),
+            endpoint_graph: EndpointFlowGraph::default(),
         })
     }
 
@@ -1561,6 +1572,27 @@ impl<'tcx> Engine<'tcx> {
                 ],
             )?;
         }
+        self.endpoint_graph =
+            self.bodies
+                .values()
+                .fold(EndpointFlowGraph::default(), |mut graph, facts| {
+                    graph.join(&facts.endpoint_graph);
+                    graph
+                });
+        trace.event(
+            "endpoint_flow",
+            "end",
+            [
+                (
+                    "endpoint_node_count",
+                    self.endpoint_graph.nodes.len() as u64,
+                ),
+                (
+                    "endpoint_edge_count",
+                    self.endpoint_graph.edges.len() as u64,
+                ),
+            ],
+        )?;
         trace.event("full_summary_solve", "begin", [])?;
         let solved = self.solve_current_summaries(&graph);
         trace.event(
@@ -2362,6 +2394,7 @@ impl<'tcx> Engine<'tcx> {
                         solver_candidate_count: 0,
                         built: None,
                         solver: None,
+                        solver_event: None,
                     },
                 );
                 unsafe_site::census_store().record_failure(
@@ -2401,6 +2434,8 @@ impl<'tcx> Engine<'tcx> {
             validation_snapshots: BTreeMap::new(),
             local_bindings: BTreeMap::new(),
             local_relational_obligations: BTreeMap::new(),
+            endpoint_graph: EndpointFlowGraph::default(),
+            endpoint_snapshots: BTreeMap::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
@@ -2428,6 +2463,10 @@ impl<'tcx> Engine<'tcx> {
                     checked_end_unknown: true,
                     range_limit_unknown: true,
                     known_length_unknown: true,
+                    endpoint_sources: BTreeSet::from([EndpointNode::Formal {
+                        owner: program.function.clone(),
+                        index: index as u32,
+                    }]),
                     ..ValueFacts::default()
                 },
             );
@@ -2440,7 +2479,17 @@ impl<'tcx> Engine<'tcx> {
                 apply_program_op(&program.operations[block][index], block, index, state)
             },
             |block, target, state| {
-                apply_program_edge_with_outputs(&program.edges[block], target, state, local_outputs)
+                let sites = program.operations[block]
+                    .last()
+                    .map(|operation| operation.unsafe_sites.as_slice())
+                    .unwrap_or_default();
+                apply_program_edge_with_outputs_and_sites(
+                    &program.edges[block],
+                    target,
+                    state,
+                    local_outputs,
+                    sites,
+                )
             },
         );
         replay_final_entries(
@@ -2459,6 +2508,7 @@ impl<'tcx> Engine<'tcx> {
                         ValidationSnapshot::capture(state, facts.arg_count),
                     );
                 }
+                self.capture_endpoint_operation(program, block, index, state, &mut facts);
                 self.materialize_operation(program, &solved, block, index, state, &mut facts);
             },
         );
@@ -2814,7 +2864,92 @@ impl<'tcx> Engine<'tcx> {
                     .or_default()
                     .join_value_facts(value);
             }
+            if let Some(value) = state.may_values().get(&PlaceKey::new("_0")) {
+                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
+                for edge in &value.endpoint_edges {
+                    facts.endpoint_graph.nodes.insert(edge.from.clone());
+                    facts.endpoint_graph.nodes.insert(edge.to.clone());
+                }
+                let target = EndpointNode::Return {
+                    owner: facts.function.clone(),
+                };
+                facts.endpoint_graph.insert_node(target.clone());
+                for source in &value.endpoint_sources {
+                    facts.endpoint_graph.insert_edge(EndpointEdge {
+                        from: source.clone(),
+                        to: target.clone(),
+                        kind: EndpointEdgeKind::ReturnToDestination,
+                        point: None,
+                    });
+                }
+            }
+            for (place, value) in state.may_values() {
+                let Some(index) = out_slot_index(place) else {
+                    continue;
+                };
+                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
+                for edge in &value.endpoint_edges {
+                    facts.endpoint_graph.nodes.insert(edge.from.clone());
+                    facts.endpoint_graph.nodes.insert(edge.to.clone());
+                }
+                let target = EndpointNode::Out {
+                    owner: facts.function.clone(),
+                    index,
+                };
+                facts.endpoint_graph.insert_node(target.clone());
+                for source in &value.endpoint_sources {
+                    facts.endpoint_graph.insert_edge(EndpointEdge {
+                        from: source.clone(),
+                        to: target.clone(),
+                        kind: EndpointEdgeKind::OutToCaller,
+                        point: None,
+                    });
+                }
+            }
         }
+    }
+
+    fn capture_endpoint_operation(
+        &self,
+        program: &BodyProgram,
+        block: BasicBlock,
+        index: usize,
+        state: &ProgramState,
+        facts: &mut BodyFacts,
+    ) {
+        let operation = &program.operations[block][index];
+        if let ProgramOpKind::Call(call) = &operation.kind {
+            if let Some(callee) = &call.descriptor.callee {
+                for (argument, operand) in call.descriptor.args.iter().enumerate() {
+                    let target = EndpointNode::Formal {
+                        owner: callee.clone(),
+                        index: argument as u32 + 1,
+                    };
+                    facts.endpoint_graph.insert_node(target.clone());
+                    let value = eval_operand(state, operand);
+                    for edge in value.endpoint_edges {
+                        facts.endpoint_graph.insert_edge(edge);
+                    }
+                    for source in value.endpoint_sources {
+                        facts.endpoint_graph.insert_edge(EndpointEdge {
+                            from: source,
+                            to: target.clone(),
+                            kind: EndpointEdgeKind::ActualToFormal,
+                            point: operation.point.clone(),
+                        });
+                    }
+                }
+            }
+        }
+        capture_bound_endpoint_sites(
+            &program.function,
+            block,
+            index,
+            operation,
+            state,
+            &mut facts.endpoint_graph,
+            &mut facts.endpoint_snapshots,
+        );
     }
 
     fn normalize_body(
@@ -5999,6 +6134,14 @@ fn eval_operand(state: &ProgramState, operand: &OperandModel) -> ValueFacts {
             .origins
             .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
         result.value.origins.insert(origin.clone());
+        if let AbstractOrigin::PublicField { def_path, span } = origin {
+            result.endpoint_sources.clear();
+            result.endpoint_edges.clear();
+            result.endpoint_sources.insert(EndpointNode::PublicField {
+                def_path: def_path.clone(),
+                span: span.clone(),
+            });
+        }
     }
     result
 }
@@ -6187,6 +6330,12 @@ fn eval_registry_value(
                 span: point.span.clone(),
             }]),
             open_behavior: true,
+            endpoint_sources: BTreeSet::from([EndpointNode::ExternalBehavior {
+                owner: point.function.clone(),
+                kind: ExternalSourceKind::OpenTrait,
+                token: token.clone(),
+                span: point.span.clone(),
+            }]),
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -6510,6 +6659,96 @@ fn invalidate_relation_evidence(state: &mut ProgramState, written_storage: &Plac
     }
 }
 
+fn capture_bound_endpoint_sites(
+    function: &FunctionKey,
+    block: BasicBlock,
+    index: usize,
+    operation: &ProgramOp,
+    state: &ProgramState,
+    graph: &mut EndpointFlowGraph,
+    snapshots: &mut BTreeMap<(String, unsafe_site::OperandRole), BTreeSet<EndpointNode>>,
+) {
+    for site in &operation.unsafe_sites {
+        let site_id = site.seed.site_id();
+        let point = operation.point.clone().unwrap_or_else(|| ProgramPoint {
+            function: function.clone(),
+            block: block.index() as u32,
+            statement: index as u32,
+            span: site.seed.raw_span.stable.clone(),
+        });
+        for operand in &site.operands {
+            let Some(place) = &operand.place else {
+                continue;
+            };
+            let value = state_value(state, place);
+            for edge in value.endpoint_edges {
+                graph.insert_edge(edge);
+            }
+            let sources = value.endpoint_sources;
+            snapshots
+                .entry((site_id.clone(), operand.role.clone()))
+                .or_default()
+                .extend(sources.iter().cloned());
+            let target = EndpointNode::UnsafeOperand {
+                owner: function.clone(),
+                site_id: site_id.clone(),
+                role: operand.role.clone(),
+            };
+            graph.insert_node(target.clone());
+            for source in sources {
+                graph.insert_edge(EndpointEdge {
+                    from: source,
+                    to: target.clone(),
+                    kind: EndpointEdgeKind::UnsafeOperand,
+                    point: Some(point.clone()),
+                });
+            }
+        }
+        if site.result_place.is_some() {
+            graph.insert_node(EndpointNode::UnsafeResult {
+                owner: function.clone(),
+                site_id,
+            });
+        }
+    }
+}
+
+fn install_unsafe_result_sites(sites: &[BoundUnsafeSite], state: &mut ProgramState) {
+    for site in sites {
+        let Some(result_place) = &site.result_place else {
+            continue;
+        };
+        let mut value = state
+            .may_values()
+            .get(result_place)
+            .cloned()
+            .unwrap_or_default();
+        let result = EndpointNode::UnsafeResult {
+            owner: site.seed.owner.clone(),
+            site_id: site.seed.site_id(),
+        };
+        let point = ProgramPoint {
+            function: site.seed.owner.clone(),
+            block: site.solver.block,
+            statement: site.solver.statement,
+            span: site.seed.raw_span.stable.clone(),
+        };
+        value
+            .endpoint_edges
+            .extend(value.endpoint_sources.iter().cloned().map(|source| {
+                EndpointEdge {
+                    from: source,
+                    to: result.clone(),
+                    kind: EndpointEdgeKind::UnsafeResult,
+                    point: Some(point.clone()),
+                }
+            }));
+        value.endpoint_sources.clear();
+        value.endpoint_sources.insert(result);
+        state.set_value(result_place.clone(), value);
+    }
+}
+
 fn apply_program_op(
     operation: &ProgramOp,
     block: BasicBlock,
@@ -6586,6 +6825,14 @@ fn apply_program_op(
                     .origins
                     .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
                 value.value.origins.insert(origin.clone());
+                if let AbstractOrigin::PublicField { def_path, span } = origin {
+                    value.endpoint_sources.clear();
+                    value.endpoint_edges.clear();
+                    value.endpoint_sources.insert(EndpointNode::PublicField {
+                        def_path: def_path.clone(),
+                        span: span.clone(),
+                    });
+                }
             }
             let defines_fresh_identity = matches!(
                 &assignment.value,
@@ -6602,6 +6849,30 @@ fn apply_program_op(
                 value.exact_roots.clear();
                 value.exact_roots.insert(assignment.destination.clone());
                 value.semantic_unknown = false;
+            }
+            if matches!(
+                assignment.value,
+                ValueModel::Length(_)
+                    | ValueModel::Compare { .. }
+                    | ValueModel::CheckedBinary { .. }
+                    | ValueModel::Aggregate { .. }
+                    | ValueModel::PointerCast(_)
+            ) {
+                let derivation = EndpointNode::InternalDerivation {
+                    owner: operation.semantic_point().function.clone(),
+                    token: assignment.destination.0.clone(),
+                    point: operation.semantic_point().clone(),
+                };
+                value.endpoint_edges.extend(value.endpoint_sources.iter().cloned().map(
+                    |source| EndpointEdge {
+                        from: source,
+                        to: derivation.clone(),
+                        kind: EndpointEdgeKind::Derivation,
+                        point: operation.point.clone(),
+                    },
+                ));
+                value.endpoint_sources.clear();
+                value.endpoint_sources.insert(derivation);
             }
             let out_value = assignment.out_formal.map(|formal_index| {
                 let mut output = value.clone();
@@ -6638,6 +6909,9 @@ fn apply_program_op(
         ProgramOpKind::Call(_) => {}
         ProgramOpKind::Nop => {}
     }
+    if !matches!(operation.kind, ProgramOpKind::Call(_)) {
+        install_unsafe_result_sites(&operation.unsafe_sites, state);
+    }
 }
 
 fn apply_program_edge(edge: &EdgeTerm, target: BasicBlock, state: &mut ProgramState) {
@@ -6650,6 +6924,16 @@ fn apply_program_edge_with_outputs(
     state: &mut ProgramState,
     local_outputs: &LocalCallOutputs,
 ) {
+    apply_program_edge_with_outputs_and_sites(edge, target, state, local_outputs, &[]);
+}
+
+fn apply_program_edge_with_outputs_and_sites(
+    edge: &EdgeTerm,
+    target: BasicBlock,
+    state: &mut ProgramState,
+    local_outputs: &LocalCallOutputs,
+    unsafe_sites: &[BoundUnsafeSite],
+) {
     if let EdgeTerm::CallNormal {
         normal_target,
         point,
@@ -6659,6 +6943,8 @@ fn apply_program_edge_with_outputs(
         if *normal_target != Some(target) {
             return;
         }
+        let local_boundary = (call.descriptor.disposition == BoundaryDisposition::ResolvedLocal)
+            .then(|| local_call_boundary_mapping(call, state));
         let registry_relation_effects = registry_relation_effects(state, call);
         let mut return_value = eval_registry_value(state, &call.value, point);
         if matches!(call.value, RegistryValueModel::Empty)
@@ -6676,6 +6962,16 @@ fn apply_program_edge_with_outputs(
             return_value.havoced = true;
             return_value.exact_roots.clear();
             return_value.semantic_unknown = true;
+            if call.descriptor.disposition == BoundaryDisposition::OpaqueIndirect {
+                return_value
+                    .endpoint_sources
+                    .insert(EndpointNode::ExternalBehavior {
+                        owner: point.function.clone(),
+                        kind: ExternalSourceKind::FunctionPointer,
+                        token: format!("fn-pointer-return:{}", point.span.token()),
+                        span: point.span.clone(),
+                    });
+            }
         }
         if let Some(PredicateModel::Utf8Result { bytes }) = &call.predicate {
             let bytes_value = eval_operand(state, bytes);
@@ -6703,6 +6999,50 @@ fn apply_program_edge_with_outputs(
             let mut current = state_value(state, destination);
             current.value = returned.clone();
             state.set_value(destination.clone(), current);
+        }
+        if let (Some(callee), Some(_)) = (&call.descriptor.callee, &local_boundary) {
+            let destination = &call.descriptor.destination;
+            let mut current = state
+                .may_values()
+                .get(destination)
+                .cloned()
+                .unwrap_or_default();
+            current.endpoint_sources.clear();
+            current.endpoint_sources.insert(EndpointNode::Return {
+                owner: callee.clone(),
+            });
+            state.set_value(destination.clone(), current);
+        }
+        if let (Some(callee), Some(mapping), Some(outputs)) = (
+            &call.descriptor.callee,
+            &local_boundary,
+            local_outputs.get(point),
+        ) {
+            for boundary in mapping {
+                let CallMapping::OutToCaller {
+                    formal_index,
+                    caller_place,
+                } = boundary
+                else {
+                    continue;
+                };
+                let Some(mapped) = outputs.outs.get(caller_place) else {
+                    continue;
+                };
+                let mut current = state
+                    .may_values()
+                    .get(caller_place)
+                    .cloned()
+                    .unwrap_or_default();
+                if !mapped.may_skip_write {
+                    current.endpoint_sources.clear();
+                }
+                current.endpoint_sources.insert(EndpointNode::Out {
+                    owner: callee.clone(),
+                    index: *formal_index,
+                });
+                state.set_value(caller_place.clone(), current);
+            }
         }
         if let Some(formal_index) = call.destination_out_formal {
             let output = state
@@ -6761,6 +7101,7 @@ fn apply_program_edge_with_outputs(
         if !pending.is_empty() {
             state.set_pending(call.descriptor.destination.clone(), pending);
         }
+        install_unsafe_result_sites(unsafe_sites, state);
         return;
     }
     if let EdgeTerm::AssertPlumbingOnly {
@@ -7251,6 +7592,14 @@ fn apply_call_side_effects(call: &CallModel, point: &ProgramPoint, state: &mut P
                 && !output.havoced;
             output.exact_roots.insert(target.clone());
             output.ffi_output = true;
+            output
+                .endpoint_sources
+                .insert(EndpointNode::ExternalBehavior {
+                    owner: point.function.clone(),
+                    kind: ExternalSourceKind::FfiOut,
+                    token: format!("ffi-out:{}", point.span.token()),
+                    span: point.span.clone(),
+                });
             output.value.origins.insert(AbstractOrigin::FfiOutput {
                 token: format!("ffi-out:{}", point.span.token()),
                 span: point.span.clone(),
@@ -7834,6 +8183,459 @@ mod tests {
 
     fn seed_exact(state: &mut ProgramState, place: &PlaceKey) {
         state.set_value(place.clone(), exact_value(place));
+    }
+
+    fn endpoint_value(source: EndpointNode) -> ValueFacts {
+        ValueFacts {
+            endpoint_sources: BTreeSet::from([source]),
+            ..ValueFacts::default()
+        }
+    }
+
+    fn bound_endpoint_site(place: &str) -> BoundUnsafeSite {
+        let location = MirEventLocation {
+            stage: MirStage::Solver,
+            block: 0,
+            statement: 0,
+            event: 0,
+        };
+        BoundUnsafeSite {
+            seed: unsafe_site::UnsafeSiteSeed {
+                adapter_id: "test-adapter".into(),
+                owner: FunctionKey::new("crate::f"),
+                owner_def_path_hash: "owner".into(),
+                ordinal: 0,
+                kind: unsafe_site::UnsafeSiteKind::RawPointerDereference,
+                raw_span: unsafe_site::RawSpanAnchor::new(span(), 0, 1, "#0"),
+                hir_context: "HirId(1)".into(),
+                callee: None,
+                operands: Vec::new(),
+                result: None,
+            },
+            built: MirEventLocation {
+                stage: MirStage::Built,
+                ..location.clone()
+            },
+            solver: location,
+            operands: vec![MirOperandAnchor {
+                role: unsafe_site::OperandRole::Address,
+                type_fingerprint: "*const u8".into(),
+                place: Some(PlaceKey::new(place)),
+            }],
+            result_place: Some(PlaceKey::new("_2")),
+        }
+    }
+
+    #[test]
+    fn v3_endpoint_snapshot_is_sparse_and_does_not_enter_contract_proof_state() {
+        let owner = FunctionKey::new("crate::f");
+        let source = EndpointNode::Formal {
+            owner: owner.clone(),
+            index: 1,
+        };
+        let mut state = ProgramState::empty();
+        state.set_value(PlaceKey::new("_1"), endpoint_value(source.clone()));
+        let operation = ProgramOp {
+            point: Some(point(0, 0)),
+            kind: ProgramOpKind::Nop,
+            unsafe_sites: vec![bound_endpoint_site("_1")],
+        };
+        let before_validations = state.must_validations().clone();
+        let before_pending = state.pending_must().clone();
+        let mut graph = EndpointFlowGraph::default();
+        let mut snapshots = BTreeMap::new();
+        capture_bound_endpoint_sites(
+            &owner,
+            BasicBlock::from_usize(0),
+            0,
+            &operation,
+            &state,
+            &mut graph,
+            &mut snapshots,
+        );
+        let site_id = operation.unsafe_sites[0].seed.site_id();
+        let target = EndpointNode::UnsafeOperand {
+            owner,
+            site_id: site_id.clone(),
+            role: unsafe_site::OperandRole::Address,
+        };
+        assert_eq!(graph.canonical_route(&source, &target).unwrap().len(), 1);
+        assert_eq!(
+            snapshots[&(site_id, unsafe_site::OperandRole::Address)],
+            BTreeSet::from([source])
+        );
+        assert_eq!(state.must_validations(), &before_validations);
+        assert_eq!(state.pending_must(), &before_pending);
+        assert!(graph.nodes.contains(&EndpointNode::UnsafeResult {
+            owner: FunctionKey::new("crate::f"),
+            site_id: operation.unsafe_sites[0].seed.site_id(),
+        }));
+    }
+
+    #[test]
+    fn v3_endpoint_sources_track_public_fields_and_internal_derivations() {
+        let owner = FunctionKey::new("crate::f");
+        let formal = EndpointNode::Formal {
+            owner: owner.clone(),
+            index: 1,
+        };
+        let input = PlaceKey::new("_1");
+        let mut state = ProgramState::empty();
+        state.set_value(input.clone(), endpoint_value(formal.clone()));
+        let public = AbstractOrigin::PublicField {
+            def_path: "crate::Config::index".into(),
+            span: span(),
+        };
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: PlaceKey::new("_2"),
+                    value: ValueModel::Operand(place_operand("_1")),
+                    field_origin: Some(public.clone()),
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+                unsafe_sites: Vec::new(),
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut state,
+        );
+        assert_eq!(
+            state_value(&state, &PlaceKey::new("_2")).endpoint_sources,
+            BTreeSet::from([EndpointNode::PublicField {
+                def_path: "crate::Config::index".into(),
+                span: span(),
+            }])
+        );
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 1)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: PlaceKey::new("_3"),
+                    value: ValueModel::Compare {
+                        op: BinOp::Add,
+                        left: place_operand("_1"),
+                        right: constant_operand(1),
+                    },
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+                unsafe_sites: Vec::new(),
+            },
+            BasicBlock::from_usize(0),
+            1,
+            &mut state,
+        );
+        let derived = state_value(&state, &PlaceKey::new("_3"));
+        assert_eq!(derived.endpoint_sources.len(), 1);
+        let derivation = derived
+            .endpoint_sources
+            .iter()
+            .next()
+            .expect("internal arithmetic has a derivation endpoint");
+        assert!(matches!(
+            derivation,
+            EndpointNode::InternalDerivation { owner: candidate, .. } if candidate == &owner
+        ));
+        assert!(derived.endpoint_edges.iter().any(|edge| matches!(
+            edge,
+            EndpointEdge { from, to, kind: EndpointEdgeKind::Derivation, .. }
+                if from == &formal && to == derivation
+        )));
+    }
+
+    #[test]
+    fn v3_local_return_endpoint_is_installed_only_on_the_normal_edge() {
+        let caller = FunctionKey::new("crate::f");
+        let callee = FunctionKey::new("crate::callee");
+        let destination = PlaceKey::new("_2");
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(callee.clone()),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand("_1")],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            destination_restricted: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        let normal = BasicBlock::from_usize(1);
+        let unwind = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: ProgramPoint {
+                function: caller.clone(),
+                ..point(0, 0)
+            },
+            call,
+        };
+        let outputs = BTreeMap::from([(
+            ProgramPoint {
+                function: caller,
+                ..point(0, 0)
+            },
+            MappedCallOutputs {
+                returned: Some((
+                    destination.clone(),
+                    AbstractValue::new([AbstractOrigin::Formal(1)]),
+                )),
+                ..MappedCallOutputs::default()
+            },
+        )]);
+        let mut normal_state = ProgramState::empty();
+        normal_state.set_value(
+            PlaceKey::new("_1"),
+            endpoint_value(EndpointNode::Formal {
+                owner: FunctionKey::new("crate::f"),
+                index: 1,
+            }),
+        );
+        let mut unwind_state = normal_state.clone();
+        apply_program_edge_with_outputs(&edge, unwind, &mut unwind_state, &outputs);
+        apply_program_edge_with_outputs(&edge, normal, &mut normal_state, &outputs);
+        assert!(state_value(&unwind_state, &destination)
+            .endpoint_sources
+            .is_empty());
+        assert_eq!(
+            state_value(&normal_state, &destination).endpoint_sources,
+            BTreeSet::from([EndpointNode::Return { owner: callee }])
+        );
+    }
+
+    #[test]
+    fn v3_unsafe_results_replace_provenance_after_assignment_and_normal_call_only() {
+        let owner = FunctionKey::new("crate::f");
+        let formal = EndpointNode::Formal {
+            owner: owner.clone(),
+            index: 1,
+        };
+        let destination = PlaceKey::new("_2");
+        let site = bound_endpoint_site("_1");
+        let site_id = site.seed.site_id();
+        let result = EndpointNode::UnsafeResult {
+            owner: owner.clone(),
+            site_id: site_id.clone(),
+        };
+        let mut assignment_state = ProgramState::empty();
+        assignment_state.set_value(PlaceKey::new("_1"), endpoint_value(formal.clone()));
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 0)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: destination.clone(),
+                    value: ValueModel::Operand(place_operand("_1")),
+                    field_origin: None,
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+                unsafe_sites: vec![site.clone()],
+            },
+            BasicBlock::from_usize(0),
+            0,
+            &mut assignment_state,
+        );
+        let assigned = state_value(&assignment_state, &destination);
+        assert_eq!(assigned.endpoint_sources, BTreeSet::from([result.clone()]));
+        assert!(assigned.endpoint_edges.contains(&EndpointEdge {
+            from: formal.clone(),
+            to: result.clone(),
+            kind: EndpointEdgeKind::UnsafeResult,
+            point: Some(point(0, 0)),
+        }));
+
+        let normal = BasicBlock::from_usize(1);
+        let unwind = BasicBlock::from_usize(2);
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: None,
+                raw_def: None,
+                disposition: BoundaryDisposition::OpaqueDirect,
+                args: vec![place_operand("_1")],
+                destination: destination.clone(),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: Vec::new(),
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            destination_restricted: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: point(0, 0),
+            call,
+        };
+        let mut normal_state = ProgramState::empty();
+        normal_state.set_value(PlaceKey::new("_1"), endpoint_value(formal.clone()));
+        let mut unwind_state = normal_state.clone();
+        apply_program_edge_with_outputs_and_sites(
+            &edge,
+            unwind,
+            &mut unwind_state,
+            &LocalCallOutputs::new(),
+            std::slice::from_ref(&site),
+        );
+        apply_program_edge_with_outputs_and_sites(
+            &edge,
+            normal,
+            &mut normal_state,
+            &LocalCallOutputs::new(),
+            std::slice::from_ref(&site),
+        );
+        assert!(state_value(&unwind_state, &destination)
+            .endpoint_sources
+            .is_empty());
+        let returned = state_value(&normal_state, &destination);
+        assert_eq!(returned.endpoint_sources, BTreeSet::from([result.clone()]));
+        assert!(returned.endpoint_edges.contains(&EndpointEdge {
+            from: formal,
+            to: result,
+            kind: EndpointEdgeKind::UnsafeResult,
+            point: Some(point(0, 0)),
+        }));
+    }
+
+    #[test]
+    fn v3_local_out_endpoint_replaces_only_the_normal_edge_value() {
+        let callee = FunctionKey::new("crate::callee");
+        let actual = PlaceKey::new("_1");
+        let call_point = point(0, 0);
+        let call = CallModel {
+            descriptor: CallDescriptor {
+                callee: Some(callee.clone()),
+                raw_def: None,
+                disposition: BoundaryDisposition::ResolvedLocal,
+                args: vec![place_operand("_1")],
+                destination: PlaceKey::new("_2"),
+            },
+            value: RegistryValueModel::Empty,
+            predicate: None,
+            mutable_actuals: vec![actual.clone()],
+            ffi_out_actuals: Vec::new(),
+            destination_is_bool: false,
+            destination_restricted: false,
+            access_width: None,
+            legacy_write: false,
+            destination_out_formal: None,
+        };
+        let normal = BasicBlock::from_usize(1);
+        let unwind = BasicBlock::from_usize(2);
+        let edge = EdgeTerm::CallNormal {
+            normal_target: Some(normal),
+            point: call_point.clone(),
+            call,
+        };
+        let outputs = BTreeMap::from([(
+            call_point,
+            MappedCallOutputs {
+                outs: BTreeMap::from([(
+                    actual.clone(),
+                    MappedOutValue {
+                        value: AbstractValue::new([AbstractOrigin::Constant(0)]),
+                        may_skip_write: false,
+                    },
+                )]),
+                ..MappedCallOutputs::default()
+            },
+        )]);
+        let original = EndpointNode::Formal {
+            owner: FunctionKey::new("crate::f"),
+            index: 1,
+        };
+        let mut normal_state = ProgramState::empty();
+        normal_state.set_value(
+            actual.clone(),
+            ValueFacts {
+                exact_roots: BTreeSet::from([actual.clone()]),
+                endpoint_sources: BTreeSet::from([original.clone()]),
+                ..ValueFacts::default()
+            },
+        );
+        let mut unwind_state = normal_state.clone();
+        apply_program_edge_with_outputs(&edge, unwind, &mut unwind_state, &outputs);
+        apply_program_edge_with_outputs(&edge, normal, &mut normal_state, &outputs);
+        assert_eq!(
+            state_value(&unwind_state, &actual).endpoint_sources,
+            BTreeSet::from([original])
+        );
+        assert_eq!(
+            state_value(&normal_state, &actual).endpoint_sources,
+            BTreeSet::from([EndpointNode::Out {
+                owner: callee,
+                index: 1,
+            }])
+        );
+    }
+
+    #[test]
+    fn v3_external_behavior_results_have_structural_endpoint_origins() {
+        let open = eval_registry_value(
+            &ProgramState::empty(),
+            &RegistryValueModel::SelectedOpenBehavior {
+                token: "trait-return".into(),
+            },
+            &point(1, 0),
+        );
+        assert!(open.endpoint_sources.iter().any(|source| matches!(
+            source,
+            EndpointNode::ExternalBehavior {
+                kind: ExternalSourceKind::OpenTrait,
+                ..
+            }
+        )));
+
+        let actual = PlaceKey::new("_1");
+        let mut state = ProgramState::empty();
+        state.set_value(actual.clone(), ValueFacts::default());
+        apply_call_side_effects(
+            &CallModel {
+                descriptor: CallDescriptor {
+                    callee: None,
+                    raw_def: None,
+                    disposition: BoundaryDisposition::ExactFfiOut,
+                    args: vec![place_operand("_1")],
+                    destination: PlaceKey::new("_2"),
+                },
+                value: RegistryValueModel::Empty,
+                predicate: None,
+                mutable_actuals: Vec::new(),
+                ffi_out_actuals: vec![actual.clone()],
+                destination_is_bool: false,
+                destination_restricted: false,
+                access_width: None,
+                legacy_write: false,
+                destination_out_formal: None,
+            },
+            &point(2, 0),
+            &mut state,
+        );
+        assert!(state_value(&state, &actual)
+            .endpoint_sources
+            .iter()
+            .any(|source| matches!(
+                source,
+                EndpointNode::ExternalBehavior {
+                    kind: ExternalSourceKind::FfiOut,
+                    ..
+                }
+            )));
     }
 
     fn has_pending_validation(state: &ProgramState, condition: &PlaceKey) -> bool {

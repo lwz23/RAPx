@@ -1,4 +1,5 @@
 mod dataflow;
+mod endpoint_flow;
 mod mir;
 mod perf_trace;
 mod relations;

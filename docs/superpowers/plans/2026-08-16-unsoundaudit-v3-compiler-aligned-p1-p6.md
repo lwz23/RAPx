@@ -95,13 +95,13 @@
 - Modify: `rapx/src/analysis/unsoundaudit/mir.rs`
 - Modify: `rapx/src/analysis/unsoundaudit/summary.rs`
 
-- [ ] Add RED tests for formal/public-field/external-output/internal-derivation origins, transparent flow, return/out propagation, normal/unwind, 64 hops, self recursion, and mutual recursion.
-- [ ] Define `EndpointFlowGraph { nodes: BTreeSet<EndpointNode>, edges: BTreeSet<EndpointEdge> }`; nodes and edges carry only stable finite identities and one-hop provenance.
-- [ ] Define finite endpoint nodes for formal, public field, external behavior result/out, internal derivation, unsafe operand/result, return/out, and exposure.
-- [ ] Reuse existing exact local value-flow, actual↔formal, return/out, write invalidation, and SCC summaries to emit only one-hop ordered edges.
-- [ ] Compute reachability over SCC condensation without path/fact/depth/round caps; construct a canonical witness lazily only for emitted findings.
-- [ ] Persist sparse snapshots only at bound unsafe sites and exposure points; do not reintroduce full per-statement `BlockState` storage.
-- [ ] Add structural counters proving census-only sites do not enter the predicate lattice and commit.
+- [x] Add RED tests for formal/public-field/external-output/internal-derivation origins, transparent flow, return/out propagation, normal/unwind, 64 hops, self recursion, and mutual recursion.
+- [x] Define `EndpointFlowGraph { nodes: BTreeSet<EndpointNode>, edges: BTreeSet<EndpointEdge> }`; nodes and edges carry only stable finite identities and one-hop provenance.
+- [x] Define finite endpoint nodes for formal, public field, external behavior result/out, internal derivation, unsafe operand/result, return/out, and exposure.
+- [x] Reuse existing exact local value-flow, actual↔formal, return/out, write invalidation, and SCC summaries to emit only one-hop ordered edges.
+- [x] Compute reachability over SCC condensation without path/fact/depth/round caps; construct a canonical witness lazily only for emitted findings.
+- [x] Persist sparse snapshots only at bound unsafe sites and return/out exposure points; do not reintroduce full per-statement `BlockState` storage.
+- [x] Add structural counters proving census-only sites do not enter the predicate lattice and commit.
 
 ### Task 6: Convert the registry into a ContractCatalog
 
