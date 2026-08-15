@@ -1,0 +1,43 @@
+{
+  "adapter_id": "rustc-nightly-2024-10-12-1bc403",
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "owner_count": 12,
+  "site_count": 19,
+  "kind_counts": {
+    "unsafe_call": 3,
+    "inline_assembly": 1,
+    "restricted_validity_initialization": 1,
+    "mutable_static_access": 1,
+    "extern_static_access": 1,
+    "raw_pointer_dereference": 7,
+    "union_field_access": 1,
+    "layout_constrained_mutation": 2,
+    "layout_constrained_borrow": 1,
+    "target_feature_call": 1
+  },
+  "sites": [
+    ["unsafe_call", "census_all", "src/lib.rs", 38],
+    ["unsafe_call", "census_all", "src/lib.rs", 40],
+    ["raw_pointer_dereference", "census_all", "src/lib.rs", 41],
+    ["mutable_static_access", "census_all", "src/lib.rs", 42],
+    ["extern_static_access", "census_all", "src/lib.rs", 43],
+    ["union_field_access", "census_all", "src/lib.rs", 44],
+    ["restricted_validity_initialization", "census_all", "src/lib.rs", 45],
+    ["layout_constrained_mutation", "census_all", "src/lib.rs", 46],
+    ["layout_constrained_borrow", "census_all", "src/lib.rs", 47],
+    ["layout_constrained_mutation", "census_all", "src/lib.rs", 48],
+    ["target_feature_call", "census_all", "src/lib.rs", 49],
+    ["inline_assembly", "census_all", "src/lib.rs", 50],
+    ["raw_pointer_dereference", "direct_target", "src/lib.rs", 29],
+    ["raw_pointer_dereference", "included_call", "src/included.rs", 2],
+    ["raw_pointer_dereference", "macro_site", "src/lib.rs", 68],
+    ["raw_pointer_dereference", "nested_explicit", "src/lib.rs", 72],
+    ["unsafe_call", "nested_owners", "src/lib.rs", 58],
+    ["raw_pointer_dereference", "nested_owners::{closure#0}", "src/lib.rs", 55],
+    ["raw_pointer_dereference", "nested_owners::{constant#0}", "src/lib.rs", 57]
+  ],
+  "zero_site_owners": [
+    "neon_target",
+    "safe_control"
+  ]
+}

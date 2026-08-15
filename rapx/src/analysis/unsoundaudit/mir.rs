@@ -1339,7 +1339,7 @@ fn normalized_relative_span_path(path: &str) -> Option<PathBuf> {
     normalized.then_some(path)
 }
 
-fn select_source_root(
+pub(super) fn select_source_root(
     project_root: &Path,
     configured_source_root: Option<PathBuf>,
 ) -> Result<PathBuf, String> {
@@ -1366,7 +1366,7 @@ fn select_source_root(
     Ok(source_root)
 }
 
-fn stable_span_from_locations(
+pub(super) fn stable_span_from_locations(
     source_root: &Path,
     local_path: Option<&str>,
     remapped_path: Option<&str>,
@@ -4428,23 +4428,23 @@ impl<'tcx> Engine<'tcx> {
 }
 
 #[rustversion::before(1.96)]
-fn local_file_name(name: &FileName) -> String {
+pub(super) fn local_file_name(name: &FileName) -> String {
     name.display(FileNameDisplayPreference::Local).to_string()
 }
 
 #[rustversion::since(1.96)]
-fn local_file_name(name: &FileName) -> String {
+pub(super) fn local_file_name(name: &FileName) -> String {
     name.prefer_local_unconditionally().to_string()
 }
 
 #[rustversion::before(1.96)]
-fn remapped_file_name(name: &FileName) -> String {
+pub(super) fn remapped_file_name(name: &FileName) -> String {
     name.display(FileNameDisplayPreference::Remapped)
         .to_string()
 }
 
 #[rustversion::since(1.96)]
-fn remapped_file_name(name: &FileName) -> String {
+pub(super) fn remapped_file_name(name: &FileName) -> String {
     name.prefer_remapped_unconditionally().to_string()
 }
 
@@ -4567,7 +4567,8 @@ fn eval_operand_target_usize<'tcx>(
 
 #[rustversion::since(1.96)]
 fn supports_local_optimized_mir_body(tcx: TyCtxt<'_>, id: LocalDefId, kind: DefKind) -> bool {
-    supports_optimized_mir_body(kind, tcx.hir_body_const_context(id))
+    matches!(kind, DefKind::Fn | DefKind::AssocFn)
+        && supports_optimized_mir_body(kind, tcx.hir_body_const_context(id))
 }
 
 #[rustversion::before(1.96)]

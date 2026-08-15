@@ -4,8 +4,12 @@
 //! `Ty<'tcx>` values after the wrapped rustc query returns.
 
 use std::collections::BTreeSet;
+use std::env;
+use std::path::PathBuf;
 
-use serde_json::Value;
+use rustc_middle::ty::{Ty, TyCtxt};
+use rustc_span::Span;
+use serde_json::{json, Value};
 
 use super::summary::{sha256_hex, FunctionKey, StableSpan};
 
@@ -57,17 +61,22 @@ pub struct RawSpanAnchor {
     pub stable: StableSpan,
     pub lo_byte: u32,
     pub hi_byte: u32,
-    pub syntax_context: u32,
+    pub syntax_context: String,
 }
 
 impl RawSpanAnchor {
-    pub fn new(stable: StableSpan, lo_byte: u32, hi_byte: u32, syntax_context: u32) -> Self {
+    pub fn new(
+        stable: StableSpan,
+        lo_byte: u32,
+        hi_byte: u32,
+        syntax_context: impl Into<String>,
+    ) -> Self {
         assert!(hi_byte >= lo_byte, "raw span end must not precede start");
         Self {
             stable,
             lo_byte,
             hi_byte,
-            syntax_context,
+            syntax_context: syntax_context.into(),
         }
     }
 
@@ -247,6 +256,182 @@ pub fn adapter_for_commit(rustc_commit: &str) -> Result<AdapterManifest, String>
 pub(crate) fn begin_census_invocation(rustc_commit: &str) -> Result<u64, String> {
     adapter_for_commit(rustc_commit)?.validate()?;
     store::begin_global_invocation()
+}
+
+pub(crate) fn census_generation() -> Result<u64, String> {
+    store::active_generation()
+}
+
+pub(crate) fn census_store() -> &'static store::CensusStore {
+    store::global_store()
+}
+
+#[rustversion::before(1.96)]
+pub(crate) fn install_census_provider(
+    providers: &mut rustc_middle::util::Providers,
+) -> Result<(), String> {
+    legacy_2024::install(providers)
+}
+
+#[rustversion::since(1.96)]
+pub(crate) fn install_census_provider(
+    providers: &mut rustc_middle::util::Providers,
+) -> Result<(), String> {
+    current_2026::install(providers)
+}
+
+#[rustversion::before(1.96)]
+pub(crate) fn completeness_sweep(tcx: TyCtxt<'_>) {
+    legacy_2024::sweep(tcx);
+}
+
+#[rustversion::since(1.96)]
+pub(crate) fn completeness_sweep(tcx: TyCtxt<'_>) {
+    current_2026::sweep(tcx);
+}
+
+pub(crate) fn census_snapshot() -> Result<store::CensusSnapshot, String> {
+    let generation = census_generation()?;
+    census_store().snapshot(generation)
+}
+
+pub(crate) fn census_only_from_environment() -> Result<bool, String> {
+    match env::var_os("UNSOUND_SCANNER_CENSUS_ONLY") {
+        None => Ok(false),
+        Some(value) if value == "1" => Ok(true),
+        Some(_) => Err("UNSOUND_SCANNER_CENSUS_ONLY must be unset or exactly '1'".to_string()),
+    }
+}
+
+pub(crate) fn maybe_write_census_sidecar() -> Result<(), String> {
+    let Some(output_path) = env::var_os("UNSOUND_SCANNER_CENSUS_JSON_OUT") else {
+        return Ok(());
+    };
+    let snapshot = census_snapshot()?;
+    let owners = snapshot
+        .owners
+        .values()
+        .map(|owner| {
+            json!({
+                "owner": owner.owner.0,
+                "collector_ran": owner.collector_ran,
+                "sites": owner.sites.iter().map(site_json).collect::<Vec<_>>(),
+            })
+        })
+        .collect::<Vec<_>>();
+    let failures = snapshot
+        .failures
+        .iter()
+        .map(|failure| {
+            json!({
+                "kind": coverage_failure_kind(failure.kind),
+                "owner": failure.owner.0,
+                "site_id": failure.site_id,
+                "candidate_count": failure.candidate_count,
+            })
+        })
+        .collect::<Vec<_>>();
+    let payload = json!({
+        "schema_version": "unsafe-site-census-v1",
+        "generation": snapshot.generation,
+        "owners": owners,
+        "coverage_failures": failures,
+    });
+    let mut bytes = serde_json::to_vec_pretty(&payload)
+        .map_err(|error| format!("failed to serialize unsafe-site census: {error}"))?;
+    bytes.push(b'\n');
+    crate::utils::unit_output::atomic_write(&PathBuf::from(output_path), &bytes)
+        .map_err(|error| format!("failed to write unsafe-site census sidecar: {error}"))
+}
+
+fn site_json(site: &UnsafeSiteSeed) -> Value {
+    json!({
+        "site_id": site.site_id(),
+        "adapter_id": site.adapter_id,
+        "owner": site.owner.0,
+        "owner_def_path_hash": site.owner_def_path_hash,
+        "ordinal": site.ordinal,
+        "kind": site.kind.as_str(),
+        "span": raw_span_json(&site.raw_span),
+        "hir_context": site.hir_context,
+        "callee": site.callee,
+        "operands": site.operands.iter().map(|operand| json!({
+            "role": operand.role.canonical_token(),
+            "span": raw_span_json(&operand.span),
+            "type_fingerprint": operand.type_fingerprint,
+            "shape": operand.shape,
+        })).collect::<Vec<_>>(),
+        "result": site.result.as_ref().map(|result| json!({
+            "span": raw_span_json(&result.span),
+            "type_fingerprint": result.type_fingerprint,
+            "shape": result.shape,
+        })),
+    })
+}
+
+fn raw_span_json(span: &RawSpanAnchor) -> Value {
+    json!({
+        "path": span.stable.path,
+        "start": {"line": span.stable.start.line, "column": span.stable.start.column},
+        "end": {"line": span.stable.end.line, "column": span.stable.end.column},
+        "lo_byte": span.lo_byte,
+        "hi_byte": span.hi_byte,
+        "syntax_context": span.syntax_context,
+    })
+}
+
+fn coverage_failure_kind(kind: CoverageFailureKind) -> &'static str {
+    match kind {
+        CoverageFailureKind::CollectorMissingAfterSteal => "collector_missing_after_steal",
+        CoverageFailureKind::CollectorFailed => "collector_failed",
+        CoverageFailureKind::UnboundUnsafeSite => "unbound_unsafe_site",
+        CoverageFailureKind::AmbiguousUnsafeSite => "ambiguous_unsafe_site",
+        CoverageFailureKind::ElidedUnsafeSite => "elided_unsafe_site",
+    }
+}
+
+#[rustversion::before(1.96)]
+fn type_fingerprint<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> String {
+    format!("{:?}", tcx.erase_regions(ty))
+}
+
+#[rustversion::since(1.96)]
+fn type_fingerprint<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> String {
+    format!("{:?}", tcx.erase_and_anonymize_regions(ty))
+}
+
+fn raw_span_anchor(tcx: TyCtxt<'_>, raw: Span) -> Result<RawSpanAnchor, String> {
+    let project_root = env::var_os("UNSOUND_SCANNER_PROJECT_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+    let source_root = super::mir::select_source_root(
+        &project_root,
+        env::var_os("UNSOUND_SCANNER_SOURCE_ROOT").map(PathBuf::from),
+    )?;
+    let source_map = tcx.sess.source_map();
+    let display = raw.source_callsite();
+    let (file, lo_line, lo_column, hi_line, hi_column) = source_map.span_to_location_info(display);
+    let local = file
+        .as_ref()
+        .map(|file| super::mir::local_file_name(&file.name));
+    let remapped = file
+        .as_ref()
+        .map(|file| super::mir::remapped_file_name(&file.name));
+    let stable = super::mir::stable_span_from_locations(
+        &source_root,
+        local.as_deref(),
+        remapped.as_deref(),
+        lo_line,
+        lo_column,
+        hi_line,
+        hi_column,
+    )?;
+    Ok(RawSpanAnchor::new(
+        stable,
+        raw.lo().0,
+        raw.hi().0,
+        format!("{:?}", raw.ctxt()),
+    ))
 }
 
 impl AdapterManifest {
@@ -477,7 +662,7 @@ mod tests {
             ),
             line * 10,
             line * 10 + 4,
-            0,
+            "#0",
         )
     }
 

@@ -64,14 +64,14 @@
 - Modify: `rapx/src/analysis/unsoundaudit/unsafe_site/current_2026.rs`
 - Test: `tests/unsoundaudit-v3/census-fixtures/`
 
-- [ ] Add compile fixtures for every emitted 2024 and current unsafe category, direct/FnPtr calls, closures, inline consts, macros, includes, nested blocks, and exemptions.
-- [ ] Capture RED census output before implementing visitors.
-- [ ] Implement per-version THIR visitors using the same decision points and recursive body ownership as the matching rustc checker; do not traverse AST or use an AST fallback.
-- [ ] Permit only type-level matching of the THIR-embedded asm macro enum to exclude current `naked_asm!`.
-- [ ] Store only owned spans, type fingerprints, roles, callee IDs, and traversal ordinals; release every THIR borrow before calling rustc's original provider exactly once.
-- [ ] Add after-analysis completeness sweep: recorded owner → no-op; unstolen missing owner → collect; stolen missing owner → coverage fault.
-- [ ] Require registry-empty and registry-full runs to have identical site-ID sets.
-- [ ] Require two-run byte identity for each toolchain's census pack and commit.
+- [x] Add compile fixtures for every emitted 2024 and current unsafe category, direct/FnPtr calls, closures, inline consts, macros, includes, nested blocks, and exemptions.
+- [x] Capture RED census output before implementing visitors.
+- [x] Implement per-version THIR visitors using the same decision points and recursive body ownership as the matching rustc checker; do not traverse AST or use an AST fallback.
+- [x] Permit only type-level matching of the THIR-embedded asm macro enum to exclude current `naked_asm!`.
+- [x] Store only owned spans, type fingerprints, roles, callee IDs, and traversal ordinals; release every THIR borrow before calling rustc's original provider exactly once.
+- [x] Add after-analysis completeness sweep: recorded owner → no-op; unstolen missing owner → collect; stolen missing owner → coverage fault.
+- [x] Require registry-empty and registry-full runs to have identical site-ID sets.
+- [x] Require two-run byte identity for each toolchain's census pack and commit.
 
 ### Task 4: Bind THIR sites to built and solver MIR
 

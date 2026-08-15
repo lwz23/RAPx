@@ -7,6 +7,8 @@ pub mod analysis;
 
 extern crate rustc_abi;
 #[rustversion::since(1.96)]
+extern crate rustc_ast;
+#[rustversion::since(1.96)]
 extern crate rustc_attr_ir;
 extern crate rustc_data_structures;
 extern crate rustc_driver;
@@ -102,7 +104,7 @@ impl Callbacks for RapCallback {
             analysis::unsoundaudit::unsafe_site::begin_census_invocation(&commit)
                 .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
         }
-        configure_override_queries(config);
+        configure_override_queries(config, self.unsoundaudit);
     }
 
     #[rustversion::before(1.96)]
@@ -115,7 +117,12 @@ impl Callbacks for RapCallback {
         queries
             .global_ctxt()
             .unwrap()
-            .enter(|tcx| start_analyzer(tcx, *self));
+            .enter(|tcx| {
+                if self.unsoundaudit {
+                    analysis::unsoundaudit::unsafe_site::completeness_sweep(tcx);
+                }
+                start_analyzer(tcx, *self)
+            });
         rap_trace!("analysis done");
         Compilation::Continue
     }
@@ -127,6 +134,9 @@ impl Callbacks for RapCallback {
         tcx: TyCtxt<'tcx>,
     ) -> Compilation {
         rap_trace!("Execute after_analysis() of compiler callbacks");
+        if self.unsoundaudit {
+            analysis::unsoundaudit::unsafe_site::completeness_sweep(tcx);
+        }
         start_analyzer(tcx, *self);
         rap_trace!("analysis done");
         Compilation::Continue
@@ -134,23 +144,40 @@ impl Callbacks for RapCallback {
 }
 
 #[rustversion::before(1.96)]
-fn configure_override_queries(config: &mut Config) {
-    config.override_queries = Some(|_, providers| {
+fn configure_override_queries(config: &mut Config, unsoundaudit: bool) {
+    fn preserve_rlib_workaround(providers: &mut Providers) {
         providers.extern_queries.used_crate_source = |tcx, cnum| {
-            let mut providers = Providers::default();
-            rustc_metadata::provide(&mut providers);
-            let mut crate_source = (providers.extern_queries.used_crate_source)(tcx, cnum);
+            let mut defaults = Providers::default();
+            rustc_metadata::provide(&mut defaults);
+            let mut crate_source = (defaults.extern_queries.used_crate_source)(tcx, cnum);
             // HACK: rustc will emit "crate ... required to be available in rlib format, but
             // was not found in this form" errors once we use `tcx.dependency_formats()` if
             // there's no rlib provided, so setting a dummy path here to workaround those errors.
             Lrc::make_mut(&mut crate_source).rlib = Some((PathBuf::new(), PathKind::All));
             crate_source
         };
-    });
+    }
+
+    config.override_queries = if unsoundaudit {
+        Some(|_, providers| {
+            preserve_rlib_workaround(providers);
+            analysis::unsoundaudit::unsafe_site::install_census_provider(providers)
+                .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
+        })
+    } else {
+        Some(|_, providers| preserve_rlib_workaround(providers))
+    };
 }
 
 #[rustversion::since(1.96)]
-fn configure_override_queries(_config: &mut Config) {}
+fn configure_override_queries(config: &mut Config, unsoundaudit: bool) {
+    if unsoundaudit {
+        config.override_queries = Some(|_, providers| {
+            analysis::unsoundaudit::unsafe_site::install_census_provider(providers)
+                .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
+        });
+    }
+}
 
 impl RapCallback {
     pub fn enable_rcanary(&mut self) {

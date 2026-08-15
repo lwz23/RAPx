@@ -59,6 +59,10 @@ impl<'tcx> LwzCheck<'tcx> {
 
     fn analyze_and_write(&self) -> Result<(), String> {
         let mut trace = PerfTrace::from_environment()?;
+        unsafe_site::maybe_write_census_sidecar()?;
+        if unsafe_site::census_only_from_environment()? {
+            return Ok(());
+        }
         trace.event("analysis", "begin", [])?;
         let findings = match mir::analyze(self.tcx, &mut trace) {
             Ok(findings) => {

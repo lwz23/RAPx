@@ -1,0 +1,9 @@
+[package]
+name = "unsoundaudit-v3-census-legacy-2024"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]

@@ -1,0 +1,53 @@
+{
+  "adapter_id": "rustc-nightly-2026-08-14-ba28ff",
+  "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+  "owner_count": 16,
+  "site_count": 20,
+  "kind_counts": {
+    "unsafe_call": 3,
+    "inline_assembly": 1,
+    "unsafe_field_initialization": 2,
+    "unsafe_field_use": 1,
+    "mutable_static_access": 1,
+    "extern_static_access": 1,
+    "raw_pointer_dereference": 7,
+    "union_field_access": 1,
+    "target_feature_call": 1,
+    "unsafe_binder_cast": 2
+  },
+  "sites": [
+    ["unsafe_binder_cast", "binder", "src/lib.rs", 60],
+    ["unsafe_binder_cast", "binder", "src/lib.rs", 61],
+    ["unsafe_call", "census_all", "src/lib.rs", 44],
+    ["unsafe_call", "census_all", "src/lib.rs", 46],
+    ["raw_pointer_dereference", "census_all", "src/lib.rs", 47],
+    ["mutable_static_access", "census_all", "src/lib.rs", 48],
+    ["extern_static_access", "census_all", "src/lib.rs", 49],
+    ["union_field_access", "census_all", "src/lib.rs", 50],
+    ["unsafe_field_use", "census_all", "src/lib.rs", 51],
+    ["unsafe_field_initialization", "census_all", "src/lib.rs", 52],
+    ["unsafe_field_initialization", "census_all", "src/lib.rs", 53],
+    ["target_feature_call", "census_all", "src/lib.rs", 54],
+    ["inline_assembly", "census_all", "src/lib.rs", 55],
+    ["raw_pointer_dereference", "direct_target", "src/lib.rs", 35],
+    ["raw_pointer_dereference", "included_call", "src/included.rs", 2],
+    ["raw_pointer_dereference", "macro_site", "src/lib.rs", 78],
+    ["raw_pointer_dereference", "nested_explicit", "src/lib.rs", 82],
+    ["unsafe_call", "nested_owners", "src/lib.rs", 68],
+    ["raw_pointer_dereference", "nested_owners::{closure#0}", "src/lib.rs", 65],
+    ["raw_pointer_dereference", "nested_owners::{constant#0}", "src/lib.rs", 67]
+  ],
+  "zero_site_owners": [
+    "neon_target",
+    "raw_borrow_deref",
+    "raw_borrow_union",
+    "safe_control"
+  ],
+  "compile_fail": [
+    {
+      "path": "compile-fail/explicit_drop.rs",
+      "expected_kind": "explicit_drop_call",
+      "diagnostic_code": "E0040"
+    }
+  ]
+}
