@@ -17,6 +17,14 @@ use super::summary::{
     StableSpan, UnresolvedPredecessor, UnresolvedRouteCycle, UnresolvedRouteFact,
     UnresolvedRouteNode, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
+use super::unsafe_site::{
+    self,
+    binding::{
+        bind_owner, enumerate_mir_events, BoundUnsafeSite, MirEventAnchor, MirStage,
+        SiteBindingRecord,
+    },
+    BindingStatus, CoverageFailure, CoverageFailureKind,
+};
 #[rustversion::since(1.96)]
 use rustc_abi::ExternAbi;
 #[rustversion::since(1.96)]
@@ -474,6 +482,16 @@ struct BodyProgram {
     successors: IndexVec<BasicBlock, BTreeSet<BasicBlock>>,
 }
 
+impl BodyProgram {
+    fn attached_unsafe_site_count(&self) -> usize {
+        self.operations
+            .iter()
+            .flatten()
+            .map(|operation| operation.unsafe_sites.len())
+            .sum()
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct MappedCallOutputs {
     returned: Option<(PlaceKey, AbstractValue)>,
@@ -922,6 +940,7 @@ fn out_slot_index(place: &PlaceKey) -> Option<u32> {
 struct ProgramOp {
     point: Option<ProgramPoint>,
     kind: ProgramOpKind,
+    unsafe_sites: Vec<BoundUnsafeSite>,
 }
 
 impl ProgramOp {
@@ -1314,6 +1333,9 @@ struct Engine<'tcx> {
     bodies: BTreeMap<FunctionKey, BodyFacts>,
     programs: BTreeMap<FunctionKey, BodyProgram>,
     preopt_transmutes: BTreeMap<FunctionKey, BTreeSet<PreoptTransmute>>,
+    built_unsafe_events: BTreeMap<FunctionKey, Vec<MirEventAnchor>>,
+    solver_unsafe_events: BTreeMap<FunctionKey, Vec<MirEventAnchor>>,
+    binding_records: BTreeMap<String, SiteBindingRecord>,
 }
 
 pub fn analyze(tcx: TyCtxt<'_>, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
@@ -1432,15 +1454,20 @@ impl<'tcx> Engine<'tcx> {
             bodies: BTreeMap::new(),
             programs: BTreeMap::new(),
             preopt_transmutes: BTreeMap::new(),
+            built_unsafe_events: BTreeMap::new(),
+            solver_unsafe_events: BTreeMap::new(),
+            binding_records: BTreeMap::new(),
         })
     }
 
     fn run(mut self, trace: &mut PerfTrace) -> Result<Vec<Finding>, String> {
         trace.event("collect_ids", "begin", [])?;
         let ids = self.local_function_ids();
+        let binding_ids = self.local_binding_ids()?;
         trace.event("collect_ids", "end", [("function_count", ids.len() as u64)])?;
         trace.event("preopt", "begin", [])?;
         self.preopt_transmutes = self.collect_preopt_transmutes(&ids)?;
+        self.built_unsafe_events = unsafe_site::census_snapshot()?.built_events;
         trace.event(
             "preopt",
             "end",
@@ -1448,6 +1475,13 @@ impl<'tcx> Engine<'tcx> {
         )?;
         trace.event("collect_bodies", "begin", [])?;
         self.collect_bodies(&ids)?;
+        self.bind_supplemental_owners(&binding_ids)?;
+        self.account_for_unprocessed_census_owners()?;
+        unsafe_site::binding::maybe_write_binding_sidecar(
+            &self.binding_records,
+            &self.built_unsafe_events,
+            &self.solver_unsafe_events,
+        )?;
         let program_point_count = self
             .programs
             .values()
@@ -2074,6 +2108,27 @@ impl<'tcx> Engine<'tcx> {
         ids
     }
 
+    fn local_binding_ids(&self) -> Result<Vec<LocalDefId>, String> {
+        let census = unsafe_site::census_snapshot()?;
+        let owners_with_sites = census
+            .owners
+            .values()
+            .filter(|owner| !owner.sites.is_empty())
+            .map(|owner| owner.owner.clone())
+            .collect::<BTreeSet<_>>();
+        let mut ids = self
+            .tcx
+            .iter_local_def_id()
+            .filter(|id| {
+                let did = id.to_def_id();
+                owners_with_sites.contains(&FunctionKey::new(self.tcx.def_path_str(did)))
+                    && self.tcx.is_mir_available(did)
+            })
+            .collect::<Vec<_>>();
+        ids.sort_by_key(|id| self.tcx.def_path_str(id.to_def_id()));
+        Ok(ids)
+    }
+
     fn collect_preopt_transmutes(
         &self,
         ids: &[LocalDefId],
@@ -2159,15 +2214,166 @@ impl<'tcx> Engine<'tcx> {
         Ok(result)
     }
 
+    fn bind_supplemental_owners(&mut self, ids: &[LocalDefId]) -> Result<(), String> {
+        let census = unsafe_site::census_snapshot()?;
+        for id in ids {
+            let function = FunctionKey::new(self.tcx.def_path_str(id.to_def_id()));
+            let Some(owner) = census.owners.get(&function) else {
+                continue;
+            };
+            if owner
+                .sites
+                .iter()
+                .all(|site| self.binding_records.contains_key(&site.site_id()))
+            {
+                continue;
+            }
+            let did = id.to_def_id();
+            let body = if is_const_binding_owner(self.tcx.def_kind(did)) {
+                self.tcx.mir_for_ctfe(did)
+            } else {
+                self.tcx.optimized_mir(did)
+            };
+            let solver_events = enumerate_mir_events(self.tcx, *id, body, MirStage::Solver)?;
+            let built_events = self
+                .built_unsafe_events
+                .get(&function)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            let records = bind_owner(&owner.sites, built_events, &solver_events)?;
+            self.record_bindings(&owner.sites, records)?;
+            self.solver_unsafe_events.insert(function, solver_events);
+        }
+        Ok(())
+    }
+
     fn collect_bodies(&mut self, ids: &[LocalDefId]) -> Result<(), String> {
+        let census = unsafe_site::census_snapshot()?;
         for id in ids {
             let did = id.to_def_id();
             let body = self.tcx.optimized_mir(did);
             let function = FunctionKey::new(self.tcx.def_path_str(did));
-            let program = self.normalize_body(*id, body, &function)?;
+            let solver_events = enumerate_mir_events(self.tcx, *id, body, MirStage::Solver)?;
+            let sites = census
+                .owners
+                .get(&function)
+                .map(|owner| owner.sites.as_slice())
+                .unwrap_or_default();
+            let built_events = self
+                .built_unsafe_events
+                .get(&function)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            let records = bind_owner(sites, built_events, &solver_events)?;
+            let bound_sites = self.record_bindings(sites, records)?;
+            self.solver_unsafe_events
+                .insert(function.clone(), solver_events);
+            let program = self.normalize_body(*id, body, &function, &bound_sites)?;
+            let expected_bound_sites = bound_sites.values().map(Vec::len).sum::<usize>();
+            if program.attached_unsafe_site_count() != expected_bound_sites {
+                return Err(format!(
+                    "unsafe-site attachment drift for {}: expected {expected_bound_sites}, attached {}",
+                    function.0,
+                    program.attached_unsafe_site_count()
+                ));
+            }
             let facts = self.extract_program(&program, &LocalCallOutputs::new(), &BTreeSet::new());
             self.programs.insert(function, program);
             self.bodies.insert(facts.function.clone(), facts);
+        }
+        Ok(())
+    }
+
+    fn record_bindings(
+        &mut self,
+        sites: &[unsafe_site::UnsafeSiteSeed],
+        records: Vec<SiteBindingRecord>,
+    ) -> Result<BTreeMap<(u32, u32), Vec<BoundUnsafeSite>>, String> {
+        let sites_by_id = sites
+            .iter()
+            .map(|site| (site.site_id(), site))
+            .collect::<BTreeMap<_, _>>();
+        let mut bound = BTreeMap::<(u32, u32), Vec<BoundUnsafeSite>>::new();
+        let generation = unsafe_site::census_generation()?;
+        for record in records {
+            let site = sites_by_id
+                .get(&record.site_id)
+                .ok_or_else(|| "binding record refers to an unknown unsafe site".to_string())?;
+            if self
+                .binding_records
+                .insert(record.site_id.clone(), record.clone())
+                .is_some()
+            {
+                return Err("duplicate unsafe-site binding record".to_string());
+            }
+            if let Some(bound_site) = BoundUnsafeSite::from_record(site, &record) {
+                let key = (bound_site.solver.block, bound_site.solver.statement);
+                bound.entry(key).or_default().push(bound_site);
+                continue;
+            }
+            let (kind, candidate_count) = match record.status {
+                BindingStatus::Unbound => (
+                    CoverageFailureKind::UnboundUnsafeSite,
+                    record.built_candidate_count,
+                ),
+                BindingStatus::Ambiguous => (
+                    CoverageFailureKind::AmbiguousUnsafeSite,
+                    record
+                        .built_candidate_count
+                        .max(record.solver_candidate_count),
+                ),
+                BindingStatus::Elided => (
+                    CoverageFailureKind::ElidedUnsafeSite,
+                    record.solver_candidate_count,
+                ),
+                BindingStatus::BoundExact => unreachable!("bound record handled above"),
+            };
+            unsafe_site::census_store().record_failure(
+                generation,
+                CoverageFailure {
+                    kind,
+                    owner: site.owner.clone(),
+                    site_id: Some(record.site_id.clone()),
+                    candidate_count,
+                },
+            )?;
+        }
+        for sites in bound.values_mut() {
+            sites.sort_by_key(|site| site.seed.site_id());
+        }
+        Ok(bound)
+    }
+
+    fn account_for_unprocessed_census_owners(&mut self) -> Result<(), String> {
+        let census = unsafe_site::census_snapshot()?;
+        let generation = census.generation;
+        for owner in census.owners.values() {
+            for site in &owner.sites {
+                let site_id = site.site_id();
+                if self.binding_records.contains_key(&site_id) {
+                    continue;
+                }
+                self.binding_records.insert(
+                    site_id.clone(),
+                    SiteBindingRecord {
+                        site_id: site_id.clone(),
+                        status: BindingStatus::Unbound,
+                        built_candidate_count: 0,
+                        solver_candidate_count: 0,
+                        built: None,
+                        solver: None,
+                    },
+                );
+                unsafe_site::census_store().record_failure(
+                    generation,
+                    CoverageFailure {
+                        kind: CoverageFailureKind::UnboundUnsafeSite,
+                        owner: owner.owner.clone(),
+                        site_id: Some(site_id),
+                        candidate_count: 0,
+                    },
+                )?;
+            }
         }
         Ok(())
     }
@@ -2616,6 +2822,7 @@ impl<'tcx> Engine<'tcx> {
         local_id: LocalDefId,
         body: &Body<'tcx>,
         function: &FunctionKey,
+        bound_sites: &BTreeMap<(u32, u32), Vec<BoundUnsafeSite>>,
     ) -> Result<BodyProgram, String> {
         let caller = local_id.to_def_id();
         let mut operations = IndexVec::new();
@@ -2676,7 +2883,14 @@ impl<'tcx> Engine<'tcx> {
                     }
                     _ => (None, ProgramOpKind::Nop),
                 };
-                block_ops.push(ProgramOp { point, kind });
+                block_ops.push(ProgramOp {
+                    point,
+                    kind,
+                    unsafe_sites: bound_sites
+                        .get(&(block.index() as u32, statement_index as u32))
+                        .cloned()
+                        .unwrap_or_default(),
+                });
             }
             let statement_index = data.statements.len();
             let terminator = data.terminator();
@@ -2737,6 +2951,10 @@ impl<'tcx> Engine<'tcx> {
             block_ops.push(ProgramOp {
                 point: point.clone(),
                 kind: kind.clone(),
+                unsafe_sites: bound_sites
+                    .get(&(block.index() as u32, statement_index as u32))
+                    .cloned()
+                    .unwrap_or_default(),
             });
             operations.push(block_ops);
             successors.push(terminator.successors().collect());
@@ -4425,6 +4643,22 @@ impl<'tcx> Engine<'tcx> {
             span: self.stable_span(span)?,
         })
     }
+}
+
+#[rustversion::before(1.96)]
+fn is_const_binding_owner(kind: DefKind) -> bool {
+    matches!(
+        kind,
+        DefKind::Const | DefKind::AssocConst | DefKind::AnonConst | DefKind::InlineConst
+    )
+}
+
+#[rustversion::since(1.96)]
+fn is_const_binding_owner(kind: DefKind) -> bool {
+    matches!(
+        kind,
+        DefKind::Const { .. } | DefKind::AssocConst { .. } | DefKind::AnonConst
+    )
 }
 
 #[rustversion::before(1.96)]
@@ -8059,6 +8293,7 @@ mod tests {
         statement: u32,
     ) -> ProgramOp {
         ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, statement)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: PlaceKey::new(destination),
@@ -8598,6 +8833,7 @@ mod tests {
 
         let mut operations = IndexVec::new();
         operations.push(vec![ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 0)),
             kind: ProgramOpKind::Call(match edge {
                 EdgeTerm::CallNormal { call, .. } => call,
@@ -8696,6 +8932,7 @@ mod tests {
             },
         );
         let operation = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: condition.clone(),
@@ -8720,6 +8957,7 @@ mod tests {
         let index = PlaceKey::new("_2");
         let length = PlaceKey::new("_3");
         let length_op = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: length.clone(),
@@ -8731,6 +8969,7 @@ mod tests {
             }),
         };
         let compare = |destination: PlaceKey| ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 2)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination,
@@ -8883,6 +9122,7 @@ mod tests {
         );
         seed_exact(&mut state, &index);
         let length_op = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: length.clone(),
@@ -8896,6 +9136,7 @@ mod tests {
         apply_program_op(&length_op, BasicBlock::from_usize(0), 1, &mut state);
         assert!(!state.may_values()[&length].havoced);
         let compare = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 2)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: condition.clone(),
@@ -8975,6 +9216,7 @@ mod tests {
             [(binding.clone(), false, binding.storage_places())],
         );
         let operation = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: copied.clone(),
@@ -9067,6 +9309,7 @@ mod tests {
                 );
                 apply_program_op(
                     &ProgramOp {
+                        unsafe_sites: Vec::new(),
                         point: Some(point(block as u32, 0)),
                         kind: ProgramOpKind::Assign(AssignmentModel {
                             destination: length.clone(),
@@ -9083,6 +9326,7 @@ mod tests {
                 );
                 apply_program_op(
                     &ProgramOp {
+                        unsafe_sites: Vec::new(),
                         point: Some(point(block as u32, 1)),
                         kind: ProgramOpKind::Assign(AssignmentModel {
                             destination: condition.clone(),
@@ -9395,6 +9639,7 @@ mod tests {
         seed_exact(&mut state, &index);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -9411,6 +9656,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -9538,6 +9784,7 @@ mod tests {
         seed_exact(&mut state, &collection);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -9565,6 +9812,7 @@ mod tests {
             let mut spelling = state.clone();
             apply_program_op(
                 &ProgramOp {
+                    unsafe_sites: Vec::new(),
                     point: Some(point(0, 1)),
                     kind: ProgramOpKind::Assign(AssignmentModel {
                         destination: condition.clone(),
@@ -9589,6 +9837,7 @@ mod tests {
         let mut nonzero = state;
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -9613,6 +9862,7 @@ mod tests {
         seed_exact(&mut stale, &collection);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -9647,6 +9897,7 @@ mod tests {
         ambiguous.set_value(length.clone(), joined_length);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 5)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -9748,6 +9999,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: discriminant.clone(),
@@ -9773,6 +10025,7 @@ mod tests {
 
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(2, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: end.clone(),
@@ -9789,6 +10042,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(2, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -9805,6 +10059,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(2, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -9833,6 +10088,7 @@ mod tests {
 
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(3, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length,
@@ -9849,6 +10105,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(3, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -9886,6 +10143,7 @@ mod tests {
         state.set_value(collection.clone(), collection_value);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -9908,6 +10166,7 @@ mod tests {
         state.set_value(limit.clone(), limit_value);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -10583,6 +10842,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: borrowed.clone(),
@@ -11021,6 +11281,7 @@ mod tests {
         apply_call_side_effects(&ffi, &point(0, 0), &mut state);
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: checked.clone(),
@@ -11197,6 +11458,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: length.clone(),
@@ -11213,6 +11475,7 @@ mod tests {
         );
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: condition.clone(),
@@ -11266,6 +11529,7 @@ mod tests {
             destination_out_formal: None,
         };
         let compare = |destination: PlaceKey| ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(1, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination,
@@ -11652,6 +11916,7 @@ mod tests {
         };
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: returned,
@@ -11812,6 +12077,7 @@ mod tests {
         ));
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: returned.clone(),
@@ -11921,6 +12187,7 @@ mod tests {
         let discriminant = PlaceKey::new("_6");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: discriminant.clone(),
@@ -11959,6 +12226,7 @@ mod tests {
         let loaded = PlaceKey::new("_7");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(3, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: loaded,
@@ -11991,6 +12259,7 @@ mod tests {
 
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(4, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: returned,
@@ -12059,6 +12328,7 @@ mod tests {
         let iterator_receiver = PlaceKey::new("_20");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(1, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: iterator_receiver.clone(),
@@ -12105,6 +12375,7 @@ mod tests {
         let discriminant = PlaceKey::new("_4");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(2, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: discriminant.clone(),
@@ -12176,6 +12447,7 @@ mod tests {
         };
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: range_value.clone(),
@@ -12263,6 +12535,7 @@ mod tests {
         let discriminant = PlaceKey::new("_14");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(2, 0)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: discriminant.clone(),
@@ -13088,6 +13361,7 @@ mod tests {
         seed_exact(&mut before, &index);
 
         let length_op = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: length.clone(),
@@ -13100,6 +13374,7 @@ mod tests {
         };
         apply_program_op(&length_op, BasicBlock::from_usize(0), 0, &mut before);
         let compare = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 1)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: condition.clone(),
@@ -13151,6 +13426,7 @@ mod tests {
             relation.storage_places(),
         ));
         let add = ProgramOp {
+            unsafe_sites: Vec::new(),
             point: Some(point(0, 0)),
             kind: ProgramOpKind::Assign(AssignmentModel {
                 destination: next.clone(),
@@ -13174,6 +13450,7 @@ mod tests {
         let checked = PlaceKey::new("_4");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: checked.clone(),
@@ -13205,6 +13482,7 @@ mod tests {
         let checked_result = PlaceKey::new("_5");
         apply_program_op(
             &ProgramOp {
+                unsafe_sites: Vec::new(),
                 point: Some(point(0, 2)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: checked_result.clone(),

@@ -79,14 +79,14 @@
 - Create: `rapx/src/analysis/unsoundaudit/unsafe_site/binding.rs`
 - Modify: `rapx/src/analysis/unsoundaudit/mir.rs`
 
-- [ ] Write RED tests for call actuals/destination, function pointers, raw read/write/borrow, union fields, static accesses, inline asm, same-span multiple sites, macros, zero candidates, and multiple perfect matchings.
-- [ ] Enumerate owner-local built-MIR events and solver-MIR events without consulting the contract catalog.
-- [ ] Build a bipartite match using owner, raw hygienic span, source scope/lint root, site kind, callee or FnPtr signature, operand count/type/role, result type, and MIR shape.
-- [ ] Accept only a unique complete matching; never choose by nearest span or insertion order.
-- [ ] Attach `Vec<BoundUnsafeSite>` to `ProgramOp`, preserving existing Assign/Call/InlineAsm transfer semantics.
-- [ ] Emit deterministic `unbound`, `ambiguous`, and `elided` coverage records and mark the unit partial.
+- [x] Write RED tests for call actuals/destination, function pointers, raw read/write/borrow, union fields, static accesses, inline asm, same-span multiple sites, macros, zero candidates, and multiple perfect matchings.
+- [x] Enumerate owner-local built-MIR events and solver-MIR events without consulting the contract catalog.
+- [x] Build a bipartite match using owner, raw hygienic span, source scope/lint root, site kind, callee or FnPtr signature, operand count/type/role, result type, and MIR shape.
+- [x] Accept only a unique complete matching; never choose by nearest span or insertion order.
+- [x] Attach `Vec<BoundUnsafeSite>` to `ProgramOp`, preserving existing Assign/Call/InlineAsm transfer semantics.
+- [x] Emit deterministic `unbound`, `ambiguous`, and `elided` coverage records and mark the unit partial.
 - [ ] Allow a THIR-local low-confidence candidate only when the source-to-site relation is directly established without inventing an interprocedural edge.
-- [ ] Run focused binding tests under both toolchains and commit.
+- [x] Run focused binding tests under both toolchains and commit.
 
 ### Task 5: Build the sparse endpoint-flow lane
 

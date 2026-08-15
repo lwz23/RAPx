@@ -4,12 +4,14 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 
+use super::binding::MirEventAnchor;
 use super::{CoverageFailure, FunctionKey, OwnerCensus};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CensusSnapshot {
     pub generation: u64,
     pub owners: BTreeMap<FunctionKey, OwnerCensus>,
+    pub built_events: BTreeMap<FunctionKey, Vec<MirEventAnchor>>,
     pub failures: BTreeSet<CoverageFailure>,
 }
 
@@ -18,6 +20,7 @@ impl CensusSnapshot {
         Self {
             generation,
             owners: BTreeMap::new(),
+            built_events: BTreeMap::new(),
             failures: BTreeSet::new(),
         }
     }
@@ -59,6 +62,41 @@ impl CensusStore {
             return Err("duplicate census coverage failure".to_string());
         }
         Ok(())
+    }
+
+    pub fn record_built_events(
+        &self,
+        generation: u64,
+        owner: FunctionKey,
+        events: Vec<MirEventAnchor>,
+    ) -> Result<(), String> {
+        if events.iter().any(|event| event.owner != owner) {
+            return Err("built MIR event owner differs from its store key".to_string());
+        }
+        let mut state = self.lock()?;
+        let snapshot = matching_snapshot(&mut state, generation)?;
+        if snapshot.built_events.insert(owner, events).is_some() {
+            return Err("built MIR events already recorded for owner".to_string());
+        }
+        Ok(())
+    }
+
+    pub fn contains_built_events(
+        &self,
+        generation: u64,
+        owner: &FunctionKey,
+    ) -> Result<bool, String> {
+        let state = self.lock()?;
+        let snapshot = state
+            .as_ref()
+            .ok_or_else(|| "census invocation has not begun".to_string())?;
+        if snapshot.generation != generation {
+            return Err(format!(
+                "census generation mismatch: active {}, requested {generation}",
+                snapshot.generation
+            ));
+        }
+        Ok(snapshot.built_events.contains_key(owner))
     }
 
     pub fn contains_owner(&self, generation: u64, owner: &FunctionKey) -> Result<bool, String> {

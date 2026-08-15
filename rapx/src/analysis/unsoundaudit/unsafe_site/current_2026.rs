@@ -68,6 +68,11 @@ mod collector {
 
     fn wrapped_check_unsafety(tcx: TyCtxt<'_>, def: LocalDefId) {
         collect_and_record(tcx, def);
+        super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
+            crate::utils::log::rap_error_and_exit(format!(
+                "current unsafe-site built MIR inventory failed: {error}"
+            ))
+        });
         let provider = ORIGINAL_PROVIDER.get().copied().unwrap_or_else(|| {
             crate::utils::log::rap_error_and_exit("missing original check_unsafety provider")
         });
@@ -280,6 +285,11 @@ mod collector {
 
         fn visit_inner_body(&mut self, def: LocalDefId) {
             collect_and_record(self.tcx, def);
+            super::super::record_built_mir_events(self.tcx, def).unwrap_or_else(|error| {
+                crate::utils::log::rap_error_and_exit(format!(
+                    "current inner-body built MIR inventory failed: {error}"
+                ))
+            });
         }
     }
 
@@ -647,6 +657,11 @@ mod collector {
         for def in tcx.hir_body_owners() {
             if !tcx.is_typeck_child(def.to_def_id()) {
                 collect_and_record(tcx, def);
+                super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
+                    crate::utils::log::rap_error_and_exit(format!(
+                        "current sweep built MIR inventory failed: {error}"
+                    ))
+                });
             }
         }
     }

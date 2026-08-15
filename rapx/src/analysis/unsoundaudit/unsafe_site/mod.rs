@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 
 use super::summary::{sha256_hex, FunctionKey, StableSpan};
 
+pub(super) mod binding;
 mod current_2026;
 mod legacy_2024;
 mod store;
@@ -293,6 +294,64 @@ pub(crate) fn completeness_sweep(tcx: TyCtxt<'_>) {
 pub(crate) fn census_snapshot() -> Result<store::CensusSnapshot, String> {
     let generation = census_generation()?;
     census_store().snapshot(generation)
+}
+
+pub(super) fn record_built_mir_events(
+    tcx: TyCtxt<'_>,
+    owner_id: rustc_span::def_id::LocalDefId,
+) -> Result<(), String> {
+    let generation = census_generation()?;
+    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    if census_store()
+        .snapshot(generation)?
+        .owners
+        .get(&owner)
+        .is_none_or(|census| census.sites.is_empty())
+    {
+        return Ok(());
+    }
+    if census_store().contains_built_events(generation, &owner)? {
+        return Ok(());
+    }
+    let body = tcx.mir_drops_elaborated_and_const_checked(owner_id);
+    if body.is_stolen() {
+        return record_built_inventory_failure(
+            generation,
+            owner,
+            "built MIR was stolen before unsafe-site binding inventory",
+        );
+    }
+    let body = body.borrow();
+    let events = match binding::enumerate_mir_events(tcx, owner_id, &body, binding::MirStage::Built)
+    {
+        Ok(events) => events,
+        Err(error) => {
+            drop(body);
+            return record_built_inventory_failure(generation, owner, &error);
+        }
+    };
+    census_store().record_built_events(generation, owner, events)
+}
+
+fn record_built_inventory_failure(
+    generation: u64,
+    owner: FunctionKey,
+    reason: &str,
+) -> Result<(), String> {
+    log::error!(
+        "unsafe-site built MIR inventory failed for {}: {reason}",
+        owner.0
+    );
+    census_store().record_failure(
+        generation,
+        CoverageFailure {
+            kind: CoverageFailureKind::CollectorFailed,
+            owner: owner.clone(),
+            site_id: None,
+            candidate_count: 0,
+        },
+    )?;
+    census_store().record_built_events(generation, owner, Vec::new())
 }
 
 pub(crate) fn census_only_from_environment() -> Result<bool, String> {

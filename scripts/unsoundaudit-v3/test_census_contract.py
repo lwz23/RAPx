@@ -111,8 +111,11 @@ class CensusFixtureContractTests(unittest.TestCase):
         assert spec.loader is not None
         spec.loader.exec_module(module)
         self.assertTrue(callable(module.validate_payload))
+        self.assertTrue(callable(module.validate_binding))
         source = RUNNER.read_text(encoding="utf-8")
         self.assertIn("full-analysis and census-only runs are not byte-identical", source)
+        self.assertIn("full-analysis binding sidecars are not byte-identical", source)
+        self.assertIn('site["status"] != "bound_exact"', source)
         self.assertIn('environment["UNSOUND_SCANNER_CENSUS_ONLY"] = "1"', source)
         self.assertIn("unsafe-site kind/owner/span projection drifted", source)
         self.assertNotRegex(source, re.compile(r"nearest|best.?effort", re.IGNORECASE))

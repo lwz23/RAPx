@@ -88,6 +88,38 @@ def validate_payload(payload: dict, oracle: dict) -> None:
         fail("site adapter ID drifted")
 
 
+def validate_binding(payload: dict, oracle: dict) -> None:
+    if set(payload) != {"schema_version", "sites", "mir_events"}:
+        fail("binding sidecar top-level keys drifted")
+    if payload["schema_version"] != "unsafe-site-binding-v1":
+        fail("binding sidecar schema drifted")
+    sites = payload["sites"]
+    events = payload["mir_events"]
+    if not isinstance(events, list) or not all(event["stage"] in {"built", "solver"} for event in events):
+        fail("binding MIR event inventory is malformed")
+    if len(sites) != oracle["site_count"]:
+        fail(f"binding site count drifted: expected {oracle['site_count']}, got {len(sites)}")
+    ids = [site["site_id"] for site in sites]
+    if len(ids) != len(set(ids)):
+        fail("binding sidecar contains duplicate site IDs")
+    for site in sites:
+        if set(site) != {
+            "site_id",
+            "status",
+            "built_candidate_count",
+            "solver_candidate_count",
+            "built",
+            "solver",
+        }:
+            fail("binding site keys drifted")
+        if site["status"] != "bound_exact":
+            fail(f"fixture site was not bound exactly: {site!r}")
+        if site["built_candidate_count"] < 1 or site["solver_candidate_count"] < 1:
+            fail(f"bound site has no structural candidate: {site!r}")
+        if site["built"] is None or site["solver"] is None:
+            fail(f"bound site has no MIR locations: {site!r}")
+
+
 def run_compile_fail(rustc: Path, fixture: Path, rows: list[dict], output_root: Path) -> None:
     for index, row in enumerate(rows):
         source = fixture / row["path"]
@@ -125,12 +157,13 @@ def run_once(
     rustdoc: Path,
     rust_sysroot: Path,
     census_only: bool,
-) -> bytes:
+) -> tuple[bytes, bytes | None]:
     run_root = output_root / run_name
     receipts = run_root / "receipts"
     for directory in (run_root, receipts, run_root / "cargo-home", run_root / "target"):
         directory.mkdir(parents=True, exist_ok=False)
     census = run_root / "census.json"
+    binding = run_root / "binding.json"
     environment = os.environ.copy()
     environment.update(
         {
@@ -152,8 +185,10 @@ def run_once(
     )
     if census_only:
         environment["UNSOUND_SCANNER_CENSUS_ONLY"] = "1"
+        environment.pop("UNSOUND_SCANNER_BINDING_JSON_OUT", None)
     else:
         environment.pop("UNSOUND_SCANNER_CENSUS_ONLY", None)
+        environment["UNSOUND_SCANNER_BINDING_JSON_OUT"] = str(binding)
     result = subprocess.run(
         [
             str(cargo_rapx),
@@ -174,7 +209,9 @@ def run_once(
     (run_root / "scan.log").write_bytes(result.stdout)
     if result.returncode != 0 or not census.is_file():
         fail(f"{run_name} failed with exit {result.returncode}; see {run_root / 'scan.log'}")
-    return census.read_bytes()
+    if not census_only and not binding.is_file():
+        fail(f"{run_name} did not produce its binding sidecar")
+    return census.read_bytes(), binding.read_bytes() if binding.is_file() else None
 
 
 def main() -> int:
@@ -201,7 +238,7 @@ def main() -> int:
     rustdoc = args.rustdoc.resolve(strict=True)
     rust_sysroot = args.rust_sysroot.resolve(strict=True)
 
-    first = run_once(
+    first_census, first_binding = run_once(
         fixture,
         output_root,
         "run-1",
@@ -214,7 +251,7 @@ def main() -> int:
         rust_sysroot,
         False,
     )
-    second = run_once(
+    second_census, second_binding = run_once(
         fixture,
         output_root,
         "run-2",
@@ -225,12 +262,28 @@ def main() -> int:
         rustc_commit,
         rustdoc,
         rust_sysroot,
+        False,
+    )
+    census_only, no_binding = run_once(
+        fixture,
+        output_root,
+        "census-only",
+        cargo_rapx,
+        cargo,
+        cargo_commit,
+        args.rustc.resolve(strict=True),
+        rustc_commit,
+        rustdoc,
+        rust_sysroot,
         True,
     )
-    if first != second:
+    if first_census != second_census or first_census != census_only:
         fail("full-analysis and census-only runs are not byte-identical")
-    payload = json.loads(first)
+    if first_binding is None or first_binding != second_binding or no_binding is not None:
+        fail("full-analysis binding sidecars are not byte-identical")
+    payload = json.loads(first_census)
     validate_payload(payload, oracle)
+    validate_binding(json.loads(first_binding), oracle)
     compile_fail = oracle.get("compile_fail", [])
     (output_root / "compile-fail").mkdir(exist_ok=False)
     run_compile_fail(args.rustc, fixture, compile_fail, output_root)
