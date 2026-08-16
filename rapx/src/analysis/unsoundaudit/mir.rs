@@ -1621,6 +1621,7 @@ impl<'tcx> Engine<'tcx> {
                 ],
             )?;
         }
+        trace.event("endpoint_flow", "begin", [])?;
         self.endpoint_graph =
             self.bodies
                 .values()
@@ -1642,6 +1643,7 @@ impl<'tcx> Engine<'tcx> {
                 ),
             ],
         )?;
+        trace.event("structural_candidates", "begin", [])?;
         let pre_discharge_structural_candidates = self.structural_candidates();
         trace.event(
             "structural_candidates",
