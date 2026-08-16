@@ -302,12 +302,7 @@ pub(super) fn record_built_mir_events(
 ) -> Result<(), String> {
     let generation = census_generation()?;
     let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
-    if census_store()
-        .snapshot(generation)?
-        .owners
-        .get(&owner)
-        .is_none_or(|census| census.sites.is_empty())
-    {
+    if !census_store().owner_has_sites(generation, &owner)? {
         return Ok(());
     }
     if census_store().contains_built_events(generation, &owner)? {
@@ -942,5 +937,40 @@ mod tests {
                 },
             )
             .is_err());
+    }
+
+    #[test]
+    fn census_store_queries_owner_site_presence_without_materializing_a_snapshot() {
+        let store = store::CensusStore::default();
+        store.begin(1).unwrap();
+        assert!(!store
+            .owner_has_sites(1, &FunctionKey::new("sample::missing"))
+            .unwrap());
+        store
+            .record_owner(
+                1,
+                OwnerCensus {
+                    owner: FunctionKey::new("sample::empty"),
+                    collector_ran: true,
+                    sites: Vec::new(),
+                },
+            )
+            .unwrap();
+        assert!(!store
+            .owner_has_sites(1, &FunctionKey::new("sample::empty"))
+            .unwrap());
+        store
+            .record_owner(
+                1,
+                OwnerCensus {
+                    owner: FunctionKey::new("sample::root"),
+                    collector_ran: true,
+                    sites: vec![seed(0, UnsafeSiteKind::UnsafeCall)],
+                },
+            )
+            .unwrap();
+        assert!(store
+            .owner_has_sites(1, &FunctionKey::new("sample::root"))
+            .unwrap());
     }
 }

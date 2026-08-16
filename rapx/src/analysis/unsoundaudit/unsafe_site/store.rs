@@ -113,6 +113,23 @@ impl CensusStore {
         Ok(snapshot.owners.contains_key(owner))
     }
 
+    pub fn owner_has_sites(&self, generation: u64, owner: &FunctionKey) -> Result<bool, String> {
+        let state = self.lock()?;
+        let snapshot = state
+            .as_ref()
+            .ok_or_else(|| "census invocation has not begun".to_string())?;
+        if snapshot.generation != generation {
+            return Err(format!(
+                "census generation mismatch: active {}, requested {generation}",
+                snapshot.generation
+            ));
+        }
+        Ok(snapshot
+            .owners
+            .get(owner)
+            .is_some_and(|census| !census.sites.is_empty()))
+    }
+
     pub fn snapshot(&self, generation: u64) -> Result<CensusSnapshot, String> {
         let state = self.lock()?;
         let snapshot = state
