@@ -82,6 +82,11 @@ mod collector {
                 crate::utils::log::rap_error_and_exit("missing original mir_built provider")
             });
         let body = provider(tcx, def);
+        // Some compiler queries build a typeck child's MIR before its parent's unsafety query
+        // visits that child.  At this point the THIR is still available: census it before this
+        // MIR result is returned to a caller that may steal the THIR.
+        let mut deferred_built_inventory = Vec::new();
+        collect_census_tree(tcx, def, &mut deferred_built_inventory);
         if body.is_stolen() {
             super::super::record_stolen_built_mir(tcx, def).unwrap_or_else(|error| {
                 crate::utils::log::rap_error_and_exit(format!(
