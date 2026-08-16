@@ -1464,6 +1464,10 @@ pub(super) fn stable_span_from_locations(
     ))
 }
 
+fn legacy_raw_read_shadow_model(model_id: &str) -> bool {
+    matches!(model_id, "raw_pointer_access_v1" | "static_memory_access_v1")
+}
+
 impl<'tcx> Engine<'tcx> {
     fn new(tcx: TyCtxt<'tcx>) -> Result<Self, String> {
         let project_root = env::var_os("UNSOUND_SCANNER_PROJECT_ROOT")
@@ -1934,6 +1938,10 @@ impl<'tcx> Engine<'tcx> {
                 continue;
             };
             for operation in program.operations.iter().flatten() {
+                let legacy_raw_shape = matches!(
+                    &operation.kind,
+                    ProgramOpKind::Assign(assignment) if assignment.raw_read_source.is_some()
+                );
                 let expected_model = match &operation.kind {
                     ProgramOpKind::Call(call) => call
                         .descriptor
@@ -1955,7 +1963,15 @@ impl<'tcx> Engine<'tcx> {
                     .into_iter()
                     .flatten()
                     .filter_map(|site_id| facts.contract_descriptors.get(site_id))
-                    .any(|descriptor| descriptor.model_id.as_deref() == Some(expected_model));
+                    .any(|descriptor| {
+                        descriptor.model_id.as_deref().is_some_and(|model_id| {
+                            if legacy_raw_shape {
+                                legacy_raw_read_shadow_model(model_id)
+                            } else {
+                                model_id == expected_model
+                            }
+                        })
+                    });
                 if !matched {
                     return Err(format!(
                         "legacy known operation at {} has no compiler-census site bound to model {expected_model}",
@@ -14557,5 +14573,12 @@ mod tests {
             },
         )
         .is_none());
+    }
+
+    #[test]
+    fn task10_legacy_raw_shape_accepts_compiler_static_access_reconciliation() {
+        assert!(legacy_raw_read_shadow_model("raw_pointer_access_v1"));
+        assert!(legacy_raw_read_shadow_model("static_memory_access_v1"));
+        assert!(!legacy_raw_read_shadow_model("language_validity_v1"));
     }
 }
