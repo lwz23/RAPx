@@ -15,6 +15,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = REPO_ROOT / "tests/unsoundaudit-v3/rap-unit-v3.schema.json"
 VALIDATOR_PATH = Path(__file__).with_name("validate_receipt.py")
+ANALYZER_ENTRY_PATH = REPO_ROOT / "rapx/src/analysis/unsoundaudit.rs"
+MIR_PATH = REPO_ROOT / "rapx/src/analysis/unsoundaudit/mir.rs"
 
 
 def load_validator():
@@ -186,6 +188,22 @@ class RapUnitV3ContractTests(unittest.TestCase):
         receipt = minimal_receipt()
         receipt["unexpected"] = True
         self.assert_rejected(receipt)
+
+    def test_production_writer_and_discovery_authority_are_v3_only(self) -> None:
+        entry = ANALYZER_ENTRY_PATH.read_text()
+        mir = MIR_PATH.read_text()
+        compatibility_marker = (
+            "// These v2 serializers remain only as immutable compatibility test fixtures."
+        )
+        production, compatibility = entry.split(compatibility_marker, 1)
+
+        self.assertIn("v3_output::build_receipt(metadata, analysis)", production)
+        self.assertNotIn("rap-unit-v2", production)
+        self.assertIn('#[cfg(test)]\nmod stdlib_suppressions;', production)
+        self.assertIn('#[cfg(test)]\nfn unit_json', compatibility)
+        self.assertNotIn("legacy_findings", entry)
+        self.assertNotIn("is_modeled_registry_call", mir)
+        self.assertNotIn("adjusted_rule", mir)
 
     def test_census_must_reconcile_and_site_kinds_are_sorted_unique(self) -> None:
         receipt = minimal_receipt()

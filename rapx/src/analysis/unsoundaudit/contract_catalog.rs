@@ -129,7 +129,7 @@ impl ContractCatalog {
             if let Some(model) = known {
                 let (selected, predicates, failure_phase, discharge) = match model {
                     KnownContractModel::GetUnchecked => (
-                        select_roles(site, &[OperandRole::Argument(0), OperandRole::Argument(1)]),
+                        select_get_unchecked_subject_role(site),
                         BTreeSet::from([ContractPredicate::InBounds]),
                         FailurePhase::Precondition,
                         DischargeModel::ExactValidation,
@@ -238,6 +238,20 @@ fn select_roles(site: &BoundUnsafeSite, expected: &[OperandRole]) -> BTreeSet<Op
         .filter(|operand| expected.contains(&operand.role))
         .map(|operand| operand.role.clone())
         .collect()
+}
+
+fn select_get_unchecked_subject_role(site: &BoundUnsafeSite) -> BTreeSet<OperandRole> {
+    let index_is_literal = site.operands.iter().any(|operand| {
+        operand.role == OperandRole::Argument(1) && operand.place.is_none()
+    });
+    select_roles(
+        site,
+        &[if index_is_literal {
+            OperandRole::Argument(0)
+        } else {
+            OperandRole::Argument(1)
+        }],
+    )
 }
 
 pub(super) fn structural_candidate(site: &BoundUnsafeSite) -> Option<StructuralSiteCandidate> {
@@ -385,10 +399,41 @@ mod tests {
         assert_eq!(precise.precision, ContractPrecision::Precise);
         assert_eq!(precise.model_id.as_deref(), Some("slice_get_unchecked_v1"));
         assert_eq!(
+            precise.relevant_roles,
+            BTreeSet::from([OperandRole::Argument(1)])
+        );
+        assert_eq!(
             precise.predicates,
             BTreeSet::from([ContractPredicate::InBounds])
         );
         assert_eq!(structural_candidate(&site), Some(candidate));
+    }
+
+    #[test]
+    fn get_unchecked_uses_the_index_subject_except_for_a_literal_index() {
+        let mut site = site(
+            UnsafeSiteKind::UnsafeCall,
+            &[
+                (OperandRole::Argument(0), "&[u8]"),
+                (OperandRole::Argument(1), "usize"),
+            ],
+            Some("u8"),
+        );
+        let variable = ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
+        assert_eq!(
+            variable.relevant_roles,
+            BTreeSet::from([OperandRole::Argument(1)])
+        );
+        site.operands
+            .iter_mut()
+            .find(|operand| operand.role == OperandRole::Argument(1))
+            .unwrap()
+            .place = None;
+        let literal = ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
+        assert_eq!(
+            literal.relevant_roles,
+            BTreeSet::from([OperandRole::Argument(0)])
+        );
     }
 
     #[test]

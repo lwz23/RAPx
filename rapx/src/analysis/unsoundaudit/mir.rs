@@ -3,8 +3,8 @@ use super::dataflow::{
     StaticWriteToken,
 };
 use super::contract_catalog::{
-    structural_candidate, ContractCatalog, ContractDescriptor, KnownContractModel,
-    StructuralSiteCandidate,
+    structural_candidate, ContractCatalog, ContractDescriptor, DischargeModel,
+    KnownContractModel, StructuralSiteCandidate,
 };
 use super::candidate::{
     build_structural_candidates, CandidateCallEdge, CandidateOwner, StructuralFindingCandidate,
@@ -19,11 +19,11 @@ use super::relations::{
 };
 use super::summary::{
     classify_primary_with_secondary, map_call_outputs, out_values_from_dependencies,
-    select_preferred_unresolved_route, select_unresolved_route_cycle, solve_summaries,
+    solve_summaries,
     AbstractOrigin, AbstractValue, BoundarySlot, CallBoundary, CallMapping, CanonicalWitness,
-    ContractRequirement, FailureClass, Finding, FunctionKey, FunctionSummary, Obligation,
-    Operation, OperationKind, OriginKey, OutDependency, Pattern, PlaceKey, Predicate, ProgramPoint,
-    RuleId, SelectedUnresolvedRoute, SinkObligation, Source, SourceKind, StablePosition,
+    ContractRequirement, FailureClass, FunctionKey, FunctionSummary,
+    Operation, OperationKind, OutDependency, Pattern, PlaceKey, Predicate, ProgramPoint, RuleId,
+    SelectedUnresolvedRoute, SourceKind, StablePosition,
     StableSpan, UnresolvedPredecessor, UnresolvedRouteCycle, UnresolvedRouteFact,
     UnresolvedRouteNode, ValidationFact, WitnessStep, WitnessStepKind, WriteEffect,
 };
@@ -45,7 +45,7 @@ use rustc_hir::ConstContext;
 use rustc_hir::LangItem;
 use rustc_hir::{
     def::DefKind,
-    def_id::{DefId, LocalDefId, LOCAL_CRATE},
+    def_id::{DefId, LocalDefId},
     Mutability, Safety,
 };
 use rustc_index::IndexVec;
@@ -1328,19 +1328,15 @@ struct BodyFacts {
     contract_descriptors: BTreeMap<String, ContractDescriptor>,
     contract_sites_by_point: BTreeMap<ProgramPoint, BTreeSet<String>>,
     bound_sites: BTreeMap<String, BoundUnsafeSite>,
+    initialized_site_operands: BTreeSet<(String, unsafe_site::OperandRole)>,
+    seeded_contract_sites: BTreeSet<String>,
+    proven_contract_sites: BTreeSet<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct PreoptTransmute {
     first_failure: Operation,
     sink: Operation,
-}
-
-#[derive(Clone, Debug)]
-struct SelectedRequirement {
-    requirement: ContractRequirement,
-    source: Source,
-    witness: CanonicalWitness,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1353,7 +1349,6 @@ enum ValidationRoute {
 struct Engine<'tcx> {
     tcx: TyCtxt<'tcx>,
     source_root: PathBuf,
-    crate_name: String,
     bodies: BTreeMap<FunctionKey, BodyFacts>,
     programs: BTreeMap<FunctionKey, BodyProgram>,
     preopt_transmutes: BTreeMap<FunctionKey, BTreeSet<PreoptTransmute>>,
@@ -1364,7 +1359,6 @@ struct Engine<'tcx> {
 }
 
 pub(super) struct AnalysisOutput {
-    pub legacy_findings: Vec<Finding>,
     pub structural_candidates: Vec<StructuralFindingCandidate>,
     pub binding_records: BTreeMap<String, SiteBindingRecord>,
     pub endpoint_graph: EndpointFlowGraph,
@@ -1479,12 +1473,9 @@ impl<'tcx> Engine<'tcx> {
             &project_root,
             env::var_os("UNSOUND_SCANNER_SOURCE_ROOT").map(PathBuf::from),
         )?;
-        let crate_name = env::var("UNSOUND_SCANNER_RAP_CRATE_NAME")
-            .unwrap_or_else(|_| tcx.crate_name(LOCAL_CRATE).to_string());
         Ok(Self {
             tcx,
             source_root,
-            crate_name,
             bodies: BTreeMap::new(),
             programs: BTreeMap::new(),
             preopt_transmutes: BTreeMap::new(),
@@ -1617,15 +1608,18 @@ impl<'tcx> Engine<'tcx> {
                 ),
             ],
         )?;
-        let structural_candidates = self.structural_candidates();
+        let pre_discharge_structural_candidates = self.structural_candidates();
         trace.event(
             "structural_candidates",
             "end",
             [
-                ("candidate_count", structural_candidates.len() as u64),
+                (
+                    "candidate_count",
+                    pre_discharge_structural_candidates.len() as u64,
+                ),
                 (
                     "opaque_candidate_count",
-                    structural_candidates
+                    pre_discharge_structural_candidates
                         .iter()
                         .filter(|candidate| {
                             candidate.contract.precision
@@ -1642,7 +1636,11 @@ impl<'tcx> Engine<'tcx> {
             "end",
             [("summary_count", solved.len() as u64)],
         )?;
-        let seeds = self.summary_seeds();
+        self.verify_legacy_shadow_reconciliation()?;
+        let structural_candidates = self.discharge_structural_candidates(
+            pre_discharge_structural_candidates,
+            &solved,
+        );
         let lifecycle_enabled = env::var_os(CANDIDATE_LIFECYCLE_TRACE_ENV).is_some();
         let mut candidate_lifecycle = if lifecycle_enabled {
             self.bodies
@@ -1795,82 +1793,25 @@ impl<'tcx> Engine<'tcx> {
             "begin",
             [("body_count", self.bodies.len() as u64)],
         )?;
-        let mut findings = Vec::new();
-        for (root, facts) in &self.bodies {
-            if !self.is_public_safe_root(facts.def_id) {
-                continue;
-            }
-            let Some(summary) = solved.get(root) else {
-                continue;
-            };
-            let unresolved = summary
-                .requirements
-                .iter()
-                .cloned()
-                .chain(
-                    summary
-                        .validations
-                        .iter()
-                        .map(|validation| validation.requirement.clone()),
-                )
-                .collect::<BTreeSet<_>>();
-            for requirement in &unresolved {
-                let return_exposure_pass = !(requirement.return_exposure
-                    && summary
-                        .return_value
-                        .origins
-                        .is_disjoint(&requirement.subject.origins));
-                let source = return_exposure_pass
-                    .then(|| self.classify_source(facts, requirement))
-                    .flatten();
-                let discharged = self.is_discharged(facts, requirement);
-                if lifecycle_enabled {
-                    let mut lifecycle =
-                        candidate_lifecycle_event("root_classification", root, requirement);
-                    lifecycle.insert("public_safe_root".into(), true.into());
-                    lifecycle.insert("deduplicated".into(), true.into());
-                    lifecycle.insert("return_exposure_pass".into(), return_exposure_pass.into());
-                    lifecycle.insert("source_classified".into(), source.is_some().into());
-                    lifecycle.insert("locally_discharged".into(), discharged.into());
-                    candidate_lifecycle.push(lifecycle);
-                }
-                if !return_exposure_pass {
-                    continue;
-                }
-                let Some(source) = source else {
-                    continue;
-                };
-                if discharged {
-                    continue;
-                }
-                let roots = unresolved_routes_for_requirement(root, summary, requirement);
-                let selected_route = select_preferred_unresolved_route(&roots, &solved, &seeds)?;
-                let cycle = select_unresolved_route_cycle(&selected_route, &solved)?;
-                let witness = build_unresolved_witness(
-                    facts.function.clone(),
-                    facts.root_span.clone(),
-                    requirement,
-                    &selected_route,
-                    cycle.as_ref(),
-                );
-                let selected = SelectedRequirement {
-                    requirement: requirement.clone(),
-                    source,
-                    witness,
-                };
-                findings.push(self.finding(root, facts, selected));
-                if lifecycle_enabled {
-                    let mut lifecycle = candidate_lifecycle_event("emission", root, requirement);
-                    lifecycle.insert("emitted".into(), true.into());
-                    candidate_lifecycle.push(lifecycle);
-                }
-            }
+        if lifecycle_enabled {
+            candidate_lifecycle.extend(structural_candidates.iter().map(|candidate| {
+                BTreeMap::from([
+                    ("stage".into(), "v3_emission".into()),
+                    ("owner".into(), candidate.public_root.0.clone().into()),
+                    ("site_id".into(), candidate.site.seed.site_id().into()),
+                    (
+                        "primary_pattern".into(),
+                        format!("{:?}", candidate.primary_pattern).into(),
+                    ),
+                    ("emitted".into(), true.into()),
+                ])
+            }));
         }
         write_candidate_lifecycle_trace(&candidate_lifecycle)?;
         trace.event(
             "finding_materialize",
             "end",
-            [("finding_count", findings.len() as u64)],
+            [("finding_count", structural_candidates.len() as u64)],
         )?;
         let owner_spans = self
             .bodies
@@ -1886,7 +1827,6 @@ impl<'tcx> Engine<'tcx> {
             })
             .collect::<Result<_, _>>()?;
         Ok(AnalysisOutput {
-            legacy_findings: findings,
             structural_candidates,
             binding_records: self.binding_records,
             endpoint_graph: self.endpoint_graph,
@@ -1959,6 +1899,72 @@ impl<'tcx> Engine<'tcx> {
             &owners,
             &calls,
         )
+    }
+
+    fn discharge_structural_candidates(
+        &self,
+        candidates: Vec<StructuralFindingCandidate>,
+        solved: &BTreeMap<FunctionKey, FunctionSummary>,
+    ) -> Vec<StructuralFindingCandidate> {
+        candidates
+            .into_iter()
+            .filter(|candidate| {
+                let site_id = candidate.site.seed.site_id();
+                let Some(facts) = self.bodies.get(&candidate.site.seed.owner) else {
+                    return true;
+                };
+                if facts.proven_contract_sites.contains(&site_id) {
+                    return false;
+                }
+                if candidate.contract.discharge == DischargeModel::None
+                    || !facts.seeded_contract_sites.contains(&site_id)
+                {
+                    return true;
+                }
+                solved
+                    .get(&candidate.public_root)
+                    .is_none_or(|summary| summary_has_site_requirement(summary, facts, &site_id))
+            })
+            .collect()
+    }
+
+    fn verify_legacy_shadow_reconciliation(&self) -> Result<(), String> {
+        for (owner, program) in &self.programs {
+            let Some(facts) = self.bodies.get(owner) else {
+                continue;
+            };
+            for operation in program.operations.iter().flatten() {
+                let expected_model = match &operation.kind {
+                    ProgramOpKind::Call(call) => call
+                        .descriptor
+                        .raw_def
+                        .and_then(|did| self.known_contract_model(did))
+                        .map(KnownContractModel::as_str),
+                    ProgramOpKind::Assign(assignment) if assignment.raw_read_source.is_some() => {
+                        Some("raw_pointer_access_v1")
+                    }
+                    ProgramOpKind::Assign(_) | ProgramOpKind::Nop => None,
+                };
+                let Some(expected_model) = expected_model else {
+                    continue;
+                };
+                let point = operation.semantic_point();
+                let matched = facts
+                    .contract_sites_by_point
+                    .get(point)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|site_id| facts.contract_descriptors.get(site_id))
+                    .any(|descriptor| descriptor.model_id.as_deref() == Some(expected_model));
+                if !matched {
+                    return Err(format!(
+                        "legacy known operation at {} has no compiler-census site bound to model {expected_model}",
+                        point.span.token()
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 
     fn solve_local_out_must(&self) -> BTreeMap<FunctionKey, BTreeSet<u32>> {
@@ -2568,6 +2574,9 @@ impl<'tcx> Engine<'tcx> {
             contract_descriptors: BTreeMap::new(),
             contract_sites_by_point: BTreeMap::new(),
             bound_sites: BTreeMap::new(),
+            initialized_site_operands: BTreeSet::new(),
+            seeded_contract_sites: BTreeSet::new(),
+            proven_contract_sites: BTreeSet::new(),
         };
         for index in 1..=program.arg_count {
             let place = PlaceKey::new(format!("_{index}"));
@@ -2654,7 +2663,9 @@ impl<'tcx> Engine<'tcx> {
                 facts.arg_count,
             ));
         self.add_local_requirements(program, &mut facts);
+        facts.seeded_contract_sites = seeded_contract_sites(&facts);
         self.partition_validation_contracts(&mut facts);
+        facts.proven_contract_sites = proven_contract_sites(&facts);
         for (block, edge) in program.edges.iter_enumerated() {
             if !matches!(edge, EdgeTerm::Return) {
                 continue;
@@ -3127,6 +3138,7 @@ impl<'tcx> Engine<'tcx> {
             state,
             &mut facts.endpoint_graph,
             &mut facts.endpoint_snapshots,
+            &mut facts.initialized_site_operands,
         );
     }
 
@@ -3585,7 +3597,7 @@ impl<'tcx> Engine<'tcx> {
         let selected_open_behavior = raw_def
             .is_some_and(|did| self.is_open_behavior_call(did, &callee, body, args, destination));
         let modeled_registry = raw_def.is_some_and(|did| {
-            self.is_modeled_registry_call(did)
+            self.is_registry_semantic_helper(did)
                 || self.is_slice_iterator_position(did, body, args)
                 || self.is_usize_range_into_iterator(did, body, args)
                 || self.is_usize_range_iterator_next(did, body, args)
@@ -4013,43 +4025,6 @@ impl<'tcx> Engine<'tcx> {
         }
     }
 
-    fn finding(
-        &self,
-        root: &FunctionKey,
-        facts: &BodyFacts,
-        selected: SelectedRequirement,
-    ) -> Finding {
-        let failure = if selected.requirement.sink.kind == OperationKind::InvalidValueExposure {
-            FailureClass::InternalInvalidValue
-        } else {
-            FailureClass::SinkPrecondition
-        };
-        let mut all_sources = source_kinds(facts, &selected.requirement);
-        all_sources.insert(selected.source.kind);
-        let (primary, secondary_sources) =
-            classify_primary_with_secondary(failure, selected.source.kind, all_sources);
-        let rule = adjusted_rule(selected.requirement.rule, primary);
-        let obligation = Obligation::new(
-            selected.requirement.predicates.iter().copied(),
-            selected.source.origin.clone(),
-        );
-        Finding::new(
-            self.crate_name.clone(),
-            root.clone(),
-            facts.root_span.clone(),
-            SinkObligation {
-                source: selected.source,
-                first_failure: selected.requirement.first_failure,
-                sink: selected.requirement.sink,
-                obligation,
-            },
-            primary,
-            rule,
-            selected.witness,
-            secondary_sources,
-        )
-    }
-
     #[rustversion::since(1.96)]
     fn associated_impl(&self, did: DefId) -> Option<DefId> {
         self.tcx.opt_associated_item(did)?.impl_container(self.tcx)
@@ -4084,312 +4059,6 @@ impl<'tcx> Engine<'tcx> {
                 .is_some_and(|name| name.as_str() == "index")
     }
 
-    fn classify_source(
-        &self,
-        root: &BodyFacts,
-        requirement: &ContractRequirement,
-    ) -> Option<Source> {
-        if let Some(kind) = requirement.source_hint {
-            if kind == SourceKind::GenericNonEmptyCapability {
-                let collection = requirement.collection.as_ref()?;
-                let origin = matching_generic_capability(collection, &requirement.subject)?.clone();
-                return Some(Source {
-                    kind,
-                    origin: OriginKey::new(origin_token(&origin)),
-                    span: origin_span(&origin).unwrap_or_else(|| requirement.source_span.clone()),
-                });
-            }
-            let origin = requirement
-                .subject
-                .origins
-                .iter()
-                .find(|origin| origin_matches_requirement_source(requirement, origin, kind))
-                .cloned()?;
-            return Some(Source {
-                kind,
-                origin: OriginKey::new(origin_token(&origin)),
-                span: origin_span(&origin).unwrap_or_else(|| requirement.source_span.clone()),
-            });
-        }
-
-        if let Some(origin) = requirement
-            .subject
-            .origins
-            .iter()
-            .find(|origin| matches!(origin, AbstractOrigin::PublicField { .. }))
-        {
-            return Some(Source {
-                kind: SourceKind::LiteralPublicField,
-                origin: OriginKey::new(origin_token(origin)),
-                span: origin_span(origin).unwrap_or_else(|| requirement.source_span.clone()),
-            });
-        }
-        let selected_internal_derivation = requirement.internal_derivation
-            || (requirement.rule == RuleId::P1GetUnchecked
-                && internal_only_origins(&requirement.subject, root.has_self));
-        if selected_internal_derivation {
-            let origin = requirement.subject.origins.iter().find(|origin| {
-                matches!(
-                    origin,
-                    AbstractOrigin::PrivateField { .. } | AbstractOrigin::InternalLocal { .. }
-                )
-            })?;
-            return Some(Source {
-                kind: SourceKind::InternalDerived,
-                origin: OriginKey::new(origin_token(origin)),
-                span: origin_span(origin).unwrap_or_else(|| requirement.source_span.clone()),
-            });
-        }
-        if let Some(AbstractOrigin::Formal(index)) =
-            requirement.subject.origins.iter().find(|origin| {
-                matches!(origin, AbstractOrigin::Formal(index)
-                    if *index > 0
-                        && (*index as usize) <= root.arg_count
-                        && !(root.has_self && *index == 1))
-            })
-        {
-            return Some(Source {
-                kind: SourceKind::PublicParameter,
-                origin: OriginKey::new(format!("arg:{index}")),
-                span: root.root_span.clone(),
-            });
-        }
-        None
-    }
-
-    fn is_discharged(&self, root: &BodyFacts, requirement: &ContractRequirement) -> bool {
-        if requirement.sink_function == root.function {
-            return self.local_validation(
-                root,
-                requirement,
-                requirement.sink.point.point_location(),
-            );
-        }
-        false
-    }
-
-    fn local_validation(
-        &self,
-        facts: &BodyFacts,
-        requirement: &ContractRequirement,
-        sink: Location,
-    ) -> bool {
-        let predicate = requirement.predicates.iter().next().copied();
-        if matches!(
-            predicate,
-            Some(
-                Predicate::InBounds
-                    | Predicate::NonEmpty
-                    | Predicate::NonNull
-                    | Predicate::RangeInBounds
-                    | Predicate::ValidUtf8
-            )
-        ) && requirement.sink_function == facts.function
-        {
-            if let Some(snapshot) = facts
-                .validation_snapshots
-                .get(&(sink.block, sink.statement_index))
-            {
-                return local_requirement_is_proven(
-                    snapshot,
-                    facts.local_bindings.get(&requirement.sink.point),
-                    facts
-                        .local_relational_obligations
-                        .get(&requirement.sink.point),
-                );
-            }
-        }
-        if matches!(
-            predicate,
-            Some(Predicate::RangeInBounds | Predicate::ValidUtf8)
-        ) && requirement.sink_function == facts.function
-        {
-            return false;
-        }
-        let body = self.tcx.optimized_mir(facts.def_id.to_def_id());
-        let subject_places = self.places_for_value(facts, &requirement.subject);
-        let collection_places = requirement
-            .collection
-            .as_ref()
-            .map(|value| self.places_for_value(facts, value))
-            .unwrap_or_default();
-        match predicate {
-            Some(Predicate::InBounds) => self.bounds_validation(
-                body,
-                facts,
-                &subject_places,
-                &collection_places,
-                sink,
-            ),
-            Some(Predicate::NonEmpty) => self.predicate_validation(
-                body,
-                facts,
-                &collection_places,
-                sink,
-                |fact, candidate| {
-                    matches!(fact, PredicateFact::IsEmpty { slice, .. } if candidate.contains(slice))
-                },
-            ),
-            Some(Predicate::NonNull) => self.predicate_validation(
-                body,
-                facts,
-                &subject_places,
-                sink,
-                |fact, candidate| {
-                    matches!(fact, PredicateFact::IsNull { pointer, .. } if candidate.contains(pointer))
-                },
-            ),
-            _ => false,
-        }
-    }
-
-    fn bounds_validation(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        subjects: &BTreeSet<PlaceKey>,
-        collections: &BTreeSet<PlaceKey>,
-        sink: Location,
-    ) -> bool {
-        for compare in &facts.compares {
-            if !is_in_bounds_guard(compare.op) {
-                continue;
-            }
-            let left = self.operand_places(facts, &compare.left);
-            if !same_binding(subjects, &left) {
-                continue;
-            }
-            let right = self.operand_places(facts, &compare.right);
-            let right_has_len = facts.lengths.iter().any(|length| {
-                same_binding(&right, &self.alias_closure(facts, &length.result))
-                    && same_binding(collections, &self.alias_closure(facts, &length.collection))
-            });
-            if !right_has_len {
-                continue;
-            }
-            if let Some(region) = self.validation_branch(
-                body,
-                facts,
-                &compare.result,
-                compare.point.point_location(),
-                sink,
-            ) {
-                let mut watched = subjects.clone();
-                watched.extend(collections.iter().cloned());
-                if !self.validation_invalidated(
-                    body,
-                    facts,
-                    &watched,
-                    compare.point.point_location(),
-                    region,
-                    sink,
-                ) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    fn predicate_validation<F>(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        candidates: &BTreeSet<PlaceKey>,
-        sink: Location,
-        matches_fact: F,
-    ) -> bool
-    where
-        F: Fn(&PredicateFact, &BTreeSet<PlaceKey>) -> bool,
-    {
-        for predicate in &facts.predicates {
-            if !matches_fact(predicate, candidates) {
-                continue;
-            }
-            let result = predicate_result(predicate);
-            let Some(call) = facts.calls.iter().find(|call| call.destination == *result) else {
-                continue;
-            };
-            if let Some(region) =
-                self.validation_branch(body, facts, result, call.point.point_location(), sink)
-            {
-                if !self.validation_invalidated(
-                    body,
-                    facts,
-                    candidates,
-                    call.point.point_location(),
-                    region,
-                    sink,
-                ) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
-
-    fn validation_branch(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        result: &PlaceKey,
-        established: Location,
-        sink: Location,
-    ) -> Option<ValidationRegion> {
-        let dominators = body.basic_blocks.dominators();
-        facts.branches.iter().find_map(|branch| {
-            validation_success_decision(
-                branch.result == *result,
-                branch.success == sink.block || dominators.dominates(branch.success, sink.block),
-                location_precedes(established, branch.point.point_location(), body),
-            )
-            .then_some(ValidationRegion {
-                branch: branch.point.point_location(),
-                success: branch.success,
-            })
-        })
-    }
-
-    fn validation_invalidated(
-        &self,
-        body: &Body<'tcx>,
-        facts: &BodyFacts,
-        candidates: &BTreeSet<PlaceKey>,
-        established: Location,
-        region: ValidationRegion,
-        sink: Location,
-    ) -> bool {
-        let successors = cfg_successors(body);
-        facts.writes.iter().any(|write| {
-            if !related_to_watched(facts, candidates, &write.place) {
-                return false;
-            }
-            let before_branch =
-                write_is_between_points(
-                    &successors,
-                    CfgPoint {
-                        block: established.block.index() as u32,
-                        statement: established.statement_index as u32,
-                    },
-                    cfg_point(&write.point),
-                    CfgPoint {
-                        block: region.branch.block.index() as u32,
-                        statement: region.branch.statement_index as u32,
-                    },
-                ) && write_normal_edge_reaches(&successors, write, region.branch.block);
-            let before_sink = write_is_between(
-                &successors,
-                region.success.index() as u32,
-                cfg_point(&write.point),
-                CfgPoint {
-                    block: sink.block.index() as u32,
-                    statement: sink.statement_index as u32,
-                },
-            ) && write_normal_edge_reaches(&successors, write, sink.block);
-            before_branch || before_sink
-        })
-    }
-
     fn call_graph(&self) -> BTreeMap<FunctionKey, BTreeSet<FunctionKey>> {
         self.bodies
             .iter()
@@ -4405,35 +4074,6 @@ impl<'tcx> Engine<'tcx> {
                 )
             })
             .collect()
-    }
-
-    fn operand_places(&self, facts: &BodyFacts, operand: &CallOperand) -> BTreeSet<PlaceKey> {
-        match operand {
-            CallOperand::Place(place) => self.alias_closure(facts, place),
-            _ => BTreeSet::new(),
-        }
-    }
-
-    fn places_for_value(&self, facts: &BodyFacts, value: &AbstractValue) -> BTreeSet<PlaceKey> {
-        let mut places = BTreeSet::new();
-        for origin in &value.origins {
-            match origin {
-                AbstractOrigin::Formal(index) if *index > 0 => {
-                    places.insert(PlaceKey::new(format!("_{index}")));
-                }
-                AbstractOrigin::Constant(_) => {}
-                _ => {
-                    places.extend(
-                        facts
-                            .values
-                            .iter()
-                            .filter(|(_, facts)| facts.value.origins.contains(origin))
-                            .map(|(place, _)| place.clone()),
-                    );
-                }
-            }
-        }
-        places
     }
 
     fn alias_closure(&self, facts: &BodyFacts, seed: &PlaceKey) -> BTreeSet<PlaceKey> {
@@ -4593,7 +4233,11 @@ impl<'tcx> Engine<'tcx> {
             )
     }
 
-    fn is_modeled_registry_call(&self, did: DefId) -> bool {
+    /// Calls whose return/alias semantics are modeled by the MIR transfer.
+    ///
+    /// This list never decides whether an unsafe site exists; that authority
+    /// belongs exclusively to the compiler-aligned census and binder.
+    fn is_registry_semantic_helper(&self, did: DefId) -> bool {
         self.is_get_unchecked(did)
             || self.is_nonnull_new_unchecked(did)
             || self.is_maybe_uninit_constructor(did, "uninit")
@@ -5399,6 +5043,10 @@ fn assume_init_requirement(
 
 fn definitely_uninitialized(value: &ValueFacts) -> bool {
     value.maybe_uninit_initialized == BTreeSet::from([false]) && !value.havoced && !value.ffi_output
+}
+
+fn definitely_initialized(value: &ValueFacts) -> bool {
+    value.maybe_uninit_initialized == BTreeSet::from([true]) && !value.havoced && !value.ffi_output
 }
 
 const FFI_UNINITIALIZED_OUTPUT_PREFIX: &str = "ffi-uninit-out:";
@@ -6926,6 +6574,7 @@ fn capture_bound_endpoint_sites(
     state: &ProgramState,
     graph: &mut EndpointFlowGraph,
     snapshots: &mut BTreeMap<(String, unsafe_site::OperandRole), BTreeSet<EndpointNode>>,
+    initialized_operands: &mut BTreeSet<(String, unsafe_site::OperandRole)>,
 ) {
     for site in &operation.unsafe_sites {
         let site_id = site.seed.site_id();
@@ -6940,6 +6589,9 @@ fn capture_bound_endpoint_sites(
                 continue;
             };
             let value = state_value(state, place);
+            if definitely_initialized(&value) {
+                initialized_operands.insert((site_id.clone(), operand.role.clone()));
+            }
             for edge in value.endpoint_edges {
                 graph.insert_edge(edge);
             }
@@ -7295,6 +6947,27 @@ fn apply_program_edge_with_outputs_and_sites(
                 });
             }
         }
+        if registry_value_is_internal_derivation(&call.value) {
+            let derivation = EndpointNode::InternalDerivation {
+                owner: point.function.clone(),
+                token: call.descriptor.destination.0.clone(),
+                point: point.clone(),
+            };
+            return_value.endpoint_edges.extend(
+                return_value
+                    .endpoint_sources
+                    .iter()
+                    .cloned()
+                    .map(|source| EndpointEdge {
+                        from: source,
+                        to: derivation.clone(),
+                        kind: EndpointEdgeKind::Derivation,
+                        point: Some(point.clone()),
+                    }),
+            );
+            return_value.endpoint_sources.clear();
+            return_value.endpoint_sources.insert(derivation);
+        }
         apply_call_side_effects(call, point, state);
         if let Some(outputs) = local_outputs.get(point) {
             apply_local_outputs(state, &outputs.outs);
@@ -7475,6 +7148,18 @@ fn apply_program_edge_with_outputs_and_sites(
     }
 }
 
+fn registry_value_is_internal_derivation(value: &RegistryValueModel) -> bool {
+    matches!(
+        value,
+        RegistryValueModel::Length(_)
+            | RegistryValueModel::SaturatingSub(_)
+            | RegistryValueModel::CheckedAdd { .. }
+            | RegistryValueModel::SlicePrefix { .. }
+            | RegistryValueModel::WrappingAdd { .. }
+            | RegistryValueModel::PointerCast(_)
+    )
+}
+
 fn establish_proof(state: &mut ProgramState, binding: ProofBinding) {
     state.establish(BoundValidation::new(
         binding.clone(),
@@ -7563,6 +7248,112 @@ fn local_requirement_is_proven(
 ) -> bool {
     relational.is_some_and(|obligation| snapshot.proves_relational(obligation))
         || binding.is_some_and(|binding| snapshot.proves(binding))
+}
+
+fn exact_contract_is_proven(
+    descriptor: &ContractDescriptor,
+    snapshot: Option<&ValidationSnapshot>,
+    binding: Option<&ValidationBinding>,
+    relational: Option<&RelationalObligation>,
+    initialized_roles: &BTreeSet<unsafe_site::OperandRole>,
+) -> bool {
+    match descriptor.discharge {
+        DischargeModel::None => false,
+        DischargeModel::ExactValidation | DischargeModel::ExactRelation => snapshot
+            .is_some_and(|snapshot| local_requirement_is_proven(snapshot, binding, relational)),
+        DischargeModel::ExactInitialization => {
+            !descriptor.relevant_roles.is_empty()
+                && descriptor
+                    .relevant_roles
+                    .iter()
+                    .all(|role| initialized_roles.contains(role))
+        }
+    }
+}
+
+fn seeded_contract_sites(facts: &BodyFacts) -> BTreeSet<String> {
+    let requirement_points = facts
+        .summary_seed
+        .requirements
+        .iter()
+        .map(|requirement| requirement.sink.point.clone())
+        .collect::<BTreeSet<_>>();
+    facts
+        .contract_sites_by_point
+        .iter()
+        .filter(|(point, _)| requirement_points.contains(*point))
+        .flat_map(|(_, sites)| sites.iter())
+        .filter(|site_id| {
+            facts
+                .contract_descriptors
+                .get(*site_id)
+                .is_some_and(|descriptor| descriptor.discharge != DischargeModel::None)
+        })
+        .cloned()
+        .collect()
+}
+
+fn proven_contract_sites(facts: &BodyFacts) -> BTreeSet<String> {
+    facts
+        .contract_sites_by_point
+        .iter()
+        .flat_map(|(point, sites)| {
+            let location = point.point_location();
+            let snapshot = facts
+                .validation_snapshots
+                .get(&(location.block, location.statement_index));
+            let binding = facts.local_bindings.get(point);
+            let relational = facts.local_relational_obligations.get(point);
+            sites.iter().filter_map(move |site_id| {
+                let descriptor = facts.contract_descriptors.get(site_id)?;
+                let initialized_roles = facts
+                    .initialized_site_operands
+                    .iter()
+                    .filter_map(|(initialized_site, role)| {
+                        (initialized_site == site_id).then_some(role.clone())
+                    })
+                    .collect::<BTreeSet<_>>();
+                exact_contract_is_proven(
+                    descriptor,
+                    snapshot,
+                    binding,
+                    relational,
+                    &initialized_roles,
+                )
+                .then(|| site_id.clone())
+            })
+        })
+        .collect()
+}
+
+fn site_program_point<'a>(facts: &'a BodyFacts, site_id: &str) -> Option<&'a ProgramPoint> {
+    facts
+        .contract_sites_by_point
+        .iter()
+        .find_map(|(point, sites)| sites.contains(site_id).then_some(point))
+}
+
+fn summary_has_site_requirement(
+    summary: &FunctionSummary,
+    site_facts: &BodyFacts,
+    site_id: &str,
+) -> bool {
+    let Some(point) = site_program_point(site_facts, site_id) else {
+        return false;
+    };
+    summary
+        .requirements
+        .iter()
+        .chain(
+            summary
+                .validations
+                .iter()
+                .map(|validation| &validation.requirement),
+        )
+        .any(|requirement| {
+            requirement.sink_function == site_facts.function
+                && requirement.first_failure.point == *point
+        })
 }
 
 fn migrated_validation_predicate(requirement: &ContractRequirement) -> Option<Predicate> {
@@ -8399,15 +8190,6 @@ fn origin_span(origin: &AbstractOrigin) -> Option<StableSpan> {
     }
 }
 
-fn adjusted_rule(original: RuleId, primary: Pattern) -> RuleId {
-    match (original, primary) {
-        (RuleId::P1RawRead, Pattern::P2) => RuleId::P2RawRead,
-        (RuleId::P1GetUnchecked, Pattern::P2) => RuleId::P2GetUnchecked,
-        (RuleId::P1GetUnchecked, Pattern::P4) => RuleId::P4Bounds,
-        _ => original,
-    }
-}
-
 fn location_precedes(left: Location, right: Location, body: &Body<'_>) -> bool {
     if left.block == right.block {
         return left.statement_index <= right.statement_index;
@@ -8553,6 +8335,7 @@ mod tests {
         let before_pending = state.pending_must().clone();
         let mut graph = EndpointFlowGraph::default();
         let mut snapshots = BTreeMap::new();
+        let mut initialized = BTreeSet::new();
         capture_bound_endpoint_sites(
             &owner,
             BasicBlock::from_usize(0),
@@ -8561,6 +8344,7 @@ mod tests {
             &state,
             &mut graph,
             &mut snapshots,
+            &mut initialized,
         );
         let site_id = operation.unsafe_sites[0].seed.site_id();
         let target = EndpointNode::UnsafeOperand {
@@ -8610,6 +8394,79 @@ mod tests {
             descriptors[&site_id].precision,
             unsafe_site::ContractPrecision::Generic
         );
+    }
+
+    #[test]
+    fn v3_contract_proof_discharges_only_exact_current_evidence() {
+        let subject = PlaceKey::new("_1");
+        let collection = PlaceKey::new("_2");
+        let binding = ValidationBinding {
+            predicate: Predicate::InBounds,
+            subject,
+            collection: Some(collection),
+            access_width: None,
+            proof_definition: None,
+        };
+        let snapshot = ValidationSnapshot {
+            current_validations: BTreeSet::from([binding.clone()]),
+            ..ValidationSnapshot::default()
+        };
+        let validation = ContractDescriptor {
+            precision: unsafe_site::ContractPrecision::Precise,
+            model_id: Some(KnownContractModel::GetUnchecked.as_str().into()),
+            relevant_roles: BTreeSet::from([unsafe_site::OperandRole::Argument(1)]),
+            predicates: BTreeSet::new(),
+            failure_phase: super::super::contract_catalog::FailurePhase::Precondition,
+            discharge: DischargeModel::ExactValidation,
+        };
+        assert!(exact_contract_is_proven(
+            &validation,
+            Some(&snapshot),
+            Some(&binding),
+            None,
+            &BTreeSet::new(),
+        ));
+        assert!(!exact_contract_is_proven(
+            &validation,
+            Some(&ValidationSnapshot::default()),
+            Some(&binding),
+            None,
+            &BTreeSet::new(),
+        ));
+
+        let initialization = ContractDescriptor {
+            precision: unsafe_site::ContractPrecision::Precise,
+            model_id: Some(KnownContractModel::AssumeInit.as_str().into()),
+            relevant_roles: BTreeSet::from([unsafe_site::OperandRole::Argument(0)]),
+            predicates: BTreeSet::new(),
+            failure_phase: super::super::contract_catalog::FailurePhase::ImmediateValidity,
+            discharge: DischargeModel::ExactInitialization,
+        };
+        assert!(exact_contract_is_proven(
+            &initialization,
+            None,
+            None,
+            None,
+            &BTreeSet::from([unsafe_site::OperandRole::Argument(0)]),
+        ));
+        assert!(!exact_contract_is_proven(
+            &initialization,
+            None,
+            None,
+            None,
+            &BTreeSet::new(),
+        ));
+
+        let mut opaque = validation;
+        opaque.precision = unsafe_site::ContractPrecision::Opaque;
+        opaque.discharge = DischargeModel::None;
+        assert!(!exact_contract_is_proven(
+            &opaque,
+            Some(&snapshot),
+            Some(&binding),
+            None,
+            &BTreeSet::from([unsafe_site::OperandRole::Argument(1)]),
+        ));
     }
 
     #[test]

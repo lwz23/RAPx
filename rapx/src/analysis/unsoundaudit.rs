@@ -5,6 +5,7 @@ mod endpoint_flow;
 mod mir;
 mod perf_trace;
 mod relations;
+#[cfg(test)]
 mod stdlib_suppressions;
 mod summary;
 pub(crate) mod unsafe_site;
@@ -16,12 +17,17 @@ use crate::utils::unit_output::{
 };
 use perf_trace::PerfTrace;
 use rustc_middle::ty::TyCtxt;
-use serde_json::{json, Map, Value};
+#[cfg(test)]
+use serde_json::{json, Map};
+use serde_json::Value;
+#[cfg(test)]
 use std::collections::BTreeSet;
 use std::env;
 use std::path::PathBuf;
+#[cfg(test)]
 use summary::{Finding, Operation, Pattern, StableSpan};
 
+#[cfg(test)]
 const LIMITATION: &str =
     "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported";
 
@@ -119,7 +125,7 @@ impl<'tcx> LwzCheck<'tcx> {
 
     fn build_json_summary(&self, analysis: mir::AnalysisOutput) -> Result<Value, String> {
         // The verification challenge remains fail-closed, but its machine-specific
-        // evidence is intentionally not embedded in the closed rap-unit-v2 schema.
+        // evidence is intentionally not embedded in the closed rap-unit-v3 schema.
         let _ = build_verification_receipt_from_environment()?;
         let rap_compiler_commit = embedded_rap_compiler_commit()?.to_ascii_lowercase();
         let cargo_supplied_rustc_commit =
@@ -177,32 +183,9 @@ impl<'tcx> LwzCheck<'tcx> {
     }
 }
 
-fn maybe_write_suppression_ledger(ledger: Value) -> Result<(), String> {
-    let Some(output_path) = env::var_os("UNSOUND_SCANNER_SUPPRESSION_LEDGER_OUT") else {
-        return Ok(());
-    };
-    let output_path = PathBuf::from(output_path);
-    if output_path.exists() {
-        return Err(format!(
-            "refusing to overwrite suppression ledger '{}'",
-            output_path.display()
-        ));
-    }
-    let mut bytes = serde_json::to_vec_pretty(&ledger).map_err(|error| {
-        format!(
-            "failed to serialize suppression ledger '{}': {error}",
-            output_path.display()
-        )
-    })?;
-    bytes.push(b'\n');
-    atomic_write(&output_path, &bytes).map_err(|error| {
-        format!(
-            "failed to atomically write suppression ledger '{}': {error}",
-            output_path.display()
-        )
-    })
-}
-
+// These v2 serializers remain only as immutable compatibility test fixtures.
+// The production writer above has a single v3 output path.
+#[cfg(test)]
 fn unit_json(metadata: UnitMetadata, counts: [usize; 6], findings: Vec<Value>) -> Value {
     json!({
         "schema_version": "rap-unit-v2",
@@ -243,17 +226,7 @@ fn environment(name: &str) -> String {
     env::var(name).unwrap_or_default()
 }
 
-fn pattern_index(pattern: Pattern) -> usize {
-    match pattern {
-        Pattern::P1 => 0,
-        Pattern::P2 => 1,
-        Pattern::P3 => 2,
-        Pattern::P4 => 3,
-        Pattern::P5 => 4,
-        Pattern::P6 => 5,
-    }
-}
-
+#[cfg(test)]
 fn span_json(span: &StableSpan) -> Value {
     json!({
         "path": span.path,
@@ -262,6 +235,7 @@ fn span_json(span: &StableSpan) -> Value {
     })
 }
 
+#[cfg(test)]
 fn operation_json(operation: &Operation) -> Value {
     json!({
         "kind": operation.kind.as_str(),
@@ -269,6 +243,7 @@ fn operation_json(operation: &Operation) -> Value {
     })
 }
 
+#[cfg(test)]
 fn finding_json(finding: &Finding) -> Value {
     let evidence = &finding.sink_obligation;
     let mut predicates = evidence

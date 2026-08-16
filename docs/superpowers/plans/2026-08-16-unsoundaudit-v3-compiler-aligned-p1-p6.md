@@ -159,11 +159,11 @@
 - Modify: `rapx/src/analysis/unsoundaudit/mir.rs`
 - Modify: `rapx/src/analysis/unsoundaudit/summary.rs`
 
-- [ ] Run shadow mode on every legacy known operation and reconcile old sites against census/binding.
-- [ ] Switch finding seeds to structural candidates from bound unsafe sites.
-- [ ] Delete or demote `is_modeled_registry_call`, API-name sink discovery, and `adjusted_rule` so they cannot decide site existence or primary pattern.
-- [ ] Keep compatibility projection tests for original/challenge semantics.
-- [ ] Assert no site is silently dropped and no v2 writer remains reachable; commit.
+- [x] Run shadow mode on every legacy known operation and reconcile old sites against census/binding.
+- [x] Switch finding seeds to structural candidates from bound unsafe sites.
+- [x] Delete or demote `is_modeled_registry_call`, API-name sink discovery, and `adjusted_rule` so they cannot decide site existence or primary pattern.
+- [ ] Keep compatibility projection tests for original/challenge semantics. (Task 10 runner/gate)
+- [x] Assert no site is silently dropped and no v2 writer remains reachable; commit.
 
 ### Task 10: Full regression, determinism, and performance gates
 

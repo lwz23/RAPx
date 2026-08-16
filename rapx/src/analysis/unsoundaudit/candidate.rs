@@ -70,8 +70,13 @@ pub(super) fn build_structural_candidates(
             continue;
         }
 
-        let mut roles = structural.relevant_roles.clone();
-        roles.extend(contract.relevant_roles.iter().cloned());
+        let roles = if contract.precision == super::unsafe_site::ContractPrecision::Precise {
+            contract.relevant_roles.clone()
+        } else {
+            let mut roles = structural.relevant_roles.clone();
+            roles.extend(contract.relevant_roles.iter().cloned());
+            roles
+        };
         let mut classified = Vec::new();
         for role in roles {
             let target = EndpointNode::UnsafeOperand {
@@ -121,12 +126,23 @@ pub(super) fn build_structural_candidates(
         let Some(best_rank) = classified.iter().map(|(rank, _)| *rank).min() else {
             continue;
         };
-        result.extend(
-            classified
-                .into_iter()
-                .filter(|(rank, _)| *rank == best_rank)
-                .map(|(_, candidate)| candidate),
-        );
+        let mut selected = classified
+            .into_iter()
+            .filter(|(rank, _)| *rank == best_rank)
+            .map(|(_, candidate)| candidate)
+            .collect::<Vec<_>>();
+        let all_selected = selected.clone();
+        selected.retain(|candidate| {
+            !all_selected.iter().any(|earlier| {
+                earlier.public_root == candidate.public_root
+                    && earlier.operand_role == candidate.operand_role
+                    && earlier.source != candidate.source
+                    && graph
+                        .canonical_route(&earlier.source, &candidate.source)
+                        .is_some()
+            })
+        });
+        result.extend(selected);
     }
     result.sort_by_key(candidate_key);
     result.dedup_by(|left, right| candidate_key(left) == candidate_key(right));
@@ -142,8 +158,8 @@ fn p3_exposures(
     calls: &BTreeSet<CandidateCallEdge>,
 ) -> Option<Vec<StructuralFindingCandidate>> {
     if site.result_place.is_none()
-        || (!structural.validity_sensitive_result
-            && contract.failure_phase != FailurePhase::ImmediateValidity)
+        || !structural.validity_sensitive_result
+        || contract.failure_phase != FailurePhase::ImmediateValidity
     {
         return None;
     }
@@ -641,6 +657,62 @@ mod tests {
     }
 
     #[test]
+    fn a_chain_of_internal_derivations_reports_the_first_rebreak_once() {
+        let owner = FunctionKey::new("crate::root");
+        let site = bound_site(&owner, None);
+        let site_id = site.seed.site_id();
+        let formal = EndpointNode::Formal {
+            owner: owner.clone(),
+            index: 1,
+        };
+        let first = EndpointNode::InternalDerivation {
+            owner: owner.clone(),
+            token: "offset".into(),
+            point: point(&owner, 2),
+        };
+        let second = EndpointNode::InternalDerivation {
+            owner: owner.clone(),
+            token: "pointer-cast".into(),
+            point: point(&owner, 3),
+        };
+        let target = EndpointNode::UnsafeOperand {
+            owner: owner.clone(),
+            site_id: site_id.clone(),
+            role: OperandRole::Argument(0),
+        };
+        let graph = EndpointFlowGraph {
+            nodes: BTreeSet::from([
+                formal.clone(),
+                first.clone(),
+                second.clone(),
+                target.clone(),
+            ]),
+            edges: BTreeSet::from([
+                edge(formal, first.clone(), EndpointEdgeKind::Derivation),
+                edge(first.clone(), second.clone(), EndpointEdgeKind::Derivation),
+                edge(second.clone(), target, EndpointEdgeKind::UnsafeOperand),
+            ]),
+        };
+        let candidates = build_structural_candidates(
+            &graph,
+            &BTreeMap::from([(
+                site_id.clone(),
+                StructuralSiteCandidate {
+                    site_id: site_id.clone(),
+                    relevant_roles: BTreeSet::from([OperandRole::Argument(0)]),
+                    validity_sensitive_result: false,
+                },
+            )]),
+            &BTreeMap::from([(site_id.clone(), descriptor(FailurePhase::Precondition))]),
+            &BTreeMap::from([(site_id, site)]),
+            &BTreeMap::from([(owner.clone(), owner_info(&owner, true))]),
+            &BTreeSet::new(),
+        );
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].source, first);
+    }
+
+    #[test]
     fn internal_unsafe_result_exposed_by_a_public_return_is_p3() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, Some("&'static str"));
@@ -674,6 +746,40 @@ mod tests {
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P3);
         assert!(candidates[0].exposure.is_some());
+    }
+
+    #[test]
+    fn precondition_failure_is_not_reclassified_as_p3_only_because_the_result_is_a_reference() {
+        let owner = FunctionKey::new("crate::root");
+        let site = bound_site(&owner, Some("&'static u8"));
+        let site_id = site.seed.site_id();
+        let source = EndpointNode::UnsafeResult {
+            owner: owner.clone(),
+            site_id: site_id.clone(),
+        };
+        let exposure = EndpointNode::Return {
+            owner: owner.clone(),
+        };
+        let graph = EndpointFlowGraph {
+            nodes: BTreeSet::from([source.clone(), exposure.clone()]),
+            edges: BTreeSet::from([edge(source, exposure, EndpointEdgeKind::Exposure)]),
+        };
+        let candidates = build_structural_candidates(
+            &graph,
+            &BTreeMap::from([(
+                site_id.clone(),
+                StructuralSiteCandidate {
+                    site_id: site_id.clone(),
+                    relevant_roles: BTreeSet::new(),
+                    validity_sensitive_result: true,
+                },
+            )]),
+            &BTreeMap::from([(site_id.clone(), descriptor(FailurePhase::Precondition))]),
+            &BTreeMap::from([(site_id, site)]),
+            &BTreeMap::from([(owner.clone(), owner_info(&owner, true))]),
+            &BTreeSet::new(),
+        );
+        assert!(candidates.is_empty());
     }
 
     #[test]
