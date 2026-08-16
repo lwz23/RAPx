@@ -75,6 +75,7 @@ use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 const CANDIDATE_LIFECYCLE_TRACE_ENV: &str = "UNSOUND_SCANNER_CANDIDATE_LIFECYCLE_TRACE";
 
@@ -188,14 +189,25 @@ struct ValueFacts {
     ffi_output: bool,
     open_behavior: bool,
     havoced: bool,
-    endpoint_sources: BTreeSet<EndpointNode>,
-    endpoint_edges: BTreeSet<EndpointEdge>,
+    endpoint_sources: Arc<BTreeSet<EndpointNode>>,
+    endpoint_edges: Arc<BTreeSet<EndpointEdge>>,
 }
 
 fn extend_fact_set<T: Clone + Ord>(current: &mut BTreeSet<T>, incoming: &BTreeSet<T>) -> bool {
     let before = current.len();
     current.extend(incoming.iter().cloned());
     current.len() != before
+}
+
+fn extend_shared_fact_set<T: Clone + Ord>(
+    current: &mut Arc<BTreeSet<T>>,
+    incoming: &Arc<BTreeSet<T>>,
+) -> bool {
+    if incoming.is_subset(current) {
+        return false;
+    }
+    Arc::make_mut(current).extend(incoming.iter().cloned());
+    true
 }
 
 fn join_fact_flag(current: &mut bool, incoming: bool) -> bool {
@@ -366,8 +378,8 @@ impl MayJoin for ValueFacts {
         changed |= join_fact_flag(&mut self.ffi_output, other.ffi_output);
         changed |= join_fact_flag(&mut self.open_behavior, other.open_behavior);
         changed |= join_fact_flag(&mut self.havoced, other.havoced);
-        changed |= extend_fact_set(&mut self.endpoint_sources, &other.endpoint_sources);
-        changed |= extend_fact_set(&mut self.endpoint_edges, &other.endpoint_edges);
+        changed |= extend_shared_fact_set(&mut self.endpoint_sources, &other.endpoint_sources);
+        changed |= extend_shared_fact_set(&mut self.endpoint_edges, &other.endpoint_edges);
         changed
     }
 }
@@ -2634,10 +2646,10 @@ impl<'tcx> Engine<'tcx> {
                     checked_end_unknown: true,
                     range_limit_unknown: true,
                     known_length_unknown: true,
-                    endpoint_sources: BTreeSet::from([EndpointNode::Formal {
+                    endpoint_sources: Arc::new(BTreeSet::from([EndpointNode::Formal {
                         owner: program.function.clone(),
                         index: index as u32,
-                    }]),
+                    }])),
                     ..ValueFacts::default()
                 },
             );
@@ -3045,8 +3057,11 @@ impl<'tcx> Engine<'tcx> {
                     .join_value_facts(value);
             }
             if let Some(value) = state.may_values().get(&PlaceKey::new("_0")) {
-                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
-                for edge in &value.endpoint_edges {
+                facts
+                    .endpoint_graph
+                    .edges
+                    .extend(value.endpoint_edges.iter().cloned());
+                for edge in value.endpoint_edges.iter() {
                     facts.endpoint_graph.nodes.insert(edge.from.clone());
                     facts.endpoint_graph.nodes.insert(edge.to.clone());
                 }
@@ -3054,7 +3069,7 @@ impl<'tcx> Engine<'tcx> {
                     owner: facts.function.clone(),
                 };
                 facts.endpoint_graph.insert_node(target.clone());
-                for source in &value.endpoint_sources {
+                for source in value.endpoint_sources.iter() {
                     facts.endpoint_graph.insert_edge(EndpointEdge {
                         from: source.clone(),
                         to: target.clone(),
@@ -3067,8 +3082,11 @@ impl<'tcx> Engine<'tcx> {
                 let Some(index) = out_slot_index(place) else {
                     continue;
                 };
-                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
-                for edge in &value.endpoint_edges {
+                facts
+                    .endpoint_graph
+                    .edges
+                    .extend(value.endpoint_edges.iter().cloned());
+                for edge in value.endpoint_edges.iter() {
                     facts.endpoint_graph.nodes.insert(edge.from.clone());
                     facts.endpoint_graph.nodes.insert(edge.to.clone());
                 }
@@ -3077,7 +3095,7 @@ impl<'tcx> Engine<'tcx> {
                     index,
                 };
                 facts.endpoint_graph.insert_node(target.clone());
-                for source in &value.endpoint_sources {
+                for source in value.endpoint_sources.iter() {
                     facts.endpoint_graph.insert_edge(EndpointEdge {
                         from: source.clone(),
                         to: target.clone(),
@@ -3113,14 +3131,17 @@ impl<'tcx> Engine<'tcx> {
                     &assignment.value,
                     StaticWriteToken::new(block.index() as u32, index as u32),
                 );
-                facts.endpoint_graph.edges.extend(value.endpoint_edges.clone());
+                facts
+                    .endpoint_graph
+                    .edges
+                    .extend(value.endpoint_edges.iter().cloned());
                 let exposure = EndpointNode::Exposure {
                     owner: program.function.clone(),
                     token: format!("public-field-store:{def_path}"),
                     point: operation.semantic_point().clone(),
                 };
                 facts.endpoint_graph.insert_node(exposure.clone());
-                for source in value.endpoint_sources {
+                for source in value.endpoint_sources.iter().cloned() {
                     facts.endpoint_graph.insert_edge(EndpointEdge {
                         from: source,
                         to: exposure.clone(),
@@ -3139,10 +3160,10 @@ impl<'tcx> Engine<'tcx> {
                     };
                     facts.endpoint_graph.insert_node(target.clone());
                     let value = eval_operand(state, operand);
-                    for edge in value.endpoint_edges {
+                    for edge in value.endpoint_edges.iter().cloned() {
                         facts.endpoint_graph.insert_edge(edge);
                     }
-                    for source in value.endpoint_sources {
+                    for source in value.endpoint_sources.iter().cloned() {
                         facts.endpoint_graph.insert_edge(EndpointEdge {
                             from: source,
                             to: target.clone(),
@@ -6082,10 +6103,10 @@ fn eval_operand(state: &ProgramState, operand: &OperandModel) -> ValueFacts {
             .origins
             .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
         result.value.origins.insert(origin.clone());
-        result.endpoint_sources.clear();
-        result.endpoint_edges.clear();
+        Arc::make_mut(&mut result.endpoint_sources).clear();
+        Arc::make_mut(&mut result.endpoint_edges).clear();
         if let AbstractOrigin::PublicField { def_path, span } = origin {
-            result.endpoint_sources.insert(EndpointNode::PublicField {
+            Arc::make_mut(&mut result.endpoint_sources).insert(EndpointNode::PublicField {
                 def_path: def_path.clone(),
                 span: span.clone(),
             });
@@ -6219,12 +6240,12 @@ fn eval_registry_value(
     match model {
         RegistryValueModel::RangeIntoIterator(range) => eval_operand(state, range),
         RegistryValueModel::ExternalBehavior { kind, token } => ValueFacts {
-            endpoint_sources: BTreeSet::from([EndpointNode::ExternalBehavior {
+            endpoint_sources: Arc::new(BTreeSet::from([EndpointNode::ExternalBehavior {
                 owner: point.function.clone(),
                 kind: *kind,
                 token: token.clone(),
                 span: point.span.clone(),
-            }]),
+            }])),
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -6293,12 +6314,12 @@ fn eval_registry_value(
                 span: point.span.clone(),
             }]),
             open_behavior: true,
-            endpoint_sources: BTreeSet::from([EndpointNode::ExternalBehavior {
+            endpoint_sources: Arc::new(BTreeSet::from([EndpointNode::ExternalBehavior {
                 owner: point.function.clone(),
                 kind: ExternalSourceKind::OpenTrait,
                 token: token.clone(),
                 span: point.span.clone(),
-            }]),
+            }])),
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -6313,11 +6334,11 @@ fn eval_registry_value(
                 span: point.span.clone(),
             }]),
             generic_capability: true,
-            endpoint_sources: BTreeSet::from([EndpointNode::GenericCapability {
+            endpoint_sources: Arc::new(BTreeSet::from([EndpointNode::GenericCapability {
                 owner: point.function.clone(),
                 token: token.clone(),
                 span: point.span.clone(),
-            }]),
+            }])),
             may_be_non_length: true,
             semantic_unknown: true,
             utf8_relation_unknown: true,
@@ -6653,7 +6674,7 @@ fn capture_bound_endpoint_sites(
             if definitely_initialized(&value) {
                 initialized_operands.insert((site_id.clone(), operand.role.clone()));
             }
-            for edge in value.endpoint_edges {
+            for edge in value.endpoint_edges.iter().cloned() {
                 graph.insert_edge(edge);
             }
             let sources = value.endpoint_sources;
@@ -6667,7 +6688,7 @@ fn capture_bound_endpoint_sites(
                 role: operand.role.clone(),
             };
             graph.insert_node(target.clone());
-            for source in sources {
+            for source in sources.iter().cloned() {
                 graph.insert_edge(EndpointEdge {
                     from: source,
                     to: target.clone(),
@@ -6755,18 +6776,19 @@ fn install_unsafe_result_sites(sites: &[BoundUnsafeSite], state: &mut ProgramSta
             statement: site.solver.statement,
             span: site.seed.raw_span.stable.clone(),
         };
-        value
-            .endpoint_edges
-            .extend(value.endpoint_sources.iter().cloned().map(|source| {
-                EndpointEdge {
-                    from: source,
-                    to: result.clone(),
-                    kind: EndpointEdgeKind::UnsafeResult,
-                    point: Some(point.clone()),
-                }
-            }));
-        value.endpoint_sources.clear();
-        value.endpoint_sources.insert(result);
+        let source_edges = value
+            .endpoint_sources
+            .iter()
+            .cloned()
+            .map(|source| EndpointEdge {
+                from: source,
+                to: result.clone(),
+                kind: EndpointEdgeKind::UnsafeResult,
+                point: Some(point.clone()),
+            });
+        Arc::make_mut(&mut value.endpoint_edges).extend(source_edges);
+        Arc::make_mut(&mut value.endpoint_sources).clear();
+        Arc::make_mut(&mut value.endpoint_sources).insert(result);
         state.set_value(result_place.clone(), value);
     }
 }
@@ -6847,10 +6869,10 @@ fn apply_program_op(
                     .origins
                     .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
                 value.value.origins.insert(origin.clone());
-                value.endpoint_sources.clear();
-                value.endpoint_edges.clear();
+                Arc::make_mut(&mut value.endpoint_sources).clear();
+                Arc::make_mut(&mut value.endpoint_edges).clear();
                 if let AbstractOrigin::PublicField { def_path, span } = origin {
-                    value.endpoint_sources.insert(EndpointNode::PublicField {
+                    Arc::make_mut(&mut value.endpoint_sources).insert(EndpointNode::PublicField {
                         def_path: def_path.clone(),
                         span: span.clone(),
                     });
@@ -6885,16 +6907,17 @@ fn apply_program_op(
                     token: assignment.destination.0.clone(),
                     point: operation.semantic_point().clone(),
                 };
-                value.endpoint_edges.extend(value.endpoint_sources.iter().cloned().map(
-                    |source| EndpointEdge {
+                let source_edges = value.endpoint_sources.iter().cloned().map(|source| {
+                    EndpointEdge {
                         from: source,
                         to: derivation.clone(),
                         kind: EndpointEdgeKind::Derivation,
                         point: operation.point.clone(),
-                    },
-                ));
-                value.endpoint_sources.clear();
-                value.endpoint_sources.insert(derivation);
+                    }
+                });
+                Arc::make_mut(&mut value.endpoint_edges).extend(source_edges);
+                Arc::make_mut(&mut value.endpoint_sources).clear();
+                Arc::make_mut(&mut value.endpoint_sources).insert(derivation);
             }
             let out_value = assignment.out_formal.map(|formal_index| {
                 let mut output = value.clone();
@@ -6985,14 +7008,14 @@ fn apply_program_edge_with_outputs_and_sites(
             return_value.exact_roots.clear();
             return_value.semantic_unknown = true;
             if call.descriptor.disposition == BoundaryDisposition::OpaqueIndirect {
-                return_value
-                    .endpoint_sources
-                    .insert(EndpointNode::ExternalBehavior {
+                Arc::make_mut(&mut return_value.endpoint_sources).insert(
+                    EndpointNode::ExternalBehavior {
                         owner: point.function.clone(),
                         kind: ExternalSourceKind::FunctionPointer,
                         token: format!("fn-pointer-return:{}", point.span.token()),
                         span: point.span.clone(),
-                    });
+                    },
+                );
             }
         }
         if let Some(PredicateModel::Utf8Result { bytes }) = &call.predicate {
@@ -7014,20 +7037,19 @@ fn apply_program_edge_with_outputs_and_sites(
                 token: call.descriptor.destination.0.clone(),
                 point: point.clone(),
             };
-            return_value.endpoint_edges.extend(
-                return_value
-                    .endpoint_sources
-                    .iter()
-                    .cloned()
-                    .map(|source| EndpointEdge {
-                        from: source,
-                        to: derivation.clone(),
-                        kind: EndpointEdgeKind::Derivation,
-                        point: Some(point.clone()),
-                    }),
-            );
-            return_value.endpoint_sources.clear();
-            return_value.endpoint_sources.insert(derivation);
+            let source_edges = return_value
+                .endpoint_sources
+                .iter()
+                .cloned()
+                .map(|source| EndpointEdge {
+                    from: source,
+                    to: derivation.clone(),
+                    kind: EndpointEdgeKind::Derivation,
+                    point: Some(point.clone()),
+                });
+            Arc::make_mut(&mut return_value.endpoint_edges).extend(source_edges);
+            Arc::make_mut(&mut return_value.endpoint_sources).clear();
+            Arc::make_mut(&mut return_value.endpoint_sources).insert(derivation);
         }
         apply_call_side_effects(call, point, state);
         if let Some(outputs) = local_outputs.get(point) {
@@ -7050,8 +7072,8 @@ fn apply_program_edge_with_outputs_and_sites(
                 .get(destination)
                 .cloned()
                 .unwrap_or_default();
-            current.endpoint_sources.clear();
-            current.endpoint_sources.insert(EndpointNode::Return {
+            Arc::make_mut(&mut current.endpoint_sources).clear();
+            Arc::make_mut(&mut current.endpoint_sources).insert(EndpointNode::Return {
                 owner: callee.clone(),
             });
             state.set_value(destination.clone(), current);
@@ -7078,9 +7100,9 @@ fn apply_program_edge_with_outputs_and_sites(
                     .cloned()
                     .unwrap_or_default();
                 if !mapped.may_skip_write {
-                    current.endpoint_sources.clear();
+                    Arc::make_mut(&mut current.endpoint_sources).clear();
                 }
-                current.endpoint_sources.insert(EndpointNode::Out {
+                Arc::make_mut(&mut current.endpoint_sources).insert(EndpointNode::Out {
                     owner: callee.clone(),
                     index: *formal_index,
                 });
@@ -7753,14 +7775,12 @@ fn apply_call_side_effects(call: &CallModel, point: &ProgramPoint, state: &mut P
                 && !output.havoced;
             output.exact_roots.insert(target.clone());
             output.ffi_output = true;
-            output
-                .endpoint_sources
-                .insert(EndpointNode::ExternalBehavior {
-                    owner: point.function.clone(),
-                    kind: ExternalSourceKind::FfiOut,
-                    token: format!("ffi-out:{}", point.span.token()),
-                    span: point.span.clone(),
-                });
+            Arc::make_mut(&mut output.endpoint_sources).insert(EndpointNode::ExternalBehavior {
+                owner: point.function.clone(),
+                kind: ExternalSourceKind::FfiOut,
+                token: format!("ffi-out:{}", point.span.token()),
+                span: point.span.clone(),
+            });
             output.value.origins.insert(AbstractOrigin::FfiOutput {
                 token: format!("ffi-out:{}", point.span.token()),
                 span: point.span.clone(),
@@ -8361,7 +8381,7 @@ mod tests {
 
     fn endpoint_value(source: EndpointNode) -> ValueFacts {
         ValueFacts {
-            endpoint_sources: BTreeSet::from([source]),
+            endpoint_sources: Arc::new(BTreeSet::from([source])),
             ..ValueFacts::default()
         }
     }
@@ -8584,8 +8604,10 @@ mod tests {
             &mut state,
         );
         assert_eq!(
-            state_value(&state, &PlaceKey::new("_2")).endpoint_sources,
-            BTreeSet::from([EndpointNode::PublicField {
+            state_value(&state, &PlaceKey::new("_2"))
+                .endpoint_sources
+                .as_ref(),
+            &BTreeSet::from([EndpointNode::PublicField {
                 def_path: "crate::Config::index".into(),
                 span: span(),
             }])
@@ -8713,8 +8735,10 @@ mod tests {
             .endpoint_sources
             .is_empty());
         assert_eq!(
-            state_value(&normal_state, &destination).endpoint_sources,
-            BTreeSet::from([EndpointNode::Return { owner: callee }])
+            state_value(&normal_state, &destination)
+                .endpoint_sources
+                .as_ref(),
+            &BTreeSet::from([EndpointNode::Return { owner: callee }])
         );
     }
 
@@ -8752,7 +8776,10 @@ mod tests {
             &mut assignment_state,
         );
         let assigned = state_value(&assignment_state, &destination);
-        assert_eq!(assigned.endpoint_sources, BTreeSet::from([result.clone()]));
+        assert_eq!(
+            assigned.endpoint_sources.as_ref(),
+            &BTreeSet::from([result.clone()])
+        );
         assert!(assigned.endpoint_edges.contains(&EndpointEdge {
             from: formal.clone(),
             to: result.clone(),
@@ -8806,7 +8833,10 @@ mod tests {
             .endpoint_sources
             .is_empty());
         let returned = state_value(&normal_state, &destination);
-        assert_eq!(returned.endpoint_sources, BTreeSet::from([result.clone()]));
+        assert_eq!(
+            returned.endpoint_sources.as_ref(),
+            &BTreeSet::from([result.clone()])
+        );
         assert!(returned.endpoint_edges.contains(&EndpointEdge {
             from: formal,
             to: result,
@@ -8867,7 +8897,7 @@ mod tests {
             actual.clone(),
             ValueFacts {
                 exact_roots: BTreeSet::from([actual.clone()]),
-                endpoint_sources: BTreeSet::from([original.clone()]),
+                endpoint_sources: Arc::new(BTreeSet::from([original.clone()])),
                 ..ValueFacts::default()
             },
         );
@@ -8875,12 +8905,16 @@ mod tests {
         apply_program_edge_with_outputs(&edge, unwind, &mut unwind_state, &outputs);
         apply_program_edge_with_outputs(&edge, normal, &mut normal_state, &outputs);
         assert_eq!(
-            state_value(&unwind_state, &actual).endpoint_sources,
-            BTreeSet::from([original])
+            state_value(&unwind_state, &actual)
+                .endpoint_sources
+                .as_ref(),
+            &BTreeSet::from([original])
         );
         assert_eq!(
-            state_value(&normal_state, &actual).endpoint_sources,
-            BTreeSet::from([EndpointNode::Out {
+            state_value(&normal_state, &actual)
+                .endpoint_sources
+                .as_ref(),
+            &BTreeSet::from([EndpointNode::Out {
                 owner: callee,
                 index: 1,
             }])
@@ -11714,6 +11748,46 @@ mod tests {
         let mut idempotent = first.clone();
         assert!(!idempotent.join_may(&first));
         assert_eq!(idempotent, first);
+    }
+
+    #[test]
+    fn task12_endpoint_provenance_clones_share_storage_until_growth() {
+        let mut original = endpoint_value(EndpointNode::Formal {
+            owner: FunctionKey::new("crate::f"),
+            index: 1,
+        });
+        let shared = original.clone();
+
+        assert!(std::sync::Arc::ptr_eq(
+            &original.endpoint_sources,
+            &shared.endpoint_sources,
+        ));
+        assert!(std::sync::Arc::ptr_eq(
+            &original.endpoint_edges,
+            &shared.endpoint_edges,
+        ));
+        assert!(!original.join_may(&shared));
+        assert!(std::sync::Arc::ptr_eq(
+            &original.endpoint_sources,
+            &shared.endpoint_sources,
+        ));
+        assert!(std::sync::Arc::ptr_eq(
+            &original.endpoint_edges,
+            &shared.endpoint_edges,
+        ));
+
+        assert!(original.join_may(&endpoint_value(EndpointNode::Formal {
+            owner: FunctionKey::new("crate::f"),
+            index: 2,
+        })));
+        assert!(!std::sync::Arc::ptr_eq(
+            &original.endpoint_sources,
+            &shared.endpoint_sources,
+        ));
+        assert!(std::sync::Arc::ptr_eq(
+            &original.endpoint_edges,
+            &shared.endpoint_edges,
+        ));
     }
 
     #[test]
