@@ -3068,16 +3068,9 @@ impl<'tcx> Engine<'tcx> {
         facts: &mut BodyFacts,
     ) {
         let operation = &program.operations[block][index];
-        let known_contract = match &operation.kind {
-            ProgramOpKind::Call(call) => call
-                .descriptor
-                .raw_def
-                .and_then(|did| self.known_contract_model(did)),
-            ProgramOpKind::Assign(_) | ProgramOpKind::Nop => None,
-        };
         record_site_contracts(
             operation,
-            known_contract,
+            |site| self.known_contract_model_for_site(operation, site),
             &mut facts.structural_sites,
             &mut facts.contract_descriptors,
             &mut facts.contract_sites_by_point,
@@ -4278,9 +4271,30 @@ impl<'tcx> Engine<'tcx> {
             .is_diagnostic_item(sym::str_from_utf8_unchecked, did)
         {
             Some(KnownContractModel::FromUtf8Unchecked)
+        } else if self.tcx.is_intrinsic(did, sym::transmute) {
+            Some(KnownContractModel::Transmute)
         } else {
             None
         }
+    }
+
+    fn known_contract_model_for_site(
+        &self,
+        operation: &ProgramOp,
+        site: &BoundUnsafeSite,
+    ) -> Option<KnownContractModel> {
+        if site.seed.kind != unsafe_site::UnsafeSiteKind::UnsafeCall {
+            return None;
+        }
+        if let ProgramOpKind::Call(call) = &operation.kind {
+            return call
+                .descriptor
+                .raw_def
+                .and_then(|did| self.known_contract_model(did));
+        }
+        let transmute = self.tcx.get_diagnostic_item(sym::transmute)?;
+        (site.seed.callee.as_deref() == Some(self.tcx.def_path_str(transmute).as_str()))
+            .then_some(KnownContractModel::Transmute)
     }
 
     fn is_get_unchecked(&self, did: DefId) -> bool {
@@ -6021,9 +6035,9 @@ fn eval_operand(state: &ProgramState, operand: &OperandModel) -> ValueFacts {
             .origins
             .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
         result.value.origins.insert(origin.clone());
+        result.endpoint_sources.clear();
+        result.endpoint_edges.clear();
         if let AbstractOrigin::PublicField { def_path, span } = origin {
-            result.endpoint_sources.clear();
-            result.endpoint_edges.clear();
             result.endpoint_sources.insert(EndpointNode::PublicField {
                 def_path: def_path.clone(),
                 span: span.clone(),
@@ -6626,7 +6640,7 @@ fn capture_bound_endpoint_sites(
 
 fn record_site_contracts(
     operation: &ProgramOp,
-    known_contract: Option<KnownContractModel>,
+    known_contract: impl Fn(&BoundUnsafeSite) -> Option<KnownContractModel>,
     structural_sites: &mut BTreeMap<String, StructuralSiteCandidate>,
     descriptors: &mut BTreeMap<String, ContractDescriptor>,
     sites_by_point: &mut BTreeMap<ProgramPoint, BTreeSet<String>>,
@@ -6649,7 +6663,7 @@ fn record_site_contracts(
             .or_default()
             .insert(site_id.clone());
         bound_sites.insert(site_id.clone(), site.clone());
-        descriptors.insert(site_id, catalog.describe(site, known_contract));
+        descriptors.insert(site_id, catalog.describe(site, known_contract(site)));
     }
 }
 
@@ -6786,9 +6800,9 @@ fn apply_program_op(
                     .origins
                     .retain(|origin| !matches!(origin, AbstractOrigin::Formal(_)));
                 value.value.origins.insert(origin.clone());
+                value.endpoint_sources.clear();
+                value.endpoint_edges.clear();
                 if let AbstractOrigin::PublicField { def_path, span } = origin {
-                    value.endpoint_sources.clear();
-                    value.endpoint_edges.clear();
                     value.endpoint_sources.insert(EndpointNode::PublicField {
                         def_path: def_path.clone(),
                         span: span.clone(),
@@ -8380,7 +8394,7 @@ mod tests {
         let mut bound_sites = BTreeMap::new();
         record_site_contracts(
             &operation,
-            None,
+            |_| None,
             &mut candidates,
             &mut descriptors,
             &mut sites_by_point,
@@ -8511,6 +8525,29 @@ mod tests {
             &ProgramOp {
                 point: Some(point(0, 1)),
                 kind: ProgramOpKind::Assign(AssignmentModel {
+                    destination: PlaceKey::new("_4"),
+                    value: ValueModel::Operand(place_operand("_1")),
+                    field_origin: Some(AbstractOrigin::PrivateField {
+                        def_path: "crate::Config::private_index".into(),
+                        span: span(),
+                    }),
+                    raw_read_source: None,
+                    legacy_write: false,
+                    out_formal: None,
+                }),
+                unsafe_sites: Vec::new(),
+            },
+            BasicBlock::from_usize(0),
+            1,
+            &mut state,
+        );
+        assert!(state_value(&state, &PlaceKey::new("_4"))
+            .endpoint_sources
+            .is_empty());
+        apply_program_op(
+            &ProgramOp {
+                point: Some(point(0, 2)),
+                kind: ProgramOpKind::Assign(AssignmentModel {
                     destination: PlaceKey::new("_3"),
                     value: ValueModel::Compare {
                         op: BinOp::Add,
@@ -8525,7 +8562,7 @@ mod tests {
                 unsafe_sites: Vec::new(),
             },
             BasicBlock::from_usize(0),
-            1,
+            2,
             &mut state,
         );
         let derived = state_value(&state, &PlaceKey::new("_3"));

@@ -87,7 +87,23 @@ pub(super) fn build_structural_candidates(
             if !graph.nodes.contains(&target) {
                 continue;
             }
+            let bypassed_derivations = graph
+                .nodes
+                .iter()
+                .filter(|node| matches!(node, EndpointNode::InternalDerivation { .. }))
+                .filter(|derivation| {
+                    graph.nodes.iter().any(|upstream| {
+                        matches!(upstream, EndpointNode::Formal { .. })
+                            && !candidate_roots(upstream, &site.seed.owner, owners, calls).is_empty()
+                            && route_exists_avoiding(graph, upstream, &target, derivation)
+                    })
+                })
+                .cloned()
+                .collect::<BTreeSet<_>>();
             for source in &graph.nodes {
+                if bypassed_derivations.contains(source) {
+                    continue;
+                }
                 let Some((pattern, source_kind, mechanism, rank)) = source_classification(source)
                 else {
                     continue;
@@ -95,6 +111,14 @@ pub(super) fn build_structural_candidates(
                 let Some(endpoint_route) = graph.canonical_route(source, &target) else {
                     continue;
                 };
+                if pattern == PrimaryPattern::P1
+                    && endpoint_route.iter().any(|edge| {
+                        bypassed_derivations.contains(&edge.from)
+                            || bypassed_derivations.contains(&edge.to)
+                    })
+                {
+                    continue;
+                }
                 let roots = candidate_roots(source, &site.seed.owner, owners, calls);
                 let Some(source_span) = node_span(source, owners) else {
                     continue;
@@ -262,6 +286,31 @@ fn source_classification(
         | EndpointNode::Out { .. }
         | EndpointNode::Exposure { .. } => None,
     }
+}
+
+fn route_exists_avoiding(
+    graph: &EndpointFlowGraph,
+    start: &EndpointNode,
+    target: &EndpointNode,
+    avoided: &EndpointNode,
+) -> bool {
+    if start == avoided || target == avoided {
+        return false;
+    }
+    let mut visited = BTreeSet::from([start.clone()]);
+    let mut queue = VecDeque::from([start.clone()]);
+    while let Some(node) = queue.pop_front() {
+        for edge in graph.edges.iter().filter(|edge| edge.from == node) {
+            if &edge.to == avoided || !visited.insert(edge.to.clone()) {
+                continue;
+            }
+            if &edge.to == target {
+                return true;
+            }
+            queue.push_back(edge.to.clone());
+        }
+    }
+    false
 }
 
 fn candidate_roots(
@@ -654,6 +703,61 @@ mod tests {
         assert_eq!(candidates.len(), 1);
         assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P4);
         assert_eq!(candidates[0].endpoint_route.len(), 1);
+    }
+
+    #[test]
+    fn a_public_formal_path_that_bypasses_the_derivation_stays_p1() {
+        let owner = FunctionKey::new("crate::root");
+        let site = bound_site(&owner, None);
+        let site_id = site.seed.site_id();
+        let formal = EndpointNode::Formal {
+            owner: owner.clone(),
+            index: 1,
+        };
+        let derivation = EndpointNode::InternalDerivation {
+            owner: owner.clone(),
+            token: "conditional-rewrite".into(),
+            point: point(&owner, 2),
+        };
+        let target = EndpointNode::UnsafeOperand {
+            owner: owner.clone(),
+            site_id: site_id.clone(),
+            role: OperandRole::Argument(0),
+        };
+        let graph = EndpointFlowGraph {
+            nodes: BTreeSet::from([formal.clone(), derivation.clone(), target.clone()]),
+            edges: BTreeSet::from([
+                edge(
+                    formal.clone(),
+                    derivation.clone(),
+                    EndpointEdgeKind::Derivation,
+                ),
+                edge(
+                    formal.clone(),
+                    target.clone(),
+                    EndpointEdgeKind::UnsafeOperand,
+                ),
+                edge(derivation, target, EndpointEdgeKind::UnsafeOperand),
+            ]),
+        };
+        let candidates = build_structural_candidates(
+            &graph,
+            &BTreeMap::from([(
+                site_id.clone(),
+                StructuralSiteCandidate {
+                    site_id: site_id.clone(),
+                    relevant_roles: BTreeSet::from([OperandRole::Argument(0)]),
+                    validity_sensitive_result: false,
+                },
+            )]),
+            &BTreeMap::from([(site_id.clone(), descriptor(FailurePhase::Precondition))]),
+            &BTreeMap::from([(site_id, site)]),
+            &BTreeMap::from([(owner.clone(), owner_info(&owner, true))]),
+            &BTreeSet::new(),
+        );
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P1);
+        assert_eq!(candidates[0].source, formal);
     }
 
     #[test]

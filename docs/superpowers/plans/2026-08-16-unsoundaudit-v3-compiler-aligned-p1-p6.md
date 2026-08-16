@@ -162,7 +162,7 @@
 - [x] Run shadow mode on every legacy known operation and reconcile old sites against census/binding.
 - [x] Switch finding seeds to structural candidates from bound unsafe sites.
 - [x] Delete or demote `is_modeled_registry_call`, API-name sink discovery, and `adjusted_rule` so they cannot decide site existence or primary pattern.
-- [ ] Keep compatibility projection tests for original/challenge semantics. (Task 10 runner/gate)
+- [x] Keep compatibility projection tests for original/challenge semantics. (Task 10 runner/gate)
 - [x] Assert no site is silently dropped and no v2 writer remains reachable; commit.
 
 ### Task 10: Full regression, determinism, and performance gates
@@ -172,9 +172,9 @@
 - Create: `scripts/unsoundaudit-v3/run_stdlib_gate.py`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] Run all Rust/Python tests with 0 failed and 0 ignored under both supported adapters.
-- [ ] Run original 27 twice and require semantic aggregate `3/2/2/2/1/2`.
-- [ ] Run challenge 27 twice and require P1=13, P2–P6=0.
+- [x] Run all Rust/Python tests with 0 failed and 0 ignored under both supported adapters.
+- [x] Run original 27 twice and require semantic aggregate `3/2/2/2/1/2`.
+- [x] Run challenge 27 twice and require P1=13, P2–P6=0.
 - [ ] Compare debug, stock-release, and `rapx-perf` semantic projections.
 - [ ] Verify v1/v2 frozen hashes and preservation tag remain unchanged.
 - [ ] Run 2024 core/alloc/std twice with 900/1800/3600-second and 8/10/12-GiB physical-footprint gates.

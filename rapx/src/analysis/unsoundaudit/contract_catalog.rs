@@ -11,6 +11,7 @@ pub(super) enum KnownContractModel {
     NonNullNewUnchecked,
     AssumeInit,
     FromUtf8Unchecked,
+    Transmute,
 }
 
 impl KnownContractModel {
@@ -21,6 +22,7 @@ impl KnownContractModel {
             Self::NonNullNewUnchecked => "nonnull_new_unchecked_v1",
             Self::AssumeInit => "maybe_uninit_assume_init_v1",
             Self::FromUtf8Unchecked => "str_from_utf8_unchecked_v1",
+            Self::Transmute => "transmute_validity_v1",
         }
     }
 }
@@ -163,6 +165,12 @@ impl ContractCatalog {
                         BTreeSet::from([ContractPredicate::ValidUtf8]),
                         FailurePhase::ImmediateValidity,
                         DischargeModel::ExactValidation,
+                    ),
+                    KnownContractModel::Transmute => (
+                        select_roles(site, &[OperandRole::Argument(0)]),
+                        BTreeSet::from([ContractPredicate::ValidForType]),
+                        FailurePhase::ImmediateValidity,
+                        DischargeModel::None,
                     ),
                 };
                 return ContractDescriptor {
@@ -517,6 +525,11 @@ mod tests {
                 KnownContractModel::FromUtf8Unchecked,
                 FailurePhase::ImmediateValidity,
                 DischargeModel::ExactValidation,
+            ),
+            (
+                KnownContractModel::Transmute,
+                FailurePhase::ImmediateValidity,
+                DischargeModel::None,
             ),
         ];
         for (model, phase, discharge) in cases {

@@ -425,30 +425,13 @@ mod collector {
                             }
                             _ => (&[], false),
                         };
-                    let mut operands = Vec::new();
-                    if let Some(anchor) = self.anchor(fun, OperandRole::Callee) {
-                        operands.push(anchor);
-                    }
-                    for (index, argument) in args.iter().copied().enumerate() {
-                        if let Some(anchor) =
-                            self.anchor(argument, OperandRole::Argument(index as u32))
-                        {
-                            operands.push(anchor);
-                        }
-                    }
-                    let result = self.result(expr);
+                    let mut sites = Vec::new();
                     if signature.safety().is_unsafe() && !safe_target_features {
                         let callee = match function_ty.kind() {
                             ty::FnDef(def, _) => Some(self.tcx.def_path_str(*def)),
                             _ => None,
                         };
-                        self.record(
-                            UnsafeSiteKind::UnsafeCall,
-                            expr.span,
-                            callee,
-                            operands,
-                            result,
-                        );
+                        sites.push((UnsafeSiteKind::UnsafeCall, callee));
                     } else if let ty::FnDef(def, _) = function_ty.kind() {
                         if !self
                             .tcx
@@ -458,24 +441,41 @@ mod collector {
                                 .iter()
                                 .filter(|feature| feature.kind == TargetFeatureKind::Enabled)
                                 .count();
-                            self.record(
+                            sites.push((
                                 UnsafeSiteKind::TargetFeatureCall,
-                                expr.span,
                                 Some(self.tcx.def_path_str(*def)),
-                                operands.clone(),
-                                result.clone(),
-                            );
+                            ));
                         }
                         if let Some(trait_def) = self.tcx.trait_of_assoc(*def) {
                             if self.tcx.is_lang_item(trait_def, LangItem::Drop) {
-                                self.record(
+                                sites.push((
                                     UnsafeSiteKind::ExplicitDropCall,
-                                    expr.span,
                                     Some(self.tcx.def_path_str(*def)),
-                                    operands,
-                                    result,
-                                );
+                                ));
                             }
+                        }
+                    }
+                    if !sites.is_empty() {
+                        let mut operands = Vec::new();
+                        if let Some(anchor) = self.anchor(fun, OperandRole::Callee) {
+                            operands.push(anchor);
+                        }
+                        for (index, argument) in args.iter().copied().enumerate() {
+                            if let Some(anchor) =
+                                self.anchor(argument, OperandRole::Argument(index as u32))
+                            {
+                                operands.push(anchor);
+                            }
+                        }
+                        let result = self.result(expr);
+                        for (kind, callee) in sites {
+                            self.record(
+                                kind,
+                                expr.span,
+                                callee,
+                                operands.clone(),
+                                result.clone(),
+                            );
                         }
                     }
                 }

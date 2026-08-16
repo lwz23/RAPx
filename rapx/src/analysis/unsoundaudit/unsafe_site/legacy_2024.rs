@@ -278,7 +278,8 @@ mod collector {
             let raw_span = match raw_span_anchor(self.tcx, span) {
                 Ok(span) => span,
                 Err(error) => {
-                    self.errors.push(error);
+                    self.errors
+                        .push(format!("unsafe site {kind:?} span: {error}"));
                     return;
                 }
             };
@@ -310,7 +311,8 @@ mod collector {
                     shape: expr_shape(&expr.kind).to_string(),
                 }),
                 Err(error) => {
-                    self.errors.push(error);
+                    self.errors
+                        .push(format!("operand {role:?} span: {error}"));
                     None
                 }
             }
@@ -324,7 +326,7 @@ mod collector {
                     shape: expr_shape(&expr.kind).to_string(),
                 }),
                 Err(error) => {
-                    self.errors.push(error);
+                    self.errors.push(format!("result span: {error}"));
                     None
                 }
             }
@@ -472,30 +474,12 @@ mod collector {
                 }
                 ExprKind::Call { fun, ref args, .. } => {
                     let function_ty = self.thir[fun].ty;
-                    let mut operands = Vec::new();
-                    if let Some(anchor) = self.anchor(fun, OperandRole::Callee) {
-                        operands.push(anchor);
-                    }
-                    for (index, argument) in args.iter().copied().enumerate() {
-                        if let Some(anchor) =
-                            self.anchor(argument, OperandRole::Argument(index as u32))
-                        {
-                            operands.push(anchor);
-                        }
-                    }
-                    let result = self.result(expr);
-                    if function_ty.fn_sig(self.tcx).safety() == hir::Safety::Unsafe {
+                    let site = if function_ty.fn_sig(self.tcx).safety() == hir::Safety::Unsafe {
                         let callee = match function_ty.kind() {
                             ty::FnDef(def, _) => Some(self.tcx.def_path_str(*def)),
                             _ => None,
                         };
-                        self.record(
-                            UnsafeSiteKind::UnsafeCall,
-                            expr.span,
-                            callee,
-                            operands,
-                            result,
-                        );
+                        Some((UnsafeSiteKind::UnsafeCall, callee))
                     } else if let ty::FnDef(def, _) = function_ty.kind() {
                         let callee_features = &self.tcx.codegen_fn_attrs(*def).target_features;
                         if !self.tcx.sess.target.options.is_like_wasm
@@ -505,14 +489,30 @@ mod collector {
                                     .any(|body| body.name == feature.name)
                             })
                         {
-                            self.record(
+                            Some((
                                 UnsafeSiteKind::TargetFeatureCall,
-                                expr.span,
                                 Some(self.tcx.def_path_str(*def)),
-                                operands,
-                                result,
-                            );
+                            ))
+                        } else {
+                            None
                         }
+                    } else {
+                        None
+                    };
+                    if let Some((kind, callee)) = site {
+                        let mut operands = Vec::new();
+                        if let Some(anchor) = self.anchor(fun, OperandRole::Callee) {
+                            operands.push(anchor);
+                        }
+                        for (index, argument) in args.iter().copied().enumerate() {
+                            if let Some(anchor) =
+                                self.anchor(argument, OperandRole::Argument(index as u32))
+                            {
+                                operands.push(anchor);
+                            }
+                        }
+                        let result = self.result(expr);
+                        self.record(kind, expr.span, callee, operands, result);
                     }
                 }
                 ExprKind::RawBorrow { arg, .. } => {

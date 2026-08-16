@@ -9,11 +9,12 @@ use rustc_attr_ir::LangItem;
 use rustc_hir::Safety;
 use rustc_middle::mir::visit::{PlaceContext, Visitor};
 use rustc_middle::mir::{
-    AggregateKind, Body, Location, Place, PlaceElem, ProjectionElem, Rvalue, StatementKind,
-    TerminatorKind,
+    AggregateKind, Body, CastKind, Location, Place, PlaceElem, ProjectionElem, Rvalue,
+    StatementKind, TerminatorKind,
 };
 use rustc_middle::ty::{self, Ty, TyCtxt};
 use rustc_span::def_id::{DefId, LocalDefId};
+use rustc_span::symbol::sym;
 use rustc_span::Span;
 #[rustversion::before(1.96)]
 use rustc_target::abi::{FieldIdx, VariantIdx};
@@ -368,10 +369,11 @@ fn candidate_matrix(sites: &[&UnsafeSiteSeed], events: &[&MirEventAnchor]) -> Ve
 }
 
 fn compatible(site: &UnsafeSiteSeed, event: &MirEventAnchor) -> bool {
+    let lowered_transmute = event.shape == "unsafe_call:lowered_transmute";
     if site.owner != event.owner
         || site.kind != event.kind
         || !span_compatible(&site.raw_span, &event.raw_span)
-        || event.shape != site.kind.as_str()
+        || (!lowered_transmute && event.shape != site.kind.as_str())
         || site.result.as_ref().map(|result| &result.type_fingerprint) != event.result_type.as_ref()
     {
         return false;
@@ -387,10 +389,14 @@ fn compatible(site: &UnsafeSiteSeed, event: &MirEventAnchor) -> bool {
         _ if site.callee != event.callee => return false,
         _ => {}
     }
-    site.operands.len() == event.operands.len()
-        && site
-            .operands
-            .iter()
+    let site_operands = site
+        .operands
+        .iter()
+        .filter(|operand| !lowered_transmute || operand.role != OperandRole::Callee)
+        .collect::<Vec<_>>();
+    site_operands.len() == event.operands.len()
+        && site_operands
+            .into_iter()
             .zip(&event.operands)
             .all(|(site, event)| {
                 site.role == event.role && site.type_fingerprint == event.type_fingerprint
@@ -553,6 +559,34 @@ pub(crate) fn enumerate_mir_events<'tcx>(
                     Some(place_key(*destination)),
                     &mut events,
                 )?;
+            }
+            if let Rvalue::Cast(CastKind::Transmute, operand, target) = rvalue {
+                let def = tcx
+                    .get_diagnostic_item(sym::transmute)
+                    .ok_or_else(|| "rustc did not expose the transmute intrinsic".to_string())?;
+                push_event(
+                    tcx,
+                    body,
+                    &owner,
+                    stage,
+                    location,
+                    statement.source_info.span,
+                    UnsafeSiteKind::UnsafeCall,
+                    Some(tcx.def_path_str(def)),
+                    false,
+                    vec![(
+                        OperandRole::Argument(0),
+                        operand.ty(&body.local_decls, tcx),
+                        operand.place().map(place_key),
+                    )],
+                    Some(*target),
+                    Some(place_key(*destination)),
+                    &mut events,
+                )?;
+                events
+                    .last_mut()
+                    .expect("transmute event was just inserted")
+                    .shape = "unsafe_call:lowered_transmute".to_string();
             }
         }
         let location = Location {
@@ -1203,6 +1237,33 @@ mod tests {
         let bound = BoundUnsafeSite::from_record(&direct, &records[0]).unwrap();
         assert_eq!(bound.operands[1].place, Some(PlaceKey::new("_1")));
         assert_eq!(bound.result_place, Some(PlaceKey::new("_2")));
+    }
+
+    #[test]
+    fn lowered_transmute_binds_without_fabricating_a_call_event() {
+        let transmute = site(
+            0,
+            UnsafeSiteKind::UnsafeCall,
+            Some("core::intrinsics::transmute"),
+            &[
+                (OperandRole::Callee, "unsafe fn(&str) -> &str"),
+                (OperandRole::Argument(0), "&str"),
+            ],
+            Some("&str"),
+        );
+        let lowered = |stage| {
+            let mut event = event(&transmute, stage, 1, 2);
+            event.operands.remove(0);
+            event.shape = "unsafe_call:lowered_transmute".to_string();
+            event
+        };
+        let records = bind_owner(
+            &[transmute.clone()],
+            &[lowered(MirStage::Built)],
+            &[lowered(MirStage::Solver)],
+        )
+        .unwrap();
+        assert_eq!(records[0].status, BindingStatus::BoundExact);
     }
 
     #[test]
