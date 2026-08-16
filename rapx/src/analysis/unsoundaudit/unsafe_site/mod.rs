@@ -313,24 +313,51 @@ pub(super) fn record_built_mir_events(
     if census_store().contains_built_events(generation, &owner)? {
         return Ok(());
     }
-    let body = tcx.mir_drops_elaborated_and_const_checked(owner_id);
-    if body.is_stolen() {
-        return record_built_inventory_failure(
-            generation,
-            owner,
-            "built MIR was stolen before unsafe-site binding inventory",
-        );
+    let _ = tcx.mir_built(owner_id);
+    if census_store().contains_built_events(generation, &owner)? {
+        return Ok(());
     }
-    let body = body.borrow();
-    let events = match binding::enumerate_mir_events(tcx, owner_id, &body, binding::MirStage::Built)
+    record_built_inventory_failure(
+        generation,
+        owner,
+        "mir_built provider completed without recording unsafe-site binding inventory",
+    )
+}
+
+pub(super) fn record_fresh_built_mir_events<'tcx>(
+    tcx: TyCtxt<'tcx>,
+    owner_id: rustc_span::def_id::LocalDefId,
+    body: &rustc_middle::mir::Body<'tcx>,
+) -> Result<(), String> {
+    let generation = census_generation()?;
+    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    if census_store().contains_built_events(generation, &owner)? {
+        return Ok(());
+    }
+    let events = match binding::enumerate_mir_events(tcx, owner_id, body, binding::MirStage::Built)
     {
         Ok(events) => events,
         Err(error) => {
-            drop(body);
             return record_built_inventory_failure(generation, owner, &error);
         }
     };
     census_store().record_built_events(generation, owner, events)
+}
+
+pub(super) fn record_stolen_built_mir(
+    tcx: TyCtxt<'_>,
+    owner_id: rustc_span::def_id::LocalDefId,
+) -> Result<(), String> {
+    let generation = census_generation()?;
+    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    if census_store().contains_built_events(generation, &owner)? {
+        return Ok(());
+    }
+    record_built_inventory_failure(
+        generation,
+        owner,
+        "built MIR was stolen before unsafe-site binding inventory",
+    )
 }
 
 fn record_built_inventory_failure(

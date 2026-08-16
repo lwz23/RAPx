@@ -1,10 +1,10 @@
 {
   "adapter_id": "rustc-nightly-2026-08-14-ba28ff",
   "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
-  "owner_count": 16,
-  "site_count": 20,
+  "owner_count": 25,
+  "site_count": 22,
   "kind_counts": {
-    "unsafe_call": 3,
+    "unsafe_call": 5,
     "inline_assembly": 1,
     "unsafe_field_initialization": 2,
     "unsafe_field_use": 1,
@@ -34,6 +34,8 @@
     ["raw_pointer_dereference", "macro_site", "src/lib.rs", 78],
     ["raw_pointer_dereference", "nested_explicit", "src/lib.rs", 82],
     ["unsafe_call", "nested_owners", "src/lib.rs", 68],
+    ["unsafe_call", "nested_thread_local_owner::SLOT", "src/lib.rs", 99],
+    ["unsafe_call", "nested_thread_local_owner::SLOT::{constant#0}::{closure#0}", "src/lib.rs", 99],
     ["raw_pointer_dereference", "nested_owners::{closure#0}", "src/lib.rs", 65],
     ["raw_pointer_dereference", "nested_owners::{constant#0}", "src/lib.rs", 67]
   ],

@@ -94,3 +94,10 @@ pub fn safe_control(value: &u8) -> u8 {
     let _ = unsafe {};
     *value
 }
+
+pub fn nested_thread_local_owner() {
+    std::thread_local! {
+        static SLOT: core::cell::Cell<u8> = const { core::cell::Cell::new(0) };
+    }
+    SLOT.with(|slot| slot.set(1));
+}

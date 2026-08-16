@@ -31,8 +31,10 @@ mod collector {
     use std::ops::Bound;
     use std::sync::OnceLock;
 
+    use rustc_data_structures::steal::Steal;
     use rustc_hir::def::DefKind;
     use rustc_hir::{self as hir, BindingMode, ByRef, HirId, Mutability};
+    use rustc_middle::mir::Body;
     use rustc_middle::mir::BorrowKind;
     use rustc_middle::thir::visit::{self, Visitor};
     use rustc_middle::thir::*;
@@ -49,7 +51,9 @@ mod collector {
     use super::manifest;
 
     type CheckUnsafetyProvider = for<'tcx> fn(TyCtxt<'tcx>, LocalDefId);
+    type MirBuiltProvider = for<'tcx> fn(TyCtxt<'tcx>, LocalDefId) -> &'tcx Steal<Body<'tcx>>;
     static ORIGINAL_PROVIDER: OnceLock<CheckUnsafetyProvider> = OnceLock::new();
+    static ORIGINAL_MIR_BUILT_PROVIDER: OnceLock<MirBuiltProvider> = OnceLock::new();
 
     pub fn install(providers: &mut Providers) -> Result<(), String> {
         let original = providers.check_unsafety;
@@ -60,17 +64,43 @@ mod collector {
         } else {
             return Err("legacy check_unsafety provider installed twice".to_string());
         }
+        ORIGINAL_MIR_BUILT_PROVIDER
+            .set(providers.mir_built)
+            .map_err(|_| "legacy mir_built provider installed twice".to_string())?;
         providers.check_unsafety = wrapped_check_unsafety;
+        providers.mir_built = wrapped_mir_built;
         Ok(())
+    }
+
+    fn wrapped_mir_built(tcx: TyCtxt<'_>, def: LocalDefId) -> &Steal<Body<'_>> {
+        let provider = ORIGINAL_MIR_BUILT_PROVIDER
+            .get()
+            .copied()
+            .unwrap_or_else(|| {
+                crate::utils::log::rap_error_and_exit("missing original mir_built provider")
+            });
+        let body = provider(tcx, def);
+        if body.is_stolen() {
+            super::super::record_stolen_built_mir(tcx, def).unwrap_or_else(|error| {
+                crate::utils::log::rap_error_and_exit(format!(
+                    "legacy mir_built inventory failed: {error}"
+                ))
+            });
+        } else {
+            let borrowed = body.borrow();
+            super::super::record_fresh_built_mir_events(tcx, def, &borrowed).unwrap_or_else(
+                |error| {
+                    crate::utils::log::rap_error_and_exit(format!(
+                        "legacy mir_built inventory failed: {error}"
+                    ))
+                },
+            );
+        }
+        body
     }
 
     fn wrapped_check_unsafety(tcx: TyCtxt<'_>, def: LocalDefId) {
         collect_and_record(tcx, def);
-        super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
-            crate::utils::log::rap_error_and_exit(format!(
-                "legacy unsafe-site built MIR inventory failed: {error}"
-            ))
-        });
         let provider = ORIGINAL_PROVIDER.get().copied().unwrap_or_else(|| {
             crate::utils::log::rap_error_and_exit("missing original check_unsafety provider")
         });
@@ -89,9 +119,21 @@ mod collector {
             return;
         }
         match collect_owner(tcx, def) {
-            Ok(census) => census_store()
-                .record_owner(generation, census)
-                .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error)),
+            Ok((census, inner_bodies)) => {
+                census_store()
+                    .record_owner(generation, census)
+                    .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
+                // Building a typeck child may consume the parent's intermediate MIR. Inventory
+                // the parent first, matching rustc's parent-before-child unsafety-check order.
+                super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
+                    crate::utils::log::rap_error_and_exit(format!(
+                        "legacy unsafe-site built MIR inventory failed: {error}"
+                    ))
+                });
+                for inner_body in inner_bodies {
+                    collect_and_record(tcx, inner_body);
+                }
+            }
             Err(error) => {
                 census_store()
                     .record_owner(
@@ -143,24 +185,33 @@ mod collector {
         }
     }
 
-    fn collect_owner(tcx: TyCtxt<'_>, def: LocalDefId) -> Result<OwnerCensus, CollectOwnerError> {
+    fn collect_owner(
+        tcx: TyCtxt<'_>,
+        def: LocalDefId,
+    ) -> Result<(OwnerCensus, Vec<LocalDefId>), CollectOwnerError> {
         let owner = FunctionKey::new(tcx.def_path_str(def.to_def_id()));
         // rustc's parent visitor recursively checks closures and inline consts before their THIR
         // is stolen.  The provider itself skips typeck children, but our owned census records the
         // real inner owner so the later MIR binder can account for it independently.
         if tcx.has_attr(def, sym::custom_mir) {
-            return Ok(OwnerCensus {
-                owner,
-                collector_ran: true,
-                sites: Vec::new(),
-            });
+            return Ok((
+                OwnerCensus {
+                    owner,
+                    collector_ran: true,
+                    sites: Vec::new(),
+                },
+                Vec::new(),
+            ));
         }
         let Ok((thir, body_expr)) = tcx.thir_body(def) else {
-            return Ok(OwnerCensus {
-                owner,
-                collector_ran: true,
-                sites: Vec::new(),
-            });
+            return Ok((
+                OwnerCensus {
+                    owner,
+                    collector_ran: true,
+                    sites: Vec::new(),
+                },
+                Vec::new(),
+            ));
         };
         if thir.is_stolen() {
             return Err(CollectOwnerError::Stolen(format!(
@@ -170,11 +221,14 @@ mod collector {
         }
         let thir = thir.borrow();
         if thir.exprs.is_empty() {
-            return Ok(OwnerCensus {
-                owner,
-                collector_ran: true,
-                sites: Vec::new(),
-            });
+            return Ok((
+                OwnerCensus {
+                    owner,
+                    collector_ran: true,
+                    sites: Vec::new(),
+                },
+                Vec::new(),
+            ));
         }
         let hir_context = tcx.local_def_id_to_hir_id(def);
         let mut visitor = CensusVisitor {
@@ -192,6 +246,7 @@ mod collector {
             inside_adt: false,
             param_env: tcx.param_env(def),
             body_target_features: &tcx.body_codegen_attrs(def.to_def_id()).target_features,
+            inner_bodies: Vec::new(),
         };
         for param in &thir.params {
             if let Some(pattern) = param.pat.as_deref() {
@@ -202,13 +257,18 @@ mod collector {
         if !visitor.errors.is_empty() {
             return Err(CollectOwnerError::Failed(visitor.errors.join("; ")));
         }
+        let CensusVisitor {
+            sites,
+            inner_bodies,
+            ..
+        } = visitor;
         let census = OwnerCensus {
             owner,
             collector_ran: true,
-            sites: visitor.sites,
+            sites,
         };
         census.validate().map_err(CollectOwnerError::Failed)?;
-        Ok(census)
+        Ok((census, inner_bodies))
     }
 
     struct LayoutConstrainedPlaceVisitor<'a, 'tcx> {
@@ -261,6 +321,7 @@ mod collector {
         inside_adt: bool,
         param_env: ParamEnv<'tcx>,
         body_target_features: &'tcx [rustc_middle::middle::codegen_fn_attrs::TargetFeature],
+        inner_bodies: Vec<LocalDefId>,
     }
 
     impl<'a, 'tcx> CensusVisitor<'a, 'tcx> {
@@ -311,8 +372,7 @@ mod collector {
                     shape: expr_shape(&expr.kind).to_string(),
                 }),
                 Err(error) => {
-                    self.errors
-                        .push(format!("operand {role:?} span: {error}"));
+                    self.errors.push(format!("operand {role:?} span: {error}"));
                     None
                 }
             }
@@ -333,12 +393,7 @@ mod collector {
         }
 
         fn visit_inner_body(&mut self, def: LocalDefId) {
-            collect_and_record(self.tcx, def);
-            super::super::record_built_mir_events(self.tcx, def).unwrap_or_else(|error| {
-                crate::utils::log::rap_error_and_exit(format!(
-                    "legacy inner-body built MIR inventory failed: {error}"
-                ))
-            });
+            self.inner_bodies.push(def);
         }
     }
 
@@ -679,11 +734,6 @@ mod collector {
         for def in tcx.hir().body_owners() {
             if !tcx.is_typeck_child(def.to_def_id()) {
                 collect_and_record(tcx, def);
-                super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
-                    crate::utils::log::rap_error_and_exit(format!(
-                        "legacy sweep built MIR inventory failed: {error}"
-                    ))
-                });
             }
         }
     }

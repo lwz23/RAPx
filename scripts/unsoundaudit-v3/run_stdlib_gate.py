@@ -557,13 +557,14 @@ def select_unit_receipt(
         version = value.get("schema_version") if isinstance(value, dict) else None
         if version == "rap-unit-v3":
             validate_receipt(value, schema)
-            selected.append(value)
+            if value["crate_name"] == unit:
+                selected.append(value)
         elif version != "rap-unit-skip-v1":
             fail(f"unrecognized receipt schema: {path.name}")
     if len(selected) != 1:
         fail(f"expected exactly one complete {unit} receipt, found {len(selected)}")
     receipt = selected[0]
-    if receipt["crate_name"] != unit or receipt["analysis_status"] != "complete":
+    if receipt["analysis_status"] != "complete":
         fail(f"selected receipt is not a complete {unit} analysis")
     for field in ("cargo_supplied_rustc_commit", "rap_compiler_commit", "rustc_commit"):
         if receipt[field] != rustc_commit:

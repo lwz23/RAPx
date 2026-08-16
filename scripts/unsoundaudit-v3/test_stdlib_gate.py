@@ -177,6 +177,10 @@ class V3StdlibGateTests(unittest.TestCase):
             receipt["cargo_supplied_rustc_commit"] = "a" * 40
             receipt["toolchain_adapter"]["rustc_commit"] = "a" * 40
             (root / "core.json").write_text(json.dumps(receipt))
+            dependency = copy.deepcopy(receipt)
+            dependency["crate_name"] = "env_filter"
+            dependency["package_name"] = "env_filter"
+            (root / "dependency.json").write_text(json.dumps(dependency))
             selected = self.gate.select_unit_receipt(root, schema, "core", "a" * 40)
             self.assertEqual(selected["crate_name"], "core")
             (root / "duplicate.json").write_text(json.dumps(receipt))
