@@ -540,22 +540,40 @@ fn join_local_outputs(
     for (function, calls) in incoming {
         let mut changed = false;
         for (point, outputs) in calls {
+            let has_effect = outputs
+                .returned
+                .as_ref()
+                .is_some_and(|(_, value)| !value.origins.is_empty())
+                || outputs
+                    .outs
+                    .values()
+                    .any(|value| !value.value.origins.is_empty() || value.may_skip_write)
+                || !outputs.relations.is_empty()
+                || !outputs.conditional_relations.is_empty();
+            if !has_effect {
+                continue;
+            }
             let destination = current
                 .entry(function.clone())
                 .or_default()
                 .entry(point.clone())
                 .or_default();
             if let Some((place, value)) = &outputs.returned {
-                let returned = destination.returned.get_or_insert_with(|| {
-                    changed = true;
-                    (place.clone(), AbstractValue::default())
-                });
-                debug_assert_eq!(returned.0, *place);
-                let before = returned.1.origins.len();
-                returned.1.origins.extend(value.origins.iter().cloned());
-                changed |= returned.1.origins.len() != before;
+                if !value.origins.is_empty() {
+                    let returned = destination.returned.get_or_insert_with(|| {
+                        changed = true;
+                        (place.clone(), AbstractValue::default())
+                    });
+                    debug_assert_eq!(returned.0, *place);
+                    let before = returned.1.origins.len();
+                    returned.1.origins.extend(value.origins.iter().cloned());
+                    changed |= returned.1.origins.len() != before;
+                }
             }
             for (place, value) in &outputs.outs {
+                if value.value.origins.is_empty() && !value.may_skip_write {
+                    continue;
+                }
                 let output = destination.outs.entry(place.clone()).or_insert_with(|| {
                     changed = true;
                     MappedOutValue::default()
@@ -9811,6 +9829,61 @@ mod tests {
         assert_eq!(
             join_local_outputs(&mut current, &incoming),
             BTreeSet::from([changed])
+        );
+    }
+
+    #[test]
+    fn task12_empty_return_mapping_does_not_dirty_or_materialize_a_caller() {
+        let function = FunctionKey::new("crate::caller");
+        let call_point = point(0, 0);
+        let incoming = BTreeMap::from([(
+            function,
+            LocalCallOutputs::from([(
+                call_point,
+                MappedCallOutputs {
+                    returned: Some((PlaceKey::new("_0"), AbstractValue::default())),
+                    outs: BTreeMap::new(),
+                    relations: BTreeSet::new(),
+                    conditional_relations: BTreeSet::new(),
+                },
+            )]),
+        )]);
+        let mut current = BTreeMap::new();
+
+        assert!(join_local_outputs(&mut current, &incoming).is_empty());
+        assert!(current.is_empty());
+    }
+
+    #[test]
+    fn task12_relation_only_output_still_dirties_and_materializes_a_caller() {
+        let function = FunctionKey::new("crate::caller");
+        let call_point = point(0, 0);
+        let relation = RelationFact::new(RelationKind::Lt(
+            RelationTerm::Place(PlaceKey::new("_0")),
+            RelationTerm::Length(PlaceKey::new("_1")),
+        ));
+        let incoming = BTreeMap::from([(
+            function.clone(),
+            LocalCallOutputs::from([(
+                call_point.clone(),
+                MappedCallOutputs {
+                    returned: Some((PlaceKey::new("_0"), AbstractValue::default())),
+                    outs: BTreeMap::new(),
+                    relations: BTreeSet::from([relation.clone()]),
+                    conditional_relations: BTreeSet::new(),
+                },
+            )]),
+        )]);
+        let mut current = BTreeMap::new();
+
+        assert_eq!(
+            join_local_outputs(&mut current, &incoming),
+            BTreeSet::from([function.clone()])
+        );
+        assert!(current[&function][&call_point].returned.is_none());
+        assert_eq!(
+            current[&function][&call_point].relations,
+            BTreeSet::from([relation])
         );
     }
 
