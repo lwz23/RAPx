@@ -110,6 +110,22 @@ mod collector {
     }
 
     fn collect_and_record(tcx: TyCtxt<'_>, def: LocalDefId) {
+        let mut built_inventory_order = Vec::new();
+        collect_census_tree(tcx, def, &mut built_inventory_order);
+        for owner in built_inventory_order {
+            super::super::record_built_mir_events(tcx, owner).unwrap_or_else(|error| {
+                crate::utils::log::rap_error_and_exit(format!(
+                    "current unsafe-site built MIR inventory failed: {error}"
+                ))
+            });
+        }
+    }
+
+    fn collect_census_tree(
+        tcx: TyCtxt<'_>,
+        def: LocalDefId,
+        built_inventory_order: &mut Vec<LocalDefId>,
+    ) {
         let generation = census_generation().unwrap_or_else(|error| {
             crate::utils::log::rap_error_and_exit(format!("unsafe census store: {error}"))
         });
@@ -118,6 +134,7 @@ mod collector {
             .contains_owner(generation, &owner)
             .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error))
         {
+            built_inventory_order.push(def);
             return;
         }
         match collect_owner(tcx, def) {
@@ -125,15 +142,12 @@ mod collector {
                 census_store()
                     .record_owner(generation, census)
                     .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error));
-                // Building a typeck child may consume the parent's intermediate MIR. Inventory
-                // the parent first, matching rustc's parent-before-child unsafety-check order.
-                super::super::record_built_mir_events(tcx, def).unwrap_or_else(|error| {
-                    crate::utils::log::rap_error_and_exit(format!(
-                        "current unsafe-site built MIR inventory failed: {error}"
-                    ))
-                });
+                built_inventory_order.push(def);
+                // Capture the complete THIR subtree before forcing any MIR query. Building a
+                // parent's MIR may steal a typeck child's THIR; after the owned census is stored,
+                // MIR can safely be inventoried in this parent-before-child order.
                 for inner_body in inner_bodies {
-                    collect_and_record(tcx, inner_body);
+                    collect_census_tree(tcx, inner_body, built_inventory_order);
                 }
             }
             Err(error) => {

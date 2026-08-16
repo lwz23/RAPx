@@ -2481,12 +2481,8 @@ impl<'tcx> Engine<'tcx> {
             let site = sites_by_id
                 .get(&record.site_id)
                 .ok_or_else(|| "binding record refers to an unknown unsafe site".to_string())?;
-            if self
-                .binding_records
-                .insert(record.site_id.clone(), record.clone())
-                .is_some()
-            {
-                return Err("duplicate unsafe-site binding record".to_string());
+            if !insert_binding_record(&mut self.binding_records, record.clone())? {
+                continue;
             }
             if let Some(bound_site) = BoundUnsafeSite::from_record(site, &record) {
                 let key = (bound_site.solver.block, bound_site.solver.statement);
@@ -4663,6 +4659,23 @@ impl<'tcx> Engine<'tcx> {
             statement: location.statement_index as u32,
             span: self.stable_span(span)?,
         })
+    }
+}
+
+fn insert_binding_record(
+    records: &mut BTreeMap<String, SiteBindingRecord>,
+    record: SiteBindingRecord,
+) -> Result<bool, String> {
+    match records.get(&record.site_id) {
+        Some(existing) if existing == &record => Ok(false),
+        Some(_) => Err(format!(
+            "conflicting unsafe-site binding record for {}",
+            record.site_id
+        )),
+        None => {
+            records.insert(record.site_id.clone(), record);
+            Ok(true)
+        }
     }
 }
 
@@ -8233,6 +8246,28 @@ fn location_precedes(left: Location, right: Location, body: &Body<'_>) -> bool {
 mod tests {
     use super::super::summary::scc_cycle_token;
     use super::*;
+
+    #[test]
+    fn binding_record_replay_is_idempotent_but_conflicts_fail_closed() {
+        let record = SiteBindingRecord {
+            site_id: "site-1".to_string(),
+            status: BindingStatus::Unbound,
+            built_candidate_count: 0,
+            solver_candidate_count: 0,
+            built: None,
+            solver: None,
+            solver_event: None,
+        };
+        let mut records = BTreeMap::new();
+        assert!(insert_binding_record(&mut records, record.clone()).unwrap());
+        assert!(!insert_binding_record(&mut records, record.clone()).unwrap());
+
+        let mut conflict = record;
+        conflict.solver_candidate_count = 1;
+        assert!(insert_binding_record(&mut records, conflict)
+            .unwrap_err()
+            .contains("conflicting unsafe-site binding record"));
+    }
 
     #[rustversion::since(1.96)]
     #[test]
