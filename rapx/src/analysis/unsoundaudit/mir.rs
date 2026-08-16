@@ -2303,7 +2303,7 @@ impl<'tcx> Engine<'tcx> {
             .iter_local_def_id()
             .filter(|id| {
                 let did = id.to_def_id();
-                owners_with_sites.contains(&FunctionKey::new(self.tcx.def_path_str(did)))
+                owners_with_sites.contains(&unsafe_site::compiler_function_key(self.tcx, did))
                     && self.tcx.is_mir_available(did)
             })
             .collect::<Vec<_>>();
@@ -2329,7 +2329,7 @@ impl<'tcx> Engine<'tcx> {
         }
         let mut result = BTreeMap::new();
         for id in ids {
-            let function = FunctionKey::new(self.tcx.def_path_str(id.to_def_id()));
+            let function = unsafe_site::compiler_function_key(self.tcx, id.to_def_id());
             let signature_output = self
                 .tcx
                 .fn_sig(id.to_def_id())
@@ -2399,7 +2399,7 @@ impl<'tcx> Engine<'tcx> {
     fn bind_supplemental_owners(&mut self, ids: &[LocalDefId]) -> Result<(), String> {
         let census = unsafe_site::census_snapshot()?;
         for id in ids {
-            let function = FunctionKey::new(self.tcx.def_path_str(id.to_def_id()));
+            let function = unsafe_site::compiler_function_key(self.tcx, id.to_def_id());
             let Some(owner) = census.owners.get(&function) else {
                 continue;
             };
@@ -2434,7 +2434,7 @@ impl<'tcx> Engine<'tcx> {
         for id in ids {
             let did = id.to_def_id();
             let body = self.tcx.optimized_mir(did);
-            let function = FunctionKey::new(self.tcx.def_path_str(did));
+            let function = unsafe_site::compiler_function_key(self.tcx, did);
             let solver_events = enumerate_mir_events(self.tcx, *id, body, MirStage::Solver)?;
             let sites = census
                 .owners
@@ -4205,7 +4205,7 @@ impl<'tcx> Engine<'tcx> {
         if let Some(instance) = resolve_instance(self.tcx, caller, raw, args) {
             if let InstanceKind::Item(target) = instance.def {
                 if target.is_local() && self.tcx.is_mir_available(target) {
-                    return Some(FunctionKey::new(self.tcx.def_path_str(target)));
+                    return Some(unsafe_site::compiler_function_key(self.tcx, target));
                 }
             }
         }

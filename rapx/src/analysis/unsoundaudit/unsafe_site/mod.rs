@@ -8,6 +8,7 @@ use std::env;
 use std::path::PathBuf;
 
 use rustc_middle::ty::{Ty, TyCtxt};
+use rustc_span::def_id::DefId;
 use rustc_span::Span;
 use serde_json::{json, Value};
 
@@ -267,6 +268,13 @@ pub(crate) fn census_store() -> &'static store::CensusStore {
     store::global_store()
 }
 
+pub(crate) fn compiler_function_key(tcx: TyCtxt<'_>, def_id: DefId) -> FunctionKey {
+    FunctionKey::from_compiler_owner(
+        tcx.def_path_str(def_id),
+        tcx.def_path_hash(def_id).0.to_hex(),
+    )
+}
+
 #[rustversion::before(1.96)]
 pub(crate) fn install_census_provider(
     providers: &mut rustc_middle::util::Providers,
@@ -301,7 +309,7 @@ pub(super) fn record_built_mir_events(
     owner_id: rustc_span::def_id::LocalDefId,
 ) -> Result<(), String> {
     let generation = census_generation()?;
-    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    let owner = compiler_function_key(tcx, owner_id.to_def_id());
     if !census_store().owner_has_sites(generation, &owner)? {
         return Ok(());
     }
@@ -325,7 +333,7 @@ pub(super) fn record_fresh_built_mir_events<'tcx>(
     body: &rustc_middle::mir::Body<'tcx>,
 ) -> Result<(), String> {
     let generation = census_generation()?;
-    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    let owner = compiler_function_key(tcx, owner_id.to_def_id());
     if census_store().contains_built_events(generation, &owner)? {
         return Ok(());
     }
@@ -344,7 +352,7 @@ pub(super) fn record_stolen_built_mir(
     owner_id: rustc_span::def_id::LocalDefId,
 ) -> Result<(), String> {
     let generation = census_generation()?;
-    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    let owner = compiler_function_key(tcx, owner_id.to_def_id());
     if census_store().contains_built_events(generation, &owner)? {
         return Ok(());
     }
@@ -972,5 +980,14 @@ mod tests {
         assert!(store
             .owner_has_sites(1, &FunctionKey::new("sample::root"))
             .unwrap());
+    }
+
+    #[test]
+    fn compiler_owner_identity_distinguishes_specializations_with_the_same_display_path() {
+        let first = FunctionKey::from_compiler_owner("<T as Trait>::method", "a".repeat(32));
+        let second = FunctionKey::from_compiler_owner("<T as Trait>::method", "b".repeat(32));
+        assert_eq!(first.0, second.0);
+        assert_ne!(first, second);
+        assert_ne!(first.compiler_identity(), second.compiler_identity());
     }
 }

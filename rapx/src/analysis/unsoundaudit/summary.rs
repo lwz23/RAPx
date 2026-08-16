@@ -3,11 +3,27 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::relations::{RelationalPostcondition, SummaryRelationKind, SummaryRelationTerm};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FunctionKey(pub String);
+pub struct FunctionKey(pub String, String);
 
 impl FunctionKey {
     pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+        let display = value.into();
+        Self(display.clone(), display)
+    }
+
+    pub fn from_compiler_owner(
+        display: impl Into<String>,
+        def_path_hash: impl AsRef<str>,
+    ) -> Self {
+        let display = display.into();
+        Self(
+            display.clone(),
+            format!("{}#{}", display, def_path_hash.as_ref()),
+        )
+    }
+
+    pub fn compiler_identity(&self) -> &str {
+        &self.1
     }
 }
 

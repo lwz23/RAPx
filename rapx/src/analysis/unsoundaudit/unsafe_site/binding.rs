@@ -480,7 +480,7 @@ pub(crate) fn enumerate_mir_events<'tcx>(
     body: &Body<'tcx>,
     stage: MirStage,
 ) -> Result<Vec<MirEventAnchor>, String> {
-    let owner = FunctionKey::new(tcx.def_path_str(owner_id.to_def_id()));
+    let owner = super::compiler_function_key(tcx, owner_id.to_def_id());
     let static_locals = static_pointer_locals(tcx, body);
     let mut collector = PlaceEventCollector {
         tcx,

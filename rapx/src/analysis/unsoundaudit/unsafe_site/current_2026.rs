@@ -47,9 +47,9 @@ mod collector {
     use rustc_span::Span;
 
     use super::super::{
-        census_generation, census_store, raw_span_anchor, type_fingerprint, CoverageFailure,
-        CoverageFailureKind, FunctionKey, OperandAnchor, OperandRole, OwnerCensus, ResultAnchor,
-        UnsafeSiteKind, UnsafeSiteSeed,
+        census_generation, census_store, compiler_function_key, raw_span_anchor, type_fingerprint,
+        CoverageFailure, CoverageFailureKind, FunctionKey, OperandAnchor, OperandRole, OwnerCensus,
+        ResultAnchor, UnsafeSiteKind, UnsafeSiteSeed,
     };
     use super::manifest;
 
@@ -134,7 +134,7 @@ mod collector {
         let generation = census_generation().unwrap_or_else(|error| {
             crate::utils::log::rap_error_and_exit(format!("unsafe census store: {error}"))
         });
-        let owner = FunctionKey::new(tcx.def_path_str(def.to_def_id()));
+        let owner = compiler_function_key(tcx, def.to_def_id());
         if census_store()
             .contains_owner(generation, &owner)
             .unwrap_or_else(|error| crate::utils::log::rap_error_and_exit(error))
@@ -210,7 +210,7 @@ mod collector {
         tcx: TyCtxt<'_>,
         def: LocalDefId,
     ) -> Result<(OwnerCensus, Vec<LocalDefId>), CollectOwnerError> {
-        let owner = FunctionKey::new(tcx.def_path_str(def.to_def_id()));
+        let owner = compiler_function_key(tcx, def.to_def_id());
         if find_attr!(tcx, def, CustomMir(..) => ()).is_some() {
             return Ok((
                 OwnerCensus {
