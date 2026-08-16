@@ -1,0 +1,25 @@
+{
+  "analyzer_profile": "rapx-perf",
+  "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+  "cargo_jobs": 1,
+  "fresh_targets": true,
+  "rap_source_commit": "4256f1db57942bce56be45d81640d822ae220fd3",
+  "runs_per_unit": 2,
+  "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+  "schema_version": "unsoundaudit-v3-stdlib-gate-protocol-v1",
+  "target_triple": "aarch64-apple-darwin",
+  "trace_enabled": false,
+  "unit_order": [
+    "core"
+  ],
+  "units": {
+    "core": {
+      "build_std_components": [
+        "core"
+      ],
+      "physical_footprint_limit_bytes": 8589934592,
+      "project_root": "library/core",
+      "wall_time_seconds": 900
+    }
+  }
+}

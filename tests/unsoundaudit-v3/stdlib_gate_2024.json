@@ -1,0 +1,47 @@
+{
+  "analyzer_profile": "rapx-perf",
+  "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+  "cargo_jobs": 1,
+  "fresh_targets": true,
+  "rap_source_commit": "4256f1db57942bce56be45d81640d822ae220fd3",
+  "runs_per_unit": 2,
+  "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+  "schema_version": "unsoundaudit-v3-stdlib-gate-protocol-v1",
+  "target_triple": "aarch64-apple-darwin",
+  "trace_enabled": false,
+  "unit_order": [
+    "core",
+    "alloc",
+    "std"
+  ],
+  "units": {
+    "alloc": {
+      "build_std_components": [
+        "core",
+        "alloc"
+      ],
+      "physical_footprint_limit_bytes": 10737418240,
+      "project_root": "library/alloc",
+      "wall_time_seconds": 1800
+    },
+    "core": {
+      "build_std_components": [
+        "core"
+      ],
+      "physical_footprint_limit_bytes": 8589934592,
+      "project_root": "library/core",
+      "wall_time_seconds": 900
+    },
+    "std": {
+      "build_std_components": [
+        "core",
+        "alloc",
+        "std",
+        "panic_abort"
+      ],
+      "physical_footprint_limit_bytes": 12884901888,
+      "project_root": "library/std",
+      "wall_time_seconds": 3600
+    }
+  }
+}
