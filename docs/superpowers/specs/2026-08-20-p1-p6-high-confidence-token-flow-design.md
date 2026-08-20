@@ -295,11 +295,11 @@ Representative unestablished cases may be grouped for human review after validat
 
 The existing 165 `elided_unsafe_site` records are part of this implementation scope because exact six-pattern reporting is otherwise impossible.
 
-Each currently elided site must be classified by compiler identity and bound to an exact operand/contract model. Binding uses `DefId`, diagnostic item, intrinsic identity, MIR operation identity, and typed argument positions; it does not use function-name allowlists.
+Each currently elided site must receive an exact outcome. A site that remains in solver MIR is bound normally to its exact operand/contract model. A site with one exact built-MIR event, complete solver-MIR enumeration, and no solver candidate is recorded as `OptimizedAwayExact`; it is not attached to an arbitrary optimized point and cannot create a candidate. Binding uses `DefId`, diagnostic item, intrinsic identity, MIR operation identity, and typed argument positions; it does not use function-name allowlists.
 
 After the repair:
 
-- discovered count equals bound-exact count;
+- discovered count equals attached bound-exact plus optimized-away-exact count;
 - unbound, ambiguous, and elided counts are zero;
 - coverage is `complete=true` and `semantics=exact`;
 - unsupported newly discovered identities fail the gate rather than silently disappearing.
@@ -378,7 +378,7 @@ For the core acceptance run, the wall limit remains 900 seconds. The run uses a 
 
 ### 17.6 Coverage fixtures
 
-- every currently elided compiler-identity class receives an exact binding fixture;
+- every currently elided compiler-identity class receives an attached exact-binding or exact optimized-away fixture;
 - unknown future identities fail coverage;
 - current and pinned compiler adapters preserve the same semantic binding.
 
