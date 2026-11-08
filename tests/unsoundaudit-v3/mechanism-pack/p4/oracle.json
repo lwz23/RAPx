@@ -1,5 +1,5 @@
 {
-  "pattern": "P4",
+  "pattern": "P6",
   "present_roots": [
     "Arena::internal_bounds",
     "Arena::internal_width",
@@ -37,7 +37,7 @@
     },
     "Arena::checked": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P4",
+      "candidate_pattern": "P6",
       "replacement_absent": true,
       "evidence_equals": {
         "discharge_model": "exact_validation",
@@ -46,7 +46,7 @@
     },
     "assert_guarded_comparison_is_discharged": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P4",
+      "candidate_pattern": "P6",
       "replacement_absent": true,
       "evidence_equals": {
         "discharge_model": "exact_relation",
@@ -64,7 +64,7 @@
       "primary_reason": "havoced_provenance"
     },
     "SafeFlag::as_bool_mut": {
-      "attempted_pattern": "P4",
+      "attempted_pattern": "P6",
       "primary_reason": "derivation_obligation_unknown"
     }
   }

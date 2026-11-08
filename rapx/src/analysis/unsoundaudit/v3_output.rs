@@ -1194,10 +1194,10 @@ pub(super) fn build_receipt(
             "semantics": if status == "complete" { "exact" } else { "lower_bound" },
             "pattern1": counts[0],
             "pattern2": counts[1],
-            "pattern3": counts[2],
-            "pattern4": counts[3],
-            "pattern5": counts[4],
-            "pattern6": counts[5],
+            "pattern5": counts[2],
+            "pattern6": counts[3],
+            "pattern4": counts[4],
+            "pattern3": counts[5],
         },
         "finding_count": findings.len(),
         "findings": findings,
@@ -1356,9 +1356,9 @@ fn mvp_finding_json(
 }
 
 fn validate_mvp_exposure(pattern: PrimaryPattern, has_exposure: bool) -> Result<(), String> {
-    if pattern != PrimaryPattern::P3 && has_exposure {
+    if pattern != PrimaryPattern::P5 && has_exposure {
         return Err(format!(
-            "non-P3 {} candidate carries a P3-only exposure",
+            "non-P5 {} candidate carries a P5-only exposure",
             primary_pattern(pattern)
         ));
     }
@@ -1726,7 +1726,7 @@ fn propagation_json(
     let source_owner = endpoint_owner_ref(candidate.source.as_ref());
     let source_before_calls =
         source_owner.is_some_and(|owner| owner == candidate.public_root.as_ref());
-    if candidate.primary_pattern != PrimaryPattern::P3 && source_before_calls {
+    if candidate.primary_pattern != PrimaryPattern::P5 && source_before_calls {
         witness.push(witness_step(
             "source",
             source_owner.unwrap_or(candidate.public_root.as_ref()),
@@ -1740,7 +1740,7 @@ fn propagation_json(
         };
         witness.push(witness_step(kind, &edge.callee, &edge.point.span));
     }
-    if candidate.primary_pattern != PrimaryPattern::P3 && !source_before_calls {
+    if candidate.primary_pattern != PrimaryPattern::P5 && !source_before_calls {
         witness.push(witness_step(
             "source",
             source_owner.unwrap_or(&candidate.site().seed.owner),
@@ -2717,10 +2717,10 @@ fn pattern_counts(findings: &[Value]) -> Result<[usize; 6], String> {
         let index = match finding["primary_pattern"].as_str() {
             Some("P1") => 0,
             Some("P2") => 1,
-            Some("P3") => 2,
-            Some("P4") => 3,
-            Some("P5") => 4,
-            Some("P6") => 5,
+            Some("P5") => 2,
+            Some("P6") => 3,
+            Some("P4") => 4,
+            Some("P3") => 5,
             _ => return Err("finding has an invalid primary pattern".to_string()),
         };
         counts[index] += 1;
@@ -2765,10 +2765,10 @@ fn primary_pattern(pattern: PrimaryPattern) -> &'static str {
     match pattern {
         PrimaryPattern::P1 => "P1",
         PrimaryPattern::P2 => "P2",
-        PrimaryPattern::P3 => "P3",
-        PrimaryPattern::P4 => "P4",
         PrimaryPattern::P5 => "P5",
         PrimaryPattern::P6 => "P6",
+        PrimaryPattern::P4 => "P4",
+        PrimaryPattern::P3 => "P3",
     }
 }
 
@@ -2998,7 +2998,7 @@ mod tests {
 
         let site_id = "a".repeat(64);
         let first_finding = finding_id(
-            PrimaryPattern::P5,
+            PrimaryPattern::P4,
             &site_id,
             "argument:0",
             &first_source,
@@ -3008,7 +3008,7 @@ mod tests {
             None,
         );
         let second_finding = finding_id(
-            PrimaryPattern::P5,
+            PrimaryPattern::P4,
             &site_id,
             "argument:0",
             &second_source,
@@ -3068,7 +3068,7 @@ mod tests {
         assert_eq!(first_identity, second_identity);
         assert_eq!(
             finding_id(
-                PrimaryPattern::P5,
+                PrimaryPattern::P4,
                 &"a".repeat(64),
                 "place",
                 &first_identity,
@@ -3078,7 +3078,7 @@ mod tests {
                 None,
             ),
             finding_id(
-                PrimaryPattern::P5,
+                PrimaryPattern::P4,
                 &"a".repeat(64),
                 "place",
                 &second_identity,
@@ -3678,7 +3678,7 @@ mod tests {
     fn mvp_summary_is_compact_and_contains_the_actionable_chain() {
         let family = json!({
             "family_id": "a".repeat(64),
-            "key": {"primary_pattern": "P4", "subject_role": "index"},
+            "key": {"primary_pattern": "P6", "subject_role": "index"},
             "raw_count": 7,
             "public_root_fanout": 3,
             "representatives": {
@@ -3695,7 +3695,7 @@ mod tests {
         assert_eq!(
             mvp_family_summary_line(&family).unwrap(),
             format!(
-                "[P4] family={} raw=7 roots=3 subject=index site=src/lib.rs:17",
+                "[P6] family={} raw=7 roots=3 subject=index site=src/lib.rs:17",
                 "a".repeat(64)
             )
         );
@@ -3724,7 +3724,7 @@ mod tests {
     ) -> UnestablishedStructuralCandidate {
         UnestablishedStructuralCandidate {
             decision_id: id.to_string().repeat(64),
-            attempted_pattern: PrimaryPattern::P6,
+            attempted_pattern: PrimaryPattern::P3,
             public_root: std::sync::Arc::new(FunctionKey::new("sample::root")),
             site_id: "f".repeat(64),
             operand_role: OperandRole::Argument(0),
@@ -3778,10 +3778,10 @@ mod tests {
         for (index, pattern) in [
             PrimaryPattern::P1,
             PrimaryPattern::P2,
-            PrimaryPattern::P3,
-            PrimaryPattern::P4,
             PrimaryPattern::P5,
             PrimaryPattern::P6,
+            PrimaryPattern::P4,
+            PrimaryPattern::P3,
         ]
         .into_iter()
         .enumerate()
@@ -3820,19 +3820,19 @@ mod tests {
     }
 
     #[test]
-    fn mvp_rejects_exposure_on_every_non_p3_pattern() {
+    fn mvp_rejects_exposure_on_every_non_p5_pattern() {
         for pattern in [
             PrimaryPattern::P1,
             PrimaryPattern::P2,
-            PrimaryPattern::P4,
-            PrimaryPattern::P5,
             PrimaryPattern::P6,
+            PrimaryPattern::P4,
+            PrimaryPattern::P3,
         ] {
             assert!(validate_mvp_exposure(pattern, true)
                 .unwrap_err()
-                .contains("P3-only exposure"));
+                .contains("P5-only exposure"));
         }
-        validate_mvp_exposure(PrimaryPattern::P3, true).unwrap();
+        validate_mvp_exposure(PrimaryPattern::P5, true).unwrap();
         validate_mvp_exposure(PrimaryPattern::P1, false).unwrap();
     }
 
@@ -3889,14 +3889,14 @@ mod tests {
             json!({
                 "candidate_id": "c".repeat(64),
                 "candidate": {
-                    "primary_pattern": "P3",
+                    "primary_pattern": "P5",
                     "exposure": {"identity": "sample::root:exposure:_3"},
                 },
             }),
             json!({
                 "candidate_id": "d".repeat(64),
                 "candidate": {
-                    "primary_pattern": "P5",
+                    "primary_pattern": "P4",
                     "source": {
                         "generic_capability": {
                             "kind": "pointer_layout_reinterpretation",

@@ -568,8 +568,8 @@ def validate_candidate(candidate: dict[str, Any], label: str) -> str:
     candidate_site_id(candidate, label)
     required_string(candidate.get("subject_role"), f"{label} subject role")
     exposure = candidate_exposure_signature(candidate, label)
-    if pattern != "P3" and exposure is not None:
-        fail(f"{label} has a non-P3 exposure")
+    if pattern != "P5" and exposure is not None:
+        fail(f"{label} has a non-P5 exposure")
     failure = candidate.get("first_contract_failure")
     if not isinstance(failure, dict):
         fail(f"{label} lacks first_contract_failure")
@@ -602,7 +602,7 @@ def candidate_family_key(candidate: dict[str, Any]) -> tuple[dict[str, Any], lis
         predicates.append(required_string(predicate, "candidate contract predicate"))
     predicates = sorted(set(predicates))
     source = candidate["source"]
-    exposure_signature = candidate_exposure_signature(candidate, "candidate") if pattern == "P3" else None
+    exposure_signature = candidate_exposure_signature(candidate, "candidate") if pattern == "P5" else None
     exposure_key = (
         None
         if exposure_signature is None
@@ -933,7 +933,7 @@ def validate_unestablished_stream(
         if decision_id in active_ids or decision_id in suppressed_ids:
             fail(f"unestablished decision identity {decision_id} overlaps another population")
         decision_ids.add(decision_id)
-        if row.get("attempted_pattern") not in {"P1", "P2", "P3", "P4", "P5", "P6"}:
+        if row.get("attempted_pattern") not in {"P1", "P2", "P5", "P6", "P4", "P3"}:
             fail(f"unestablished row {index} attempts an invalid pattern")
         required_string(row.get("public_root"), f"unestablished row {index} public root")
         canonical_sha256(row.get("unsafe_site_id"), f"unestablished row {index} unsafe site")

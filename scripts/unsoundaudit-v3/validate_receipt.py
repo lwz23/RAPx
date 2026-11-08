@@ -36,10 +36,10 @@ SITE_KINDS = {
 PATTERN_SOURCE = {
     "P1": "public_parameter",
     "P2": "public_field",
-    "P3": "internal_unsafe_origin",
-    "P4": "internal_derivation",
-    "P5": "generic_capability_gap",
-    "P6": "external_behavior_output",
+    "P5": "internal_unsafe_origin",
+    "P6": "internal_derivation",
+    "P4": "generic_capability_gap",
+    "P3": "external_behavior_output",
 }
 BINDINGS = {"bound_exact", "optimized_away_exact", "unbound", "ambiguous", "elided"}
 COVERAGE_REASON_BINDING = {
@@ -288,7 +288,7 @@ def validate_coverage(value: Any, sites: dict[str, dict[str, Any]], status: str)
 
 
 def validate_counts(value: Any, status: str) -> dict[str, int]:
-    keys = {"semantics", "pattern1", "pattern2", "pattern3", "pattern4", "pattern5", "pattern6"}
+    keys = {"semantics", "pattern1", "pattern2", "pattern5", "pattern6", "pattern4", "pattern3"}
     item = exact_keys(value, keys, "observed_counts")
     expected_semantics = "exact" if status == "complete" else "lower_bound"
     if item["semantics"] != expected_semantics:
@@ -382,8 +382,8 @@ def validate_findings(value: Any, finding_count: int, pattern_counts: dict[str, 
             exposure = exact_keys(finding["exposure"], {"kind", "span"}, f"findings[{index}].exposure")
             nonempty(exposure["kind"], f"findings[{index}].exposure.kind")
             validate_span(exposure["span"], f"findings[{index}].exposure.span")
-        if pattern == "P3" and finding["exposure"] is None:
-            fail("P3 finding requires an exposure")
+        if pattern == "P5" and finding["exposure"] is None:
+            fail("P5 finding requires an exposure")
 
         contract = exact_keys(finding["contract"], {"precision", "model_id", "relevant_roles", "obligation", "safety_doc"}, f"findings[{index}].contract")
         precision = enum(contract["precision"], {"precise", "generic", "opaque"}, f"findings[{index}].contract.precision")
@@ -421,8 +421,8 @@ def validate_findings(value: Any, finding_count: int, pattern_counts: dict[str, 
             validate_span(step["span"], f"findings[{index}].propagation.witness[{step_index}].span")
         if witness[0]["kind"] != "entry" or not any(step["kind"] == "unsafe_site" for step in witness):
             fail("witness must begin at entry and reach the unsafe site")
-        if pattern == "P3" and witness[-1]["kind"] != "exposure":
-            fail("P3 witness must terminate at exposure")
+        if pattern == "P5" and witness[-1]["kind"] != "exposure":
+            fail("P5 witness must terminate at exposure")
 
         code_refs = sorted_unique(finding["code_refs"], f"findings[{index}].code_refs")
         for code_id in code_refs:

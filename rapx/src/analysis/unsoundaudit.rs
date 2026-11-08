@@ -31,7 +31,7 @@ use summary::{Finding, Operation, Pattern, StableSpan};
 
 #[cfg(test)]
 const LIMITATION: &str =
-    "fixture-closed P1-P6 heuristic candidate generator; unregistered forms are unsupported";
+    "fixture-closed P1-P3 heuristic candidate generator; unregistered forms are unsupported";
 
 pub(super) struct UnitMetadata {
     pub project_root: String,
@@ -215,10 +215,10 @@ fn unit_json(metadata: UnitMetadata, counts: [usize; 6], findings: Vec<Value>) -
         "pattern_counts": {
             "pattern1": counts[0],
             "pattern2": counts[1],
-            "pattern3": counts[2],
-            "pattern4": counts[3],
-            "pattern5": counts[4],
-            "pattern6": counts[5],
+            "pattern5": counts[2],
+            "pattern6": counts[3],
+            "pattern4": counts[4],
+            "pattern3": counts[5],
         },
         "finding_count": findings.len(),
         "findings": findings,
@@ -359,7 +359,7 @@ fn finding_json(finding: &Finding) -> Value {
         ),
         ("limitations".to_string(), json!([LIMITATION])),
     ]);
-    if finding.primary == Pattern::P5 {
+    if finding.primary == Pattern::P4 {
         finding_value.insert(
             "family_support".to_string(),
             Value::String("partial".to_string()),
@@ -421,7 +421,7 @@ mod tests {
         let source_span = span(1);
         let sink_span = span(2);
         let source = Source {
-            kind: if pattern == Pattern::P5 {
+            kind: if pattern == Pattern::P4 {
                 SourceKind::GenericNonEmptyCapability
             } else {
                 SourceKind::PublicParameter
@@ -466,7 +466,7 @@ mod tests {
             source_span,
             sink_obligation,
             pattern,
-            if pattern == Pattern::P5 {
+            if pattern == Pattern::P4 {
                 RuleId::P51Nonempty
             } else {
                 RuleId::P1GetUnchecked
@@ -513,7 +513,7 @@ mod tests {
         );
         assert_eq!(
             keys(&value["pattern_counts"]),
-            ["pattern1", "pattern2", "pattern3", "pattern4", "pattern5", "pattern6",]
+            ["pattern1", "pattern2", "pattern5", "pattern6", "pattern4", "pattern3",]
                 .into_iter()
                 .map(str::to_string)
                 .collect()
@@ -521,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn finding_keys_and_p5_family_support_are_exact() {
+    fn finding_keys_and_p4_family_support_are_exact() {
         let base_keys = [
             "causal_key",
             "finding_id",
@@ -545,19 +545,19 @@ mod tests {
         for pattern in [
             Pattern::P1,
             Pattern::P2,
-            Pattern::P3,
-            Pattern::P4,
+            Pattern::P5,
             Pattern::P6,
+            Pattern::P3,
         ] {
             let value = finding_json(&finding(pattern));
             assert_eq!(keys(&value), base_keys, "unexpected keys for {pattern:?}");
             assert!(value.get("family_support").is_none());
         }
 
-        let p5 = finding_json(&finding(Pattern::P5));
-        let mut p5_keys = base_keys;
-        p5_keys.insert("family_support".to_string());
-        assert_eq!(keys(&p5), p5_keys);
-        assert_eq!(p5["family_support"], "partial");
+        let p4 = finding_json(&finding(Pattern::P4));
+        let mut p4_keys = base_keys;
+        p4_keys.insert("family_support".to_string());
+        assert_eq!(keys(&p4), p4_keys);
+        assert_eq!(p4["family_support"], "partial");
     }
 }

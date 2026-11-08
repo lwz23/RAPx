@@ -48,10 +48,10 @@ class V3FixtureRunnerTests(unittest.TestCase):
         self.assertEqual(normalized["pattern_counts"], {
             "pattern1": 1,
             "pattern2": 0,
-            "pattern3": 0,
-            "pattern4": 0,
             "pattern5": 0,
             "pattern6": 0,
+            "pattern4": 0,
+            "pattern3": 0,
         })
         self.assertEqual(normalized["finding_count"], 1)
         self.assertEqual(normalized["semantic_findings"][0]["primary_pattern"], "P1")

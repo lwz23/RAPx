@@ -162,7 +162,7 @@ enum CapabilityRouteResult {
     Unreachable,
 }
 
-enum P5RouteOutcome {
+enum P4RouteOutcome {
     Parametric {
         call_route: Vec<CandidateCallEdge>,
         endpoint_route: Option<Vec<EndpointEdge>>,
@@ -182,22 +182,22 @@ fn capability_route_result_from_legacy(
     root: &CandidateOwner,
     source_owner: &FunctionKey,
     evidence: &GenericCapabilityEvidence,
-) -> P5RouteOutcome {
+) -> P4RouteOutcome {
     match call_route_index.capability_route(root, source_owner, evidence) {
-        CapabilityRouteResult::Parametric(call_route) => P5RouteOutcome::Parametric {
+        CapabilityRouteResult::Parametric(call_route) => P4RouteOutcome::Parametric {
             call_route,
             endpoint_route: None,
         },
-        CapabilityRouteResult::ConcreteSatisfied => P5RouteOutcome::ConcreteSatisfied,
+        CapabilityRouteResult::ConcreteSatisfied => P4RouteOutcome::ConcreteSatisfied,
         CapabilityRouteResult::ConcreteViolation { route, violations } => {
-            P5RouteOutcome::ConcreteViolation {
+            P4RouteOutcome::ConcreteViolation {
                 call_route: route,
                 endpoint_route: None,
                 violations,
             }
         }
-        CapabilityRouteResult::Unestablished => P5RouteOutcome::Unestablished,
-        CapabilityRouteResult::Unreachable => P5RouteOutcome::Unreachable,
+        CapabilityRouteResult::Unestablished => P4RouteOutcome::Unestablished,
+        CapabilityRouteResult::Unreachable => P4RouteOutcome::Unreachable,
     }
 }
 
@@ -492,7 +492,7 @@ fn evaluate_concrete_capability(
 }
 
 /// Capability state is deliberately independent of an endpoint owner. The
-/// owner/scope lives in `P5Request`; the same state may be carried through a
+/// owner/scope lives in `P4Request`; the same state may be carried through a
 /// Formal boundary unchanged or projected through one exact Internal call.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct ContextCapabilityState {
@@ -633,7 +633,7 @@ fn internal_transport_requires_typed_certificate(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct P5Request {
+struct P4Request {
     scope: FunctionKey,
     start: ContextAtom,
     target: ContextAtom,
@@ -641,22 +641,22 @@ struct P5Request {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct P5SearchState {
-    request: P5Request,
+struct P4SearchState {
+    request: P4Request,
     at: ContextAtom,
     state: ContextCapabilityState,
     proof: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct P5Fact {
+struct P4Fact {
     state: ContextCapabilityState,
     proof: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct P5Waiter {
-    parent: P5Request,
+struct P4Waiter {
+    parent: P4Request,
     next: ContextAtom,
     parent_proof: usize,
     edge: EndpointEdge,
@@ -668,7 +668,7 @@ struct P5Waiter {
 }
 
 #[derive(Clone, Debug)]
-enum P5Proof {
+enum P4Proof {
     Root,
     Local {
         parent: usize,
@@ -685,19 +685,19 @@ enum P5Proof {
     },
 }
 
-struct ContextP5Solver<'context> {
+struct ContextP4Solver<'context> {
     context: &'context ContextProofIndex,
     evidence: Option<&'context GenericCapabilityEvidence>,
-    proofs: Vec<P5Proof>,
-    started: BTreeSet<P5Request>,
-    pending: VecDeque<P5SearchState>,
-    seen: BTreeSet<(P5Request, ContextAtom, ContextCapabilityState)>,
-    facts: BTreeMap<P5Request, BTreeSet<P5Fact>>,
-    waiters: BTreeMap<P5Request, BTreeSet<P5Waiter>>,
+    proofs: Vec<P4Proof>,
+    started: BTreeSet<P4Request>,
+    pending: VecDeque<P4SearchState>,
+    seen: BTreeSet<(P4Request, ContextAtom, ContextCapabilityState)>,
+    facts: BTreeMap<P4Request, BTreeSet<P4Fact>>,
+    waiters: BTreeMap<P4Request, BTreeSet<P4Waiter>>,
     saw_unknown: bool,
 }
 
-impl<'context> ContextP5Solver<'context> {
+impl<'context> ContextP4Solver<'context> {
     fn new(
         context: &'context ContextProofIndex,
         evidence: Option<&'context GenericCapabilityEvidence>,
@@ -705,7 +705,7 @@ impl<'context> ContextP5Solver<'context> {
         Self {
             context,
             evidence,
-            proofs: vec![P5Proof::Root],
+            proofs: vec![P4Proof::Root],
             started: BTreeSet::new(),
             pending: VecDeque::new(),
             seen: BTreeSet::new(),
@@ -715,13 +715,13 @@ impl<'context> ContextP5Solver<'context> {
         }
     }
 
-    fn new_proof(&mut self, proof: P5Proof) -> usize {
+    fn new_proof(&mut self, proof: P4Proof) -> usize {
         let id = self.proofs.len();
         self.proofs.push(proof);
         id
     }
 
-    fn start(&mut self, request: P5Request) {
+    fn start(&mut self, request: P4Request) {
         if self.started.insert(request.clone()) {
             if !self
                 .seen
@@ -729,7 +729,7 @@ impl<'context> ContextP5Solver<'context> {
             {
                 return;
             }
-            self.pending.push_back(P5SearchState {
+            self.pending.push_back(P4SearchState {
                 at: request.start.clone(),
                 state: request.seed.clone(),
                 request,
@@ -740,16 +740,16 @@ impl<'context> ContextP5Solver<'context> {
 
     fn solve(
         mut self,
-        request: P5Request,
+        request: P4Request,
         root: &CandidateOwner,
         requirement: &CapabilityRequirement,
-    ) -> P5RouteOutcome {
+    ) -> P4RouteOutcome {
         self.start(request.clone());
         while let Some(current) = self.pending.pop_front() {
             if current.at == current.request.target {
                 self.finish_fact(
                     current.request.clone(),
-                    P5Fact {
+                    P4Fact {
                         state: current.state,
                         proof: current.proof,
                     },
@@ -768,11 +768,11 @@ impl<'context> ContextP5Solver<'context> {
                             )) {
                                 continue;
                             }
-                            let proof = self.new_proof(P5Proof::Local {
+                            let proof = self.new_proof(P4Proof::Local {
                                 parent: current.proof,
                                 edge: (*fragment).clone(),
                             });
-                            self.pending.push_back(P5SearchState {
+                            self.pending.push_back(P4SearchState {
                                 request: current.request.clone(),
                                 at: next.clone(),
                                 state: current.state.clone(),
@@ -820,18 +820,18 @@ impl<'context> ContextP5Solver<'context> {
                             self.saw_unknown |= unresolved_boundary;
                             if missing_body || missing_formal_actual {
                                 // An unavailable boundary cannot support a
-                                // P5 proof. Keep coarse provenance for the
+                                // P4 proof. Keep coarse provenance for the
                                 // lower-ranked patterns, but do not turn an
                                 // absent exact call context into a witness.
                                 continue;
                             }
-                            let child = P5Request {
+                            let child = P4Request {
                                 scope: callee_relation.context_owner.clone(),
                                 start: ContextAtom::from_source(&callee_relation),
                                 target: ContextAtom::from_target(&callee_relation),
                                 seed: current.state.clone(),
                             };
-                            let waiter = P5Waiter {
+                            let waiter = P4Waiter {
                                 parent: current.request.clone(),
                                 next: next.clone(),
                                 parent_proof: current.proof,
@@ -893,7 +893,7 @@ impl<'context> ContextP5Solver<'context> {
                             root,
                         )
                     }) {
-                        return P5RouteOutcome::Parametric {
+                        return P4RouteOutcome::Parametric {
                             call_route,
                             endpoint_route: Some(endpoint_route),
                         };
@@ -903,21 +903,21 @@ impl<'context> ContextP5Solver<'context> {
             }
         }
         if let Some((endpoint_route, call_route, violations)) = concrete_violation {
-            P5RouteOutcome::ConcreteViolation {
+            P4RouteOutcome::ConcreteViolation {
                 call_route,
                 endpoint_route: Some(endpoint_route),
                 violations,
             }
         } else if unresolved {
-            P5RouteOutcome::Unestablished
+            P4RouteOutcome::Unestablished
         } else if terminal_nonempty && satisfied {
-            P5RouteOutcome::ConcreteSatisfied
+            P4RouteOutcome::ConcreteSatisfied
         } else {
-            P5RouteOutcome::Unreachable
+            P4RouteOutcome::Unreachable
         }
     }
 
-    fn finish_fact(&mut self, request: P5Request, fact: P5Fact) {
+    fn finish_fact(&mut self, request: P4Request, fact: P4Fact) {
         if !self
             .facts
             .entry(request.clone())
@@ -938,7 +938,7 @@ impl<'context> ContextP5Solver<'context> {
         }
     }
 
-    fn resume_waiter(&mut self, waiter: &P5Waiter, child: P5Fact) {
+    fn resume_waiter(&mut self, waiter: &P4Waiter, child: P4Fact) {
         let state = match waiter.actual_binding {
             ContextActualBinding::Internal => {
                 // A nested callee may refine the capability terms before
@@ -974,7 +974,7 @@ impl<'context> ContextP5Solver<'context> {
         {
             return;
         }
-        let proof = self.new_proof(P5Proof::Call {
+        let proof = self.new_proof(P4Proof::Call {
             parent: waiter.parent_proof,
             child: child.proof,
             edge: waiter.edge.clone(),
@@ -983,7 +983,7 @@ impl<'context> ContextP5Solver<'context> {
             callee_start: waiter.callee_start.clone(),
             callee_target: waiter.callee_target.clone(),
         });
-        self.pending.push_back(P5SearchState {
+        self.pending.push_back(P4SearchState {
             request: waiter.parent.clone(),
             at: waiter.next.clone(),
             state,
@@ -999,13 +999,13 @@ impl<'context> ContextP5Solver<'context> {
 
     fn render_proof_forward(&self, id: usize) -> (Vec<EndpointEdge>, Vec<CandidateCallEdge>) {
         match &self.proofs[id] {
-            P5Proof::Root => (Vec::new(), Vec::new()),
-            P5Proof::Local { parent, edge } => {
+            P4Proof::Root => (Vec::new(), Vec::new()),
+            P4Proof::Local { parent, edge } => {
                 let (mut endpoints, calls) = self.render_proof_forward(*parent);
                 endpoints.push(edge.clone());
                 (endpoints, calls)
             }
-            P5Proof::Call {
+            P4Proof::Call {
                 parent,
                 child,
                 edge,
@@ -1070,15 +1070,15 @@ fn capability_route_result_from_context(
     source: &EndpointNode,
     target: &EndpointNode,
     evidence: &GenericCapabilityEvidence,
-) -> P5RouteOutcome {
+) -> P4RouteOutcome {
     let scope = root.function.clone();
-    let request = P5Request {
+    let request = P4Request {
         scope: scope.clone(),
         start: ContextAtom::scoped(scope.clone(), source.clone()),
         target: ContextAtom::scoped(scope, target.clone()),
         seed: ContextCapabilityState::from_evidence(evidence),
     };
-    ContextP5Solver::new(context, Some(evidence)).solve(request, root, &evidence.requirement)
+    ContextP4Solver::new(context, Some(evidence)).solve(request, root, &evidence.requirement)
 }
 
 fn typed_witness_transport_matches(
@@ -1196,11 +1196,11 @@ struct CandidateSiteContext {
 enum MechanismId {
     P1PublicParameterFlow,
     P2PublicStateFlow,
-    P3InternalUnsafeExposure,
-    P4ConcreteCapabilityViolation,
-    P4InternalDerivation,
-    P5GenericCapabilityGap,
-    P6ExternalBehaviorFlow,
+    P5InternalUnsafeExposure,
+    P6ConcreteCapabilityViolation,
+    P6InternalDerivation,
+    P4GenericCapabilityGap,
+    P3ExternalBehaviorFlow,
 }
 
 impl MechanismId {
@@ -1208,11 +1208,11 @@ impl MechanismId {
         match self {
             Self::P1PublicParameterFlow => "p1_public_parameter_flow_v1",
             Self::P2PublicStateFlow => "p2_public_state_flow_v1",
-            Self::P3InternalUnsafeExposure => "p3_internal_unsafe_exposure_v1",
-            Self::P4ConcreteCapabilityViolation => "p4_concrete_capability_violation_v1",
-            Self::P4InternalDerivation => "p4_internal_derivation_v1",
-            Self::P5GenericCapabilityGap => "p5_generic_capability_gap_v1",
-            Self::P6ExternalBehaviorFlow => "p6_external_behavior_flow_v1",
+            Self::P5InternalUnsafeExposure => "p5_internal_unsafe_exposure_v1",
+            Self::P6ConcreteCapabilityViolation => "p6_concrete_capability_violation_v1",
+            Self::P6InternalDerivation => "p6_internal_derivation_v1",
+            Self::P4GenericCapabilityGap => "p4_generic_capability_gap_v1",
+            Self::P3ExternalBehaviorFlow => "p3_external_behavior_flow_v1",
         }
     }
 }
@@ -1478,8 +1478,8 @@ struct StructuralTrace<'trace> {
     trace: Option<&'trace mut PerfTrace>,
     eligibility_attempt_count: u64,
     eligibility_completed_count: u64,
-    p5_eligibility_attempt_count: u64,
-    p5_eligibility_completed_count: u64,
+    p4_eligibility_attempt_count: u64,
+    p4_eligibility_completed_count: u64,
     role_started_count: u64,
     role_completed_count: u64,
     discovered_source_count: u64,
@@ -1497,8 +1497,8 @@ impl<'trace> StructuralTrace<'trace> {
             trace,
             eligibility_attempt_count: 0,
             eligibility_completed_count: 0,
-            p5_eligibility_attempt_count: 0,
-            p5_eligibility_completed_count: 0,
+            p4_eligibility_attempt_count: 0,
+            p4_eligibility_completed_count: 0,
             role_started_count: 0,
             role_completed_count: 0,
             discovered_source_count: 0,
@@ -1587,12 +1587,12 @@ impl<'trace> StructuralTrace<'trace> {
                 self.eligibility_completed_count,
             ),
             (
-                "p5_eligibility_attempt_count",
-                self.p5_eligibility_attempt_count,
+                "p4_eligibility_attempt_count",
+                self.p4_eligibility_attempt_count,
             ),
             (
-                "p5_eligibility_completed_count",
-                self.p5_eligibility_completed_count,
+                "p4_eligibility_completed_count",
+                self.p4_eligibility_completed_count,
             ),
             ("candidate_count", candidate_count as u64),
             ("suppression_count", suppression_count as u64),
@@ -1600,22 +1600,22 @@ impl<'trace> StructuralTrace<'trace> {
         self.event("structural_site_batch", event, counts)
     }
 
-    fn eligibility_attempt(&mut self, p5: bool) -> Result<(), String> {
+    fn eligibility_attempt(&mut self, p4: bool) -> Result<(), String> {
         if self.trace.is_none() {
             return Ok(());
         }
         // Checkpoints grow only at powers of two, so each counter produces at
         // most 64 flushed records even if a production scan has millions of
-        // eligibility or P5 attempts.
+        // eligibility or P4 attempts.
         self.eligibility_attempt_count += 1;
-        if p5 {
-            self.p5_eligibility_attempt_count += 1;
-            if self.p5_eligibility_attempt_count.is_power_of_two() {
+        if p4 {
+            self.p4_eligibility_attempt_count += 1;
+            if self.p4_eligibility_attempt_count.is_power_of_two() {
                 self.checkpoint(
-                    "structural_p5_progress",
+                    "structural_p4_progress",
                     [
-                        ("p5_started_count", self.p5_eligibility_attempt_count),
-                        ("p5_completed_count", self.p5_eligibility_completed_count),
+                        ("p4_started_count", self.p4_eligibility_attempt_count),
+                        ("p4_completed_count", self.p4_eligibility_completed_count),
                         ("eligibility_attempt_count", self.eligibility_attempt_count),
                         (
                             "eligibility_completed_count",
@@ -1635,12 +1635,12 @@ impl<'trace> StructuralTrace<'trace> {
                         self.eligibility_completed_count,
                     ),
                     (
-                        "p5_eligibility_attempt_count",
-                        self.p5_eligibility_attempt_count,
+                        "p4_eligibility_attempt_count",
+                        self.p4_eligibility_attempt_count,
                     ),
                     (
-                        "p5_eligibility_completed_count",
-                        self.p5_eligibility_completed_count,
+                        "p4_eligibility_completed_count",
+                        self.p4_eligibility_completed_count,
                     ),
                 ],
             )?;
@@ -1648,13 +1648,13 @@ impl<'trace> StructuralTrace<'trace> {
         Ok(())
     }
 
-    fn finish_eligibility_attempt(&mut self, p5: bool) -> Result<(), String> {
+    fn finish_eligibility_attempt(&mut self, p4: bool) -> Result<(), String> {
         if self.trace.is_none() {
             return Ok(());
         }
         self.eligibility_completed_count += 1;
-        if p5 {
-            self.p5_eligibility_completed_count += 1;
+        if p4 {
+            self.p4_eligibility_completed_count += 1;
         }
         if self.eligibility_completed_count.is_power_of_two() {
             self.checkpoint(
@@ -1666,22 +1666,22 @@ impl<'trace> StructuralTrace<'trace> {
                         self.eligibility_completed_count,
                     ),
                     (
-                        "p5_eligibility_attempt_count",
-                        self.p5_eligibility_attempt_count,
+                        "p4_eligibility_attempt_count",
+                        self.p4_eligibility_attempt_count,
                     ),
                     (
-                        "p5_eligibility_completed_count",
-                        self.p5_eligibility_completed_count,
+                        "p4_eligibility_completed_count",
+                        self.p4_eligibility_completed_count,
                     ),
                 ],
             )?;
         }
-        if p5 && self.p5_eligibility_completed_count.is_power_of_two() {
+        if p4 && self.p4_eligibility_completed_count.is_power_of_two() {
             self.checkpoint(
-                "structural_p5_progress",
+                "structural_p4_progress",
                 [
-                    ("p5_started_count", self.p5_eligibility_attempt_count),
-                    ("p5_completed_count", self.p5_eligibility_completed_count),
+                    ("p4_started_count", self.p4_eligibility_attempt_count),
+                    ("p4_completed_count", self.p4_eligibility_completed_count),
                     ("eligibility_attempt_count", self.eligibility_attempt_count),
                     (
                         "eligibility_completed_count",
@@ -1835,7 +1835,7 @@ fn build_structural_candidate_set_inner(
         let call_routes_to_site = call_route_index.routes_to(&site.seed.owner);
         let public_root_routes = reachable_public_roots(owners, &call_routes_to_site);
 
-        if let Some(exposures) = p3_exposures(
+        if let Some(exposures) = p5_exposures(
             graph,
             &route_index,
             &call_route_index,
@@ -1897,18 +1897,18 @@ fn build_structural_candidate_set_inner(
             // Coarse return bridges intentionally do not model every
             // callsite-instantiated callee capability.  Discover only the
             // exact GenericCapability atoms which can reach this operand;
-            // the atom owner is the public-root scope that later P5 solving
+            // the atom owner is the public-root scope that later P4 solving
             // must retain.  This is one reverse exact walk per target, not a
             // source×target or root×source expansion.
             let exact_reverse =
                 context_proofs.map(|context| context.exact_reverse_reachability(&target));
-            let contextual_p5_roots = context_proofs
+            let contextual_p4_roots = context_proofs
                 .zip(exact_reverse.as_ref())
                 .map(|(context, reverse)| context.exact_generic_capability_scopes_in(reverse))
                 .unwrap_or_default();
             reaching_nodes = merge_ordered_endpoint_nodes(
                 reaching_nodes.into_iter(),
-                contextual_p5_roots.keys(),
+                contextual_p4_roots.keys(),
             );
             let public_formal_sources = reaching_nodes
                 .iter()
@@ -1984,7 +1984,7 @@ fn build_structural_candidate_set_inner(
                         .filter(|root| {
                             root_identities.contains(root.as_ref())
                                 && (coarse_endpoint_route.is_some()
-                                    || contextual_p5_roots
+                                    || contextual_p4_roots
                                         .get(*source)
                                         .is_some_and(|scopes| scopes.contains(root.as_ref())))
                         })
@@ -1994,11 +1994,11 @@ fn build_structural_candidate_set_inner(
                 if matched_roots.is_empty() {
                     continue;
                 }
-                // A callee-local P5 source may lack a coarse interprocedural
+                // A callee-local P4 source may lack a coarse interprocedural
                 // route even though it has an exact callsite realization.
-                // Do not grant the same exception to P1/P2/P4/P6.
+                // Do not grant the same exception to P1/P2/P6/P3.
                 if coarse_endpoint_route.is_none()
-                    && !(*pattern == PrimaryPattern::P5 && context_proofs.is_some())
+                    && !(*pattern == PrimaryPattern::P4 && context_proofs.is_some())
                 {
                     continue;
                 }
@@ -2037,8 +2037,8 @@ fn build_structural_candidate_set_inner(
                         role: role.clone(),
                     };
                     let eligibility = if let Some(root_owner) = owners.get(root.as_ref()) {
-                        let p5 = *pattern == PrimaryPattern::P5;
-                        trace.eligibility_attempt(p5)?;
+                        let p4 = *pattern == PrimaryPattern::P4;
+                        trace.eligibility_attempt(p4)?;
                         let eligibility = if *pattern == PrimaryPattern::P2
                             && matches!(
                                 source.as_ref(),
@@ -2058,7 +2058,7 @@ fn build_structural_candidate_set_inner(
                             )
                         } else if matches!(
                             pattern,
-                            PrimaryPattern::P1 | PrimaryPattern::P2 | PrimaryPattern::P6
+                            PrimaryPattern::P1 | PrimaryPattern::P2 | PrimaryPattern::P3
                         ) && influence_seeds.is_some()
                         {
                             exact_influence_eligibility(
@@ -2070,10 +2070,10 @@ fn build_structural_candidate_set_inner(
                                 context_proofs,
                                 &target,
                                 influence_seeds
-                                    .expect("production P1/P6 eligibility has typed seeds"),
+                                    .expect("production P1/P3 eligibility has typed seeds"),
                                 exact_reverse.as_ref(),
                             )
-                        } else if *pattern == PrimaryPattern::P4
+                        } else if *pattern == PrimaryPattern::P6
                             && context_proofs.is_some()
                             && exact_reverse.is_some()
                         {
@@ -2083,10 +2083,10 @@ fn build_structural_candidate_set_inner(
                                 &role,
                                 contract,
                                 context_proofs
-                                    .expect("production P4 eligibility has exact context"),
+                                    .expect("production P6 eligibility has exact context"),
                                 exact_reverse
                                     .as_ref()
-                                    .expect("production P4 eligibility has reverse corridor"),
+                                    .expect("production P6 eligibility has reverse corridor"),
                             )
                         } else {
                             source_eligibility_with_context(
@@ -2099,7 +2099,7 @@ fn build_structural_candidate_set_inner(
                                 &target,
                             )
                         };
-                        trace.finish_eligibility_attempt(p5)?;
+                        trace.finish_eligibility_attempt(p4)?;
                         eligibility
                     } else {
                         SourceEligibility::Unsupported
@@ -2150,9 +2150,9 @@ fn build_structural_candidate_set_inner(
                         } => {
                             if (matches!(
                                 pattern,
-                                PrimaryPattern::P1 | PrimaryPattern::P2 | PrimaryPattern::P6
+                                PrimaryPattern::P1 | PrimaryPattern::P2 | PrimaryPattern::P3
                             ) && influence_seeds.is_some())
-                                || (matches!(pattern, PrimaryPattern::P4 | PrimaryPattern::P5)
+                                || (matches!(pattern, PrimaryPattern::P6 | PrimaryPattern::P4)
                                     && context_proofs.is_some())
                             {
                                 candidate.classification_confidence =
@@ -2197,9 +2197,9 @@ fn build_structural_candidate_set_inner(
                                     .or_insert(decision);
                             }
                         }
-                        // An unresolved exact P5 route is neither a proven
+                        // An unresolved exact P4 route is neither a proven
                         // capability violation nor a contract discharge. It
-                        // must not be reclassified as P4: generic pointer
+                        // must not be reclassified as P6: generic pointer
                         // layout evidence alone has no internal derivation
                         // fact. Keep its unknown status out of selection;
                         // the context/index diagnostic remains available to
@@ -2254,12 +2254,12 @@ fn build_structural_candidate_set_inner(
                 trace.eligibility_completed_count,
             ),
             (
-                "p5_eligibility_attempt_count",
-                trace.p5_eligibility_attempt_count,
+                "p4_eligibility_attempt_count",
+                trace.p4_eligibility_attempt_count,
             ),
             (
-                "p5_eligibility_completed_count",
-                trace.p5_eligibility_completed_count,
+                "p4_eligibility_completed_count",
+                trace.p4_eligibility_completed_count,
             ),
             ("candidate_count", candidates.len() as u64),
             ("suppression_count", suppressions.len() as u64),
@@ -2340,8 +2340,8 @@ fn insert_candidate_first_wins(
     candidate: StructuralFindingCandidate,
 ) {
     assert!(
-        candidate.primary_pattern == PrimaryPattern::P3 || candidate.exposure.is_none(),
-        "only P3 candidates may retain an exposure"
+        candidate.primary_pattern == PrimaryPattern::P5 || candidate.exposure.is_none(),
+        "only P5 candidates may retain an exposure"
     );
     candidates_by_key
         .entry(candidate_key(&candidate))
@@ -2405,7 +2405,7 @@ fn prefer_relational_subject(
     if variable_index {
         selected.retain(|candidate| {
             candidate.operand_role != Some(OperandRole::Argument(0))
-                || candidate.primary_pattern != PrimaryPattern::P4
+                || candidate.primary_pattern != PrimaryPattern::P6
         });
     }
     let roots_with_index = selected
@@ -2445,13 +2445,13 @@ fn downstream_selected_sources(
     downstream
 }
 
-struct P3ExposureCandidates {
+struct P5ExposureCandidates {
     active: Vec<StructuralFindingCandidate>,
     suppressed: Vec<SuppressedStructuralCandidate>,
     unestablished: Vec<UnestablishedStructuralCandidate>,
 }
 
-fn p3_exposures(
+fn p5_exposures(
     graph: &EndpointFlowGraph,
     route_index: &EndpointRouteIndex<'_>,
     call_route_index: &CallRouteIndex<'_>,
@@ -2461,7 +2461,7 @@ fn p3_exposures(
     public_root_routes: &BTreeMap<Arc<FunctionKey>, (Arc<StableSpan>, Arc<[CandidateCallEdge]>)>,
     context_proofs: Option<&ContextProofIndex>,
     influence_seeds: Option<&InfluenceSeedIndex>,
-) -> Option<P3ExposureCandidates> {
+) -> Option<P5ExposureCandidates> {
     let site = &site_context.site;
     let contract = &site_context.contract;
     let validity_sensitive_result = structural.validity_sensitive_result
@@ -2562,7 +2562,7 @@ fn p3_exposures(
         .unwrap_or_default();
     let mut influence_eligibility_by_input =
         BTreeMap::<(Arc<FunctionKey>, Arc<EndpointNode>, OperandRole), SourceEligibility>::new();
-    let mut result = P3ExposureCandidates {
+    let mut result = P5ExposureCandidates {
         active: Vec::new(),
         suppressed: Vec::new(),
         unestablished: Vec::new(),
@@ -2726,8 +2726,8 @@ fn p3_exposures(
                 continue;
             }
             result.active.push(StructuralFindingCandidate {
-                primary_pattern: PrimaryPattern::P3,
-                mechanism_id: MechanismId::P3InternalUnsafeExposure,
+                primary_pattern: PrimaryPattern::P5,
+                mechanism_id: MechanismId::P5InternalUnsafeExposure,
                 classification_confidence: if exact_exposure_context {
                     ClassificationConfidence::Exact
                 } else {
@@ -2755,15 +2755,15 @@ fn source_classification(
 ) -> Option<(PrimaryPattern, CausalSourceKind, MechanismId, u8)> {
     match source {
         EndpointNode::ExternalBehavior { .. } => Some((
-            PrimaryPattern::P6,
+            PrimaryPattern::P3,
             CausalSourceKind::ExternalBehaviorOutput,
-            MechanismId::P6ExternalBehaviorFlow,
+            MechanismId::P3ExternalBehaviorFlow,
             0,
         )),
         EndpointNode::GenericCapability { .. } => Some((
-            PrimaryPattern::P5,
+            PrimaryPattern::P4,
             CausalSourceKind::GenericCapabilityGap,
-            MechanismId::P5GenericCapabilityGap,
+            MechanismId::P4GenericCapabilityGap,
             1,
         )),
         EndpointNode::PublicField { .. } => Some((
@@ -2773,9 +2773,9 @@ fn source_classification(
             2,
         )),
         EndpointNode::InternalDerivation { .. } => Some((
-            PrimaryPattern::P4,
+            PrimaryPattern::P6,
             CausalSourceKind::InternalDerivation,
-            MechanismId::P4InternalDerivation,
+            MechanismId::P6InternalDerivation,
             3,
         )),
         EndpointNode::Formal { .. } => Some((
@@ -3032,11 +3032,11 @@ fn exact_derivation_eligibility(
     }
 }
 
-/// Compact production admission for a source-local P4 derivation.
+/// Compact production admission for a source-local P6 derivation.
 ///
 /// `exact_derivation_eligibility` historically constructed a complete owned
 /// `ContextProof`, including every relation alternative and recursive-SCC
-/// display record, for every source candidate. P4 only asks whether the
+/// display record, for every source candidate. P6 only asks whether the
 /// already scoped derivation atom lies on the exact corridor to this operand:
 /// the query's execution root and source are deliberately the same atom.
 /// The reusable reverse mask is therefore the same positive witness without
@@ -3083,7 +3083,7 @@ fn exact_influence_eligibility(
     influence_seeds: &InfluenceSeedIndex,
     exact_reverse: Option<&ExactReverseReachability>,
 ) -> SourceEligibility {
-    if pattern == PrimaryPattern::P6 {
+    if pattern == PrimaryPattern::P3 {
         if let EndpointNode::ExternalBehavior {
             kind,
             controller,
@@ -3112,7 +3112,7 @@ fn exact_influence_eligibility(
             InfluenceOrigin::PublicFormal | InfluenceOrigin::PersistentPublicField
         ),
         PrimaryPattern::P2 => seed.origin == InfluenceOrigin::PersistentPublicField,
-        PrimaryPattern::P6 => matches!(
+        PrimaryPattern::P3 => matches!(
             seed.origin,
             InfluenceOrigin::FfiReturn
                 | InfluenceOrigin::FfiOut
@@ -3121,7 +3121,7 @@ fn exact_influence_eligibility(
                 | InfluenceOrigin::PublicCallbackReturn
                 | InfluenceOrigin::PublicFunctionPointerReturn
         ),
-        PrimaryPattern::P3 | PrimaryPattern::P4 | PrimaryPattern::P5 => false,
+        PrimaryPattern::P5 | PrimaryPattern::P6 | PrimaryPattern::P4 => false,
     };
     if !origin_matches {
         return SourceEligibility::Unsupported;
@@ -3390,9 +3390,9 @@ fn generic_capability_eligibility(
         CapabilityWitness::Proven { .. } => {}
     }
 
-    // A contract/role mismatch is not a safety proof. It only means this P5
+    // A contract/role mismatch is not a safety proof. It only means this P4
     // refinement is unsupported; the retained value provenance remains
-    // eligible for the lower-ranked P1/P4 classification.
+    // eligible for the lower-ranked P1/P6 classification.
     if contract.precision == super::unsafe_site::ContractPrecision::Opaque
         || !contract.relevant_roles.contains(role)
         || !capability_witness_matches_contract(evidence, contract)
@@ -3418,14 +3418,14 @@ fn generic_capability_eligibility(
         |context| capability_route_result_from_context(context, root, source, target, evidence),
     );
     match route_result {
-        P5RouteOutcome::Parametric {
+        P4RouteOutcome::Parametric {
             call_route,
             endpoint_route,
         } => SourceEligibility::Active {
             supporting_call_route: Some(call_route),
             supporting_endpoint_route: endpoint_route,
         },
-        P5RouteOutcome::ConcreteSatisfied => SourceEligibility::Suppressed(
+        P4RouteOutcome::ConcreteSatisfied => SourceEligibility::Suppressed(
             SuppressionReason::RootHasNoRelevantCapabilitySurface,
             generic_capability_evidence_map(
                 evidence,
@@ -3436,7 +3436,7 @@ fn generic_capability_eligibility(
                 "all_realizable_concrete_routes_proven_satisfied",
             ),
         ),
-        P5RouteOutcome::ConcreteViolation {
+        P4RouteOutcome::ConcreteViolation {
             call_route,
             endpoint_route,
             violations,
@@ -3462,18 +3462,18 @@ fn generic_capability_eligibility(
                 supporting_endpoint_route: endpoint_route.unwrap_or_default(),
                 reason: SuppressionReason::RootHasNoRelevantCapabilitySurface,
                 evidence,
-                pattern: PrimaryPattern::P4,
+                pattern: PrimaryPattern::P6,
                 source_kind: CausalSourceKind::InternalDerivation,
-                mechanism_id: MechanismId::P4ConcreteCapabilityViolation,
+                mechanism_id: MechanismId::P6ConcreteCapabilityViolation,
                 rank: 3,
             }
         }
-        P5RouteOutcome::Unestablished => SourceEligibility::Unestablished {
+        P4RouteOutcome::Unestablished => SourceEligibility::Unestablished {
             token: None,
             requirement: SinkRequirement::from_contract(contract, role).ok(),
             reasons: BTreeSet::from([UnestablishedReason::GenericWitnessUnknown]),
         },
-        P5RouteOutcome::Unreachable => SourceEligibility::Unestablished {
+        P4RouteOutcome::Unreachable => SourceEligibility::Unestablished {
             token: None,
             requirement: SinkRequirement::from_contract(contract, role).ok(),
             reasons: BTreeSet::from([UnestablishedReason::MissingExactContext]),
@@ -3803,10 +3803,10 @@ fn primary_pattern_identity(pattern: PrimaryPattern) -> &'static str {
     match pattern {
         PrimaryPattern::P1 => "P1",
         PrimaryPattern::P2 => "P2",
-        PrimaryPattern::P3 => "P3",
-        PrimaryPattern::P4 => "P4",
         PrimaryPattern::P5 => "P5",
         PrimaryPattern::P6 => "P6",
+        PrimaryPattern::P4 => "P4",
+        PrimaryPattern::P3 => "P3",
     }
 }
 
@@ -4299,7 +4299,7 @@ mod tests {
     }
 
     #[test]
-    fn influence_candidate_unestablished_p6_does_not_hide_exact_p1() {
+    fn influence_candidate_unestablished_p3_does_not_hide_exact_p1() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, None);
         let site_id = site.seed.site_id();
@@ -4382,7 +4382,7 @@ mod tests {
         assert_eq!(result.unestablished.len(), 1);
         assert_eq!(
             result.unestablished[0].attempted_pattern,
-            PrimaryPattern::P6,
+            PrimaryPattern::P3,
         );
         assert_eq!(
             result.unestablished[0].primary_reason,
@@ -4443,7 +4443,7 @@ mod tests {
     }
 
     #[test]
-    fn influence_candidate_direct_ffi_to_compatible_sink_is_exact_p6() {
+    fn influence_candidate_direct_ffi_to_compatible_sink_is_exact_p3() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, None);
         let site_id = site.seed.site_id();
@@ -4495,7 +4495,7 @@ mod tests {
             &seeds,
         );
         assert_eq!(result.active.len(), 1);
-        assert_eq!(result.active[0].primary_pattern, PrimaryPattern::P6);
+        assert_eq!(result.active[0].primary_pattern, PrimaryPattern::P3);
         assert_eq!(
             result.active[0].classification_confidence,
             ClassificationConfidence::Exact,
@@ -4906,7 +4906,7 @@ mod tests {
 
         assert!(matches!(
             exact_influence_eligibility(
-                PrimaryPattern::P6,
+                PrimaryPattern::P3,
                 &source,
                 &owner_info(&owner, true),
                 &OperandRole::Address,
@@ -5054,10 +5054,10 @@ mod tests {
         });
         let mut ranked = BTreeMap::new();
         for (rank, mechanism) in [
-            (3, MechanismId::P6ExternalBehaviorFlow),
+            (3, MechanismId::P3ExternalBehaviorFlow),
             (1, MechanismId::P1PublicParameterFlow),
             (1, MechanismId::P2PublicStateFlow),
-            (2, MechanismId::P3InternalUnsafeExposure),
+            (2, MechanismId::P5InternalUnsafeExposure),
         ] {
             let mut candidate = base.clone();
             candidate.mechanism_id = mechanism;
@@ -5112,7 +5112,7 @@ mod tests {
                     token: "offset".into(),
                     point: point(&owner, 2),
                 },
-                PrimaryPattern::P4,
+                PrimaryPattern::P6,
             ),
             (
                 EndpointNode::GenericCapability {
@@ -5120,7 +5120,7 @@ mod tests {
                     evidence: sequence_capability(type_parameter("crate::root::P")),
                     span: span(2),
                 },
-                PrimaryPattern::P5,
+                PrimaryPattern::P4,
             ),
             (
                 EndpointNode::ExternalBehavior {
@@ -5130,7 +5130,7 @@ mod tests {
                     token: "callback-return".into(),
                     span: span(2),
                 },
-                PrimaryPattern::P6,
+                PrimaryPattern::P3,
             ),
         ];
         for (source, expected) in cases {
@@ -5139,7 +5139,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_gate_requires_a_modeled_matching_contract_and_root_surface() {
+    fn p4_gate_requires_a_modeled_matching_contract_and_root_surface() {
         let owner = FunctionKey::new("crate::root");
         let parameter = type_parameter("crate::root::T");
         let capability = pointer_capability(
@@ -5491,7 +5491,7 @@ mod tests {
         );
         assert_eq!(candidates.len(), 3);
         assert!(candidates.iter().all(|candidate| {
-            candidate.primary_pattern == PrimaryPattern::P6
+            candidate.primary_pattern == PrimaryPattern::P3
                 && candidate.public_root.as_ref() == &causal_root
                 && candidate.call_route.len() == 1
                 && candidate.call_route[0].callee == site_owner
@@ -5513,7 +5513,7 @@ mod tests {
         // not whether its callee came from a public formal/field or from an
         // internal fn item/closure.  Dropping it here would therefore also drop
         // the production-shaped public callback positive.
-        assert_eq!(candidate.primary_pattern, PrimaryPattern::P6);
+        assert_eq!(candidate.primary_pattern, PrimaryPattern::P3);
     }
 
     #[test]
@@ -5587,14 +5587,14 @@ mod tests {
             assert!(!candidates.suppressed[0].evidence.is_empty());
             assert_eq!(
                 candidates.suppressed[0].candidate.primary_pattern,
-                PrimaryPattern::P6
+                PrimaryPattern::P3
             );
             assert_eq!(candidates.suppressed[0].reason, expected_reason);
         }
     }
 
     #[test]
-    fn unknown_and_proven_open_controllers_remain_p6() {
+    fn unknown_and_proven_open_controllers_remain_p3() {
         let owner = FunctionKey::new("crate::root");
         let controllers = [
             BehaviorController::Unknown,
@@ -5618,7 +5618,7 @@ mod tests {
                 token: "external-return".into(),
                 span: span(2),
             });
-            assert_eq!(candidate.primary_pattern, PrimaryPattern::P6);
+            assert_eq!(candidate.primary_pattern, PrimaryPattern::P3);
         }
     }
 
@@ -5699,7 +5699,7 @@ mod tests {
         assert_eq!(candidates.active.len(), 2);
         assert!(candidates.active.iter().any(|candidate| {
             candidate.public_root.as_ref() == &root_a
-                && candidate.primary_pattern == PrimaryPattern::P6
+                && candidate.primary_pattern == PrimaryPattern::P3
         }));
         assert!(candidates.active.iter().any(|candidate| {
             candidate.public_root.as_ref() == &root_b
@@ -5785,7 +5785,7 @@ mod tests {
         assert_eq!(
             std::mem::size_of::<Option<Arc<CandidateExposure>>>(),
             std::mem::size_of::<usize>(),
-            "non-P3 candidates must not reserve an inline EndpointNode payload",
+            "non-P5 candidates must not reserve an inline EndpointNode payload",
         );
     }
 
@@ -5882,8 +5882,8 @@ mod tests {
         let mut duplicate = first.clone();
         duplicate.mechanism_id = MechanismId::P2PublicStateFlow;
         let mut other = first.clone();
-        other.primary_pattern = PrimaryPattern::P6;
-        other.mechanism_id = MechanismId::P6ExternalBehaviorFlow;
+        other.primary_pattern = PrimaryPattern::P3;
+        other.mechanism_id = MechanismId::P3ExternalBehaviorFlow;
 
         let mut reference = BTreeMap::new();
         for candidate in [other.clone(), first.clone(), duplicate.clone()] {
@@ -6056,7 +6056,7 @@ mod tests {
         assert!(!candidates.is_empty());
         assert!(candidates
             .iter()
-            .all(|candidate| candidate.primary_pattern == PrimaryPattern::P6));
+            .all(|candidate| candidate.primary_pattern == PrimaryPattern::P3));
     }
 
     #[test]
@@ -6102,7 +6102,7 @@ mod tests {
             &BTreeSet::new(),
         );
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P4);
+        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P6);
         assert_eq!(candidates[0].endpoint_route.len(), 1);
     }
 
@@ -6300,7 +6300,7 @@ mod tests {
     }
 
     #[test]
-    fn internal_unsafe_result_exposed_by_a_public_return_is_p3() {
+    fn internal_unsafe_result_exposed_by_a_public_return_is_p5() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, Some("&'static str"));
         let site_id = site.seed.site_id();
@@ -6331,12 +6331,12 @@ mod tests {
             &BTreeSet::new(),
         );
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P3);
+        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P5);
         assert!(candidates[0].exposure.is_some());
     }
 
     #[test]
-    fn p3_exposure_only_pairs_with_a_public_root_that_reaches_the_unsafe_owner() {
+    fn p5_exposure_only_pairs_with_a_public_root_that_reaches_the_unsafe_owner() {
         let site_owner = FunctionKey::new("crate::unsafe_helper");
         let causal_root = FunctionKey::new("crate::causal_root");
         let unrelated_root = FunctionKey::new("crate::unrelated_root");
@@ -6452,7 +6452,7 @@ mod tests {
     }
 
     #[test]
-    fn a_valid_for_type_contract_marks_a_user_enum_result_as_p3_sensitive() {
+    fn a_valid_for_type_contract_marks_a_user_enum_result_as_p5_sensitive() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, Some("crate::Tiny"));
         let site_id = site.seed.site_id();
@@ -6485,11 +6485,11 @@ mod tests {
             &BTreeSet::new(),
         );
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P3);
+        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P5);
     }
 
     #[test]
-    fn precondition_failure_is_not_reclassified_as_p3_only_because_the_result_is_a_reference() {
+    fn precondition_failure_is_not_reclassified_as_p5_only_because_the_result_is_a_reference() {
         let owner = FunctionKey::new("crate::root");
         let site = bound_site(&owner, Some("&'static u8"));
         let site_id = site.seed.site_id();
@@ -6627,7 +6627,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_route_gate_keeps_a_parametric_sibling_when_the_canonical_route_is_concrete() {
+    fn p4_route_gate_keeps_a_parametric_sibling_when_the_canonical_route_is_concrete() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let root_parameter = type_parameter("crate::root::T");
@@ -6696,7 +6696,7 @@ mod tests {
         let CapabilityRouteResult::Parametric(route) =
             index.capability_route(&root, &helper, &evidence)
         else {
-            panic!("the parametric sibling must keep the proven P5 witness active")
+            panic!("the parametric sibling must keep the proven P4 witness active")
         };
         assert_eq!(route.len(), 1);
         assert_eq!(route[0].point, point(&root_function, 2));
@@ -6736,7 +6736,7 @@ mod tests {
             &calls,
         );
         assert_eq!(candidates.len(), 1);
-        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P5);
+        assert_eq!(candidates[0].primary_pattern, PrimaryPattern::P4);
         assert_eq!(candidates[0].call_route.len(), 1);
         assert_eq!(candidates[0].call_route[0].point, point(&root_function, 2));
         assert_eq!(
@@ -6746,7 +6746,7 @@ mod tests {
     }
 
     #[test]
-    fn context_p5_keeps_parametric_callsite_and_a_contiguous_same_proof_witness() {
+    fn context_p4_keeps_parametric_callsite_and_a_contiguous_same_proof_witness() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let root_source = type_parameter("crate::root::S");
@@ -6860,12 +6860,12 @@ mod tests {
             });
         }
         context.finalize();
-        let P5RouteOutcome::Parametric {
+        let P4RouteOutcome::Parametric {
             call_route,
             endpoint_route: Some(endpoint_route),
         } = capability_route_result_from_context(&context, &root, &source, &target, &evidence)
         else {
-            panic!("the complete parametric sibling must remain P5-active");
+            panic!("the complete parametric sibling must remain P4-active");
         };
         assert_eq!(call_route.len(), 1);
         assert_eq!(call_route[0].point, point(&root_function, 20));
@@ -6877,7 +6877,7 @@ mod tests {
     }
 
     #[test]
-    fn context_p5_requires_a_joint_typed_transport_for_incomplete_internal_projection() {
+    fn context_p4_requires_a_joint_typed_transport_for_incomplete_internal_projection() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let root_parameter = type_parameter("crate::root::P");
@@ -6989,7 +6989,7 @@ mod tests {
 
         assert!(matches!(
             capability_route_result_from_context(&context, &root, &source, &target, &evidence),
-            P5RouteOutcome::Unestablished
+            P4RouteOutcome::Unestablished
         ));
 
         let CapabilityWitness::Proven { assignment, .. } = &evidence.witness else {
@@ -7013,7 +7013,7 @@ mod tests {
         );
         assert!(matches!(
             capability_route_result_from_context(&context, &root, &source, &target, &evidence),
-            P5RouteOutcome::Unestablished
+            P4RouteOutcome::Unestablished
         ));
 
         context.record_typed_witness_transports(
@@ -7021,7 +7021,7 @@ mod tests {
             evidence.source_identity(),
             [template(assignment.clone())],
         );
-        let P5RouteOutcome::Parametric { call_route, .. } =
+        let P4RouteOutcome::Parametric { call_route, .. } =
             capability_route_result_from_context(&context, &root, &source, &target, &evidence)
         else {
             panic!("the exact joint source/target certificate must transport the witness");
@@ -7031,7 +7031,7 @@ mod tests {
     }
 
     #[test]
-    fn context_p5_projection_equality_class_proves_layout_satisfaction() {
+    fn context_p4_projection_equality_class_proves_layout_satisfaction() {
         let helper_source = type_parameter("crate::helper::S");
         let helper_target = type_parameter("crate::helper::T");
         let caller_parameter = type_parameter("crate::root::P");
@@ -7070,7 +7070,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_fixed_layout_composite_is_proved_before_generic_surface() {
+    fn p4_fixed_layout_composite_is_proved_before_generic_surface() {
         let helper_source = type_parameter("crate::helper::S");
         let helper_target = type_parameter("crate::helper::T");
         let root_parameter = type_parameter("crate::root::P");
@@ -7122,7 +7122,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_unknown_composite_does_not_reuse_a_source_local_witness() {
+    fn p4_unknown_composite_does_not_reuse_a_source_local_witness() {
         let helper_source = type_parameter("crate::helper::S");
         let helper_target = type_parameter("crate::helper::T");
         let root_source = type_parameter("crate::root::S");
@@ -7166,7 +7166,7 @@ mod tests {
     }
 
     #[test]
-    fn context_p5_nested_internal_transport_checks_the_returned_child_state() {
+    fn context_p4_nested_internal_transport_checks_the_returned_child_state() {
         let root_function = FunctionKey::new("crate::root");
         let middle = FunctionKey::new("crate::middle");
         let leaf = FunctionKey::new("crate::leaf");
@@ -7186,7 +7186,7 @@ mod tests {
             site_id: "nested-typed-transport-sink".into(),
             role: OperandRole::Argument(0),
         };
-        let parent = P5Request {
+        let parent = P4Request {
             scope: root_function.clone(),
             start: ContextAtom::scoped(root_function.clone(), source.clone()),
             target: ContextAtom::scoped(root_function.clone(), target.clone()),
@@ -7246,7 +7246,7 @@ mod tests {
             point(&root_function, 51),
             middle.clone(),
         );
-        let waiter = P5Waiter {
+        let waiter = P4Waiter {
             parent: parent.clone(),
             next: parent.target.clone(),
             parent_proof: 0,
@@ -7262,12 +7262,12 @@ mod tests {
             callee_start: ContextAtom::scoped(middle.clone(), source.clone()),
             callee_target: ContextAtom::scoped(middle, EndpointNode::Return { owner: leaf }),
         };
-        let child = P5Fact {
+        let child = P4Fact {
             state: returned_child_state,
             proof: 0,
         };
         let context = ContextProofIndex::default();
-        let mut solver = ContextP5Solver::new(&context, Some(&evidence));
+        let mut solver = ContextP4Solver::new(&context, Some(&evidence));
         solver.resume_waiter(&waiter, child.clone());
         assert!(solver
             .pending
@@ -7288,7 +7288,7 @@ mod tests {
                 assignment: assignment.clone(),
             }],
         );
-        let mut solver = ContextP5Solver::new(&certified_context, Some(&evidence));
+        let mut solver = ContextP4Solver::new(&certified_context, Some(&evidence));
         solver.resume_waiter(&waiter, child);
         assert!(solver
             .pending
@@ -7297,7 +7297,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_witness_reverses_a_nested_exact_call_chain_only_once() {
+    fn p4_witness_reverses_a_nested_exact_call_chain_only_once() {
         let owner = FunctionKey::new("crate::root");
         let atom = |index| {
             ContextAtom::scoped(
@@ -7309,7 +7309,7 @@ mod tests {
             )
         };
         let context = ContextProofIndex::default();
-        let mut solver = ContextP5Solver::new(&context, None);
+        let mut solver = ContextP4Solver::new(&context, None);
         let mut proof = 0;
         for line in (1..=64).rev() {
             let call = CandidateCallEdge {
@@ -7319,7 +7319,7 @@ mod tests {
                 kind: CandidateCallKind::ResolvedLocal,
                 generic_substitution: GenericCallSubstitution::default(),
             };
-            proof = solver.new_proof(P5Proof::Call {
+            proof = solver.new_proof(P4Proof::Call {
                 parent: proof,
                 child: 0,
                 edge: EndpointEdge {
@@ -7346,7 +7346,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_route_gate_does_not_treat_bare_concrete_as_a_safety_proof() {
+    fn p4_route_gate_does_not_treat_bare_concrete_as_a_safety_proof() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let helper_parameter = type_parameter("crate::helper::U");
@@ -7372,7 +7372,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_route_gate_preserves_concrete_facts_for_satisfaction_and_violation() {
+    fn p4_route_gate_preserves_concrete_facts_for_satisfaction_and_violation() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let source = type_parameter("crate::helper::S");
@@ -7431,7 +7431,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_route_gate_treats_incomplete_normalization_as_unestablished() {
+    fn p4_route_gate_treats_incomplete_normalization_as_unestablished() {
         let root_function = FunctionKey::new("crate::root");
         let helper = FunctionKey::new("crate::helper");
         let root_parameter = type_parameter("crate::root::T");

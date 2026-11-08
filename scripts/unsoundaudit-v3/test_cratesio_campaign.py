@@ -483,7 +483,7 @@ class CratesIoCampaignReviewTests(unittest.TestCase):
             ]
             unestablished = [
                 {
-                    "attempted_pattern": "P3",
+                    "attempted_pattern": "P5",
                     "public_root": f"root{i}",
                     "unsafe_site_id": f"s{i}" * 32,
                     "operand_role": "arg",

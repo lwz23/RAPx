@@ -253,8 +253,8 @@ mod tests {
                     OriginKey::new("private-field:boxed::Box::0"),
                 ),
             },
-            Pattern::P4,
-            RuleId::P4Bounds,
+            Pattern::P6,
+            RuleId::P6Bounds,
             CanonicalWitness::new(
                 vec![
                     WitnessStep {
@@ -278,7 +278,7 @@ mod tests {
         StdlibSuppression {
             rustc_commit: PINNED,
             crate_key: "alloc",
-            rule_id: RuleId::P4Bounds,
+            rule_id: RuleId::P6Bounds,
             sink_token: "get_unchecked@library/alloc/src/ffi/c_str.rs:542:18-542:66",
             first_failure_token: "get_unchecked@library/alloc/src/ffi/c_str.rs:542:18-542:66",
             canonical_obligation: "in_bounds:private-field:boxed::Box::0",
@@ -311,7 +311,7 @@ mod tests {
         wrong.crate_key = "core";
         assert!(!exact_match(&wrong, PINNED, &finding, &family));
         let mut wrong = entry;
-        wrong.rule_id = RuleId::P4Offset;
+        wrong.rule_id = RuleId::P6Offset;
         assert!(!exact_match(&wrong, PINNED, &finding, &family));
         let mut wrong = entry;
         wrong.sink_token = "get_unchecked@library/alloc/src/ffi/c_str.rs:542:19-542:66";

@@ -121,7 +121,7 @@ def write_mvp_package(root: Path, *, complete: bool = True) -> None:
     root.mkdir(parents=True, exist_ok=True)
     candidate = mvp_candidate()
     family = mvp_family(candidate)
-    suppressed = mvp_candidate("c" * 64, pattern="P5")
+    suppressed = mvp_candidate("c" * 64, pattern="P4")
     ledger = {
         "schema_version": "rap-unsoundaudit-suppression-v3-mvp",
         "candidate_id": "c" * 64,
@@ -200,7 +200,7 @@ def write_large_mvp_package(
             candidate_id = f"{(1 << 255) + index:064x}"
             candidate = mvp_candidate(
                 candidate_id,
-                pattern="P5",
+                pattern="P4",
                 root=str(representative["public_safe_root"]["owner"]),
             )
             replacement = replacement_id if index % 2 else None
@@ -222,7 +222,7 @@ def write_large_mvp_package(
             row = {
                 "schema_version": "rap-unsoundaudit-unestablished-v1",
                 "decision_id": decision_id,
-                "attempted_pattern": "P6",
+                "attempted_pattern": "P3",
                 "public_root": "core::root",
                 "unsafe_site_id": "b" * 64,
                 "operand_role": "argument:0",
@@ -548,7 +548,7 @@ class V3StdlibGateTests(unittest.TestCase):
             row = {
                 "schema_version": "rap-unsoundaudit-unestablished-v1",
                 "decision_id": "d" * 64,
-                "attempted_pattern": "P6",
+                "attempted_pattern": "P3",
                 "public_root": "core::root",
                 "unsafe_site_id": "b" * 64,
                 "operand_role": "argument:0",
@@ -579,7 +579,7 @@ class V3StdlibGateTests(unittest.TestCase):
                 summary = self.gate.validate_development_mvp(root)
                 self.assertEqual(summary.unestablished_count, 1)
 
-            row["attempted_pattern"] = "P6"
+            row["attempted_pattern"] = "P3"
             row["exposure"] = {"identity": "forbidden"}
             unestablished.write_text(json.dumps(row) + "\n")
             with self.assertRaisesRegex(self.gate.GateError, "non-null exposure"):
@@ -827,7 +827,7 @@ class V3StdlibGateTests(unittest.TestCase):
 
     def test_replacement_requires_exact_root_site_role_and_exposure(self) -> None:
         location = span()
-        suppressed = mvp_candidate("c" * 64, pattern="P3")
+        suppressed = mvp_candidate("c" * 64, pattern="P5")
         suppressed["exposure"] = {
             "kind": "safe_return",
             "identity": "core::exposure",

@@ -1,5 +1,5 @@
 {
-  "pattern": "P3",
+  "pattern": "P5",
   "present_roots": [
     "expose_bool",
     "expose_enum",
@@ -44,35 +44,35 @@
     },
     "initialized_then_exposed": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P3",
+      "candidate_pattern": "P5",
       "evidence_equals": {
         "initialization_witnesses": "maybe_uninit_write@src/lib.rs:38:5-38:22"
       }
     },
     "ptr_write_then_exposed": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P3",
+      "candidate_pattern": "P5",
       "evidence_equals": {
         "initialization_witnesses": "ptr_write@src/lib.rs:45:9-45:51"
       }
     },
     "ptr_write_via_copied_pointer": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P3",
+      "candidate_pattern": "P5",
       "evidence_equals": {
         "initialization_witnesses": "ptr_write@src/lib.rs:55:9-55:47"
       }
     },
     "ptr_copy_initialized_then_exposed": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P3",
+      "candidate_pattern": "P5",
       "evidence_equals": {
         "initialization_witnesses": "maybe_uninit_new@src/lib.rs:61:18-61:40,ptr_copy_nonoverlapping@src/lib.rs:64:9-64:85"
       }
     },
     "ptr_copy_same_source_then_exposed": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P3",
+      "candidate_pattern": "P5",
       "evidence_equals": {
         "initialization_witnesses": "maybe_uninit_new@src/lib.rs:70:21-70:43,ptr_copy@src/lib.rs:73:9-73:45"
       }
@@ -80,11 +80,11 @@
   },
   "unestablished_roots": {
     "expose_unknown_type": {
-      "attempted_pattern": "P3",
+      "attempted_pattern": "P5",
       "primary_reason": "validity_obligation_unknown"
     },
     "ffi_initialized_then_exposed": {
-      "attempted_pattern": "P3",
+      "attempted_pattern": "P5",
       "primary_reason": "initialization_state_unknown"
     }
   }

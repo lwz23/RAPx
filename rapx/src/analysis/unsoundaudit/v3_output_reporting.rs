@@ -275,10 +275,10 @@ impl FamilyKey {
     fn from_finding(finding: &Value) -> Result<Self, String> {
         let primary_pattern =
             required_str(finding, "/primary_pattern", "primary pattern")?.to_string();
-        let (exposure_kind, exposure_identity, exposure_span) = if primary_pattern == "P3" {
+        let (exposure_kind, exposure_identity, exposure_span) = if primary_pattern == "P5" {
             let exposure = finding
                 .get("exposure")
-                .ok_or_else(|| "MVP P3 finding lacks exposure".to_string())?;
+                .ok_or_else(|| "MVP P5 finding lacks exposure".to_string())?;
             if exposure.is_null() {
                 (String::new(), String::new(), String::new())
             } else {
@@ -288,7 +288,7 @@ impl FamilyKey {
                     span_token(
                         exposure
                             .get("span")
-                            .ok_or_else(|| "MVP P3 finding exposure lacks span".to_string())?,
+                            .ok_or_else(|| "MVP P5 finding exposure lacks span".to_string())?,
                         "exposure span",
                     )?,
                 )
@@ -819,7 +819,7 @@ mod tests {
     #[test]
     fn capability_witness_evidence_does_not_split_a_source_family() {
         let mut first = finding('a', "sample::root_a", "place", 2);
-        first["primary_pattern"] = json!("P5");
+        first["primary_pattern"] = json!("P4");
         first["source"] = json!({
             "kind": "generic_capability_gap",
             "identity": "sample::sink:generic_capability:layout-obligation@src/lib.rs:3:1-3:2",
@@ -829,7 +829,7 @@ mod tests {
             },
         });
         let mut second = finding('b', "sample::root_b", "place", 3);
-        second["primary_pattern"] = json!("P5");
+        second["primary_pattern"] = json!("P4");
         second["source"] = json!({
             "kind": "generic_capability_gap",
             "identity": "sample::sink:generic_capability:layout-obligation@src/lib.rs:3:1-3:2",
@@ -850,9 +850,9 @@ mod tests {
     }
 
     #[test]
-    fn p3_exposure_identity_is_part_of_the_family_key() {
+    fn p5_exposure_identity_is_part_of_the_family_key() {
         let mut first = finding('a', "sample::root", "result", 2);
-        first["primary_pattern"] = json!("P3");
+        first["primary_pattern"] = json!("P5");
         first["exposure"] = json!({
             "kind": "public_store",
             "identity": "sample::root:exposure:_3@sample::root:1:2@src/lib.rs:12:1-12:2",
@@ -883,7 +883,7 @@ mod tests {
     }
 
     #[test]
-    fn non_p3_exposure_is_ignored_and_does_not_destabilize_family_order() {
+    fn non_p5_exposure_is_ignored_and_does_not_destabilize_family_order() {
         let mut first = finding('a', "sample::root_a", "place", 2);
         first["exposure"] = json!({
             "kind": "public_return",

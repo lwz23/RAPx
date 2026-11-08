@@ -541,7 +541,7 @@ fn select_roles(site: &BoundUnsafeSite, expected: &[OperandRole]) -> BTreeSet<Op
 fn select_get_unchecked_subject_role(site: &BoundUnsafeSite) -> BTreeSet<OperandRole> {
     // Bounds are a relation between the exact collection and index.  Keeping
     // both roles also exposes type-level collection capabilities (for example,
-    // whether an associated slice can be empty) to the P5 classifier.  The
+    // whether an associated slice can be empty) to the P4 classifier.  The
     // exact validation binding still has to prove the complete relation before
     // this contract can be discharged.
     select_roles(site, &[OperandRole::Argument(0), OperandRole::Argument(1)])

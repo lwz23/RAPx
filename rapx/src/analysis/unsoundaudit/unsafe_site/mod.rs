@@ -596,10 +596,10 @@ pub enum CountSemantics {
 pub enum PrimaryPattern {
     P1,
     P2,
-    P3,
-    P4,
     P5,
     P6,
+    P4,
+    P3,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

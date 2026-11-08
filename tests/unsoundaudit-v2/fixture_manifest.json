@@ -10,8 +10,8 @@
     "pattern1": 3,
     "pattern2": 2,
     "pattern3": 2,
-    "pattern4": 2,
-    "pattern5": 1,
+    "pattern4": 1,
+    "pattern5": 2,
     "pattern6": 2
   },
   "legacy_provenance_manifest": {
@@ -296,14 +296,14 @@
       "case_id": "legacy_p3_invalid_output_positive",
       "role": "positive",
       "package_name": "pattern4_positive",
-      "expected_primary_pattern": "pattern3",
-      "expected_rule_id": "P3.lifetime_transmute",
+      "expected_primary_pattern": "pattern5",
+      "expected_rule_id": "P5.lifetime_transmute",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
-        "pattern3": 1,
+        "pattern3": 0,
         "pattern4": 0,
-        "pattern5": 0,
+        "pattern5": 1,
         "pattern6": 0
       },
       "files": {
@@ -321,7 +321,7 @@
         },
         "oracle": {
           "path": "fixtures/legacy_p3_invalid_output_positive/fixture.json",
-          "sha256": "81f04adae5c336a6b6cfc078d5c2168bcbcd37b28cd8e7db3e1d8e76a4c9cc48"
+          "sha256": "fb0df3ea54148ebaa849f71cdc47e182f61d7744ebebce81e733514538e6c20e"
         }
       },
       "legacy_frozen_case": "pattern4_positive"
@@ -500,14 +500,14 @@
       "case_id": "p3_helper_return_positive",
       "role": "positive",
       "package_name": "p3_helper_return_positive",
-      "expected_primary_pattern": "pattern3",
-      "expected_rule_id": "P3.assume_init_bool",
+      "expected_primary_pattern": "pattern5",
+      "expected_rule_id": "P5.assume_init_bool",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
-        "pattern3": 1,
+        "pattern3": 0,
         "pattern4": 0,
-        "pattern5": 0,
+        "pattern5": 1,
         "pattern6": 0
       },
       "files": {
@@ -525,7 +525,7 @@
         },
         "oracle": {
           "path": "fixtures/p3_helper_return_positive/fixture.json",
-          "sha256": "3e3972a6d055632abfc21687caf3ba94e60632ff5e6f15ab0cb7c24efdd00530"
+          "sha256": "d1d492f815f1e8f2830dfc4a4deb25b8534c7ee2b240bfe01ca29d5af32177de"
         }
       },
       "paired_with": "p3_helper_return_initialized_negative"
@@ -568,15 +568,15 @@
       "case_id": "p4_internal_bounds_positive",
       "role": "positive",
       "package_name": "p4_internal_bounds_positive",
-      "expected_primary_pattern": "pattern4",
-      "expected_rule_id": "P4.bounds",
+      "expected_primary_pattern": "pattern6",
+      "expected_rule_id": "P6.bounds",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
-        "pattern4": 1,
+        "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 0
+        "pattern6": 1
       },
       "files": {
         "manifest": {
@@ -593,7 +593,7 @@
         },
         "oracle": {
           "path": "fixtures/p4_internal_bounds_positive/fixture.json",
-          "sha256": "606baee3ecf0536c91661864c8e59078d8ff01693302a96e9effccbb41c3b990"
+          "sha256": "989f298bfc3eacd02e65fdc1c91a8d848f872c73e1ae2a587018f3271a63f2aa"
         }
       },
       "paired_with": "p4_internal_bounds_checked_negative"
@@ -636,15 +636,15 @@
       "case_id": "p4_internal_offset_positive",
       "role": "positive",
       "package_name": "p4_internal_offset_positive",
-      "expected_primary_pattern": "pattern4",
-      "expected_rule_id": "P4.offset",
+      "expected_primary_pattern": "pattern6",
+      "expected_rule_id": "P6.offset",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
-        "pattern4": 1,
+        "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 0
+        "pattern6": 1
       },
       "files": {
         "manifest": {
@@ -661,7 +661,7 @@
         },
         "oracle": {
           "path": "fixtures/p4_internal_offset_positive/fixture.json",
-          "sha256": "e322faf1a557d241e6c00d115cebe14a2263375763aeea37bb7c31aa0b046003"
+          "sha256": "d974f436a60ac7260be89f93fe5d4da016524b8124bdd5e703bce9f75f7c26e7"
         }
       },
       "paired_with": "p4_internal_offset_checked_negative"
@@ -704,14 +704,14 @@
       "case_id": "p5_associated_slice_nonempty_positive",
       "role": "positive",
       "package_name": "p5_associated_slice_nonempty_positive",
-      "expected_primary_pattern": "pattern5",
-      "expected_rule_id": "P5.1.nonempty",
+      "expected_primary_pattern": "pattern4",
+      "expected_rule_id": "P4.1.nonempty",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
-        "pattern4": 0,
-        "pattern5": 1,
+        "pattern4": 1,
+        "pattern5": 0,
         "pattern6": 0
       },
       "files": {
@@ -729,7 +729,7 @@
         },
         "oracle": {
           "path": "fixtures/p5_associated_slice_nonempty_positive/fixture.json",
-          "sha256": "909d1d6160d6149ca0fdedb8e20ef9e91f7525dfb8b7e7b8edbdf13286a203cc"
+          "sha256": "5b8185912cba88ba137ad6ba7b861126722329e55172e4d88a9c6c0ecd7af2f2"
         }
       },
       "paired_with": "p5_associated_slice_nonempty_negative"
@@ -772,15 +772,15 @@
       "case_id": "p6_ffi_out_param_positive",
       "role": "positive",
       "package_name": "p6_ffi_out_param_positive",
-      "expected_primary_pattern": "pattern6",
-      "expected_rule_id": "P6.ffi_out_param",
+      "expected_primary_pattern": "pattern3",
+      "expected_rule_id": "P3.ffi_out_param",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
-        "pattern3": 0,
+        "pattern3": 1,
         "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 1
+        "pattern6": 0
       },
       "files": {
         "manifest": {
@@ -797,7 +797,7 @@
         },
         "oracle": {
           "path": "fixtures/p6_ffi_out_param_positive/fixture.json",
-          "sha256": "bfbcdb4191f987df9cc48e60de871a835c7a88aa90e7b6fc8aea584fed96e7ad"
+          "sha256": "5fa248d9c0cd4be9878559e39bb4018d82938acc381ee2dc231ffb368d0d82ca"
         }
       },
       "paired_with": "p6_ffi_out_param_nonnull_negative"
@@ -840,15 +840,15 @@
       "case_id": "p6_open_trait_result_positive",
       "role": "positive",
       "package_name": "p6_open_trait_result_positive",
-      "expected_primary_pattern": "pattern6",
-      "expected_rule_id": "P6.open_trait_index",
+      "expected_primary_pattern": "pattern3",
+      "expected_rule_id": "P3.open_trait_index",
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
-        "pattern3": 0,
+        "pattern3": 1,
         "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 1
+        "pattern6": 0
       },
       "files": {
         "manifest": {
@@ -865,7 +865,7 @@
         },
         "oracle": {
           "path": "fixtures/p6_open_trait_result_positive/fixture.json",
-          "sha256": "326168a76072ce75e4281828445803dc0bceafd904b194335fdd8b9edf28a0f5"
+          "sha256": "3a17c27303b705af0ddc463de9cb1254a29be8275fe62601e5ab7191bdfd61ba"
         }
       },
       "paired_with": "p6_open_trait_result_checked_negative"

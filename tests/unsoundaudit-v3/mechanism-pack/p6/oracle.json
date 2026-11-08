@@ -1,5 +1,5 @@
 {
-  "pattern": "P6",
+  "pattern": "P3",
   "present_roots": [
     "open_trait",
     "dyn_open_trait",
@@ -41,7 +41,7 @@
   "suppression_roots": {
     "validated_trait": {
       "reason": "contract_discharged",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "discharge_model": "exact_validation",
@@ -50,7 +50,7 @@
     },
     "private_trait_behavior": {
       "reason": "trait_not_downstream_implementable",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "open_trait",
@@ -59,7 +59,7 @@
     },
     "sealed_trait_behavior": {
       "reason": "trait_not_downstream_implementable",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "open_trait",
@@ -68,7 +68,7 @@
     },
     "internal_function_pointer": {
       "reason": "internal_behavior_controller",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "internal_function",
@@ -117,7 +117,7 @@
       },
       {
         "reason": "source_cannot_satisfy_requirement",
-        "candidate_pattern": "P6",
+        "candidate_pattern": "P3",
         "replacement_absent": true,
         "evidence_equals": {
           "source_origin": "ffi_return",
@@ -136,7 +136,7 @@
         "source_origin": "public_formal",
         "requirement": "argument:1:index_or_address"
       },
-      "replacement_pattern": "P6"
+      "replacement_pattern": "P3"
     },
     "dyn_open_trait": {
       "reason": "source_cannot_satisfy_requirement",
@@ -146,7 +146,7 @@
         "source_origin": "public_formal",
         "requirement": "argument:1:index_or_address"
       },
-      "replacement_pattern": "P6"
+      "replacement_pattern": "P3"
     },
     "auto_supertrait_open": {
       "reason": "source_cannot_satisfy_requirement",
@@ -156,7 +156,7 @@
         "source_origin": "public_formal",
         "requirement": "argument:1:index_or_address"
       },
-      "replacement_pattern": "P6"
+      "replacement_pattern": "P3"
     },
     "concrete_open_trait": {
       "reason": "source_cannot_satisfy_requirement",
@@ -179,7 +179,7 @@
   },
   "unestablished_roots": {
     "opaque_callback_sink": {
-      "attempted_pattern": "P6",
+      "attempted_pattern": "P3",
       "primary_reason": "unmodeled_unsafe_call"
     },
     "callback_body_unsafe": {

@@ -383,10 +383,10 @@
         "semantics",
         "pattern1",
         "pattern2",
-        "pattern3",
-        "pattern4",
         "pattern5",
-        "pattern6"
+        "pattern6",
+        "pattern4",
+        "pattern3"
       ],
       "properties": {
         "semantics": {
@@ -401,16 +401,16 @@
         "pattern2": {
           "$ref": "#/$defs/count"
         },
-        "pattern3": {
+        "pattern5": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern6": {
           "$ref": "#/$defs/count"
         },
         "pattern4": {
           "$ref": "#/$defs/count"
         },
-        "pattern5": {
-          "$ref": "#/$defs/count"
-        },
-        "pattern6": {
+        "pattern3": {
           "$ref": "#/$defs/count"
         }
       }
@@ -698,10 +698,10 @@
           "enum": [
             "P1",
             "P2",
-            "P3",
-            "P4",
             "P5",
-            "P6"
+            "P6",
+            "P4",
+            "P3"
           ]
         },
         "mechanism_id": {

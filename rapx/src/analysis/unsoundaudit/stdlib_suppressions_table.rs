@@ -2,7 +2,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1375:38-1375:61",
         first_failure_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1375:38-1375:61",
         canonical_obligation: "in_bounds:private-field:core::prelude::v1::Some::0",
@@ -14,7 +14,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1375:38-1375:61",
         first_failure_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1375:38-1375:61",
         canonical_obligation: "in_bounds:private-field:vec::Vec::len",
@@ -26,7 +26,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1397:18-1397:48",
         first_failure_token: "get_unchecked@library/alloc/src/collections/binary_heap/mod.rs:1397:18-1397:48",
         canonical_obligation: "in_bounds:private-field:collections::binary_heap::Hole::pos",
@@ -38,7 +38,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1096:29-1096:72",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1096:29-1096:72",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -50,7 +50,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1096:29-1096:72",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1096:29-1096:72",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -62,7 +62,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1105:26-1105:59",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1105:26-1105:59",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -74,7 +74,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1105:26-1105:59",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1105:26-1105:59",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -86,7 +86,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1106:26-1106:59",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1106:26-1106:59",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -98,7 +98,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1106:26-1106:59",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1106:26-1106:59",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -110,7 +110,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1119:18-1119:55",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1119:18-1119:55",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -122,7 +122,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1119:18-1119:55",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1119:18-1119:55",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -134,7 +134,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1125:26-1125:63",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1125:26-1125:63",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -146,7 +146,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1126:26-1126:63",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1126:26-1126:63",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -158,7 +158,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1144:23-1144:60",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1144:23-1144:60",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -170,7 +170,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1145:23-1145:60",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1145:23-1145:60",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -182,7 +182,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1179:13-1179:50",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1179:13-1179:50",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -194,7 +194,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1180:13-1180:50",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:1180:13-1180:50",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -206,7 +206,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:486:18-486:81",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:486:18-486:81",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -218,7 +218,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:500:18-500:81",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:500:18-500:81",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -230,7 +230,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:516:18-516:86",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/node.rs:516:18-516:86",
         canonical_obligation: "in_bounds:private-field:collections::btree::node::Handle::idx",
@@ -242,7 +242,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/collections/btree/search.rs:222:37-222:70",
         first_failure_token: "get_unchecked@library/alloc/src/collections/btree/search.rs:222:37-222:70",
         canonical_obligation: "in_bounds:private-field:collections::btree::search::IndexResult::Edge::0",
@@ -254,7 +254,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "alloc",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/alloc/src/ffi/c_str.rs:542:18-542:66",
         first_failure_token: "get_unchecked@library/alloc/src/ffi/c_str.rs:542:18-542:66",
         canonical_obligation: "in_bounds:private-field:boxed::Box::0",
@@ -386,7 +386,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/array/iter.rs:218:25-218:68",
         first_failure_token: "get_unchecked@library/core/src/array/iter.rs:218:25-218:68",
         canonical_obligation: "in_bounds:private-field:ops::index_range::IndexRange::end",
@@ -398,7 +398,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/array/iter.rs:218:25-218:68",
         first_failure_token: "get_unchecked@library/core/src/array/iter.rs:218:25-218:68",
         canonical_obligation: "in_bounds:private-field:ops::index_range::IndexRange::end",
@@ -410,7 +410,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/array/iter.rs:228:25-228:72",
         first_failure_token: "get_unchecked@library/core/src/array/iter.rs:228:25-228:72",
         canonical_obligation: "in_bounds:private-field:ops::index_range::IndexRange::end",
@@ -422,7 +422,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/array/iter.rs:228:25-228:72",
         first_failure_token: "get_unchecked@library/core/src/array/iter.rs:228:25-228:72",
         canonical_obligation: "in_bounds:private-field:ops::index_range::IndexRange::end",
@@ -434,7 +434,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/array/mod.rs:886:13-886:63",
         first_failure_token: "get_unchecked@library/core/src/array/mod.rs:886:13-886:63",
         canonical_obligation: "in_bounds:private-field:array::Guard::initialized",
@@ -446,7 +446,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:106:23-106:64",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:106:23-106:64",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::filled",
@@ -458,7 +458,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:215:23-215:81",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:215:23-215:81",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::filled",
@@ -470,7 +470,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:225:23-225:85",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:225:23-225:85",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::filled",
@@ -482,7 +482,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:236:18-236:65",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:236:18-236:65",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::init",
@@ -494,7 +494,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:236:18-236:65",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:236:18-236:65",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::init",
@@ -506,7 +506,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:247:18-247:67",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:247:18-247:67",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::filled",
@@ -518,7 +518,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:96:23-96:60",
         first_failure_token: "get_unchecked@library/core/src/io/borrowed_buf.rs:96:23-96:60",
         canonical_obligation: "in_bounds:private-field:io::borrowed_buf::BorrowedBuf::filled",
@@ -530,7 +530,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         first_failure_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         canonical_obligation: "in_bounds:private-field:slice::sort::stable::drift::DriftsortRun::0",
@@ -542,7 +542,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         first_failure_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         canonical_obligation: "in_bounds:private-field:slice::sort::stable::drift::DriftsortRun::0",
@@ -554,7 +554,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "core",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         first_failure_token: "get_unchecked@library/core/src/slice/sort/stable/drift.rs:93:35-93:81",
         canonical_obligation: "in_bounds:private-field:slice::sort::stable::drift::DriftsortRun::0",
@@ -566,7 +566,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/io/buffered/bufreader/buffer.rs:53:53-53:98",
         first_failure_token: "get_unchecked@library/std/src/io/buffered/bufreader/buffer.rs:53:53-53:98",
         canonical_obligation: "in_bounds:private-field:io::buffered::bufreader::buffer::Buffer::filled",
@@ -578,7 +578,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/io/mod.rs:385:29-385:57",
         first_failure_token: "get_unchecked@library/std/src/io/mod.rs:385:29-385:57",
         canonical_obligation: "in_bounds:private-field:io::Guard::len",
@@ -590,7 +590,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/sync/mpmc/array.rs:142:33-142:65",
         first_failure_token: "get_unchecked@library/std/src/sync/mpmc/array.rs:142:33-142:65",
         canonical_obligation: "in_bounds:private-field:sync::mpmc::array::Channel::mark_bit",
@@ -602,7 +602,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/sync/mpmc/array.rs:226:33-226:65",
         first_failure_token: "get_unchecked@library/std/src/sync/mpmc/array.rs:226:33-226:65",
         canonical_obligation: "in_bounds:private-field:sync::mpmc::array::Channel::mark_bit",
@@ -614,7 +614,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:268:24-268:60",
         first_failure_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:268:24-268:60",
         canonical_obligation: "in_bounds:private-field:sync::mpmc::select::Token::list",
@@ -626,7 +626,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:374:24-374:60",
         first_failure_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:374:24-374:60",
         canonical_obligation: "in_bounds:private-field:sync::mpmc::select::Token::list",
@@ -638,7 +638,7 @@ pub(super) static SUPPRESSIONS: &[StdlibSuppression] = &[
     StdlibSuppression {
         rustc_commit: "1bc403daadbebb553ccc211a0a8eebb73989665f",
         crate_key: "std",
-        rule_id: RuleId::P4Bounds,
+        rule_id: RuleId::P6Bounds,
         sink_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:93:33-93:63",
         first_failure_token: "get_unchecked@library/std/src/sync/mpmc/list.rs:93:33-93:63",
         canonical_obligation: "in_bounds:private-field:core::prelude::v1::Some::0",

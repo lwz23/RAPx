@@ -42,7 +42,7 @@
   ],
   "other_pattern_roots": {
     "read_local_aggregate": "P1",
-    "CallbackChoice::invoke": "P6"
+    "CallbackChoice::invoke": "P3"
   },
   "suppression_roots": {
     "PublicChoice::read_payload": [
@@ -76,7 +76,7 @@
     },
     "PublicCallback::overwritten": {
       "reason": "internal_behavior_controller",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "internal_function",
@@ -85,7 +85,7 @@
     },
     "PublicCallback::base_overwritten": {
       "reason": "internal_behavior_controller",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "internal_function",
@@ -94,7 +94,7 @@
     },
     "local_internal_callback": {
       "reason": "internal_behavior_controller",
-      "candidate_pattern": "P6",
+      "candidate_pattern": "P3",
       "replacement_absent": true,
       "evidence_equals": {
         "controller_kind": "internal_function",

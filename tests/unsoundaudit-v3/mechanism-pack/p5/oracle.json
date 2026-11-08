@@ -1,5 +1,5 @@
 {
-  "pattern": "P5",
+  "pattern": "P4",
   "present_roots": [
     "generic_nonempty",
     "generic_layout",
@@ -26,14 +26,14 @@
     "slice_element_view"
   ],
   "other_pattern_roots": {
-    "concrete_layout_violation": "P4",
+    "concrete_layout_violation": "P6",
     "same_pointee_view": "P1",
     "maybe_uninit_view": "P1"
   },
   "suppression_roots": {
     "concrete_layout_only": {
       "reason": "root_has_no_relevant_capability_surface",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "replacement_absent": true,
       "evidence_equals": {
         "capability_kind": "pointer_layout_reinterpretation",
@@ -42,7 +42,7 @@
     },
     "cross_owner_unmatched_sibling": {
       "reason": "root_has_no_relevant_capability_surface",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "replacement_absent": true,
       "evidence_equals": {
         "capability_kind": "pointer_layout_reinterpretation",
@@ -51,7 +51,7 @@
     },
     "cross_owner_equal_projection": {
       "reason": "root_has_no_relevant_capability_surface",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "replacement_absent": true,
       "evidence_equals": {
         "capability_kind": "pointer_layout_reinterpretation",
@@ -60,8 +60,8 @@
     },
     "concrete_layout_violation": {
       "reason": "root_has_no_relevant_capability_surface",
-      "candidate_pattern": "P5",
-      "replacement_pattern": "P4",
+      "candidate_pattern": "P4",
+      "replacement_pattern": "P6",
       "evidence_equals": {
         "capability_kind": "pointer_layout_reinterpretation",
         "gate": "concrete_route_proven_violation"
@@ -69,7 +69,7 @@
     },
     "same_pointee_view": {
       "reason": "pointer_view_has_no_capability_gap",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "replacement_pattern": "P1",
       "evidence_equals": {
         "capability_kind": "representation_preserving_pointer_view",
@@ -78,7 +78,7 @@
     },
     "slice_element_view": {
       "reason": "pointer_view_has_no_capability_gap",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "evidence_equals": {
         "capability_kind": "representation_preserving_pointer_view",
         "gate": "representation_preserving_view"
@@ -87,7 +87,7 @@
     },
     "maybe_uninit_view": {
       "reason": "pointer_view_has_no_capability_gap",
-      "candidate_pattern": "P5",
+      "candidate_pattern": "P4",
       "replacement_pattern": "P1",
       "evidence_equals": {
         "capability_kind": "representation_preserving_pointer_view",

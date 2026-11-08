@@ -103,7 +103,7 @@ impl GenericParamKind {
 }
 
 /// Stable identity for a public type/const parameter that controls an unsafe
-/// contract. Lifetimes are deliberately excluded: the P5 capability model is
+/// contract. Lifetimes are deliberately excluded: the P4 capability model is
 /// about representation, size, alignment, initialization and validity facts.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) struct GenericParamId {
@@ -1061,7 +1061,7 @@ struct AlternativeState {
 /// display/diagnostics only. It holds only the DFS frontier; it never first
 /// materializes the Cartesian product of all predecessor choices. It uses a
 /// simple path and skips recursive predecessor choices, so requirement
-/// eligibility (notably P5) must instead use the exact relation APIs below in
+/// eligibility (notably P4) must instead use the exact relation APIs below in
 /// its own product-state least fixed point.
 pub(super) struct ContextProofAlternatives<'proof> {
     proof: &'proof ContextProof,
@@ -2333,7 +2333,7 @@ impl ContextProofIndex {
     }
 
     /// Return only the exact GenericCapability atoms relevant to structural
-    /// P5 discovery. The reverse walk stays entirely in the compact ID
+    /// P4 discovery. The reverse walk stays entirely in the compact ID
     /// index; unlike `exact_reaching_atoms_for_endpoint`, it never
     /// materializes unrelated scoped atoms merely to discard them at the
     /// caller.
@@ -3926,7 +3926,7 @@ mod tests {
     }
 
     #[test]
-    fn compact_route_index_matches_reference_for_parallel_ties_cycles_and_p3_routes() {
+    fn compact_route_index_matches_reference_for_parallel_ties_cycles_and_p5_routes() {
         fn reference_route(
             graph: &EndpointFlowGraph,
             source: &EndpointNode,
@@ -4002,7 +4002,7 @@ mod tests {
             assert_eq!(
                 routes_from.route_to(target),
                 reference_route(&graph, &nodes[0], target),
-                "P3 forward route to {target:?}"
+                "P5 forward route to {target:?}"
             );
         }
 
@@ -4490,7 +4490,7 @@ mod tests {
     }
 
     #[test]
-    fn incomplete_substitution_keeps_non_p5_execution_route_realizable() {
+    fn incomplete_substitution_keeps_non_p4_execution_route_realizable() {
         let caller = FunctionKey::new("crate::caller");
         let callee = FunctionKey::new("crate::callee");
         let root = formal(&caller, 1);

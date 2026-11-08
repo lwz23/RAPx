@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the lightweight 2024 P1-P6 mechanism pack once per crate."""
+"""Run the lightweight 2024 P1-P3 mechanism pack once per crate."""
 
 from __future__ import annotations
 
@@ -326,8 +326,8 @@ def candidate_family_key(candidate: dict[str, Any]) -> tuple[dict[str, Any], lis
     site_id = candidate_site_id(candidate, "candidate")
     subject_role = required_string(candidate.get("subject_role"), "candidate subject role")
     exposure_signature = candidate_exposure_signature(candidate, "candidate")
-    if pattern != "P3" and exposure_signature is not None:
-        raise PackError("non-P3 candidate has an exposure")
+    if pattern != "P5" and exposure_signature is not None:
+        raise PackError("non-P5 candidate has an exposure")
 
     failure = candidate.get("first_contract_failure")
     if not isinstance(failure, dict):
@@ -648,7 +648,7 @@ def validate_unestablished_rows(
         previous_id = decision_id
         if decision_id in active_ids or decision_id in suppressed_ids:
             raise PackError(f"{case}: unestablished identity overlaps another population")
-        if row.get("attempted_pattern") not in {"P1", "P2", "P3", "P4", "P5", "P6"}:
+        if row.get("attempted_pattern") not in {"P1", "P2", "P5", "P6", "P4", "P3"}:
             raise PackError(f"{case}: unestablished row {index} attempts an invalid pattern")
         required_string(row.get("public_root"), f"{case} unestablished public root")
         canonical_sha256(row.get("unsafe_site_id"), f"{case} unestablished unsafe site")

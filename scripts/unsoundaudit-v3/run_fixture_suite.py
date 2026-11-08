@@ -28,10 +28,10 @@ SUITES = {
         "counts": {
             "pattern1": 3,
             "pattern2": 2,
-            "pattern3": 2,
-            "pattern4": 2,
-            "pattern5": 1,
+            "pattern5": 2,
             "pattern6": 2,
+            "pattern4": 1,
+            "pattern3": 2,
         },
     },
     "challenge": {
@@ -41,10 +41,10 @@ SUITES = {
         "counts": {
             "pattern1": 13,
             "pattern2": 0,
-            "pattern3": 0,
-            "pattern4": 0,
             "pattern5": 0,
             "pattern6": 0,
+            "pattern4": 0,
+            "pattern3": 0,
         },
     },
 }

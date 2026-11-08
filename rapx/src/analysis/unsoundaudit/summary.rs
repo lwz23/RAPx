@@ -1034,10 +1034,10 @@ impl FunctionSummary {
 pub enum Pattern {
     P1,
     P2,
-    P3,
-    P4,
     P5,
     P6,
+    P4,
+    P3,
 }
 
 impl Pattern {
@@ -1045,10 +1045,10 @@ impl Pattern {
         match self {
             Self::P1 => "pattern1",
             Self::P2 => "pattern2",
-            Self::P3 => "pattern3",
-            Self::P4 => "pattern4",
             Self::P5 => "pattern5",
             Self::P6 => "pattern6",
+            Self::P4 => "pattern4",
+            Self::P3 => "pattern3",
         }
     }
 }
@@ -1061,15 +1061,15 @@ pub enum FailureClass {
 
 pub fn classify_primary(failure: FailureClass, source: SourceKind) -> Pattern {
     if failure == FailureClass::InternalInvalidValue {
-        return Pattern::P3;
+        return Pattern::P5;
     }
     match source {
-        SourceKind::FfiOutput | SourceKind::OpenBehaviorOutput => Pattern::P6,
-        SourceKind::GenericNonEmptyCapability => Pattern::P5,
+        SourceKind::FfiOutput | SourceKind::OpenBehaviorOutput => Pattern::P3,
+        SourceKind::GenericNonEmptyCapability => Pattern::P4,
         SourceKind::LiteralPublicField => Pattern::P2,
         SourceKind::PublicParameter => Pattern::P1,
-        SourceKind::InternalDerived => Pattern::P4,
-        SourceKind::InternalUnsafeOrigin => Pattern::P3,
+        SourceKind::InternalDerived => Pattern::P6,
+        SourceKind::InternalUnsafeOrigin => Pattern::P5,
     }
 }
 
@@ -1092,16 +1092,16 @@ pub enum RuleId {
     P1GetUnchecked,
     P2RawRead,
     P2GetUnchecked,
-    P3LifetimeTransmute,
-    P3AssumeInitBool,
-    P3AssumeInitUninitialized,
-    P3UncheckedUtf8,
-    P4Bounds,
-    P4Offset,
+    P5LifetimeTransmute,
+    P5AssumeInitBool,
+    P5AssumeInitUninitialized,
+    P5UncheckedUtf8,
+    P6Bounds,
+    P6Offset,
     P51Nonempty,
-    P6FfiOutParam,
-    P6FfiOutInvalidValue,
-    P6OpenTraitIndex,
+    P3FfiOutParam,
+    P3FfiOutInvalidValue,
+    P3OpenTraitIndex,
 }
 
 impl RuleId {
@@ -1111,16 +1111,16 @@ impl RuleId {
             Self::P1GetUnchecked => "P1.get_unchecked",
             Self::P2RawRead => "P2.raw_read",
             Self::P2GetUnchecked => "P2.get_unchecked",
-            Self::P3LifetimeTransmute => "P3.lifetime_transmute",
-            Self::P3AssumeInitBool => "P3.assume_init_bool",
-            Self::P3AssumeInitUninitialized => "P3.assume_init_uninitialized",
-            Self::P3UncheckedUtf8 => "P3.unchecked_utf8",
-            Self::P4Bounds => "P4.bounds",
-            Self::P4Offset => "P4.offset",
-            Self::P51Nonempty => "P5.1.nonempty",
-            Self::P6FfiOutParam => "P6.ffi_out_param",
-            Self::P6FfiOutInvalidValue => "P6.ffi_out_invalid_value",
-            Self::P6OpenTraitIndex => "P6.open_trait_index",
+            Self::P5LifetimeTransmute => "P5.lifetime_transmute",
+            Self::P5AssumeInitBool => "P5.assume_init_bool",
+            Self::P5AssumeInitUninitialized => "P5.assume_init_uninitialized",
+            Self::P5UncheckedUtf8 => "P5.unchecked_utf8",
+            Self::P6Bounds => "P6.bounds",
+            Self::P6Offset => "P6.offset",
+            Self::P51Nonempty => "P4.1.nonempty",
+            Self::P3FfiOutParam => "P3.ffi_out_param",
+            Self::P3FfiOutInvalidValue => "P3.ffi_out_invalid_value",
+            Self::P3OpenTraitIndex => "P3.open_trait_index",
         }
     }
 }
@@ -2776,21 +2776,21 @@ mod tests {
                 FailureClass::InternalInvalidValue,
                 SourceKind::PublicParameter
             ),
-            Pattern::P3
+            Pattern::P5
         );
         assert_eq!(
             classify_primary(
                 FailureClass::SinkPrecondition,
                 SourceKind::OpenBehaviorOutput
             ),
-            Pattern::P6
+            Pattern::P3
         );
         assert_eq!(
             classify_primary(
                 FailureClass::SinkPrecondition,
                 SourceKind::GenericNonEmptyCapability
             ),
-            Pattern::P5
+            Pattern::P4
         );
         assert_eq!(
             classify_primary(
@@ -2805,7 +2805,7 @@ mod tests {
         );
         assert_eq!(
             classify_primary(FailureClass::SinkPrecondition, SourceKind::InternalDerived),
-            Pattern::P4
+            Pattern::P6
         );
     }
 

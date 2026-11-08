@@ -2642,7 +2642,7 @@ impl<'tcx> Engine<'tcx> {
                     .summary_seed
                     .requirements
                     .iter()
-                    .filter(|requirement| requirement.rule == RuleId::P6FfiOutInvalidValue)
+                    .filter(|requirement| requirement.rule == RuleId::P3FfiOutInvalidValue)
                 {
                     let mut instantiated = requirement.clone();
                     instantiated.subject = instantiated.subject.substitute(&actuals);
@@ -3312,7 +3312,7 @@ impl<'tcx> Engine<'tcx> {
                 continue;
             }
 
-            if candidate.primary_pattern == unsafe_site::PrimaryPattern::P3 {
+            if candidate.primary_pattern == unsafe_site::PrimaryPattern::P5 {
                 match unsafe_result_safety(&candidate, facts) {
                     UnsafeResultSafety::ViolationWitness => {
                         candidate.classification_confidence =
@@ -3348,7 +3348,7 @@ impl<'tcx> Engine<'tcx> {
                         );
                     }
                 }
-            } else if candidate.primary_pattern == unsafe_site::PrimaryPattern::P4 {
+            } else if candidate.primary_pattern == unsafe_site::PrimaryPattern::P6 {
                 match internal_derivation_safety(&candidate, facts, &self.bodies) {
                     InternalDerivationSafety::ViolationWitness => {
                         candidate.classification_confidence =
@@ -3374,7 +3374,7 @@ impl<'tcx> Engine<'tcx> {
                         let role = candidate
                             .operand_role
                             .clone()
-                            .expect("P4 derivation candidates are operand scoped");
+                            .expect("P6 derivation candidates are operand scoped");
                         let requirement = derivation_requirement(candidate.contract(), &role);
                         candidates.unestablished.push(
                             UnestablishedStructuralCandidate::from_obligation(
@@ -3572,7 +3572,7 @@ impl<'tcx> Engine<'tcx> {
                         .collection
                         .as_ref()
                         .map(|value| value.substitute(&actuals));
-                    if !p6_requirement_matches_call_destination(
+                    if !p3_requirement_matches_call_destination(
                         &caller_requirement,
                         call.destination_restricted,
                     ) {
@@ -4495,13 +4495,13 @@ impl<'tcx> Engine<'tcx> {
                     .iter()
                     .map(|operand| operand.operand.clone())
                     .collect::<Vec<_>>();
-                let p6_assume_init = match &call.value {
+                let p3_assume_init = match &call.value {
                     RegistryValueModel::AssumeInit {
                         restricted_target, ..
                     } => *restricted_target,
                     _ => false,
                 };
-                if normal_edge_state.is_some() && p6_assume_init {
+                if normal_edge_state.is_some() && p3_assume_init {
                     if let Some(subject) = descriptor
                         .args
                         .first()
@@ -6301,7 +6301,7 @@ impl<'tcx> Engine<'tcx> {
                     place: PlaceKey::new("_0"),
                 };
                 let requirement = ContractRequirement {
-                    seed_id: format!("P3.lifetime:{}", item.first_failure.point.span.token()),
+                    seed_id: format!("P5.lifetime:{}", item.first_failure.point.span.token()),
                     collection: None,
                     subject: AbstractValue::new([origin.clone()]),
                     source_hint: Some(SourceKind::InternalUnsafeOrigin),
@@ -6311,7 +6311,7 @@ impl<'tcx> Engine<'tcx> {
                     sink: item.sink.clone(),
                     predicates: BTreeSet::from([Predicate::ReferentOutlivesReference]),
                     access_width: None,
-                    rule: RuleId::P3LifetimeTransmute,
+                    rule: RuleId::P5LifetimeTransmute,
                     return_exposure: true,
                     sink_function: facts.function.clone(),
                 };
@@ -6329,8 +6329,8 @@ impl<'tcx> Engine<'tcx> {
                 let collection = call.arg_values[0].value.clone();
                 let index_subject = call.arg_values[1].value.clone();
                 let constant_zero = matches!(call.args[1], CallOperand::Constant(0));
-                let p5_subject = generic_nonempty_subject(&collection, constant_zero);
-                let source_hint = if p5_subject.is_some() {
+                let p4_subject = generic_nonempty_subject(&collection, constant_zero);
+                let source_hint = if p4_subject.is_some() {
                     Some(SourceKind::GenericNonEmptyCapability)
                 } else if index_subject
                     .origins
@@ -6341,7 +6341,7 @@ impl<'tcx> Engine<'tcx> {
                 } else {
                     None
                 };
-                let subject = p5_subject.unwrap_or(index_subject);
+                let subject = p4_subject.unwrap_or(index_subject);
                 let internal_derivation = source_hint.is_none()
                     && !subject.origins.is_empty()
                     && subject.origins.iter().all(|origin| {
@@ -6353,7 +6353,7 @@ impl<'tcx> Engine<'tcx> {
                     });
                 let rule = match source_hint {
                     Some(SourceKind::GenericNonEmptyCapability) => RuleId::P51Nonempty,
-                    Some(SourceKind::OpenBehaviorOutput) => RuleId::P6OpenTraitIndex,
+                    Some(SourceKind::OpenBehaviorOutput) => RuleId::P3OpenTraitIndex,
                     _ => RuleId::P1GetUnchecked,
                 };
                 let seed_id = format!("{}:{}", rule.as_str(), call.point.span.token());
@@ -6501,7 +6501,7 @@ impl<'tcx> Engine<'tcx> {
                     .iter()
                     .any(|origin| matches!(origin, AbstractOrigin::FfiOutput { .. }))
                 {
-                    let seed_id = format!("P6.ffi:{}", call.point.span.token());
+                    let seed_id = format!("P3.ffi:{}", call.point.span.token());
                     if matches!(&call.args[0], CallOperand::Place(_)) {
                         if let Some(subject) = unique_semantic_value(&call.arg_values[0]) {
                             facts.local_bindings.insert(
@@ -6533,7 +6533,7 @@ impl<'tcx> Engine<'tcx> {
                         },
                         predicates: BTreeSet::from([Predicate::NonNull]),
                         access_width: None,
-                        rule: RuleId::P6FfiOutParam,
+                        rule: RuleId::P3FfiOutParam,
                         return_exposure: false,
                         sink_function: facts.function.clone(),
                     });
@@ -6551,7 +6551,7 @@ impl<'tcx> Engine<'tcx> {
                 }
                 if internal_only_origins(&pointer, facts.has_self) {
                     facts.summary_seed.requirements.insert(ContractRequirement {
-                        seed_id: format!("P4.offset:{}", call.point.span.token()),
+                        seed_id: format!("P6.offset:{}", call.point.span.token()),
                         collection: None,
                         subject: pointer,
                         source_hint: Some(SourceKind::InternalDerived),
@@ -6567,7 +6567,7 @@ impl<'tcx> Engine<'tcx> {
                         },
                         predicates: BTreeSet::from([Predicate::RangeInBounds]),
                         access_width: call.access_width,
-                        rule: RuleId::P4Offset,
+                        rule: RuleId::P6Offset,
                         return_exposure: false,
                         sink_function: facts.function.clone(),
                     });
@@ -9074,7 +9074,7 @@ fn assume_init_requirement(
         place: call.destination.clone(),
     };
     ContractRequirement {
-        seed_id: format!("P3.assume_init:{}", call.point.span.token()),
+        seed_id: format!("P5.assume_init:{}", call.point.span.token()),
         collection: None,
         subject: AbstractValue::new([origin]),
         source_hint: Some(SourceKind::InternalUnsafeOrigin),
@@ -9095,9 +9095,9 @@ fn assume_init_requirement(
         },
         access_width: None,
         rule: if legacy_bool_return {
-            RuleId::P3AssumeInitBool
+            RuleId::P5AssumeInitBool
         } else {
-            RuleId::P3AssumeInitUninitialized
+            RuleId::P5AssumeInitUninitialized
         },
         return_exposure: legacy_bool_return,
         sink_function: function.clone(),
@@ -9173,7 +9173,7 @@ fn ffi_invalid_value_subject(value: &ValueFacts) -> Option<AbstractValue> {
 
 fn unchecked_utf8_requirement(function: &FunctionKey, call: &CallSite) -> ContractRequirement {
     ContractRequirement {
-        seed_id: format!("P3.utf8:{}", call.point.span.token()),
+        seed_id: format!("P5.utf8:{}", call.point.span.token()),
         collection: None,
         subject: call
             .arg_values
@@ -9193,7 +9193,7 @@ fn unchecked_utf8_requirement(function: &FunctionKey, call: &CallSite) -> Contra
         },
         predicates: BTreeSet::from([Predicate::ValidUtf8]),
         access_width: None,
-        rule: RuleId::P3UncheckedUtf8,
+        rule: RuleId::P5UncheckedUtf8,
         return_exposure: false,
         sink_function: function.clone(),
     }
@@ -9205,7 +9205,7 @@ fn ffi_invalid_value_requirement(
     subject: AbstractValue,
 ) -> ContractRequirement {
     ContractRequirement {
-        seed_id: format!("P6.ffi-invalid-value:{}", point.span.token()),
+        seed_id: format!("P3.ffi-invalid-value:{}", point.span.token()),
         collection: None,
         subject,
         source_hint: Some(SourceKind::FfiOutput),
@@ -9221,17 +9221,17 @@ fn ffi_invalid_value_requirement(
         },
         predicates: BTreeSet::from([Predicate::ValidForType]),
         access_width: None,
-        rule: RuleId::P6FfiOutInvalidValue,
+        rule: RuleId::P3FfiOutInvalidValue,
         return_exposure: false,
         sink_function: function.clone(),
     }
 }
 
-fn p6_requirement_matches_call_destination(
+fn p3_requirement_matches_call_destination(
     requirement: &ContractRequirement,
     destination_restricted: bool,
 ) -> bool {
-    requirement.rule != RuleId::P6FfiOutInvalidValue
+    requirement.rule != RuleId::P3FfiOutInvalidValue
         || !requirement
             .subject
             .origins
@@ -11080,8 +11080,8 @@ fn eval_registry_value(
         RegistryValueModel::GenericCapability { inputs, evidence } => {
             // A capability source refines the provenance of the actual value;
             // it must not replace that value.  Keeping the actual endpoint
-            // sources is what lets an unproven P5 classification fall back to
-            // the lower-ranked P1/P4 causal source instead of disappearing.
+            // sources is what lets an unproven P4 classification fall back to
+            // the lower-ranked P1/P6 causal source instead of disappearing.
             let mut result =
                 join_value_facts(inputs.iter().map(|input| eval_operand(state, input)));
             result.may_be_non_length = true;
@@ -13118,7 +13118,7 @@ fn internal_derivation_safety(
     // source reads a source-local object of the compiler-known source type.
     // A formal/slice/iterator pointer may designate a larger valid region;
     // size/alignment mismatch alone is then not a precondition violation.
-    if candidate.mechanism_id() == "p4_concrete_capability_violation_v1" {
+    if candidate.mechanism_id() == "p6_concrete_capability_violation_v1" {
         return match candidate.source.as_ref() {
             EndpointNode::GenericCapability {
                 owner, evidence, ..
@@ -14228,10 +14228,10 @@ fn is_in_bounds_guard(op: BinOp) -> bool {
 fn is_internal_invalid_value_rule(rule: RuleId) -> bool {
     matches!(
         rule,
-        RuleId::P3LifetimeTransmute
-            | RuleId::P3AssumeInitBool
-            | RuleId::P3AssumeInitUninitialized
-            | RuleId::P3UncheckedUtf8
+        RuleId::P5LifetimeTransmute
+            | RuleId::P5AssumeInitBool
+            | RuleId::P5AssumeInitUninitialized
+            | RuleId::P5UncheckedUtf8
     )
 }
 
@@ -14334,7 +14334,7 @@ fn origin_matches_requirement_source(
     kind: SourceKind,
 ) -> bool {
     origin_matches_kind(origin, kind)
-        && (requirement.rule != RuleId::P6FfiOutInvalidValue
+        && (requirement.rule != RuleId::P3FfiOutInvalidValue
             || is_uninitialized_ffi_output_origin(origin))
 }
 
@@ -15300,7 +15300,7 @@ mod tests {
         });
         // A private projection cannot be supplied independently by safe
         // external code. Keeping the receiver Formal here would recreate the
-        // false P1/P6 source that the exact-field seed is meant to remove.
+        // false P1/P3 source that the exact-field seed is meant to remove.
         let private_value = eval_operand(&state, &private_read);
         assert!(private_value.endpoint_sources.is_empty());
         assert_eq!(
@@ -19591,7 +19591,7 @@ mod tests {
         );
         assert_eq!(requirement.source_hint, None);
         assert!(!requirement.return_exposure);
-        assert_eq!(requirement.rule, RuleId::P3UncheckedUtf8);
+        assert_eq!(requirement.rule, RuleId::P5UncheckedUtf8);
         assert_eq!(
             requirement.predicates,
             BTreeSet::from([Predicate::ValidUtf8])
@@ -19605,7 +19605,7 @@ mod tests {
         call.destination = PlaceKey::new("_entry");
         call.destination_is_bool = false;
         let requirement = assume_init_requirement(&function, &call, false);
-        assert_eq!(requirement.rule, RuleId::P3AssumeInitUninitialized);
+        assert_eq!(requirement.rule, RuleId::P5AssumeInitUninitialized);
         assert_eq!(
             requirement.predicates,
             BTreeSet::from([Predicate::Initialized])
@@ -20552,7 +20552,7 @@ mod tests {
         call.destination = PlaceKey::new("_0");
         call.destination_is_bool = true;
         let requirement = assume_init_requirement(&function, &call, true);
-        assert_eq!(requirement.rule, RuleId::P3AssumeInitBool);
+        assert_eq!(requirement.rule, RuleId::P5AssumeInitBool);
         assert_eq!(
             requirement.predicates,
             BTreeSet::from([Predicate::Initialized, Predicate::ValidBool])
@@ -20593,7 +20593,7 @@ mod tests {
             &point(1, 0),
             source.value.clone(),
         );
-        assert_eq!(requirement.rule, RuleId::P6FfiOutInvalidValue);
+        assert_eq!(requirement.rule, RuleId::P3FfiOutInvalidValue);
         assert_eq!(requirement.subject, AbstractValue::new([ffi_origin]));
         assert_eq!(
             requirement.predicates,
@@ -20640,11 +20640,11 @@ mod tests {
             &ordinary,
             SourceKind::FfiOutput
         ));
-        assert!(!p6_requirement_matches_call_destination(
+        assert!(!p3_requirement_matches_call_destination(
             &requirement,
             false
         ));
-        assert!(p6_requirement_matches_call_destination(&requirement, true));
+        assert!(p3_requirement_matches_call_destination(&requirement, true));
     }
 
     fn task9_is_err_call(checked: &PlaceKey, destination: &PlaceKey) -> CallModel {
@@ -20673,7 +20673,7 @@ mod tests {
     }
 
     #[test]
-    fn p3_utf8_requires_an_exact_unrestricted_byte_witness() {
+    fn p5_utf8_requires_an_exact_unrestricted_byte_witness() {
         let formal = PlaceKey::new("_1");
         let exact = ValueFacts {
             value: AbstractValue::new([AbstractOrigin::Formal(1)]),
@@ -20702,7 +20702,7 @@ mod tests {
     }
 
     #[test]
-    fn p3_utf8_distinguishes_type_and_literal_content_proofs() {
+    fn p5_utf8_distinguishes_type_and_literal_content_proofs() {
         let formal = PlaceKey::new("_1");
         let valid_str = ValueFacts {
             value: AbstractValue::new([AbstractOrigin::Formal(1)]),
@@ -23086,7 +23086,7 @@ mod tests {
                 [SourceKind::GenericNonEmptyCapability],
             )
             .0,
-            Pattern::P5
+            Pattern::P4
         );
         assert_eq!(
             classify_primary_with_secondary(
@@ -23095,7 +23095,7 @@ mod tests {
                 [SourceKind::OpenBehaviorOutput],
             )
             .0,
-            Pattern::P6
+            Pattern::P3
         );
     }
 
@@ -23107,7 +23107,7 @@ mod tests {
     }
 
     #[test]
-    fn p5_subject_and_source_bind_to_collection_capability_not_constant_zero() {
+    fn p4_subject_and_source_bind_to_collection_capability_not_constant_zero() {
         let capability = AbstractOrigin::GenericCapability {
             token: "associated-slice:crate::Provider::Results".into(),
             span: span(),
@@ -23115,7 +23115,7 @@ mod tests {
         let collection = AbstractValue::new([capability.clone(), AbstractOrigin::Formal(1)]);
         let constant_index = AbstractValue::new([AbstractOrigin::Constant(0)]);
 
-        let subject = generic_nonempty_subject(&collection, true).expect("exact P5.1 subject");
+        let subject = generic_nonempty_subject(&collection, true).expect("exact P4.1 subject");
         assert_eq!(subject.origins, BTreeSet::from([capability.clone()]));
         assert!(!subject.origins.contains(&AbstractOrigin::Constant(0)));
         assert_eq!(
@@ -23127,7 +23127,7 @@ mod tests {
     }
 
     #[test]
-    fn representation_preserving_pointer_views_do_not_seed_p5_or_p4() {
+    fn representation_preserving_pointer_views_do_not_seed_p4_or_p6() {
         let cases = [
             (
                 PointerTransformEvidence {
@@ -23287,7 +23287,7 @@ mod tests {
     }
 
     #[test]
-    fn boundary_precedence_is_closed_and_opaque_calls_do_not_carry_p6_origins() {
+    fn boundary_precedence_is_closed_and_opaque_calls_do_not_carry_p3_origins() {
         let all = BoundaryInputs {
             resolved_local: true,
             exact_ffi_out: true,
@@ -23535,7 +23535,7 @@ mod tests {
                 2,
                 true,
                 Some(SourceKind::InternalUnsafeOrigin),
-                RuleId::P3AssumeInitBool,
+                RuleId::P5AssumeInitBool,
                 &internal,
             ),
             Some(SourceKind::InternalUnsafeOrigin)
