@@ -41,7 +41,7 @@ PATTERN_SOURCE = {
     "P5": "generic_capability_gap",
     "P6": "external_behavior_output",
 }
-BINDINGS = {"bound_exact", "unbound", "ambiguous", "elided"}
+BINDINGS = {"bound_exact", "optimized_away_exact", "unbound", "ambiguous", "elided"}
 COVERAGE_REASON_BINDING = {
     "unbound_unsafe_site": "unbound",
     "ambiguous_unsafe_site": "ambiguous",
@@ -73,6 +73,7 @@ TOP_LEVEL_KEYS = {
     "observed_counts",
     "finding_count",
     "findings",
+    "missing_sanitizer_warnings",
     "code_dictionary",
 }
 
@@ -192,9 +193,9 @@ def validate_adapter(value: Any, rustc_commit: str) -> None:
 
 
 def validate_census(value: Any) -> dict[str, Any]:
-    item = exact_keys(value, {"discovered", "bound_exact", "unbound", "ambiguous", "elided", "by_kind"}, "unsafe_site_census")
-    counts = {name: integer(item[name], f"unsafe_site_census.{name}") for name in ("discovered", "bound_exact", "unbound", "ambiguous", "elided")}
-    if counts["discovered"] != sum(counts[name] for name in ("bound_exact", "unbound", "ambiguous", "elided")):
+    item = exact_keys(value, {"discovered", "bound_exact", "optimized_away_exact", "unbound", "ambiguous", "elided", "by_kind"}, "unsafe_site_census")
+    counts = {name: integer(item[name], f"unsafe_site_census.{name}") for name in ("discovered", "bound_exact", "optimized_away_exact", "unbound", "ambiguous", "elided")}
+    if counts["discovered"] != sum(counts[name] for name in ("bound_exact", "optimized_away_exact", "unbound", "ambiguous", "elided")):
         fail("unsafe site census does not reconcile")
     by_kind = item["by_kind"]
     if not isinstance(by_kind, list):
@@ -273,7 +274,11 @@ def validate_coverage(value: Any, sites: dict[str, dict[str, Any]], status: str)
         if key in seen:
             fail("coverage failures must be unique")
         seen.add(key)
-    expected_site_failures = {site_id for site_id, site in sites.items() if site["binding"] != "bound_exact"}
+    expected_site_failures = {
+        site_id
+        for site_id, site in sites.items()
+        if site["binding"] not in {"bound_exact", "optimized_away_exact"}
+    }
     if site_failures != expected_site_failures:
         fail("every non-bound site must have exactly one coverage failure")
     if status == "complete" and value:
@@ -339,11 +344,16 @@ def validate_findings(value: Any, finding_count: int, pattern_counts: dict[str, 
         root_code = digest(root["code_id"], 64, f"findings[{index}].public_safe_root.code_id")
         referenced_code.add(root_code)
 
-        source = exact_keys(finding["source"], {"kind", "identity", "span"}, f"findings[{index}].source")
+        source_keys = {"kind", "identity", "span"}
+        if "generic_capability" in finding["source"]:
+            source_keys.add("generic_capability")
+        source = exact_keys(finding["source"], source_keys, f"findings[{index}].source")
         if source["kind"] != PATTERN_SOURCE[pattern]:
             fail("primary pattern and causal source kind disagree")
         nonempty(source["identity"], f"findings[{index}].source.identity")
         validate_span(source["span"], f"findings[{index}].source.span")
+        if source.get("generic_capability") is not None and not isinstance(source["generic_capability"], dict):
+            fail("generic_capability must be an object or null")
         failure = exact_keys(finding["first_contract_failure"], {"kind", "span"}, f"findings[{index}].first_contract_failure")
         nonempty(failure["kind"], f"findings[{index}].first_contract_failure.kind")
         validate_span(failure["span"], f"findings[{index}].first_contract_failure.span")
@@ -406,7 +416,7 @@ def validate_findings(value: Any, finding_count: int, pattern_counts: dict[str, 
             fail("propagation witness requires at least entry and endpoint")
         for step_index, raw_step in enumerate(witness):
             step = exact_keys(raw_step, {"kind", "owner", "span"}, f"findings[{index}].propagation.witness[{step_index}]")
-            enum(step["kind"], {"entry", "source", "local_call", "scc_cycle", "unsafe_site", "exposure"}, f"findings[{index}].propagation.witness[{step_index}].kind")
+            enum(step["kind"], {"entry", "source", "local_call", "callback", "scc_cycle", "unsafe_site", "exposure"}, f"findings[{index}].propagation.witness[{step_index}].kind")
             nonempty(step["owner"], f"findings[{index}].propagation.witness[{step_index}].owner")
             validate_span(step["span"], f"findings[{index}].propagation.witness[{step_index}].span")
         if witness[0]["kind"] != "entry" or not any(step["kind"] == "unsafe_site" for step in witness):
@@ -432,6 +442,40 @@ def validate_findings(value: Any, finding_count: int, pattern_counts: dict[str, 
     unused = set(blocks) - referenced_code
     if unused:
         fail(f"code dictionary contains unreferenced blocks: {sorted(unused)}")
+
+
+def validate_missing_sanitizer_warnings(value: Any, findings: Any) -> None:
+    if not isinstance(value, list):
+        fail("missing_sanitizer_warnings must be an array")
+    claimed = set()
+    if not isinstance(findings, list):
+        fail("findings must be an array")
+    for finding in findings:
+        if not isinstance(finding, dict):
+            fail("finding must be an object")
+        root = finding.get("public_safe_root")
+        site = finding.get("unsafe_site")
+        owner = root.get("owner") if isinstance(root, dict) else None
+        site_id = site.get("site_id") if isinstance(site, dict) else None
+        if isinstance(owner, str) and isinstance(site_id, str):
+            claimed.add((owner, site_id))
+    seen: set[tuple[str, str]] = set()
+    for index, row in enumerate(value):
+        item = exact_keys(
+            row,
+            {"public_root_owner", "unsafe_site_id", "predicate", "sink_model"},
+            f"missing_sanitizer_warnings[{index}]",
+        )
+        owner = nonempty(item["public_root_owner"], f"missing_sanitizer_warnings[{index}].public_root_owner")
+        site_id = digest(item["unsafe_site_id"], 64, f"missing_sanitizer_warnings[{index}].unsafe_site_id")
+        enum(item["predicate"], {"nonnull", "in_bounds"}, f"missing_sanitizer_warnings[{index}].predicate")
+        nonempty(item["sink_model"], f"missing_sanitizer_warnings[{index}].sink_model")
+        key = (owner, site_id)
+        if key in seen:
+            fail(f"duplicate missing sanitizer warning for {owner} {site_id}")
+        seen.add(key)
+        if key in claimed:
+            fail("missing sanitizer warning duplicates an active finding")
 
 
 def validate_receipt(receipt: Any, schema: Any) -> None:
@@ -463,6 +507,7 @@ def validate_receipt(receipt: Any, schema: Any) -> None:
         fail("finding_count differs from observed pattern counts")
     blocks = validate_code_dictionary(item["code_dictionary"])
     validate_findings(item["findings"], finding_count, pattern_counts, sites, blocks)
+    validate_missing_sanitizer_warnings(item["missing_sanitizer_warnings"], item["findings"])
 
 
 if __name__ == "__main__":

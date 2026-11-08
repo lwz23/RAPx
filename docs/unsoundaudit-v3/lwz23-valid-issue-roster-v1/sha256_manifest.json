@@ -1,0 +1,49 @@
+{
+  "freeze_id": "lwz23-valid-issue-scan-roster-v1",
+  "counts": {
+    "authored_issues": 160,
+    "scope_excluded_issues": 2,
+    "in_scope_issues": 158,
+    "valid_issues": 148,
+    "explicitly_rebutted_or_withdrawn_issues": 10,
+    "accepted_and_fixed_issues": 27,
+    "valid_issues_on_scan_repos": 142,
+    "valid_issues_on_advisory_db": 6,
+    "scan_repositories": 125,
+    "host_repositories_including_advisory_db": 126,
+    "local_bug_instances_on_valid_issues": 241,
+    "canonical_bug_instances_after_cross_issue_dedup": 230
+  },
+  "files": [
+    {
+      "name": "ROSTER.md",
+      "sha256": "14efaeb6e08070b3d515259107c74b2ad5b6f8eb8b47705db605c480f616007a",
+      "bytes": 41708
+    },
+    {
+      "name": "roster.json",
+      "sha256": "aafea376550f64473ee155ca2a10c519748bce4ad859e816997b811cb6d38a35",
+      "bytes": 200715
+    },
+    {
+      "name": "issues.csv",
+      "sha256": "a7a48f082240697fa65511756529e6b30ac8151e74da81d152116ad1da9a912d",
+      "bytes": 35038
+    },
+    {
+      "name": "repositories.csv",
+      "sha256": "1dc79e916665264cf13c3fd17be190f29ae2cbb5b86e74a173095deee0a85c16",
+      "bytes": 19895
+    },
+    {
+      "name": "exclusions.json",
+      "sha256": "636f59cc32205030307476e0b0f4878a13d230f73137353bca0bf00cf136be67",
+      "bytes": 4053
+    },
+    {
+      "name": "source_manifest.json",
+      "sha256": "76a05da8409cc02608751d74286ab88c79e3b2f0473b24bf4c06069d11c1ca19",
+      "bytes": 1062
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "pattern": "P3",
+  "present_roots": [
+    "expose_bool",
+    "expose_enum",
+    "ffi_public_out",
+    "ptr_copy_uninitialized_then_exposed",
+    "ptr_copy_zero_then_exposed",
+    "ptr_copy_branch_then_exposed",
+    "ptr_copy_unknown_count_then_exposed",
+    "ptr_copy_two_then_exposed",
+    "ptr_write_ambiguous_then_exposed",
+    "pointer_method_write_then_exposed",
+    "write_bytes_then_exposed",
+    "ptr_copy_joined_external_then_exposed",
+    "ptr_copy_uninitialized_via_wrapping_add_then_exposed"
+  ],
+  "absent_roots": [
+    "not_exposed",
+    "expose_unknown_type",
+    "precondition_only",
+    "ptr_write_then_exposed",
+    "ptr_write_via_copied_pointer",
+    "ptr_copy_initialized_then_exposed",
+    "ptr_copy_same_source_then_exposed",
+    "ffi_initialized_then_exposed"
+  ],
+  "zero_candidate_roots": [
+    "scalar_to_bytes",
+    "pointer_to_address",
+    "initialized_then_exposed"
+  ],
+  "other_pattern_roots": {
+    "precondition_only": "P1"
+  },
+  "suppression_roots": {
+    "scalar_to_bytes": {
+      "reason": "contract_implied_by_type",
+      "candidate_pattern": "P1"
+    },
+    "pointer_to_address": {
+      "reason": "contract_implied_by_type",
+      "candidate_pattern": "P1"
+    },
+    "initialized_then_exposed": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P3",
+      "evidence_equals": {
+        "initialization_witnesses": "maybe_uninit_write@src/lib.rs:38:5-38:22"
+      }
+    },
+    "ptr_write_then_exposed": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P3",
+      "evidence_equals": {
+        "initialization_witnesses": "ptr_write@src/lib.rs:45:9-45:51"
+      }
+    },
+    "ptr_write_via_copied_pointer": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P3",
+      "evidence_equals": {
+        "initialization_witnesses": "ptr_write@src/lib.rs:55:9-55:47"
+      }
+    },
+    "ptr_copy_initialized_then_exposed": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P3",
+      "evidence_equals": {
+        "initialization_witnesses": "maybe_uninit_new@src/lib.rs:61:18-61:40,ptr_copy_nonoverlapping@src/lib.rs:64:9-64:85"
+      }
+    },
+    "ptr_copy_same_source_then_exposed": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P3",
+      "evidence_equals": {
+        "initialization_witnesses": "maybe_uninit_new@src/lib.rs:70:21-70:43,ptr_copy@src/lib.rs:73:9-73:45"
+      }
+    }
+  },
+  "unestablished_roots": {
+    "expose_unknown_type": {
+      "attempted_pattern": "P3",
+      "primary_reason": "validity_obligation_unknown"
+    },
+    "ffi_initialized_then_exposed": {
+      "attempted_pattern": "P3",
+      "primary_reason": "initialization_state_unknown"
+    }
+  }
+}

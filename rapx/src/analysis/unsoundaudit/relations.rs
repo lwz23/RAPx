@@ -261,23 +261,60 @@ impl RelationProof {
     }
 
     pub(super) fn proves_same_value(&self, left: &RelationTerm, right: &RelationTerm) -> bool {
-        left == right
-            || self
-                .relations
-                .contains(&RelationKind::Eq(left.clone(), right.clone()))
-            || self
-                .relations
-                .contains(&RelationKind::Eq(right.clone(), left.clone()))
-            || self
-                .relations
-                .contains(&RelationKind::SameObject(left.clone(), right.clone()))
-            || self
-                .relations
-                .contains(&RelationKind::SameObject(right.clone(), left.clone()))
+        let mut visited = BTreeSet::new();
+        let mut frontier = BTreeSet::from([left.clone()]);
+        while let Some(current) = frontier.pop_first() {
+            if current == *right {
+                return true;
+            }
+            if !visited.insert(current.clone()) {
+                continue;
+            }
+            for relation in &self.relations {
+                let pair = match relation {
+                    RelationKind::Eq(first, second) | RelationKind::SameObject(first, second) => {
+                        Some((first, second))
+                    }
+                    RelationKind::Le(_, _)
+                    | RelationKind::Lt(_, _)
+                    | RelationKind::AddConst { .. }
+                    | RelationKind::Sub { .. }
+                    | RelationKind::SumEq { .. }
+                    | RelationKind::Within { .. }
+                    | RelationKind::InitializedWithin { .. }
+                    | RelationKind::CapacityFor { .. } => None,
+                };
+                let Some((first, second)) = pair else {
+                    continue;
+                };
+                if first == &current && !visited.contains(second) {
+                    frontier.insert(second.clone());
+                }
+                if second == &current && !visited.contains(first) {
+                    frontier.insert(first.clone());
+                }
+            }
+        }
+        false
     }
 
     pub(super) fn proves_in_bounds(&self, subject: &RelationTerm, collection: &PlaceKey) -> bool {
-        self.proves_lt(subject, &RelationTerm::Length(collection.clone()))
+        if self.proves_lt(subject, &RelationTerm::Length(collection.clone())) {
+            return true;
+        }
+        self.relations.iter().any(|relation| {
+            let RelationKind::Lt(left, RelationTerm::Length(candidate)) = relation else {
+                return false;
+            };
+            left == subject
+                && (self.proves_same_value(
+                    &RelationTerm::Place(candidate.clone()),
+                    &RelationTerm::Place(collection.clone()),
+                ) || self.proves_same_value(
+                    &RelationTerm::Length(candidate.clone()),
+                    &RelationTerm::Length(collection.clone()),
+                ))
+        })
     }
 
     pub(super) fn proves_within(
@@ -338,6 +375,22 @@ impl RelationProof {
                             .insert(RelationKind::Le(left.clone(), right.clone()));
                         self.relations
                             .insert(RelationKind::Le(right.clone(), left.clone()));
+                        if let (
+                            RelationTerm::Place(place),
+                            RelationTerm::Projection { base, path },
+                        )
+                        | (
+                            RelationTerm::Projection { base, path },
+                            RelationTerm::Place(place),
+                        ) = (left, right)
+                        {
+                            if path.as_slice() == [ProjectionKey::Deref] {
+                                self.relations.insert(RelationKind::Eq(
+                                    RelationTerm::Length(place.clone()),
+                                    RelationTerm::Length(base.clone()),
+                                ));
+                            }
+                        }
                     }
                     RelationKind::Lt(left, right) => {
                         self.relations
@@ -459,6 +512,34 @@ mod tests {
     }
 
     #[test]
+    fn explicit_same_object_base_can_reuse_in_bounds_proof() {
+        let proof = RelationProof::from_kinds([
+            RelationKind::Lt(place("i"), length("slice")),
+            RelationKind::SameObject(place("slice_ref"), place("slice")),
+        ]);
+        assert!(proof.proves_in_bounds(&place("i"), &PlaceKey::new("slice_ref")));
+        assert!(!proof.proves_in_bounds(&place("i"), &PlaceKey::new("other")));
+    }
+
+    #[test]
+    fn explicit_object_equivalence_chain_is_transitive_but_sibling_specific() {
+        let projection = |field| RelationTerm::Projection {
+            base: PlaceKey::new("self"),
+            path: vec![ProjectionKey::Deref, ProjectionKey::Field(field)],
+        };
+        let proof = RelationProof::from_kinds([
+            RelationKind::SameObject(place("guard_slice"), place("guard_borrow")),
+            RelationKind::Eq(place("guard_borrow"), projection(0)),
+            RelationKind::Eq(place("sink_borrow"), projection(0)),
+            RelationKind::SameObject(place("sink_slice"), place("sink_borrow")),
+            RelationKind::Eq(place("sibling_borrow"), projection(1)),
+            RelationKind::SameObject(place("sibling_slice"), place("sibling_borrow")),
+        ]);
+        assert!(proof.proves_same_value(&place("guard_slice"), &place("sink_slice")));
+        assert!(!proof.proves_same_value(&place("guard_slice"), &place("sibling_slice")));
+    }
+
+    #[test]
     fn same_value_requires_explicit_equality_or_object_identity() {
         let proof = RelationProof::from_kinds([
             RelationKind::Eq(place("alias_a"), place("alias_b")),
@@ -467,6 +548,22 @@ mod tests {
         ]);
         assert!(proof.proves_same_value(&place("alias_a"), &place("alias_b")));
         assert!(!proof.proves_same_value(&place("ordered_a"), &place("ordered_b")));
+    }
+
+    #[test]
+    fn deref_projection_equates_container_and_slice_lengths() {
+        let proof = RelationProof::from_kinds([
+            RelationKind::Lt(place("i"), length("vec")),
+            RelationKind::Eq(
+                place("slice"),
+                RelationTerm::Projection {
+                    base: PlaceKey::new("vec"),
+                    path: vec![ProjectionKey::Deref],
+                },
+            ),
+        ]);
+        assert!(proof.proves_in_bounds(&place("i"), &PlaceKey::new("slice")));
+        assert!(!proof.proves_in_bounds(&place("i"), &PlaceKey::new("other")));
     }
 
     #[test]

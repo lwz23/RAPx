@@ -5,302 +5,817 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "source", "success", "analysis_status",
-    "unit_id", "rustc_invocation_id", "package_id", "package_name",
-    "package_version", "crate_name", "crate_types", "target_kind",
-    "target_triple", "manifest_path", "source_path",
-    "cargo_supplied_rustc_commit", "rap_compiler_commit", "rustc_commit",
-    "toolchain_adapter", "unsafe_site_census", "unsafe_sites",
-    "coverage_failures", "observed_counts", "finding_count", "findings",
+    "schema_version",
+    "source",
+    "success",
+    "analysis_status",
+    "unit_id",
+    "rustc_invocation_id",
+    "package_id",
+    "package_name",
+    "package_version",
+    "crate_name",
+    "crate_types",
+    "target_kind",
+    "target_triple",
+    "manifest_path",
+    "source_path",
+    "cargo_supplied_rustc_commit",
+    "rap_compiler_commit",
+    "rustc_commit",
+    "toolchain_adapter",
+    "unsafe_site_census",
+    "unsafe_sites",
+    "coverage_failures",
+    "observed_counts",
+    "finding_count",
+    "findings",
+    "missing_sanitizer_warnings",
     "code_dictionary"
   ],
   "properties": {
-    "schema_version": { "const": "rap-unit-v3" },
-    "source": { "const": "rap" },
-    "success": { "const": true },
-    "analysis_status": { "enum": ["complete", "partial"] },
-    "unit_id": { "$ref": "#/$defs/nonempty" },
-    "rustc_invocation_id": { "$ref": "#/$defs/nonempty" },
-    "package_id": { "$ref": "#/$defs/nonempty" },
-    "package_name": { "$ref": "#/$defs/nonempty" },
-    "package_version": { "$ref": "#/$defs/nonempty" },
-    "crate_name": { "$ref": "#/$defs/nonempty" },
-    "crate_types": {
-      "type": "array", "minItems": 1, "uniqueItems": true,
-      "items": { "$ref": "#/$defs/nonempty" }
+    "schema_version": {
+      "const": "rap-unit-v3"
     },
-    "target_kind": { "$ref": "#/$defs/nonempty" },
-    "target_triple": { "$ref": "#/$defs/nonempty" },
-    "manifest_path": { "$ref": "#/$defs/relative_path" },
-    "source_path": { "$ref": "#/$defs/relative_path" },
-    "cargo_supplied_rustc_commit": { "$ref": "#/$defs/commit" },
-    "rap_compiler_commit": { "$ref": "#/$defs/commit" },
-    "rustc_commit": { "$ref": "#/$defs/commit" },
-    "toolchain_adapter": { "$ref": "#/$defs/toolchain_adapter" },
-    "unsafe_site_census": { "$ref": "#/$defs/census" },
+    "source": {
+      "const": "rap"
+    },
+    "success": {
+      "const": true
+    },
+    "analysis_status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "unit_id": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "rustc_invocation_id": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "package_id": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "package_name": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "package_version": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "crate_name": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "crate_types": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonempty"
+      }
+    },
+    "target_kind": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "target_triple": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "manifest_path": {
+      "$ref": "#/$defs/relative_path"
+    },
+    "source_path": {
+      "$ref": "#/$defs/relative_path"
+    },
+    "cargo_supplied_rustc_commit": {
+      "$ref": "#/$defs/commit"
+    },
+    "rap_compiler_commit": {
+      "$ref": "#/$defs/commit"
+    },
+    "rustc_commit": {
+      "$ref": "#/$defs/commit"
+    },
+    "toolchain_adapter": {
+      "$ref": "#/$defs/toolchain_adapter"
+    },
+    "unsafe_site_census": {
+      "$ref": "#/$defs/census"
+    },
     "unsafe_sites": {
-      "type": "array", "items": { "$ref": "#/$defs/site_record" }
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/site_record"
+      }
     },
     "coverage_failures": {
-      "type": "array", "items": { "$ref": "#/$defs/coverage_failure" }
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coverage_failure"
+      }
     },
-    "observed_counts": { "$ref": "#/$defs/observed_counts" },
-    "finding_count": { "$ref": "#/$defs/count" },
+    "observed_counts": {
+      "$ref": "#/$defs/observed_counts"
+    },
+    "finding_count": {
+      "$ref": "#/$defs/count"
+    },
     "findings": {
-      "type": "array", "items": { "$ref": "#/$defs/finding" }
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "missing_sanitizer_warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/missing_sanitizer_warning"
+      }
     },
     "code_dictionary": {
-      "type": "array", "items": { "$ref": "#/$defs/code_block" }
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/code_block"
+      }
     }
   },
   "$defs": {
-    "nonempty": { "type": "string", "minLength": 1 },
-    "count": { "type": "integer", "minimum": 0 },
-    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "relative_path": {
       "type": "string",
       "minLength": 1,
       "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$)).+$"
     },
     "position": {
-      "type": "object", "additionalProperties": false,
-      "required": ["line", "column"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "line",
+        "column"
+      ],
       "properties": {
-        "line": { "type": "integer", "minimum": 1 },
-        "column": { "type": "integer", "minimum": 1 }
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "column": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
     "span": {
-      "type": "object", "additionalProperties": false,
-      "required": ["path", "start", "end"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "start",
+        "end"
+      ],
       "properties": {
-        "path": { "$ref": "#/$defs/relative_path" },
-        "start": { "$ref": "#/$defs/position" },
-        "end": { "$ref": "#/$defs/position" }
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "start": {
+          "$ref": "#/$defs/position"
+        },
+        "end": {
+          "$ref": "#/$defs/position"
+        }
       }
     },
     "site_kind": {
       "enum": [
-        "unsafe_call", "inline_assembly", "restricted_validity_initialization",
-        "unsafe_field_initialization", "unsafe_field_use", "mutable_static_access",
-        "extern_static_access", "raw_pointer_dereference", "union_field_access",
-        "layout_constrained_mutation", "layout_constrained_borrow",
-        "target_feature_call", "unsafe_binder_cast", "explicit_drop_call"
+        "unsafe_call",
+        "inline_assembly",
+        "restricted_validity_initialization",
+        "unsafe_field_initialization",
+        "unsafe_field_use",
+        "mutable_static_access",
+        "extern_static_access",
+        "raw_pointer_dereference",
+        "union_field_access",
+        "layout_constrained_mutation",
+        "layout_constrained_borrow",
+        "target_feature_call",
+        "unsafe_binder_cast",
+        "explicit_drop_call"
       ]
     },
     "toolchain_adapter": {
-      "type": "object", "additionalProperties": false,
-      "required": ["adapter_id", "rustc_commit", "checker_sha256", "emitted_kinds"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapter_id",
+        "rustc_commit",
+        "checker_sha256",
+        "emitted_kinds"
+      ],
       "properties": {
-        "adapter_id": { "$ref": "#/$defs/nonempty" },
-        "rustc_commit": { "$ref": "#/$defs/commit" },
-        "checker_sha256": { "$ref": "#/$defs/sha256" },
+        "adapter_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "rustc_commit": {
+          "$ref": "#/$defs/commit"
+        },
+        "checker_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "emitted_kinds": {
-          "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "$ref": "#/$defs/site_kind" }
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/site_kind"
+          }
         }
       }
     },
     "kind_count": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "count"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "count"
+      ],
       "properties": {
-        "kind": { "$ref": "#/$defs/site_kind" },
-        "count": { "$ref": "#/$defs/count" }
+        "kind": {
+          "$ref": "#/$defs/site_kind"
+        },
+        "count": {
+          "$ref": "#/$defs/count"
+        }
       }
     },
     "census": {
-      "type": "object", "additionalProperties": false,
-      "required": ["discovered", "bound_exact", "unbound", "ambiguous", "elided", "by_kind"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discovered",
+        "bound_exact",
+        "optimized_away_exact",
+        "unbound",
+        "ambiguous",
+        "elided",
+        "by_kind"
+      ],
       "properties": {
-        "discovered": { "$ref": "#/$defs/count" },
-        "bound_exact": { "$ref": "#/$defs/count" },
-        "unbound": { "$ref": "#/$defs/count" },
-        "ambiguous": { "$ref": "#/$defs/count" },
-        "elided": { "$ref": "#/$defs/count" },
+        "discovered": {
+          "$ref": "#/$defs/count"
+        },
+        "bound_exact": {
+          "$ref": "#/$defs/count"
+        },
+        "optimized_away_exact": {
+          "$ref": "#/$defs/count"
+        },
+        "unbound": {
+          "$ref": "#/$defs/count"
+        },
+        "ambiguous": {
+          "$ref": "#/$defs/count"
+        },
+        "elided": {
+          "$ref": "#/$defs/count"
+        },
         "by_kind": {
-          "type": "array", "items": { "$ref": "#/$defs/kind_count" }
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/kind_count"
+          }
         }
       }
     },
     "site_record": {
-      "type": "object", "additionalProperties": false,
-      "required": ["site_id", "kind", "owner", "span", "binding", "candidate_count"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "kind",
+        "owner",
+        "span",
+        "binding",
+        "candidate_count"
+      ],
       "properties": {
-        "site_id": { "$ref": "#/$defs/sha256" },
-        "kind": { "$ref": "#/$defs/site_kind" },
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" },
-        "binding": { "enum": ["bound_exact", "unbound", "ambiguous", "elided"] },
-        "candidate_count": { "$ref": "#/$defs/count" }
+        "site_id": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kind": {
+          "$ref": "#/$defs/site_kind"
+        },
+        "owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "binding": {
+          "enum": [
+            "bound_exact",
+            "optimized_away_exact",
+            "unbound",
+            "ambiguous",
+            "elided"
+          ]
+        },
+        "candidate_count": {
+          "$ref": "#/$defs/count"
+        }
       }
     },
     "coverage_failure": {
-      "type": "object", "additionalProperties": false,
-      "required": ["reason", "owner", "site_id", "candidate_count"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "owner",
+        "site_id",
+        "candidate_count"
+      ],
       "properties": {
         "reason": {
           "enum": [
-            "collector_missing_after_steal", "collector_failed",
-            "unbound_unsafe_site", "ambiguous_unsafe_site", "elided_unsafe_site"
+            "collector_missing_after_steal",
+            "collector_failed",
+            "unbound_unsafe_site",
+            "ambiguous_unsafe_site",
+            "elided_unsafe_site"
           ]
         },
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "site_id": {
-          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        "owner": {
+          "$ref": "#/$defs/nonempty"
         },
-        "candidate_count": { "$ref": "#/$defs/count" }
+        "site_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate_count": {
+          "$ref": "#/$defs/count"
+        }
       }
     },
     "observed_counts": {
-      "type": "object", "additionalProperties": false,
-      "required": ["semantics", "pattern1", "pattern2", "pattern3", "pattern4", "pattern5", "pattern6"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantics",
+        "pattern1",
+        "pattern2",
+        "pattern3",
+        "pattern4",
+        "pattern5",
+        "pattern6"
+      ],
       "properties": {
-        "semantics": { "enum": ["exact", "lower_bound"] },
-        "pattern1": { "$ref": "#/$defs/count" },
-        "pattern2": { "$ref": "#/$defs/count" },
-        "pattern3": { "$ref": "#/$defs/count" },
-        "pattern4": { "$ref": "#/$defs/count" },
-        "pattern5": { "$ref": "#/$defs/count" },
-        "pattern6": { "$ref": "#/$defs/count" }
+        "semantics": {
+          "enum": [
+            "exact",
+            "lower_bound"
+          ]
+        },
+        "pattern1": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern2": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern3": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern4": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern5": {
+          "$ref": "#/$defs/count"
+        },
+        "pattern6": {
+          "$ref": "#/$defs/count"
+        }
       }
     },
     "root": {
-      "type": "object", "additionalProperties": false,
-      "required": ["owner", "span", "code_id"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "span",
+        "code_id"
+      ],
       "properties": {
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" },
-        "code_id": { "$ref": "#/$defs/sha256" }
+        "owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "code_id": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "source": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "identity", "span"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "identity",
+        "span"
+      ],
       "properties": {
         "kind": {
           "enum": [
-            "public_parameter", "public_field", "internal_unsafe_origin",
-            "internal_derivation", "generic_capability_gap", "external_behavior_output"
+            "public_parameter",
+            "public_field",
+            "internal_unsafe_origin",
+            "internal_derivation",
+            "generic_capability_gap",
+            "external_behavior_output"
           ]
         },
-        "identity": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" }
+        "identity": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "generic_capability": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
       }
     },
     "failure": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "span"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "span"
+      ],
       "properties": {
-        "kind": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" }
+        "kind": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        }
       }
     },
     "unsafe_site_ref": {
-      "type": "object", "additionalProperties": false,
-      "required": ["site_id", "kind", "owner", "span", "callee", "operands", "destination", "binding"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "kind",
+        "owner",
+        "span",
+        "callee",
+        "operands",
+        "destination",
+        "binding"
+      ],
       "properties": {
-        "site_id": { "$ref": "#/$defs/sha256" },
-        "kind": { "$ref": "#/$defs/site_kind" },
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" },
-        "callee": { "type": ["string", "null"] },
-        "operands": {
-          "type": "array", "uniqueItems": true,
-          "items": { "$ref": "#/$defs/nonempty" }
+        "site_id": {
+          "$ref": "#/$defs/sha256"
         },
-        "destination": { "type": ["string", "null"] },
-        "binding": { "enum": ["bound_exact", "low_confidence"] }
+        "kind": {
+          "$ref": "#/$defs/site_kind"
+        },
+        "owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "callee": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operands": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "destination": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "binding": {
+          "enum": [
+            "bound_exact",
+            "low_confidence"
+          ]
+        }
       }
     },
     "safety_doc": {
-      "type": "object", "additionalProperties": false,
-      "required": ["status", "code_id", "reason"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "code_id",
+        "reason"
+      ],
       "properties": {
-        "status": { "enum": ["available", "unavailable"] },
-        "code_id": {
-          "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }]
+        "status": {
+          "enum": [
+            "available",
+            "unavailable"
+          ]
         },
-        "reason": { "type": ["string", "null"] }
+        "code_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "contract": {
-      "type": "object", "additionalProperties": false,
-      "required": ["precision", "model_id", "relevant_roles", "obligation", "safety_doc"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "precision",
+        "model_id",
+        "relevant_roles",
+        "obligation",
+        "safety_doc"
+      ],
       "properties": {
-        "precision": { "enum": ["precise", "generic", "opaque"] },
-        "model_id": { "type": ["string", "null"] },
-        "relevant_roles": {
-          "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "$ref": "#/$defs/nonempty" }
+        "precision": {
+          "enum": [
+            "precise",
+            "generic",
+            "opaque"
+          ]
         },
-        "obligation": { "type": ["object", "null"] },
-        "safety_doc": { "$ref": "#/$defs/safety_doc" }
+        "model_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "relevant_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
+        },
+        "obligation": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "safety_doc": {
+          "$ref": "#/$defs/safety_doc"
+        }
       }
     },
     "witness_step": {
-      "type": "object", "additionalProperties": false,
-      "required": ["kind", "owner", "span"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "owner",
+        "span"
+      ],
       "properties": {
-        "kind": { "enum": ["entry", "source", "local_call", "scc_cycle", "unsafe_site", "exposure"] },
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "span": { "$ref": "#/$defs/span" }
+        "kind": {
+          "enum": [
+            "entry",
+            "source",
+            "local_call",
+            "callback",
+            "scc_cycle",
+            "unsafe_site",
+            "exposure"
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        }
       }
     },
     "propagation": {
-      "type": "object", "additionalProperties": false,
-      "required": ["depth", "boundaries", "witness"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "depth",
+        "boundaries",
+        "witness"
+      ],
       "properties": {
-        "depth": { "enum": ["intra_procedural", "inter_procedural", "recursive"] },
+        "depth": {
+          "enum": [
+            "intra_procedural",
+            "inter_procedural",
+            "recursive"
+          ]
+        },
         "boundaries": {
-          "type": "array", "uniqueItems": true,
-          "items": { "$ref": "#/$defs/nonempty" }
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nonempty"
+          }
         },
         "witness": {
-          "type": "array", "minItems": 2,
-          "items": { "$ref": "#/$defs/witness_step" }
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/witness_step"
+          }
         }
       }
     },
     "finding": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": [
-        "finding_id", "primary_pattern", "mechanism_id", "classification_confidence",
-        "public_safe_root", "source", "first_contract_failure", "unsafe_site",
-        "exposure", "contract", "propagation", "code_refs"
+        "finding_id",
+        "primary_pattern",
+        "mechanism_id",
+        "classification_confidence",
+        "public_safe_root",
+        "source",
+        "first_contract_failure",
+        "unsafe_site",
+        "exposure",
+        "contract",
+        "propagation",
+        "code_refs"
       ],
       "properties": {
-        "finding_id": { "$ref": "#/$defs/sha256" },
-        "primary_pattern": { "enum": ["P1", "P2", "P3", "P4", "P5", "P6"] },
-        "mechanism_id": { "$ref": "#/$defs/nonempty" },
-        "classification_confidence": { "enum": ["exact", "structural"] },
-        "public_safe_root": { "$ref": "#/$defs/root" },
-        "source": { "$ref": "#/$defs/source" },
-        "first_contract_failure": { "$ref": "#/$defs/failure" },
-        "unsafe_site": { "$ref": "#/$defs/unsafe_site_ref" },
-        "exposure": {
-          "oneOf": [{ "$ref": "#/$defs/failure" }, { "type": "null" }]
+        "finding_id": {
+          "$ref": "#/$defs/sha256"
         },
-        "contract": { "$ref": "#/$defs/contract" },
-        "propagation": { "$ref": "#/$defs/propagation" },
+        "primary_pattern": {
+          "enum": [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6"
+          ]
+        },
+        "mechanism_id": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "classification_confidence": {
+          "enum": [
+            "exact",
+            "structural"
+          ]
+        },
+        "public_safe_root": {
+          "$ref": "#/$defs/root"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "first_contract_failure": {
+          "$ref": "#/$defs/failure"
+        },
+        "unsafe_site": {
+          "$ref": "#/$defs/unsafe_site_ref"
+        },
+        "exposure": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/failure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contract": {
+          "$ref": "#/$defs/contract"
+        },
+        "propagation": {
+          "$ref": "#/$defs/propagation"
+        },
         "code_refs": {
-          "type": "array", "minItems": 1, "uniqueItems": true,
-          "items": { "$ref": "#/$defs/sha256" }
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "missing_sanitizer_warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public_root_owner",
+        "unsafe_site_id",
+        "predicate",
+        "sink_model"
+      ],
+      "properties": {
+        "public_root_owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "unsafe_site_id": {
+          "$ref": "#/$defs/sha256"
+        },
+        "predicate": {
+          "enum": [
+            "nonnull",
+            "in_bounds"
+          ]
+        },
+        "sink_model": {
+          "$ref": "#/$defs/nonempty"
         }
       }
     },
     "code_block": {
-      "type": "object", "additionalProperties": false,
-      "required": ["code_id", "kind", "owner", "path", "span", "sha256", "text"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code_id",
+        "kind",
+        "owner",
+        "path",
+        "span",
+        "sha256",
+        "text"
+      ],
       "properties": {
-        "code_id": { "$ref": "#/$defs/sha256" },
-        "kind": { "enum": ["function_body", "signature", "safety_doc"] },
-        "owner": { "$ref": "#/$defs/nonempty" },
-        "path": { "$ref": "#/$defs/relative_path" },
-        "span": { "$ref": "#/$defs/span" },
-        "sha256": { "$ref": "#/$defs/sha256" },
-        "text": { "type": "string" }
+        "code_id": {
+          "$ref": "#/$defs/sha256"
+        },
+        "kind": {
+          "enum": [
+            "function_body",
+            "signature",
+            "safety_doc"
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "path": {
+          "$ref": "#/$defs/relative_path"
+        },
+        "span": {
+          "$ref": "#/$defs/span"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "text": {
+          "type": "string"
+        }
       }
     }
   }

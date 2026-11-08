@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 const TRACE_ENV: &str = "UNSOUND_SCANNER_PERF_TRACE";
-const TRACE_SCHEMA: &str = "unsoundaudit-v2-perf-trace-v1";
+const TRACE_SCHEMA: &str = "unsoundaudit-v2-perf-trace-v2";
 
 pub(super) struct PerfTrace {
     writer: Option<BufWriter<File>>,
@@ -16,6 +16,10 @@ pub(super) struct PerfTrace {
 }
 
 impl PerfTrace {
+    pub(super) fn is_enabled(&self) -> bool {
+        self.writer.is_some()
+    }
+
     pub(super) fn from_environment() -> Result<Self, String> {
         match env::var_os(TRACE_ENV) {
             Some(path) => Self::create(PathBuf::from(path), Instant::now()),
@@ -63,9 +67,9 @@ impl PerfTrace {
             return Ok(());
         };
         validate_name("phase", phase)?;
-        if !matches!(event, "begin" | "end") {
+        if !matches!(event, "begin" | "end" | "checkpoint") {
             return Err(format!(
-                "UnsoundAudit performance trace event must be 'begin' or 'end', got '{event}'"
+                "UnsoundAudit performance trace event must be 'begin', 'end', or 'checkpoint', got '{event}'"
             ));
         }
         let mut count_values = Map::new();
@@ -199,9 +203,37 @@ mod tests {
     #[test]
     fn disabled_trace_writes_nothing_and_accepts_balanced_events() {
         let mut trace = PerfTrace::disabled(Instant::now());
+        assert!(!trace.is_enabled());
         trace.event("analysis", "begin", []).unwrap();
+        trace
+            .event("analysis_progress", "checkpoint", [("ordinal", 1)])
+            .unwrap();
         trace.event("analysis", "end", [("success", 1)]).unwrap();
         trace.finish().unwrap();
+    }
+
+    #[test]
+    fn checkpoint_flushes_without_changing_active_phase_accounting() {
+        let path = fresh_path("checkpoint-trace");
+        assert_eq!(TRACE_SCHEMA, "unsoundaudit-v2-perf-trace-v2");
+        let mut trace = PerfTrace::create(&path, Instant::now()).unwrap();
+        assert!(trace.is_enabled());
+        trace.event("analysis", "begin", []).unwrap();
+        trace
+            .event("analysis_progress", "checkpoint", [("ordinal", 1)])
+            .unwrap();
+        trace.event("analysis", "end", []).unwrap();
+        trace.finish().unwrap();
+
+        let records = fs::read_to_string(&path)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str::<Value>(line).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(records.len(), 3);
+        assert_eq!(records[1]["event"], "checkpoint");
+        assert_eq!(records[1]["counts"]["ordinal"], 1);
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

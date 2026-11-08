@@ -9,8 +9,8 @@ use rustc_attr_ir::LangItem;
 use rustc_hir::Safety;
 use rustc_middle::mir::visit::{PlaceContext, Visitor};
 use rustc_middle::mir::{
-    AggregateKind, Body, CastKind, Location, Place, PlaceElem, ProjectionElem, Rvalue,
-    StatementKind, TerminatorKind,
+    AggregateKind, Body, CastKind, Location, NonDivergingIntrinsic, Place, PlaceElem,
+    ProjectionElem, Rvalue, StatementKind, TerminatorKind,
 };
 use rustc_middle::ty::{self, Ty, TyCtxt};
 use rustc_span::def_id::{DefId, LocalDefId};
@@ -29,6 +29,76 @@ use super::{
 pub(crate) enum MirStage {
     Built,
     Solver,
+}
+
+/// An owned, deliberately conservative summary of the compiler type's
+/// validity domain.  It records only facts that remain meaningful after the
+/// rustc `Ty<'tcx>` has gone away; `Unknown` is preferable to inferring a
+/// language invariant from a formatted type name.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum TypeValidityClass {
+    AllBitsValidScalar,
+    AllBitsValidBytes,
+    AllBitsValidStructural,
+    AllBitsValidRawPointer,
+    RestrictedScalar,
+    RestrictedStructural,
+    ReferenceOrFunctionPointer,
+    RestrictedEnum,
+    UninitializedOrPadding,
+    #[default]
+    Unknown,
+}
+
+impl TypeValidityClass {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::AllBitsValidScalar => "all_bits_valid_scalar",
+            Self::AllBitsValidBytes => "all_bits_valid_bytes",
+            Self::AllBitsValidStructural => "all_bits_valid_structural",
+            Self::AllBitsValidRawPointer => "all_bits_valid_raw_pointer",
+            Self::RestrictedScalar => "restricted_scalar",
+            Self::RestrictedStructural => "restricted_structural",
+            Self::ReferenceOrFunctionPointer => "reference_or_function_pointer",
+            Self::RestrictedEnum => "restricted_enum",
+            Self::UninitializedOrPadding => "uninitialized_or_padding",
+            Self::Unknown => "unknown",
+        }
+    }
+
+    /// Whether every byte read from a valid value of this type is known to be
+    /// initialized.  Raw/reference/function-pointer values do satisfy this
+    /// narrow byte-initialization fact; whether a target pointer/reference has
+    /// valid provenance or lifetime is a separate, directional obligation.
+    /// Aggregates with possible padding, unions (including `MaybeUninit`) and
+    /// opaque ADTs intentionally do not satisfy this predicate.
+    pub(crate) fn guarantees_initialized_bytes(self) -> bool {
+        matches!(
+            self,
+            Self::AllBitsValidScalar
+                | Self::AllBitsValidBytes
+                | Self::AllBitsValidStructural
+                | Self::AllBitsValidRawPointer
+                | Self::RestrictedScalar
+                | Self::RestrictedStructural
+                | Self::ReferenceOrFunctionPointer
+        )
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct MirTypeValidity {
+    pub operands: Vec<(OperandRole, TypeValidityClass)>,
+    pub result: TypeValidityClass,
+}
+
+impl MirTypeValidity {
+    pub(crate) fn operand(&self, role: &OperandRole) -> TypeValidityClass {
+        self.operands
+            .iter()
+            .find_map(|(candidate, class)| (candidate == role).then_some(*class))
+            .unwrap_or(TypeValidityClass::Unknown)
+    }
 }
 
 fn place_key(place: Place<'_>) -> PlaceKey {
@@ -61,6 +131,7 @@ pub(crate) struct MirEventAnchor {
     pub operands: Vec<MirOperandAnchor>,
     pub result_type: Option<String>,
     pub result_place: Option<PlaceKey>,
+    pub type_validity: MirTypeValidity,
     pub shape: String,
     pub location: MirEventLocation,
 }
@@ -83,6 +154,7 @@ pub(crate) struct BoundUnsafeSite {
     pub solver: MirEventLocation,
     pub operands: Vec<MirOperandAnchor>,
     pub result_place: Option<PlaceKey>,
+    pub type_validity: MirTypeValidity,
 }
 
 impl BoundUnsafeSite {
@@ -108,6 +180,12 @@ impl BoundUnsafeSite {
                 .as_ref()
                 .expect("bound site has solver MIR event")
                 .result_place
+                .clone(),
+            type_validity: record
+                .solver_event
+                .as_ref()
+                .expect("bound site has solver MIR event")
+                .type_validity
                 .clone(),
         })
     }
@@ -147,6 +225,13 @@ pub(crate) fn maybe_write_binding_sidecar(
                         "type_fingerprint": operand.type_fingerprint,
                     })).collect::<Vec<_>>(),
                     "result_type": event.result_type,
+                    "type_validity": {
+                        "operands": event.type_validity.operands.iter().map(|(role, class)| json!({
+                            "role": role.canonical_token(),
+                            "class": class.as_str(),
+                        })).collect::<Vec<_>>(),
+                        "result": event.type_validity.result.as_str(),
+                    },
                     "shape": event.shape,
                     "location": location_json(&event.location),
                 })
@@ -175,6 +260,7 @@ pub(crate) fn maybe_write_binding_sidecar(
 fn binding_status_name(status: BindingStatus) -> &'static str {
     match status {
         BindingStatus::BoundExact => "bound_exact",
+        BindingStatus::OptimizedAwayExact => "optimized_away_exact",
         BindingStatus::Unbound => "unbound",
         BindingStatus::Ambiguous => "ambiguous",
         BindingStatus::Elided => "elided",
@@ -254,7 +340,10 @@ pub(crate) fn bind_owner(
                 records[index].status = BindingStatus::Ambiguous;
             }
             (ComponentResolution::Unique(built), ComponentResolution::NoCandidate) => {
-                records[index].status = BindingStatus::Elided;
+                // Solver MIR enumeration is complete for this owner. A single
+                // exact built-MIR event with no solver event was eliminated by
+                // the compiler and cannot contribute a runtime candidate.
+                records[index].status = BindingStatus::OptimizedAwayExact;
                 records[index].built = Some(ordered_built[built].location.clone());
             }
             (ComponentResolution::Unique(_), ComponentResolution::Ambiguous) => {
@@ -359,40 +448,77 @@ fn candidate_matrix(sites: &[&UnsafeSiteSeed], events: &[&MirEventAnchor]) -> Ve
     sites
         .iter()
         .map(|site| {
-            events
+            let structural = events
                 .iter()
                 .enumerate()
-                .filter_map(|(index, event)| compatible(site, event).then_some(index))
+                .filter_map(|(index, event)| {
+                    structurally_compatible(site, event).then_some((index, event))
+                })
+                .collect::<Vec<_>>();
+            let exact = structural
+                .iter()
+                .filter_map(|(index, event)| (site.raw_span == event.raw_span).then_some(*index))
+                .collect::<Vec<_>>();
+            if !exact.is_empty() {
+                return exact;
+            }
+            let shared_raw_boundary = structural
+                .iter()
+                .filter_map(|(index, event)| {
+                    raw_span_shares_boundary(&site.raw_span, &event.raw_span).then_some(*index)
+                })
+                .collect::<Vec<_>>();
+            if !shared_raw_boundary.is_empty() {
+                return shared_raw_boundary;
+            }
+            let hygienic_containment = structural
+                .iter()
+                .filter_map(|(index, event)| {
+                    (span_contains(&site.raw_span, &event.raw_span)
+                        || span_contains(&event.raw_span, &site.raw_span))
+                    .then_some(*index)
+                })
+                .collect::<Vec<_>>();
+            if !hygienic_containment.is_empty() {
+                return hygienic_containment;
+            }
+            structural
+                .into_iter()
+                .filter_map(|(index, event)| {
+                    span_compatible(&site.raw_span, &event.raw_span).then_some(index)
+                })
                 .collect()
         })
         .collect()
 }
 
-fn compatible(site: &UnsafeSiteSeed, event: &MirEventAnchor) -> bool {
+fn structurally_compatible(site: &UnsafeSiteSeed, event: &MirEventAnchor) -> bool {
     let lowered_transmute = event.shape == "unsafe_call:lowered_transmute";
+    let lowered_assume = event.shape == "unsafe_call:lowered_assume";
+    let lowered_call = lowered_transmute || lowered_assume;
     if site.owner != event.owner
         || site.kind != event.kind
-        || !span_compatible(&site.raw_span, &event.raw_span)
-        || (!lowered_transmute && event.shape != site.kind.as_str())
+        || (!lowered_call && event.shape != site.kind.as_str())
         || site.result.as_ref().map(|result| &result.type_fingerprint) != event.result_type.as_ref()
     {
         return false;
     }
     match site.kind {
-        UnsafeSiteKind::UnsafeCall => match &site.callee {
+        UnsafeSiteKind::UnsafeCall if !lowered_call => match &site.callee {
             Some(callee) if event.indirect_call || event.callee.as_ref() != Some(callee) => {
                 return false
             }
             None if !event.indirect_call || event.callee.is_some() => return false,
             _ => {}
         },
+        UnsafeSiteKind::UnsafeCall => {}
         _ if site.callee != event.callee => return false,
         _ => {}
     }
     let site_operands = site
         .operands
         .iter()
-        .filter(|operand| !lowered_transmute || operand.role != OperandRole::Callee)
+        .filter(|operand| !lowered_call || operand.role != OperandRole::Callee)
         .collect::<Vec<_>>();
     site_operands.len() == event.operands.len()
         && site_operands
@@ -498,12 +624,40 @@ pub(crate) fn enumerate_mir_events<'tcx>(
     let mut events = collector.events;
     for (block, data) in body.basic_blocks.iter_enumerated() {
         for (statement_index, statement) in data.statements.iter().enumerate() {
-            let StatementKind::Assign(box (destination, rvalue)) = &statement.kind else {
-                continue;
-            };
             let location = Location {
                 block,
                 statement_index,
+            };
+            if let StatementKind::Intrinsic(intrinsic) = &statement.kind {
+                if let NonDivergingIntrinsic::Assume(condition) = &**intrinsic {
+                    push_event(
+                        tcx,
+                        body,
+                        &owner,
+                        stage,
+                        location,
+                        statement.source_info.span,
+                        UnsafeSiteKind::UnsafeCall,
+                        None,
+                        false,
+                        vec![(
+                            OperandRole::Argument(0),
+                            condition.ty(&body.local_decls, tcx),
+                            condition.place().map(place_key),
+                        )],
+                        Some(tcx.types.unit),
+                        None,
+                        &mut events,
+                    )?;
+                    events
+                        .last_mut()
+                        .expect("assume event was just inserted")
+                        .shape = "unsafe_call:lowered_assume".to_string();
+                }
+                continue;
+            }
+            let StatementKind::Assign(box (destination, rvalue)) = &statement.kind else {
+                continue;
             };
             if let Rvalue::Aggregate(kind, _) = rvalue {
                 if let AggregateKind::Adt(def, variant, ..) = &**kind {
@@ -709,6 +863,15 @@ fn push_event<'tcx>(
         .lint_root(&body.source_scopes);
     let event = u32::try_from(events.len())
         .map_err(|_| "owner MIR unsafe-event count exceeds u32".to_string())?;
+    let type_validity = MirTypeValidity {
+        operands: operands
+            .iter()
+            .map(|(role, ty, _)| (role.clone(), classify_mir_type(*ty)))
+            .collect(),
+        result: result_type
+            .map(classify_mir_type)
+            .unwrap_or(TypeValidityClass::Unknown),
+    };
     events.push(MirEventAnchor {
         owner: owner.clone(),
         kind,
@@ -726,6 +889,7 @@ fn push_event<'tcx>(
             .collect(),
         result_type: result_type.map(|ty| super::type_fingerprint(tcx, ty)),
         result_place,
+        type_validity,
         shape: kind.as_str().to_string(),
         location: MirEventLocation {
             stage,
@@ -735,6 +899,53 @@ fn push_event<'tcx>(
         },
     });
     Ok(())
+}
+
+fn classify_mir_type(ty: Ty<'_>) -> TypeValidityClass {
+    match ty.kind() {
+        ty::Int(_) | ty::Float(_) => TypeValidityClass::AllBitsValidScalar,
+        ty::Uint(_) => TypeValidityClass::AllBitsValidScalar,
+        ty::Bool | ty::Char | ty::Never | ty::Pat(_, _) => TypeValidityClass::RestrictedScalar,
+        ty::Array(element, _) => match classify_mir_type(*element) {
+            TypeValidityClass::AllBitsValidScalar => {
+                if matches!(
+                    element.kind(),
+                    ty::Uint(ty::UintTy::U8) | ty::Int(ty::IntTy::I8)
+                ) {
+                    TypeValidityClass::AllBitsValidBytes
+                } else {
+                    TypeValidityClass::AllBitsValidStructural
+                }
+            }
+            TypeValidityClass::AllBitsValidBytes | TypeValidityClass::AllBitsValidStructural => {
+                TypeValidityClass::AllBitsValidStructural
+            }
+            TypeValidityClass::RestrictedScalar | TypeValidityClass::RestrictedStructural => {
+                TypeValidityClass::RestrictedStructural
+            }
+            TypeValidityClass::AllBitsValidRawPointer => TypeValidityClass::AllBitsValidStructural,
+            TypeValidityClass::ReferenceOrFunctionPointer => {
+                TypeValidityClass::ReferenceOrFunctionPointer
+            }
+            TypeValidityClass::RestrictedEnum => TypeValidityClass::RestrictedEnum,
+            TypeValidityClass::UninitializedOrPadding => TypeValidityClass::UninitializedOrPadding,
+            TypeValidityClass::Unknown => TypeValidityClass::Unknown,
+        },
+        ty::Tuple(fields) if fields.is_empty() => TypeValidityClass::AllBitsValidStructural,
+        // Tuple/ADT layout may contain padding.  It is not sound to assume that
+        // the padding was initialized merely because every field was.
+        ty::Tuple(_) => TypeValidityClass::UninitializedOrPadding,
+        ty::RawPtr(_, _) => TypeValidityClass::AllBitsValidRawPointer,
+        ty::Ref(_, _, _) | ty::FnDef(_, _) | ty::FnPtr(..) => {
+            TypeValidityClass::ReferenceOrFunctionPointer
+        }
+        ty::Adt(def, _) if def.is_union() => TypeValidityClass::UninitializedOrPadding,
+        ty::Adt(def, _) if def.is_enum() => TypeValidityClass::RestrictedEnum,
+        // Structs can contain padding or compiler validity-range attributes.
+        // Alias/param normalization can likewise hide those properties, so all
+        // remaining compiler types stay unknown rather than being name-matched.
+        _ => TypeValidityClass::Unknown,
+    }
 }
 
 struct PlaceEventCollector<'a, 'tcx> {
@@ -1094,6 +1305,12 @@ fn span_contains(outer: &RawSpanAnchor, inner: &RawSpanAnchor) -> bool {
         && outer.hi_byte >= inner.hi_byte
 }
 
+fn raw_span_shares_boundary(left: &RawSpanAnchor, right: &RawSpanAnchor) -> bool {
+    left.stable.path == right.stable.path
+        && left.syntax_context == right.syntax_context
+        && (left.lo_byte == right.lo_byte || left.hi_byte == right.hi_byte)
+}
+
 fn span_compatible(site: &RawSpanAnchor, event: &RawSpanAnchor) -> bool {
     site == event
         || span_contains(site, event)
@@ -1184,6 +1401,7 @@ mod tests {
                 .as_ref()
                 .map(|result| result.type_fingerprint.clone()),
             result_place: None,
+            type_validity: MirTypeValidity::default(),
             shape: site.kind.as_str().to_string(),
             location: MirEventLocation {
                 stage,
@@ -1267,6 +1485,29 @@ mod tests {
     }
 
     #[test]
+    fn lowered_assume_binds_without_fabricating_a_callee_operand_or_result() {
+        let assume = site(
+            0,
+            UnsafeSiteKind::UnsafeCall,
+            Some("core::intrinsics::assume"),
+            &[
+                (OperandRole::Callee, "unsafe fn(bool)"),
+                (OperandRole::Argument(0), "bool"),
+            ],
+            Some("()"),
+        );
+        let built = event(&assume, MirStage::Built, 1, 2);
+        let mut solver = event(&assume, MirStage::Solver, 2, 3);
+        solver.operands.remove(0);
+        solver.callee = None;
+        solver.result_place = None;
+        solver.shape = "unsafe_call:lowered_assume".to_string();
+
+        let records = bind_owner(&[assume], &[built], &[solver]).unwrap();
+        assert_eq!(records[0].status, BindingStatus::BoundExact);
+    }
+
+    #[test]
     fn same_span_sites_use_kind_and_roles_not_insertion_order() {
         let raw = site(
             0,
@@ -1325,7 +1566,82 @@ mod tests {
     }
 
     #[test]
-    fn zero_candidates_are_unbound_and_solver_elision_is_explicit() {
+    fn exact_hygienic_span_wins_over_nested_structural_matches() {
+        let mut outer = site(
+            0,
+            UnsafeSiteKind::UnsafeCall,
+            Some("core::ptr::add"),
+            &[(OperandRole::Argument(0), "*const u8")],
+            Some("*const u8"),
+        );
+        outer.raw_span = span(10, 30);
+        let mut inner = outer.clone();
+        inner.ordinal = 1;
+        inner.raw_span = span(10, 20);
+        let mut built_outer = event(&outer, MirStage::Built, 1, 0);
+        built_outer.raw_span = outer.raw_span.clone();
+        let mut built_inner = event(&inner, MirStage::Built, 2, 0);
+        built_inner.raw_span = inner.raw_span.clone();
+        let mut solver_outer = built_outer.clone();
+        solver_outer.location.stage = MirStage::Solver;
+        let mut solver_inner = built_inner.clone();
+        solver_inner.location.stage = MirStage::Solver;
+
+        let records = bind_owner(
+            &[outer, inner],
+            &[built_inner, built_outer],
+            &[solver_outer, solver_inner],
+        )
+        .unwrap();
+        assert!(records
+            .iter()
+            .all(|record| record.status == BindingStatus::BoundExact));
+        assert!(records
+            .iter()
+            .all(|record| record.built_candidate_count == 1));
+        assert_eq!(records[0].built.as_ref().unwrap().block, 1);
+        assert_eq!(records[1].built.as_ref().unwrap().block, 2);
+    }
+
+    #[test]
+    fn shared_hygienic_start_disambiguates_lowered_place_span() {
+        let mut first = site(
+            0,
+            UnsafeSiteKind::RawPointerDereference,
+            None,
+            &[(OperandRole::Address, "*mut u8")],
+            Some("u8"),
+        );
+        first.raw_span = span(10, 20);
+        let mut second = first.clone();
+        second.ordinal = 1;
+        second.raw_span = span(30, 40);
+        let widened_event = |site: &UnsafeSiteSeed, stage, block, hi| {
+            let mut event = event(site, stage, block, 0);
+            event.raw_span = span(site.raw_span.lo_byte, hi);
+            event
+        };
+        let records = bind_owner(
+            &[first.clone(), second.clone()],
+            &[
+                widened_event(&second, MirStage::Built, 2, 45),
+                widened_event(&first, MirStage::Built, 1, 25),
+            ],
+            &[
+                widened_event(&first, MirStage::Solver, 3, 25),
+                widened_event(&second, MirStage::Solver, 4, 45),
+            ],
+        )
+        .unwrap();
+        assert!(records
+            .iter()
+            .all(|record| record.status == BindingStatus::BoundExact));
+        assert_eq!(records[0].built.as_ref().unwrap().block, 1);
+        assert_eq!(records[1].built.as_ref().unwrap().block, 2);
+    }
+
+    #[test]
+    fn zero_candidates_are_unbound_and_unique_solver_elision_is_exact() {
         let site = site(
             0,
             UnsafeSiteKind::RawPointerDereference,
@@ -1338,10 +1654,10 @@ mod tests {
         assert_eq!(unbound[0].built_candidate_count, 0);
 
         let built = vec![event(&site, MirStage::Built, 1, 0)];
-        let elided = bind_owner(std::slice::from_ref(&site), &built, &[]).unwrap();
-        assert_eq!(elided[0].status, BindingStatus::Elided);
-        assert_eq!(elided[0].built_candidate_count, 1);
-        assert_eq!(elided[0].solver_candidate_count, 0);
+        let optimized = bind_owner(std::slice::from_ref(&site), &built, &[]).unwrap();
+        assert_eq!(optimized[0].status, BindingStatus::OptimizedAwayExact);
+        assert_eq!(optimized[0].built_candidate_count, 1);
+        assert_eq!(optimized[0].solver_candidate_count, 0);
     }
 
     #[test]

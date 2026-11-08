@@ -12,6 +12,6 @@ pub mod safedrop;
 pub mod senryx;
 #[cfg(feature = "full_analyses")]
 pub mod unsafety_isolation;
+pub mod unsoundaudit;
 #[cfg(feature = "full_analyses")]
 pub mod utils;
-pub mod unsoundaudit;

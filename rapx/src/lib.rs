@@ -15,12 +15,14 @@ extern crate rustc_driver;
 extern crate rustc_errors;
 extern crate rustc_hir;
 extern crate rustc_index;
+extern crate rustc_infer;
 extern crate rustc_interface;
 extern crate rustc_metadata;
 extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;
+extern crate rustc_trait_selection;
 
 #[cfg(feature = "full_analyses")]
 use analysis::api_dep::ApiDep;
@@ -42,11 +44,11 @@ use analysis::senryx::SenryxCheck;
 use analysis::unsafety_isolation::{UigInstruction, UnsafetyIsolationCheck};
 #[cfg(feature = "full_analyses")]
 use analysis::utils::show_mir::ShowMir;
+#[rustversion::before(1.96)]
+use rustc_data_structures::sync::Lrc;
 use rustc_driver::{Callbacks, Compilation};
 use rustc_interface::interface::Compiler;
 use rustc_interface::Config;
-#[rustversion::before(1.96)]
-use rustc_data_structures::sync::Lrc;
 #[rustversion::before(1.96)]
 use rustc_interface::Queries;
 use rustc_middle::ty::TyCtxt;
@@ -114,25 +116,18 @@ impl Callbacks for RapCallback {
         queries: &'tcx Queries<'tcx>,
     ) -> Compilation {
         rap_trace!("Execute after_analysis() of compiler callbacks");
-        queries
-            .global_ctxt()
-            .unwrap()
-            .enter(|tcx| {
-                if self.unsoundaudit {
-                    analysis::unsoundaudit::unsafe_site::completeness_sweep(tcx);
-                }
-                start_analyzer(tcx, *self)
-            });
+        queries.global_ctxt().unwrap().enter(|tcx| {
+            if self.unsoundaudit {
+                analysis::unsoundaudit::unsafe_site::completeness_sweep(tcx);
+            }
+            start_analyzer(tcx, *self)
+        });
         rap_trace!("analysis done");
         Compilation::Continue
     }
 
     #[rustversion::since(1.96)]
-    fn after_analysis<'tcx>(
-        &mut self,
-        _compiler: &Compiler,
-        tcx: TyCtxt<'tcx>,
-    ) -> Compilation {
+    fn after_analysis<'tcx>(&mut self, _compiler: &Compiler, tcx: TyCtxt<'tcx>) -> Compilation {
         rap_trace!("Execute after_analysis() of compiler callbacks");
         if self.unsoundaudit {
             analysis::unsoundaudit::unsafe_site::completeness_sweep(tcx);

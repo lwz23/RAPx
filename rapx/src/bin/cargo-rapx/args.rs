@@ -1,7 +1,5 @@
-use rapx::utils::unit_output::{
-    route_rustc_unit, IdentityEnvironment, UnitRoute,
-};
 use once_cell::sync::Lazy as LazyLock;
+use rapx::utils::unit_output::{route_rustc_unit, IdentityEnvironment, UnitRoute};
 use std::{
     env,
     path::{Path, PathBuf},
@@ -67,7 +65,6 @@ impl Arguments {
             rap_clean: rap_clean(),
         }
     }
-
 }
 
 pub fn rap_clean() -> bool {

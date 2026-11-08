@@ -1,0 +1,5892 @@
+{
+  "https://github.com/Amanieu/atomic-rs/issues/46": {
+    "repository": "Amanieu/atomic-rs",
+    "issue_number": "46",
+    "title": "Maybe Multiple unsoundness problems",
+    "body_chars": 1101,
+    "needles": {
+      "qualified": [
+        "ops::atomic_add",
+        "ops::Add",
+        "ptr::read",
+        "ptr::write"
+      ],
+      "paths": [
+        "src/lib.rs"
+      ],
+      "fns": [
+        "fetch_add",
+        "atomic_add"
+      ],
+      "callees": [],
+      "types": [
+        "Ordering",
+        "Copy",
+        "Wrapping",
+        "Output",
+        "Amanieu",
+        "L328",
+        "Since",
+        "Because",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Andy-Python-Programmer/aero/issues/120": {
+    "repository": "Andy-Python-Programmer/aero",
+    "issue_number": "120",
+    "title": "Unsoundness in Utsname::name and other function",
+    "body_chars": 2364,
+    "needles": {
+      "qualified": [
+        "core::str::from_utf8_unchecked",
+        "Utsname::name"
+      ],
+      "paths": [
+        "src/aero_syscall/src/lib.rs"
+      ],
+      "fns": [
+        "name",
+        "main"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Description",
+        "Andy",
+        "Python",
+        "Programmer",
+        "L238",
+        "Utsname",
+        "This",
+        "Trigger",
+        "Force",
+        "Result",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Suggestion"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Andy-Python-Programmer/aero/issues/121": {
+    "repository": "Andy-Python-Programmer/aero",
+    "issue_number": "121",
+    "title": "Maybe unsound in some as_ptr usage",
+    "body_chars": 881,
+    "needles": {
+      "qualified": [],
+      "paths": [
+        "src/aero_kernel/src/acpi/rsdp.rs"
+      ],
+      "fns": [
+        "new"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Andy",
+        "Python",
+        "Programmer",
+        "VirtAddr",
+        "Self",
+        "RSDT",
+        "Considering",
+        "RSDP"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/BrowserWorks/waterfox/issues/3980": {
+    "repository": "BrowserWorks/waterfox",
+    "issue_number": "3980",
+    "title": "[Unsoundness] Safe function peek_from_slice causes UB via malicious Peek implementation",
+    "body_chars": 5193,
+    "needles": {
+      "qualified": [
+        "T::max_size",
+        "T::peek_from",
+        "Peek::max_size",
+        "slice::from_raw_parts",
+        "std::slice",
+        "std::ptr::read_volatile",
+        "Since this function is pub and exposed in lib.rs, it is accessible to all external users.\n\nDescription:\nThe function peek_from_slice is marked as safe. Inside its unsafe block, it attempts to verify bounds by checking T::max_size",
+        "use std::slice;\n\n// --- Mocking the library traits/functions based on the target code ---\npub unsafe trait Poke {\n    fn max_size"
+      ],
+      "paths": [
+        "src/main.rs",
+        "src/lib.rs"
+      ],
+      "fns": [
+        "peek_from_slice",
+        "max_size",
+        "poke_into",
+        "peek_from",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Peek",
+        "WRDL",
+        "Mocking",
+        "Poke",
+        "Self",
+        "Trusts",
+        "Exploiting",
+        "Malicious",
+        "Valid",
+        "Since",
+        "This",
+        "Attacking",
+        "Trigger",
+        "Calling",
+        "Rust",
+        "What",
+        "Hello",
+        "Location",
+        "Description",
+        "Inside",
+        "However",
+        "Proof",
+        "Concept",
+        "Miri",
+        "Output",
+        "Running",
+        "Recommendation",
+        "Mark",
+        "Given",
+        "Reproducible",
+        "Mozilla",
+        "Firefox",
+        "Version",
+        "Safe"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/CosmWasm/cosmwasm/issues/2305": {
+    "repository": "CosmWasm/cosmwasm",
+    "issue_number": "2305",
+    "title": "Maybe unsound in as_bytes",
+    "body_chars": 477,
+    "needles": {
+      "qualified": [
+        "slice::from_raw_parts"
+      ],
+      "paths": [
+        "src/memory.rs"
+      ],
+      "fns": [
+        "as_bytes"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "CosmWasm",
+        "L105",
+        "Although",
+        "SAFETY"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/DioxusLabs/blitz/issues/169": {
+    "repository": "DioxusLabs/blitz",
+    "issue_number": "169",
+    "title": "Unsoundness problem in Node::tree",
+    "body_chars": 1363,
+    "needles": {
+      "qualified": [
+        "blitz_dom::node::Node",
+        "std::ptr",
+        "data::ElementData",
+        "servo_arc::Arc",
+        "stylesheets::CssRuleType",
+        "blitz_dom::NodeData",
+        "Node::new",
+        "ptr::null_mut",
+        "SharedRwLock::new",
+        "NodeData::Document",
+        "extern crate blitz_dom;\r\nextern crate style;\r\n\r\nuse blitz_dom::node::Node;\r\nuse std::ptr;\r\nuse style::{\r\n    data::ElementData,\r\n    properties::{parse_style_attribute, PropertyDeclarationBlock},\r\n    servo_arc::Arc as ServoArc,\r\n    shared_lock::{Locked, SharedRwLock},\r\n    stylesheets::CssRuleType,\r\n};\r\nuse blitz_dom::NodeData;\r\nfn main",
+        "Node::tree"
+      ],
+      "paths": [],
+      "fns": [
+        "tree",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Node",
+        "This",
+        "Slab",
+        "Option",
+        "Considering",
+        "ElementData",
+        "PropertyDeclarationBlock",
+        "ServoArc",
+        "Locked",
+        "SharedRwLock",
+        "CssRuleType",
+        "NodeData",
+        "Document"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Eugeny/russh/issues/394": {
+    "repository": "Eugeny/russh",
+    "issue_number": "394",
+    "title": "Potential unsoundness in memcpy",
+    "body_chars": 1631,
+    "needles": {
+      "qualified": [
+        "std::ptr::copy_nonoverlapping"
+      ],
+      "paths": [
+        "src/platform/wasm.rs"
+      ],
+      "fns": [
+        "memcpy"
+      ],
+      "callees": [
+        "memcpy",
+        "copy_nonoverlapping"
+      ],
+      "types": [
+        "Eugeny",
+        "Convert",
+        "Occur",
+        "Conversion",
+        "This",
+        "Pointers",
+        "Safety",
+        "Contract",
+        "Both"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Indra-db/Flecs-Rust/issues/210": {
+    "repository": "Indra-db/Flecs-Rust",
+    "issue_number": "210",
+    "title": "Maybe unsound in Cursor::new",
+    "body_chars": 1608,
+    "needles": {
+      "qualified": [
+        "sys::ecs_meta_cursor_t",
+        "std::marker::PhantomData",
+        "clippy::not_unsafe_ptr_arg_deref",
+        "std::ffi::c_void",
+        "sys::ecs_meta_cursor",
+        "Cursor::new"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Cursor",
+        "PhantomData",
+        "Creates",
+        "WorldProvider",
+        "Into",
+        "Entity",
+        "Self",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/IsaacWoods/poplar/issues/117": {
+    "repository": "IsaacWoods/poplar",
+    "issue_number": "117",
+    "title": "Maybe unsound in dma::write",
+    "body_chars": 2072,
+    "needles": {
+      "qualified": [
+        "ptr::write",
+        "std::ptr",
+        "std::ptr::NonNull",
+        "Vec::new",
+        "NonNull::new",
+        "use std::ptr;\r\nuse std::ptr::NonNull;\r\n\r\npub struct DmaArray",
+        "dma::write"
+      ],
+      "paths": [],
+      "fns": [
+        "write",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Thank",
+        "DmaArray",
+        "NonNull",
+        "LockedHeap",
+        "AtomicBool",
+        "This",
+        "Here",
+        "Write",
+        "Steps",
+        "Reproduce",
+        "Create",
+        "Obtain",
+        "Construct",
+        "Invoke",
+        "Sorry"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Kudaes/DInvoke_rs/issues/10": {
+    "repository": "Kudaes/DInvoke_rs",
+    "issue_number": "10",
+    "title": "Unsoundness in fn clean_dos_header",
+    "body_chars": 2274,
+    "needles": {
+      "qualified": [
+        "PeMetadata::default"
+      ],
+      "paths": [],
+      "fns": [
+        "clean_dos_header",
+        "main",
+        "map_to_allocated_memory"
+      ],
+      "callees": [],
+      "types": [
+        "Allocate",
+        "Extremely",
+        "Create",
+        "PeMetadata",
+        "Assume",
+        "Call",
+        "Hello",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Kudaes/Elevator/issues/9": {
+    "repository": "Kudaes/Elevator",
+    "issue_number": "9",
+    "title": "Maybe unsound in get_pe_metadata",
+    "body_chars": 1318,
+    "needles": {
+      "qualified": [
+        "PeMetadata::default"
+      ],
+      "paths": [],
+      "fns": [
+        "get_pe_metadata"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Result",
+        "PeMetadata",
+        "String",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Lightprotocol/light-protocol/issues/1382": {
+    "repository": "Lightprotocol/light-protocol",
+    "issue_number": "1382",
+    "title": "Maybe unsound in ConcurrentMerkleTree",
+    "body_chars": 1470,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "next_index",
+        "sequence_number",
+        "are"
+      ],
+      "callees": [],
+      "types": [
+        "ConcurrentMerkleTree",
+        "HEIGHT",
+        "Hasher",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/MarcusRainbow/QuantMath/issues/54": {
+    "repository": "MarcusRainbow/QuantMath",
+    "issue_number": "54",
+    "title": "Multiple unsound issue",
+    "body_chars": 2079,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "handle_from_ext",
+        "main",
+        "that",
+        "as_currency",
+        "as_error",
+        "as_pricer_factory",
+        "clone_handle",
+        "as_market_data",
+        "as_fixing_table",
+        "as_report_generator",
+        "as_instrument",
+        "is_error"
+      ],
+      "callees": [],
+      "types": [
+        "Handle",
+        "BACKTRACE",
+        "MIRIFLAGS",
+        "Zmiri",
+        "Users",
+        "Github",
+        "Hello",
+        "Thank",
+        "While",
+        "Rust",
+        "MarcusRainbow",
+        "QuantMath",
+        "Although",
+        "Result"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/MegEngine/MegFlow/issues/87": {
+    "repository": "MegEngine/MegFlow",
+    "issue_number": "87",
+    "title": "Maybe unsound in store",
+    "body_chars": 1256,
+    "needles": {
+      "qualified": [
+        "ffi::PyThreadState",
+        "Default::default",
+        "std::ptr::null_mut"
+      ],
+      "paths": [],
+      "fns": [
+        "store",
+        "and"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "PyThreadState",
+        "PyThreadStateUnlimited",
+        "VERSION",
+        "Default"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Mufanc/z-loader/issues/6": {
+    "repository": "Mufanc/z-loader",
+    "issue_number": "6",
+    "title": "Maybe unsound in SpecializeArgs::env",
+    "body_chars": 1225,
+    "needles": {
+      "qualified": [
+        "SpecializeArgs::env"
+      ],
+      "paths": [],
+      "fns": [
+        "env",
+        "is_system_server",
+        "and",
+        "are"
+      ],
+      "callees": [],
+      "types": [
+        "SpecializeArgs",
+        "JNIEnv",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/NVSL/Corundum/issues/7": {
+    "repository": "NVSL/Corundum",
+    "issue_number": "7",
+    "title": "Unsoundness in src/vec.rs/to_str and maybe unmaintained",
+    "body_chars": 529,
+    "needles": {
+      "qualified": [
+        "std::str::from_utf8_unchecked"
+      ],
+      "paths": [
+        "src/vec.rs"
+      ],
+      "fns": [
+        "to_str",
+        "impl"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "NVSL",
+        "Corundum",
+        "L1282",
+        "MemPool"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/NetSys/NetBricks/issues/110": {
+    "repository": "NetSys/NetBricks",
+    "issue_number": "110",
+    "title": "Potential Unsoundness in replace_header",
+    "body_chars": 1616,
+    "needles": {
+      "qualified": [
+        "ptr::copy_nonoverlapping",
+        "std::ptr::copy_nonoverlapping",
+        "std::ptr::null",
+        "std::ptr::drop_in_place",
+        "let ptr: *const T = std::ptr::null",
+        "2. Special T Behavior\r\nIf T is a type with custom drop behavior, contains raw pointers, or requires specific memory management guarantees, blindly copying its bytes using std::ptr::copy_nonoverlapping can break invariants. This could lead to issues such as double frees, memory leaks, or corrupted state."
+      ],
+      "paths": [
+        "src/interface/packet.rs"
+      ],
+      "fns": [
+        "replace_header",
+        "drop",
+        "and"
+      ],
+      "callees": [
+        "copy_nonoverlapping"
+      ],
+      "types": [
+        "NetSys",
+        "NetBricks",
+        "L332",
+        "This",
+        "Here",
+        "Special",
+        "UnsafeDrop",
+        "Drop",
+        "Passing"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/NetSys/NetBricks/issues/111": {
+    "repository": "NetSys/NetBricks",
+    "issue_number": "111",
+    "title": "Potential Unsoundness in remove_from_payload_head and add_to_payload_head",
+    "body_chars": 3416,
+    "needles": {
+      "qualified": [
+        "ptr::copy_nonoverlapping",
+        "ErrorKind::FailedAllocation",
+        "usize::MAX"
+      ],
+      "paths": [
+        "src/interface/packet.rs"
+      ],
+      "fns": [
+        "remove_from_payload_head",
+        "add_to_payload_head"
+      ],
+      "callees": [
+        "copy_nonoverlapping"
+      ],
+      "types": [
+        "NetSys",
+        "NetBricks",
+        "L332",
+        "L344",
+        "Result",
+        "ErrorKind",
+        "FailedAllocation",
+        "Overlapping",
+        "Regions",
+        "Pointers",
+        "This",
+        "Violating",
+        "Rust",
+        "Borrowing",
+        "Rules",
+        "These",
+        "Misuse",
+        "There",
+        "Users",
+        "Trigger",
+        "Controlling",
+        "Pass",
+        "Excessively",
+        "Large",
+        "Cause",
+        "Exploit",
+        "Internal"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Noeda/rllama/issues/19": {
+    "repository": "Noeda/rllama",
+    "issue_number": "19",
+    "title": "Potential Undefined Behavior in data_u16_to_gpu Due to Unsafe Pointer Usage",
+    "body_chars": 2471,
+    "needles": {
+      "qualified": [
+        "Buffer::builder",
+        "Event::empty",
+        "std::slice::from_raw_parts",
+        "std::ptr::null",
+        "Layout::from_size_align",
+        "std::mem::size_of",
+        "let invalid_data = std::ptr::null"
+      ],
+      "paths": [
+        "src/tensor_opencl_support.rs"
+      ],
+      "fns": [
+        "data_u16_to_gpu"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "These",
+        "Rust",
+        "Noeda",
+        "L149",
+        "Code",
+        "Question",
+        "Layout",
+        "Result",
+        "OpenCLTensor",
+        "OpenCLError",
+        "Buffer",
+        "Event",
+        "Some",
+        "None",
+        "Steps",
+        "Reproduce",
+        "Here",
+        "Null",
+        "Suggestion",
+        "Expected",
+        "Validate",
+        "Additional",
+        "Context",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Pagefind/pagefind/issues/752": {
+    "repository": "Pagefind/pagefind",
+    "issue_number": "752",
+    "title": "Maybe unsound in request_filter_indexes and its groups",
+    "body_chars": 2573,
+    "needles": {
+      "qualified": [
+        "Box::from_raw",
+        "Box::into_raw",
+        "std::ptr",
+        "ptr::null_mut",
+        "NonNull::new_unchecked",
+        "extern crate pagefind_web;\r\n\r\nuse std::ptr;\r\n\r\nuse pagefind_web::{request_filter_indexes, SearchIndex};\r\n\r\nfn main"
+      ],
+      "paths": [
+        "src/lib.rs"
+      ],
+      "fns": [
+        "request_filter_indexes",
+        "request_all_filter_indexes",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "CloudCannon",
+        "L260",
+        "SearchIndex",
+        "String",
+        "Finding",
+        "Considering",
+        "This",
+        "Although",
+        "Several",
+        "Pointers",
+        "Here",
+        "Result",
+        "NonNull"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Pagefind/pagefind/issues/985": {
+    "repository": "Pagefind/pagefind",
+    "issue_number": "985",
+    "title": "[Soundness] Public safe API request_filter_indexes allows dereferencing arbitrary raw pointers",
+    "body_chars": 2511,
+    "needles": {
+      "qualified": [
+        "Box::from_raw",
+        "std::ptr::null_mut"
+      ],
+      "paths": [
+        "src/lib.rs"
+      ],
+      "fns": [
+        "request_filter_indexes"
+      ],
+      "callees": [],
+      "types": [
+        "SearchIndex",
+        "String",
+        "This",
+        "Safe",
+        "Rust",
+        "Hello",
+        "Through",
+        "APIs",
+        "Location",
+        "Pagefind",
+        "L298",
+        "Analysis",
+        "Although",
+        "Miri",
+        "Inside",
+        "Because",
+        "Context",
+        "Recommendation",
+        "WASM",
+        "However",
+        "Mark",
+        "Reduce",
+        "Visibility",
+        "References",
+        "Thank"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/PersiaML/PERSIA/issues/509": {
+    "repository": "PersiaML/PERSIA",
+    "issue_number": "509",
+    "title": "Potential Unsoundness in get_shard_by_index Function due to Unchecked Indexing",
+    "body_chars": 2022,
+    "needles": {
+      "qualified": [
+        "parking_lot::RwLock"
+      ],
+      "paths": [
+        "src/sharded.rs"
+      ],
+      "fns": [
+        "get_shard_by_index"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Description",
+        "PersiaML",
+        "PERSIA",
+        "This",
+        "RwLock",
+        "Hash",
+        "Clone",
+        "There",
+        "Suggested",
+        "Replace",
+        "Option",
+        "Index",
+        "SAFETY",
+        "Impact",
+        "Leaving",
+        "Rust",
+        "Unchecked",
+        "Indexing"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Phala-Network/phala-blockchain/issues/1592": {
+    "repository": "Phala-Network/phala-blockchain",
+    "issue_number": "1592",
+    "title": "Unsoundness in \"string_from_c_char\"",
+    "body_chars": 1137,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr"
+      ],
+      "paths": [
+        "src/i2pd.rs"
+      ],
+      "fns": [
+        "string_from_c_char"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Describe",
+        "CStr",
+        "However",
+        "This",
+        "Phala",
+        "Network",
+        "Result",
+        "String",
+        "Expected",
+        "Additional",
+        "Validating",
+        "Ensuring"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/QuarkContainer/Quark/issues/1354": {
+    "repository": "QuarkContainer/Quark",
+    "issue_number": "1354",
+    "title": "Maybe unsound in IOBuff::Buf",
+    "body_chars": 972,
+    "needles": {
+      "qualified": [
+        "slice::from_raw_parts_mut",
+        "IOBuff::Buf"
+      ],
+      "paths": [],
+      "fns": [
+        "Buf",
+        "considering",
+        "or"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "from_raw_parts_mut"
+      ],
+      "types": [
+        "Hello",
+        "IOBuff"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/RWTH-OS/eduOS-rs/issues/46": {
+    "repository": "RWTH-OS/eduOS-rs",
+    "issue_number": "46",
+    "title": "unsoundness in  RomHandle::new",
+    "body_chars": 2148,
+    "needles": {
+      "qualified": [
+        "Spinlock::new",
+        "Arc::new",
+        "RwLock::new",
+        "slice::from_raw_parts",
+        "std::ptr::null",
+        "RomHandle::new",
+        "**Bug Description**\r\nThe new function in the provided code is unsound because it uses the unsafe function slice::from_raw_parts without validating its arguments. The function assumes that the caller provides:\r\n\r\nA valid pointer"
+      ],
+      "paths": [
+        "src/fs/initrd.rs"
+      ],
+      "fns": [
+        "new",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "RWTH",
+        "Self",
+        "RomHandle",
+        "Spinlock",
+        "RwLock",
+        "Description",
+        "Consequences",
+        "Null",
+        "Dereference",
+        "Dangling",
+        "This",
+        "Segmentation",
+        "Fault",
+        "Even"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Ralith/hecs/issues/385": {
+    "repository": "Ralith/hecs",
+    "issue_number": "385",
+    "title": "Maybe unsound in 'get_mut'",
+    "body_chars": 1198,
+    "needles": {
+      "qualified": [
+        "Q::Item"
+      ],
+      "paths": [
+        "src/query.rs"
+      ],
+      "fns": [
+        "get_mut"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Ralith",
+        "L1372",
+        "Retrieve",
+        "Will",
+        "None",
+        "Entity",
+        "Option",
+        "Item",
+        "Although",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/RedisJSON/RedisJSON/issues/1305": {
+    "repository": "RedisJSON/RedisJSON",
+    "issue_number": "1305",
+    "title": "Maybe multiple unsound problem in c_api",
+    "body_chars": 1137,
+    "needles": {
+      "qualified": [
+        "rawmod::RedisModuleCtx",
+        "rawmod::RedisModuleString",
+        "CString::new",
+        "rawmod::RedisModule_CreateString",
+        "Status::Ok",
+        "Status::Err"
+      ],
+      "paths": [],
+      "fns": [
+        "create_rmstring"
+      ],
+      "callees": [],
+      "types": [
+        "RedisModuleCtx",
+        "RedisModuleString",
+        "CString",
+        "Status",
+        "Considering"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Ruddle/Fomos/issues/5": {
+    "repository": "Ruddle/Fomos",
+    "issue_number": "5",
+    "title": "Unsoundness in to_bytes",
+    "body_chars": 302,
+    "needles": {
+      "qualified": [
+        "core::intrinsics::size_of_val",
+        "core::intrinsics::transmute",
+        "core::slice::from_raw_parts"
+      ],
+      "paths": [],
+      "fns": [
+        "to_bytes"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "transmute"
+      ],
+      "types": [
+        "Hello"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/SitinCloud/Owlyshield/issues/59": {
+    "repository": "SitinCloud/Owlyshield",
+    "issue_number": "59",
+    "title": "Unsoundness in UnicodeString::as_string_ext",
+    "body_chars": 1792,
+    "needles": {
+      "qualified": [
+        "UnicodeString::as_string_ext",
+        "std::os::raw",
+        "wchar::wchar_t",
+        "std::slice::from_raw_parts",
+        "String::from_utf16_lossy",
+        "std::ptr::null",
+        "slice::from_raw_parts",
+        "isize::MAX",
+        "use std::os::raw::{c_ushort};\r\nuse wchar::wchar_t;\r\n\r\npub struct UnicodeString {\r\n    pub length: c_ushort,\r\n    pub maximum_length: c_ushort,\r\n    pub buffer: *const wchar_t,\r\n}\r\n\r\nimpl UnicodeString {\r\n    pub fn as_string_ext"
+      ],
+      "paths": [],
+      "fns": [
+        "as_string_ext",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "UnicodeString",
+        "Rust",
+        "This",
+        "String",
+        "Constructing",
+        "Calling",
+        "Result"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Starlight-JS/starlight/issues/137": {
+    "repository": "Starlight-JS/starlight",
+    "issue_number": "137",
+    "title": "Possible unsound problems in crates/starlight/src/vm/environment.rs",
+    "body_chars": 752,
+    "needles": {
+      "qualified": [],
+      "paths": [
+        "crates/starlight/src/vm/environment.rs"
+      ],
+      "fns": [
+        "from_raw_parts",
+        "from_raw_parts_mut"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "from_raw_parts_mut"
+      ],
+      "types": [
+        "Although",
+        "Description",
+        "Environment"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Teach2Breach/Tempest/issues/11": {
+    "repository": "Teach2Breach/Tempest",
+    "issue_number": "11",
+    "title": "Maybe unsound in get_function_address",
+    "body_chars": 2801,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts",
+        "std::ffi::CStr::from_ptr"
+      ],
+      "paths": [],
+      "fns": [
+        "get_function_address"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "from_ptr"
+      ],
+      "types": [
+        "Hello",
+        "Option",
+        "OptionalHeader",
+        "DataDirectory",
+        "VirtualAddress",
+        "AddressOfNames",
+        "AddressOfFunctions",
+        "AddressOfNameOrdinals",
+        "NumberOfNames",
+        "CStr",
+        "Some",
+        "None",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers",
+        "L146"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Traverse-Research/gpu-allocator/issues/255": {
+    "repository": "Traverse-Research/gpu-allocator",
+    "issue_number": "255",
+    "title": "Maybe Unsound in from_winapi_d3d12_resource_desc",
+    "body_chars": 1965,
+    "needles": {
+      "qualified": [
+        "winapi_d3d12::ID3D12Device",
+        "winapi_d3d12::D3D12_RESOURCE_DESC",
+        "std::mem::transmute",
+        "std::slice::from_ref"
+      ],
+      "paths": [],
+      "fns": [
+        "from_winapi_d3d12_resource_desc"
+      ],
+      "callees": [
+        "transmute"
+      ],
+      "types": [
+        "Hello",
+        "ID3D12Device",
+        "MemoryLocation",
+        "Self",
+        "GetResourceAllocationInfo",
+        "ResourceCategory",
+        "AllocationCreateDesc",
+        "SizeInBytes",
+        "Alignment",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Umio-Yasuno/amdgpu_top/issues/104": {
+    "repository": "Umio-Yasuno/amdgpu_top",
+    "issue_number": "104",
+    "title": "Unsoundness in 'pub fn get'",
+    "body_chars": 1339,
+    "needles": {
+      "qualified": [],
+      "paths": [
+        "crates/libamdgpu_top/src/stat/perf_counter.rs"
+      ],
+      "fns": [
+        "get"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Umio",
+        "Yasuno",
+        "L106",
+        "Description",
+        "While",
+        "This",
+        "Suggestions",
+        "Fixing",
+        "Index"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/Xudong-Huang/may/issues/112": {
+    "repository": "Xudong-Huang/may",
+    "issue_number": "112",
+    "title": "Unsound Use of get_unchecked in wakeup Function",
+    "body_chars": 1876,
+    "needles": {
+      "qualified": [],
+      "paths": [
+        "src/io/sys/unix/epoll.rs"
+      ],
+      "fns": [
+        "wakeup"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Description",
+        "This",
+        "Xudong",
+        "Huang",
+        "L155",
+        "Safety",
+        "Contract",
+        "Rust",
+        "Exploitation",
+        "Suggestion",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/apache/datafusion-comet/issues/1141": {
+    "repository": "apache/datafusion-comet",
+    "issue_number": "1141",
+    "title": "Maybe Undefined Behavior in StringView::as_utf8_str",
+    "body_chars": 1603,
+    "needles": {
+      "qualified": [
+        "StringView::as_utf8_str",
+        "std::slice::from_raw_parts",
+        "std::str::from_utf8_unchecked"
+      ],
+      "paths": [],
+      "fns": [
+        "as_utf8_str",
+        "main"
+      ],
+      "callees": [
+        "from_utf8_unchecked",
+        "from_raw_parts"
+      ],
+      "types": [
+        "Describe",
+        "StringView",
+        "These",
+        "Steps",
+        "Result",
+        "Expected",
+        "Additionally",
+        "Additional",
+        "Note"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/arceos-org/arceos/issues/204": {
+    "repository": "arceos-org/arceos",
+    "issue_number": "204",
+    "title": "Unsoundness in run_cmd",
+    "body_chars": 1961,
+    "needles": {
+      "qualified": [
+        "core::str::from_utf8_unchecked",
+        "hint::unreachable_unchecked",
+        "core::str::from_utf8",
+        "unsafe { core::str::from_utf8_unchecked"
+      ],
+      "paths": [
+        "src/cmd.rs"
+      ],
+      "fns": [
+        "run_cmd",
+        "main",
+        "line"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Finished",
+        "Description",
+        "L275",
+        "Specifically",
+        "Steps",
+        "Reproduce",
+        "Here",
+        "Running",
+        "Suggested",
+        "This",
+        "Mark"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/archseer/enigma/issues/44": {
+    "repository": "archseer/enigma",
+    "issue_number": "44",
+    "title": "Unsound problem in InstrPtr::module",
+    "body_chars": 1052,
+    "needles": {
+      "qualified": [
+        "InstrPtr::module"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "get_module",
+        "and"
+      ],
+      "callees": [],
+      "types": [
+        "InstrPtr",
+        "Module",
+        "Self",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/archseer/enigma/issues/45": {
+    "repository": "archseer/enigma",
+    "issue_number": "45",
+    "title": "Unsoundness in cmp",
+    "body_chars": 5593,
+    "needles": {
+      "qualified": [
+        "Variant::Nil",
+        "Ordering::Equal",
+        "Variant::Integer",
+        "Variant::Float",
+        "Variant::Atom",
+        "atom::cmp",
+        "Variant::Pid",
+        "Variant::Port",
+        "Variant::Cons",
+        "Variant::Pointer",
+        "process::Ref",
+        "bitstring::RcBinary",
+        "bitstring::SubBinary",
+        "std::cmp::Ordering::Equal",
+        "bitstring::cmp_bits",
+        "BigInt::from",
+        "Box::new",
+        "std::ptr::null_mut",
+        "The unsoundness occurs because:\n\nThe public function erl_partial_cmp directly calls cmp without any validation\nThe cmp function uses unsafe code to dereference pointers without checking if they're valid\nWhen comparing a Variant::Pointer with a Variant::Integer, it performs **p1 without verifying that the pointer is valid\nThe code then performs a check if **p1 != BOXED_BIGINT, but by this point, undefined behavior has already occurred if the pointer was invalid\n\nThe absence of pointer validation before dereferencing creates a direct path from user input to memory safety violation.\n\npub fn erl_partial_cmp -> fn cmp\n\n## POC"
+      ],
+      "paths": [],
+      "fns": [
+        "erl_partial_cmp",
+        "cmp",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Self",
+        "Option",
+        "Ordering",
+        "Some",
+        "Variant",
+        "Equal",
+        "Integer",
+        "Float",
+        "Atom",
+        "Port",
+        "Cons",
+        "Tuple",
+        "Boxed",
+        "BigInt",
+        "RcBinary",
+        "SubBinary",
+        "Create",
+        "Call",
+        "Result",
+        "Hello",
+        "Rust",
+        "When"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/asg017/sqlite-loadable-rs/issues/24": {
+    "repository": "asg017/sqlite-loadable-rs",
+    "issue_number": "24",
+    "title": "Maybe unsound in set_argv_index and set_omit",
+    "body_chars": 10699,
+    "needles": {
+      "qualified": [
+        "u8::from",
+        "table::define_table_function",
+        "ext::sqlite3ext_create_module_v2",
+        "api::value_text",
+        "ext::sqlite3ext_value_text",
+        "std::slice::from_raw_parts",
+        "api::result_int64",
+        "ext::sqlite3ext_result_int64",
+        "table::IndexInfo::set_idxnum",
+        "api::value_is_null",
+        "ext::sqlite3ext_value_type",
+        "api::result_text",
+        "ext::sqlite3ext_result_text",
+        "api::value_int64",
+        "ext::sqlite3ext_value_int64",
+        "entrypoints::register_entrypoint",
+        "ext::faux_sqlite_extension_init2",
+        "api::value_subtype",
+        "ext::sqlite3ext_value_subtype",
+        "table::define_table_function_with_find",
+        "table::IndexInfo::set_idxstr",
+        "table::define_virtual_table_with_find",
+        "api::result_subtype",
+        "ext::sqlite3ext_result_subtype",
+        "table::define_virtual_table_writeable_with_transactions",
+        "table::Constraint::set_omit",
+        "api::value_type",
+        "api::result_null",
+        "ext::sqlite3ext_result_null",
+        "api::result_pointer",
+        "ext::sqlite3ext_result_pointer",
+        "api::value_bytes",
+        "ext::sqlite3ext_value_bytes",
+        "api::result_int",
+        "ext::sqlite3ext_result_int",
+        "api::overload_function",
+        "ext::sqlite3ext_overload_function",
+        "entrypoints::register_entrypoint_load_permanently",
+        "table::IndexInfo::set_estimated_rows",
+        "collation::define_collation",
+        "ext::sqlite3ext_collation_v2",
+        "api::auxdata_get",
+        "ext::sqlite3ext_get_auxdata",
+        "api::result_blob",
+        "ext::sqlite3ext_result_blob",
+        "table::define_virtual_table",
+        "table::Constraint::set_argv_index",
+        "api::auxdata_set",
+        "ext::sqlite3ext_set_auxdata",
+        "table::define_virtual_table_writeable",
+        "table::define_virtual_table_writeablex",
+        "table::IndexInfo::set_estimated_cost",
+        "api::result_double",
+        "ext::sqlite3ext_result_double",
+        "api::value_blob",
+        "ext::sqlite3ext_value_blob",
+        "api::context_db_handle",
+        "ext::sqlite3ext_context_db_handle",
+        "api::result_error",
+        "ext::sqlite3ext_result_error",
+        "api::result_error_code",
+        "ext::sqlite3ext_result_error_code",
+        "api::mprintf",
+        "ext::sqlite3ext_mprintf",
+        "api::value_double",
+        "ext::sqlite3ext_value_double",
+        "api::value_text_notnull",
+        "api::value_int",
+        "ext::sqlite3ext_value_int",
+        "Constraint::set_argv_index",
+        "Constraint::set_omit"
+      ],
+      "paths": [],
+      "fns": [
+        "set_argv_index",
+        "set_omit",
+        "and"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Considering",
+        "This",
+        "Pattern1",
+        "Parameter",
+        "Directly",
+        "Used",
+        "Operation",
+        "INFO",
+        "IndexInfo",
+        "Constraint",
+        "Total"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/astonbitecode/j4rs/issues/138": {
+    "repository": "astonbitecode/j4rs",
+    "issue_number": "138",
+    "title": "Unsoundness in to_rust_string may cause UB due to unsafe assumptions about the input pointer",
+    "body_chars": 2171,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr",
+        "std::ptr::null",
+        "**Problem Description:**\r\n1. Invalid Pointer:\r\nThe function assumes that the input pointer is valid and non-null. If pointer is null or points to invalid memory, CStr::from_ptr",
+        "let null_pointer: *const c_char = std::ptr::null"
+      ],
+      "paths": [
+        "src/utils.rs"
+      ],
+      "fns": [
+        "to_rust_string"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Description",
+        "CStr",
+        "However",
+        "This",
+        "String",
+        "Null",
+        "Termination",
+        "CESU",
+        "Error",
+        "Steps",
+        "Reproduce",
+        "Provide",
+        "Expected",
+        "Additional",
+        "Notes",
+        "Adding"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/astonbitecode/j4rs/issues/140": {
+    "repository": "astonbitecode/j4rs",
+    "issue_number": "140",
+    "title": "Unsoundness in drop_c_string",
+    "body_chars": 3165,
+    "needles": {
+      "qualified": [
+        "CString::into_raw",
+        "CString::from_raw",
+        "std::ffi",
+        "std::os::raw::c_char",
+        "CString::new",
+        "CString::as_ptr",
+        "use std::ffi::{CString};\r\nuse std::os::raw::c_char;\r\n\r\npub fn drop_c_string"
+      ],
+      "paths": [
+        "src/utils.rs"
+      ],
+      "fns": [
+        "drop_c_string",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Description",
+        "CString",
+        "However",
+        "Rust",
+        "This",
+        "Create",
+        "Hello",
+        "Obtain",
+        "Convert",
+        "Note",
+        "Call",
+        "When",
+        "Result",
+        "Users",
+        "Desktop",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Root",
+        "Cause",
+        "Later",
+        "Impact",
+        "Fixing"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/async-rs/async-std/issues/1103": {
+    "repository": "async-rs/async-std",
+    "issue_number": "1103",
+    "title": "Maybe Multiple unsoundness problems",
+    "body_chars": 1055,
+    "needles": {
+      "qualified": [
+        "mem::replace",
+        "Vec::new"
+      ],
+      "paths": [
+        "src/io/read/mod.rs"
+      ],
+      "fns": [
+        "read_to_string"
+      ],
+      "callees": [],
+      "types": [
+        "String",
+        "ReadToStringFuture",
+        "Self",
+        "Unpin",
+        "L161",
+        "Since",
+        "Because",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/awslabs/snapchange/issues/43": {
+    "repository": "awslabs/snapchange",
+    "issue_number": "43",
+    "title": "Unsoundness in pub field \"console_output\"",
+    "body_chars": 1662,
+    "needles": {
+      "qualified": [
+        "std::str::from_utf8_unchecked"
+      ],
+      "paths": [],
+      "fns": [
+        "get_kasan_crash_path",
+        "or"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Hello",
+        "FuzzVm",
+        "FUZZER",
+        "Fuzzer",
+        "Data",
+        "Option",
+        "String",
+        "Maximum",
+        "KASAN",
+        "Considering",
+        "This",
+        "UTF8",
+        "Several"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/aya-rs/aya/issues/1112": {
+    "repository": "aya-rs/aya",
+    "issue_number": "1112",
+    "title": "Multiple unsoundness problems in aya-ebpf/programs",
+    "body_chars": 1430,
+    "needles": {
+      "qualified": [
+        "clippy::len_without_is_empty",
+        "aya::programs::SkBuff",
+        "--> src/main.rs:3:5\r\n  |\r\n3 | use aya::programs::SkBuff;\r\n  |     ^^^^^^^^^^^^^^^^^^^^^ no"
+      ],
+      "paths": [
+        "src/main.rs"
+      ],
+      "fns": [
+        "new",
+        "len",
+        "in"
+      ],
+      "callees": [],
+      "types": [
+        "SkBuff",
+        "Considering",
+        "This",
+        "Sorry",
+        "E0432",
+        "SkMsg",
+        "ProbeContext",
+        "RetProbeContext"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bbodi/rustarok/issues/25": {
+    "repository": "bbodi/rustarok",
+    "issue_number": "25",
+    "title": "unsoundness in write_f32 groups",
+    "body_chars": 4587,
+    "needles": {
+      "qualified": [
+        "SocketBuffer::write_f32"
+      ],
+      "paths": [
+        "src/packets/mod.rs"
+      ],
+      "fns": [
+        "write_f32",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "L167",
+        "L179",
+        "SocketBuffer",
+        "Github",
+        "Finished",
+        "Running",
+        "Users",
+        "BACKTRACE",
+        "MIRIFLAGS",
+        "Zmiri"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/beling/bsuccinct-rs/issues/11": {
+    "repository": "beling/bsuccinct-rs",
+    "issue_number": "11",
+    "title": "possible unsound code",
+    "body_chars": 1102,
+    "needles": {
+      "qualified": [
+        "Self::VecElement"
+      ],
+      "paths": [
+        "src/seeds.rs"
+      ],
+      "fns": [
+        "set_seed"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "Self",
+        "VecElement",
+        "L230",
+        "Since",
+        "Because",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bennetthardwick/rust-obs-plugins/issues/52": {
+    "repository": "bennetthardwick/rust-obs-plugins",
+    "issue_number": "52",
+    "title": "Maybe unsound in VideoDataSourceContext::pointer",
+    "body_chars": 1691,
+    "needles": {
+      "qualified": [
+        "VideoFormat::from_raw",
+        "VideoDataSourceContext::pointer"
+      ],
+      "paths": [],
+      "fns": [
+        "from_raw",
+        "format",
+        "width",
+        "height",
+        "data_buffer",
+        "linesize",
+        "timestamp"
+      ],
+      "callees": [],
+      "types": [
+        "VideoDataSourceContext",
+        "Self",
+        "Option",
+        "VideoFormat",
+        "Considering",
+        "This",
+        "Display",
+        "VideoDataOutputContext",
+        "VideoRef"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bergercookie/asm-lsp/issues/187": {
+    "repository": "bergercookie/asm-lsp",
+    "issue_number": "187",
+    "title": "get_str and get_string Are Unsound Due to Unchecked UTF-8 Operations",
+    "body_chars": 3959,
+    "needles": {
+      "qualified": [
+        "str::from_utf8_unchecked",
+        "String::from_utf8_unchecked",
+        "**Problems:**\r\nUnchecked Assumptions:\r\n\r\nBoth str::from_utf8_unchecked and String::from_utf8_unchecked require that the input is valid UTF-8. If this requirement is violated, the program may invoke undefined behavior.\r\nThe assumption that inputs are \"mostly ASCII\" is not sufficient to ensure safety. Even a single invalid UTF-8 byte can cause UB.\r\nUndefined Behavior:\r\n\r\nPassing invalid UTF-8 to these functions leads to undefined behavior. This can result in data corruption, crashes, or security vulnerabilities, especially if inputs come from external sources.\r\nMisleading Safety:\r\n\r\nDeclaring these functions as pub but not marking them as unsafe suggests that they are safe to use. This hides the requirement that the caller must ensure the input is valid UTF-8, which is a critical safety contract.\r\nPotential Exploitation:\r\n\r\nThese functions can easily be misused by other developers who might assume they are safe for any input, especially in environments where inputs are user-controlled.\r\n**Suggested Fix:**\r\nTo align with Rust's safety guarantees while respecting the performance concerns mentioned in the documentation, the following changes are recommended:\r\n\r\nMark Functions as unsafe:\r\nAdd the unsafe keyword to both get_str and get_string to make it explicit that these functions rely on the caller to uphold safety invariants"
+      ],
+      "paths": [],
+      "fns": [
+        "get_str",
+        "get_string"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Description",
+        "Rust",
+        "While",
+        "ASCII",
+        "String",
+        "Unchecked",
+        "Assumptions",
+        "Both",
+        "Even",
+        "Passing",
+        "This",
+        "Misleading",
+        "Safety",
+        "Declaring",
+        "Exploitation",
+        "These",
+        "Suggested",
+        "Mark",
+        "Converts",
+        "Additional",
+        "Context",
+        "Using",
+        "Marking",
+        "Here",
+        "Accordingly",
+        "Conversely"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bluealloy/revm/issues/1902": {
+    "repository": "bluealloy/revm",
+    "issue_number": "1902",
+    "title": "Maybe unsound in ExtBytecode",
+    "body_chars": 4454,
+    "needles": {
+      "qualified": [
+        "std::ptr",
+        "interpreter::ExtBytecode",
+        "interpreter_types::Jumps",
+        "revm_bytecode::Bytecode",
+        "Bytecode::default",
+        "ExtBytecode::new",
+        "ptr::null",
+        "interpreter::ext_bytecode::ExtBytecode",
+        "interpreter_types::Immediates",
+        "std::slice::from_raw_parts",
+        "core::slice::from_raw_parts",
+        "std::ptr::const_ptr",
+        "revm_bytecode::utils::read_u16",
+        "revm_bytecode::utils::read_i16",
+        "extern crate revm_interpreter;\nextern crate revm_bytecode;\n\nuse std::ptr;\nuse revm_interpreter::{interpreter::ExtBytecode, interpreter_types::Jumps};\nuse revm_bytecode::Bytecode;\n\nfn main"
+      ],
+      "paths": [],
+      "fns": [
+        "opcode",
+        "main",
+        "instruction_pointer",
+        "dev",
+        "read_slice",
+        "absolute_jump",
+        "read_offset_u16",
+        "relative_jump",
+        "read_offset_i16"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "ExtBytecode",
+        "Bytecode",
+        "Jumps",
+        "SAFETY",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Considering",
+        "This",
+        "INFO",
+        "Immediates"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bluss/arrayvec/issues/300": {
+    "repository": "bluss/arrayvec",
+    "issue_number": "300",
+    "title": "Maybe Multiple unsoundness problems",
+    "body_chars": 1139,
+    "needles": {
+      "qualified": [
+        "ptr::copy"
+      ],
+      "paths": [
+        "src/array_string.rs"
+      ],
+      "fns": [
+        "remove"
+      ],
+      "callees": [],
+      "types": [
+        "Some",
+        "None",
+        "L371",
+        "Since",
+        "Because",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/blyssprivacy/sdk/issues/35": {
+    "repository": "blyssprivacy/sdk",
+    "issue_number": "35",
+    "title": "Undefined Behavior in Db::get_nice_slice due to Unaligned Reference",
+    "body_chars": 2987,
+    "needles": {
+      "qualified": [
+        "slice::from_raw_parts",
+        "Db::get_nice_slice",
+        "doublepir_rs::database::Db",
+        "doublepir_rs::params::Params",
+        "Db::new",
+        "ptr::slice_from_raw_parts",
+        "std::slice::from_raw_parts",
+        "doublepir_rs::database::Db::get_nice_slice",
+        "**Description:**\r\nThe Db::get_nice_slice function in the doublepir_rs crate triggers undefined behavior",
+        "extern crate doublepir_rs;\r\n\r\nuse doublepir_rs::database::Db;\r\nuse doublepir_rs::params::Params;\r\nfn main"
+      ],
+      "paths": [
+        "lib/doublepir/src/database/database.rs",
+        "src/database/database.rs"
+      ],
+      "fns": [
+        "get_nice_slice",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Hello",
+        "Rust",
+        "L140",
+        "Description",
+        "This",
+        "However",
+        "Params",
+        "Users",
+        "BACKTRACE",
+        "Github",
+        "Properly",
+        "Unaligned",
+        "Reference"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/bnb-chain/revm/issues/89": {
+    "repository": "bnb-chain/revm",
+    "issue_number": "89",
+    "title": "Maybe unsound in current_opcode",
+    "body_chars": 1011,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "current_opcode"
+      ],
+      "callees": [],
+      "types": [
+        "Interpreter",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/brson/rust-sdl/issues/168": {
+    "repository": "brson/rust-sdl",
+    "issue_number": "168",
+    "title": "Maybe unsound in Surface::raw",
+    "body_chars": 1103,
+    "needles": {
+      "qualified": [
+        "ll::SDL_Surface",
+        "pub struct Surface {\r\n    pub raw: *mut ll::SDL_Surface,\r\n    pub owned: bool\r\n}\r\n\r\nimpl Surface{\r\n..............................\r\n    pub fn get_width",
+        "Surface::raw"
+      ],
+      "paths": [],
+      "fns": [
+        "get_width",
+        "get_height"
+      ],
+      "callees": [],
+      "types": [
+        "Surface",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/capnproto/capnproto-rust/issues/534": {
+    "repository": "capnproto/capnproto-rust",
+    "issue_number": "534",
+    "title": "Maybe unsound in set_capability_pointer",
+    "body_chars": 1069,
+    "needles": {
+      "qualified": [
+        "alloc::boxed::Box",
+        "PointerBuilder::get_root"
+      ],
+      "paths": [],
+      "fns": [
+        "set_capability_pointer"
+      ],
+      "callees": [],
+      "types": [
+        "Considering",
+        "BuilderArena",
+        "CapTableBuilder",
+        "WirePointer",
+        "ClientHook",
+        "TODO",
+        "PointerBuilder"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/cea-sec/sanzu/issues/309": {
+    "repository": "cea-sec/sanzu",
+    "issue_number": "309",
+    "title": "Unsoundness in AVFrame::plane",
+    "body_chars": 1005,
+    "needles": {
+      "qualified": [
+        "ffmpeg::AVFrame",
+        "std::slice::from_raw_parts_mut",
+        "pub struct AVFrame {\r\n    /// Raw pointer on the AVFrame\r\n    pub ptr: *mut ffmpeg::AVFrame,\r\n}\r\n\r\nimpl AVFrame {\r\n...........................\r\n   pub fn plane",
+        "AVFrame::plane"
+      ],
+      "paths": [],
+      "fns": [
+        "plane"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "from_raw_parts_mut"
+      ],
+      "types": [
+        "AVFrame",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/changlan/kytan/issues/39": {
+    "repository": "changlan/kytan",
+    "issue_number": "39",
+    "title": "Unsoundness in raw_cksum",
+    "body_chars": 2483,
+    "needles": {
+      "qualified": [
+        "u16::to_be",
+        "u16::from_be",
+        "mem::size_of"
+      ],
+      "paths": [
+        "src/packet.rs"
+      ],
+      "fns": [
+        "raw_cksum",
+        "main",
+        "udptcp_cksum"
+      ],
+      "callees": [],
+      "types": [
+        "Wrapping",
+        "Create",
+        "IPv4",
+        "Ipv4Header",
+        "Version",
+        "Claim",
+        "Initialize",
+        "Only",
+        "This",
+        "Hello",
+        "Rust",
+        "Then",
+        "Although"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/chinedufn/swift-bridge/issues/304": {
+    "repository": "chinedufn/swift-bridge",
+    "issue_number": "304",
+    "title": "Bug report: Unsoundness  in FfiSlice::as_slice",
+    "body_chars": 7645,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts",
+        "swift_bridge::FfiSlice",
+        "std_bridge::rust_vec::_::_drop",
+        "std::boxed::Box",
+        "std_bridge::string::ffi::__swift_bridge__RustString__free",
+        "std_bridge::string::RustStr",
+        "std::cmp::PartialEq",
+        "boxed_fn_support::__swift_bridge__call_boxed_fn_once_no_args_no_return",
+        "boxed_fn_support::__swift_bridge__free_boxed_fn_once_no_args_no_return",
+        "std_bridge::string::ffi::_::_push",
+        "std_bridge::string::ffi::_::_drop",
+        "extern crate swift_bridge;\n\nuse swift_bridge::FfiSlice;\n\nfn main",
+        "FfiSlice::as_slice"
+      ],
+      "paths": [
+        "src/lib.rs"
+      ],
+      "fns": [
+        "from_slice",
+        "as_slice",
+        "main",
+        "new",
+        "dev"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "FfiSlice",
+        "Create",
+        "Self",
+        "Cargo",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Option",
+        "None",
+        "Some",
+        "Description",
+        "Result",
+        "Root",
+        "Cause",
+        "Since",
+        "Proposed",
+        "Solution",
+        "Make",
+        "Fields",
+        "Private",
+        "Change",
+        "Validation",
+        "Introduce",
+        "INFO",
+        "RustStr",
+        "PartialEq"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/crabml/crabml/issues/218": {
+    "repository": "crabml/crabml",
+    "issue_number": "218",
+    "title": "Unsoundness issue in fn vec_fma_f16_f16_neon",
+    "body_chars": 3705,
+    "needles": {
+      "qualified": [
+        "crate::cpu::archutil::aarch64",
+        "myaarch64::vdupq_n_f16",
+        "myaarch64::vld1q_f16",
+        "myaarch64::vfmaq_f16",
+        "myaarch64::vst1q_f16",
+        "f16::from_f32"
+      ],
+      "paths": [
+        "src/cpu/buf/buf_f16.rs"
+      ],
+      "fns": [
+        "vec_fma_f16_f16_neon",
+        "vec_fma_f16_f16",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Create",
+        "Output",
+        "Will",
+        "This",
+        "NEON",
+        "Hello",
+        "Rust",
+        "L143",
+        "When",
+        "Although"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/danielpclark/rutie/issues/190": {
+    "repository": "danielpclark/rutie",
+    "issue_number": "190",
+    "title": "Unsoundness in parse_arguments",
+    "body_chars": 3998,
+    "needles": {
+      "qualified": [
+        "slice::from_raw_parts",
+        "isize::MAX",
+        "crate::rubysys::types::Value",
+        "rust\r\nuse std::{ptr, slice};\r\n\r\n// Mock",
+        "**Additional context** \r\nDue to the inability to install Ruby on my local machine, I simulated the environment by creating a mock Value struct as a placeholder. The original implementation in the rutie crate uses crate::rubysys::types::Value, which I replaced with the following mock:",
+        "This simulation replicates the behavior of parse_arguments without requiring Ruby dependencies.\r\n**Issue Analysis** \r\nThe root cause of the issue is the unchecked usage of slice::from_raw_parts in the following line:"
+      ],
+      "paths": [
+        "src/util.rs"
+      ],
+      "fns": [
+        "parse_arguments",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Argc",
+        "AnyObject",
+        "Describe",
+        "This",
+        "While",
+        "Ruby",
+        "Reproduce",
+        "Steps",
+        "Create",
+        "Value",
+        "Pass",
+        "Observe",
+        "Example",
+        "Mock",
+        "Clone",
+        "Debug",
+        "Placeholder",
+        "Type",
+        "Define",
+        "Simulating",
+        "Arbitrary",
+        "Call",
+        "Expected",
+        "Additionally",
+        "Github",
+        "Additional",
+        "Analysis",
+        "Violating"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/datenlord/async-rdma/issues/125": {
+    "repository": "datenlord/async-rdma",
+    "issue_number": "125",
+    "title": "Maybe unsound issue in cm_connect_helper",
+    "body_chars": 3505,
+    "needles": {
+      "qualified": [
+        "io::Result",
+        "error_utilities::log_ret_last_os_err",
+        "std::mem::zeroed",
+        "rdma_port_space::RDMA_PS_TCP"
+      ],
+      "paths": [],
+      "fns": [
+        "cm_connect_helper",
+        "main",
+        "rdma_create_ep",
+        "cm_connect"
+      ],
+      "callees": [
+        "zeroed"
+      ],
+      "types": [
+        "Rdma",
+        "Result",
+        "SAFETY",
+        "Safety",
+        "Call",
+        "Hello",
+        "While",
+        "Rust",
+        "When",
+        "Sorry"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/dnglab/dnglab/issues/488": {
+    "repository": "dnglab/dnglab",
+    "issue_number": "488",
+    "title": "Not sure whether it is a UB?",
+    "body_chars": 3727,
+    "needles": {
+      "qualified": [
+        "Color2D::at",
+        "Default::default",
+        "**Description**\r\nThe Color2D::at method may cause the program to hang indefinitely when running in release mode. This issue occurs due to the use of unsafe code without proper bounds checking. Specifically, the method uses get_unchecked, which assumes the indices are valid, but no checks are performed to ensure this condition.\r\n\r\nIn debug mode, the issue does not occur because the bounds are verified via the #[cfg"
+      ],
+      "paths": [
+        "src/pixarray.rs"
+      ],
+      "fns": [
+        "at",
+        "at_mut",
+        "new_with",
+        "new",
+        "default",
+        "main"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "Rust",
+        "L106",
+        "Description",
+        "Color2D",
+        "This",
+        "Specifically",
+        "However",
+        "Clone",
+        "Copy",
+        "Default",
+        "Send",
+        "Self",
+        "Intentionally",
+        "Attempt",
+        "Result",
+        "Anyway"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/dontpanic92/OpenPAL3/issues/51": {
+    "repository": "dontpanic92/OpenPAL3",
+    "issue_number": "51",
+    "title": "Maybe unsound in add_ref",
+    "body_chars": 924,
+    "needles": {
+      "qualified": [
+        "std::os::raw::c_long",
+        "std::os::raw::c_void"
+      ],
+      "paths": [],
+      "fns": [
+        "add_ref"
+      ],
+      "callees": [],
+      "types": [
+        "IObjectArray",
+        "Considering",
+        "This",
+        "IObject",
+        "IString",
+        "IWeakReference"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/douchuan/jvm/issues/13": {
+    "repository": "douchuan/jvm",
+    "issue_number": "13",
+    "title": "Unsound Use of std::str::from_utf8_unchecked in find_symbol",
+    "body_chars": 2053,
+    "needles": {
+      "qualified": [
+        "std::str::from_utf8_unchecked",
+        "std::str::from_utf8",
+        "**Problems:**\r\nUndefined Behavior on Invalid UTF-8:\r\n\r\nThe use of std::str::from_utf8_unchecked assumes that the input byte slices are valid UTF-8.\r\nIf package, name, or desc contain invalid UTF-8 bytes, UB occurs immediately upon calling from_utf8_unchecked.\r\n**PoC**",
+        "SYS_DIC::put"
+      ],
+      "paths": [
+        "crates/vm/src/native/mod.rs"
+      ],
+      "fns": [
+        "find_symbol",
+        "main"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Description",
+        "This",
+        "Option",
+        "JNINativeMethod",
+        "NATIVES",
+        "Additional",
+        "Context",
+        "Rust"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/douchuan/jvm/issues/14": {
+    "repository": "douchuan/jvm",
+    "issue_number": "14",
+    "title": "Unsoundness in load_class_from_path",
+    "body_chars": 1747,
+    "needles": {
+      "qualified": [
+        "std::str::from_utf8_unchecked",
+        "runtime::find_class_in_classpath",
+        "Arc::new",
+        "Box::new",
+        "Class::new_class",
+        "ClassPtr::new"
+      ],
+      "paths": [],
+      "fns": [
+        "load_class_from_path",
+        "main",
+        "require_class3",
+        "load_class"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Option",
+        "ClassRef",
+        "ClassPathResult",
+        "Class",
+        "Some",
+        "ClassPtr",
+        "None",
+        "Create",
+        "Call",
+        "Hello",
+        "Rust",
+        "This",
+        "When"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/dragonflyoss/nydus/issues/1814": {
+    "repository": "dragonflyoss/nydus",
+    "issue_number": "1814",
+    "title": "[Unsoundness] Undefined Behavior in public API alloc_buf due to uninitialized memory usage",
+    "body_chars": 3160,
+    "needles": {
+      "qualified": [
+        "std::alloc",
+        "isize::MAX",
+        "Layout::from_size_align",
+        "Vec::from_raw_parts",
+        "std::alloc::alloc",
+        "std::alloc::alloc_zeroed",
+        "ptr::write_bytes",
+        "use std::alloc::{alloc, Layout};\n\n// Extracted from storage/src/utils.rs\npub fn alloc_buf",
+        ".\n    unsafe { Vec::from_raw_parts"
+      ],
+      "paths": [
+        "src/utils.rs"
+      ],
+      "fns": [
+        "alloc_buf",
+        "main",
+        "ptr",
+        "len",
+        "size"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "zeroed"
+      ],
+      "types": [
+        "Layout",
+        "Extracted",
+        "Miri",
+        "This",
+        "Suppress",
+        "Summary",
+        "Hello",
+        "While",
+        "Rust",
+        "Location",
+        "Since",
+        "L335",
+        "Description",
+        "However",
+        "According",
+        "Proof",
+        "Concept",
+        "Running",
+        "Proposed",
+        "Improvement",
+        "Recommendation",
+        "Alternatively",
+        "MaybeUninit",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/eclipse-zenoh/zenoh/issues/1643": {
+    "repository": "eclipse-zenoh/zenoh",
+    "issue_number": "1643",
+    "title": "Unsoundness in OwnedDescriptor::atomic",
+    "body_chars": 532,
+    "needles": {
+      "qualified": [
+        "OwnedDescriptor::atomic"
+      ],
+      "paths": [],
+      "fns": [
+        "watchdog",
+        "atomic"
+      ],
+      "callees": [],
+      "types": [
+        "OwnedDescriptor",
+        "Describe",
+        "Considering",
+        "This",
+        "System"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/eclipse-zenoh/zenoh/issues/1683": {
+    "repository": "eclipse-zenoh/zenoh",
+    "issue_number": "1683",
+    "title": "Maybe unsound in watchdog::descriptor::confirm",
+    "body_chars": 1512,
+    "needles": {
+      "qualified": [
+        "std::sync::atomic::Ordering::SeqCst",
+        "watchdog::descriptor::confirm"
+      ],
+      "paths": [],
+      "fns": [
+        "confirm"
+      ],
+      "callees": [],
+      "types": [
+        "Describe",
+        "Hello",
+        "OwnedDescriptor",
+        "Segment",
+        "AtomicU64",
+        "Ordering",
+        "SeqCst",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers",
+        "System"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/everx-labs/ever-sdk/issues/1062": {
+    "repository": "everx-labs/ever-sdk",
+    "issue_number": "1062",
+    "title": "Maybe unsound in StringData",
+    "body_chars": 1069,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts",
+        "String::from_utf8"
+      ],
+      "paths": [],
+      "fns": [
+        "to_string",
+        "calls",
+        "as"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Hello",
+        "StringData",
+        "String"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/evmar/n2/issues/121": {
+    "repository": "evmar/n2",
+    "issue_number": "121",
+    "title": "Bug Report: Invalid Input Handling in `Scanner::slice` Method",
+    "body_chars": 1878,
+    "needles": {
+      "qualified": [
+        "Scanner::slice",
+        "n2::scanner::Scanner",
+        "Scanner::new",
+        "slice::get_unchecked",
+        "extern crate n2;\r\n\r\nuse n2::scanner::Scanner;\r\n\r\nfn main"
+      ],
+      "paths": [
+        "core/src/panicking.rs",
+        "src/panicking.rs"
+      ],
+      "fns": [
+        "main"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Scanner",
+        "Description",
+        "When",
+        "This",
+        "Prepare",
+        "Hello",
+        "Create",
+        "Attempt",
+        "Explicitly",
+        "Call",
+        "Compiling",
+        "Finished",
+        "Running",
+        "ThinkStation",
+        "Tower",
+        "Expected",
+        "Outcome",
+        "Result",
+        "Sorry"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/evmar/n2/issues/122": {
+    "repository": "evmar/n2",
+    "issue_number": "122",
+    "title": "Bug Report: Out of Bounds Access in `Scanner::peek` Method",
+    "body_chars": 2214,
+    "needles": {
+      "qualified": [
+        "n2::scanner::Scanner",
+        "Scanner::new",
+        "slice::get_unchecked",
+        "extern crate n2;\r\n\r\nuse n2::scanner::Scanner;\r\n\r\nfn main",
+        "Scanner::peek"
+      ],
+      "paths": [
+        "core/src/panicking.rs",
+        "src/panicking.rs"
+      ],
+      "fns": [
+        "main",
+        "peek",
+        "ofs"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Scanner",
+        "Description",
+        "When",
+        "This",
+        "Reproduce",
+        "Rust",
+        "Prepare",
+        "Hello",
+        "Create",
+        "Move",
+        "Keep",
+        "Loop",
+        "Print",
+        "Peeked",
+        "Increment",
+        "Compiling",
+        "Finished",
+        "Running"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/evmar/n2/issues/123": {
+    "repository": "evmar/n2",
+    "issue_number": "123",
+    "title": "Bug Report: Invalid Input Handling in `Scanner::peek_newline` Method",
+    "body_chars": 2230,
+    "needles": {
+      "qualified": [
+        "n2::scanner::Scanner",
+        "Scanner::new",
+        "slice::get_unchecked",
+        "extern crate n2;\r\n\r\nuse n2::scanner::Scanner;\r\n\r\nfn main",
+        "Scanner::peek_newline"
+      ],
+      "paths": [
+        "core/src/panicking.rs",
+        "src/panicking.rs"
+      ],
+      "fns": [
+        "main",
+        "peek_newline",
+        "ofs"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Scanner",
+        "Description",
+        "This",
+        "Reproduce",
+        "Prepare",
+        "Hello",
+        "Create",
+        "Manually",
+        "Move",
+        "Loop",
+        "Print",
+        "Increment",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Expected",
+        "Outcome",
+        "Result",
+        "Sorry"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/evmar/retrowin32/issues/72": {
+    "repository": "evmar/retrowin32",
+    "issue_number": "72",
+    "title": "Unsoundness in safe 'copy' function may cause UB due to lack of bounds checks",
+    "body_chars": 2305,
+    "needles": {
+      "qualified": [
+        "std::ptr::copy"
+      ],
+      "paths": [
+        "src/mem.rs"
+      ],
+      "fns": [
+        "copy"
+      ],
+      "callees": [],
+      "types": [
+        "Description",
+        "However",
+        "This",
+        "L155",
+        "Unchecked",
+        "General",
+        "There",
+        "Expected",
+        "Proper",
+        "Additional",
+        "Notes"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/evmar/retrowin32/issues/74": {
+    "repository": "evmar/retrowin32",
+    "issue_number": "74",
+    "title": "Arg<T> Implementation Allows Undefined Behavior Due to Unsafe Pointer Operations",
+    "body_chars": 1873,
+    "needles": {
+      "qualified": [
+        "std::ptr::read_unaligned",
+        "std::ptr::write_unaligned",
+        "std::ptr::null_mut",
+        "ptr::copy_nonoverlapping",
+        "Arg::get",
+        "Arg::set"
+      ],
+      "paths": [],
+      "fns": [
+        "get",
+        "set",
+        "main"
+      ],
+      "callees": [
+        "copy_nonoverlapping"
+      ],
+      "types": [
+        "Hello",
+        "This",
+        "Description",
+        "Proof",
+        "Create",
+        "Construct",
+        "Call",
+        "Reading",
+        "Value",
+        "Unpredictable",
+        "Output",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/flaneur2020/pua-lang/issues/76": {
+    "repository": "flaneur2020/pua-lang",
+    "issue_number": "76",
+    "title": "dealloc Function Causes Undefined Behavior Due to Improper Use of Vec::from_raw_parts",
+    "body_chars": 1990,
+    "needles": {
+      "qualified": [
+        "Vec::from_raw_parts",
+        "std::ffi::c_void",
+        "**Problem:**\r\nVec::from_raw_parts assumes the pointer is valid:\r\nThe function assumes the provided pointer is a valid, non-null pointer previously allocated by a Rust allocator.\r\nIf ptr was not allocated using the Rust allocator",
+        "use std::ffi::c_void;\r\n\r\nextern \"C\" {\r\n    fn malloc"
+      ],
+      "paths": [
+        "src/wasm/main.rs"
+      ],
+      "fns": [
+        "dealloc",
+        "malloc",
+        "free",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "Specifically",
+        "Rust",
+        "Steps",
+        "Reproduce",
+        "Provide",
+        "Double",
+        "Result",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Additional",
+        "Context",
+        "Improper",
+        "Ensuring"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/fugue-re/fugue-core/issues/18": {
+    "repository": "fugue-re/fugue-core",
+    "issue_number": "18",
+    "title": "Unsound Use of get_unchecked in unchecked_symbol",
+    "body_chars": 1749,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "unchecked_symbol",
+        "main"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Description",
+        "This",
+        "Symbol",
+        "Safety",
+        "Contract",
+        "Rust",
+        "Exploitation",
+        "SymbolTable",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/georust/gdal/issues/588": {
+    "repository": "georust/gdal",
+    "issue_number": "588",
+    "title": "Unsoundness in \"_string\" and \"_pathbuf\"",
+    "body_chars": 1505,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr",
+        "std::ptr::null",
+        "let null_ptr: *const c_char = std::ptr::null"
+      ],
+      "paths": [
+        "src/utils.rs"
+      ],
+      "fns": [
+        "_string",
+        "_pathbuf"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Describe",
+        "CStr",
+        "However",
+        "This",
+        "String",
+        "PathBuf",
+        "Reproduce",
+        "Provide",
+        "Null",
+        "Expected",
+        "Additional",
+        "Validating",
+        "Ensuring"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/gluon-lang/gluon/issues/969": {
+    "repository": "gluon-lang/gluon",
+    "issue_number": "969",
+    "title": "WriteOnly::write can cause stack overflow or out-of-memory error with large inputs",
+    "body_chars": 1858,
+    "needles": {
+      "qualified": [
+        "WriteOnly::write",
+        "gluon::vm::gc",
+        "usize::MAX",
+        "gluon::vm::gc::WriteOnly",
+        "Vec::new",
+        "WriteOnly::new",
+        "extern crate gluon;\r\n\r\nuse gluon::vm::gc::WriteOnly;\r\nfn main"
+      ],
+      "paths": [],
+      "fns": [
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Description",
+        "WriteOnly",
+        "This",
+        "Allocate",
+        "SAFETY",
+        "Create",
+        "Extremely",
+        "Write",
+        "Result",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Suggested",
+        "Provide",
+        "Additional",
+        "Context",
+        "Addressing"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/hermit-os/uhyve/issues/834": {
+    "repository": "hermit-os/uhyve",
+    "issue_number": "834",
+    "title": "Maybe unsound in Vring::_flags",
+    "body_chars": 1452,
+    "needles": {
+      "qualified": [
+        "clippy::cast_ptr_alignment",
+        "Vring::_flags"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "_flags",
+        "index",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Vring",
+        "PhantomData",
+        "Self",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/hermit-os/uhyve/issues/855": {
+    "repository": "hermit-os/uhyve",
+    "issue_number": "855",
+    "title": "Maybe unsound in virtio's write_ fn groups",
+    "body_chars": 4281,
+    "needles": {
+      "qualified": [
+        "clippy::cast_ptr_alignment",
+        "GuestPhysAddr::new",
+        "Virtqueue::new",
+        "VirtioNetPciDevice::write_selected_queue"
+      ],
+      "paths": [],
+      "fns": [
+        "write_selected_queue",
+        "write_pfn",
+        "write_requested_features",
+        "main",
+        "and",
+        "groups"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Register",
+        "MmapMemory",
+        "GuestPhysAddr",
+        "Virtqueue",
+        "According",
+        "VirtioNetPciDevice",
+        "PciRegisters",
+        "Option",
+        "Mutex",
+        "Iface",
+        "Github",
+        "Finished",
+        "Running",
+        "Users",
+        "BACKTRACE",
+        "MIRIFLAGS",
+        "Zmiri"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/imazen/imageflow/issues/655": {
+    "repository": "imazen/imageflow",
+    "issue_number": "655",
+    "title": "Maybe unsound in ffi::BitmapBgra pixels field",
+    "body_chars": 1736,
+    "needles": {
+      "qualified": [
+        "std::hash::Hasher",
+        "twox_hash::XxHash::with_seed",
+        "slice::from_raw_parts",
+        "ffi::BitmapBgra"
+      ],
+      "paths": [],
+      "fns": [
+        "short_hash_pixels"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Hello",
+        "BitmapBgra",
+        "Hasher",
+        "XxHash",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/inherd/coco/issues/101": {
+    "repository": "inherd/coco",
+    "issue_number": "101",
+    "title": "Unsoundness in run_ctags",
+    "body_chars": 2194,
+    "needles": {
+      "qualified": [
+        "CmdCtags::call",
+        "Vec::new",
+        "str::from_utf8",
+        "str::from_utf8_unchecked",
+        "CtagsParser::parse_str",
+        "String::from",
+        "The issue is in the run_ctags function where it uses str::from_utf8_unchecked on external command output:",
+        "let iter = if opt.validate_utf8 {\n    str::from_utf8"
+      ],
+      "paths": [],
+      "fns": [
+        "run_ctags",
+        "main",
+        "execute"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "String",
+        "ClassInfo",
+        "CmdCtags",
+        "CtagsParser",
+        "Create",
+        "CocoConfig",
+        "RepoConfig",
+        "Point",
+        "Some",
+        "PluginConfig",
+        "KeyValue",
+        "This",
+        "Hello",
+        "Rust",
+        "Since"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/jeaye/ncurses-rs/issues/224": {
+    "repository": "jeaye/ncurses-rs",
+    "issue_number": "224",
+    "title": "Unsoundness in ptr_to_string may cause UB due to unsafe assumptions about pointer validity and string encoding",
+    "body_chars": 1998,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr",
+        "str::from_utf8_unchecked",
+        "std::ptr::null",
+        "**Problem Description:**\r\n1. Invalid Pointer:\r\nThe function assumes that ptr is a valid, non-null pointer. If ptr is null or points to invalid memory, calling CStr::from_ptr",
+        "let null_pointer: *const c_char = std::ptr::null"
+      ],
+      "paths": [
+        "src/menu/wrapper.rs"
+      ],
+      "fns": [
+        "ptr_to_string"
+      ],
+      "callees": [
+        "from_utf8_unchecked",
+        "from_ptr"
+      ],
+      "types": [
+        "Description",
+        "CStr",
+        "String",
+        "However",
+        "These",
+        "L454",
+        "Null",
+        "Termination",
+        "Encoding",
+        "Steps",
+        "Reproduce",
+        "Provide",
+        "Expected",
+        "Additional",
+        "Notes",
+        "Adding",
+        "This",
+        "Rust"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/jfecher/ante/issues/221": {
+    "repository": "jfecher/ante",
+    "issue_number": "221",
+    "title": "[Unsoundness] Critical soundness violations in public API src/util/trustme.rs (make_mut_ref, extend_lifetime)",
+    "body_chars": 3805,
+    "needles": {
+      "qualified": [
+        "std::mem::transmute"
+      ],
+      "paths": [
+        "src/util/trustme.rs",
+        "src/main.rs"
+      ],
+      "fns": [
+        "make_mut_ref",
+        "main"
+      ],
+      "callees": [
+        "transmute"
+      ],
+      "types": [
+        "Extracted",
+        "Define",
+        "Original",
+        "Call",
+        "Safe",
+        "Trigger",
+        "Attempting",
+        "Stacked",
+        "Borrows",
+        "Unique",
+        "SharedReadOnly",
+        "Hello",
+        "Rust",
+        "Location",
+        "Specifically",
+        "These",
+        "After",
+        "Description",
+        "This",
+        "However",
+        "Similarly",
+        "Since",
+        "Proof",
+        "Concept",
+        "Miri",
+        "Output",
+        "Running",
+        "Recommendation",
+        "Mark",
+        "Recommended",
+        "APIs",
+        "Restrict",
+        "Visibility",
+        "Critical"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/joaoviictorti/shadow/issues/5": {
+    "repository": "joaoviictorti/shadow",
+    "issue_number": "5",
+    "title": "Maybe unsound in add_remove_port_toggle",
+    "body_chars": 563,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "add_remove_port_toggle"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "TargetPort",
+        "NTSTATUS"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/kahing/catfs/issues/77": {
+    "repository": "kahing/catfs",
+    "issue_number": "77",
+    "title": "[Unsoundness] Critical: Public API make_self allows arbitrary lifetime extension leading to Use-After-Free",
+    "body_chars": 1171,
+    "needles": {
+      "qualified": [
+        "std::mem::transmute"
+      ],
+      "paths": [
+        "src/catfs/mod.rs"
+      ],
+      "fns": [
+        "make_self"
+      ],
+      "callees": [
+        "transmute"
+      ],
+      "types": [
+        "Hello",
+        "Rust",
+        "Location",
+        "Description",
+        "This",
+        "When",
+        "Accessing",
+        "After",
+        "While",
+        "Consequences",
+        "Since",
+        "Critical"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/kcl-lang/kcl/issues/1776": {
+    "repository": "kcl-lang/kcl",
+    "issue_number": "1776",
+    "title": "Maybe unsound in c2str_vec",
+    "body_chars": 1231,
+    "needles": {
+      "qualified": [
+        "Vec::new",
+        "std::ffi::CStr::from_ptr"
+      ],
+      "paths": [],
+      "fns": [
+        "c2str_vec"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Considering",
+        "String",
+        "CStr"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/laptou/jsi-rs/issues/5": {
+    "repository": "laptou/jsi-rs",
+    "issue_number": "5",
+    "title": "Maybe unsound in new_unchecked",
+    "body_chars": 819,
+    "needles": {
+      "qualified": [
+        "sys::Runtime"
+      ],
+      "paths": [],
+      "fns": [
+        "new_unchecked",
+        "impl"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "RuntimeHandle",
+        "Creates",
+        "Runtime",
+        "Self",
+        "PhantomData",
+        "SAFETY",
+        "This",
+        "Rust"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/leetvr/hotham/issues/449": {
+    "repository": "leetvr/hotham",
+    "issue_number": "449",
+    "title": "[Bug]: Unsoundness in u8_to_u32",
+    "body_chars": 4245,
+    "needles": {
+      "qualified": [
+        "std::mem::size_of",
+        "std::ptr::copy_nonoverlapping",
+        "std::sync::Arc",
+        "Arc::new",
+        "use std::sync::Arc;\r\n\r\npub fn u8_to_u32",
+        "error: Undefined Behavior: memory access failed: expected a pointer to 17 bytes of memory, but got alloc1520 which is only 16 bytes from the end of the allocation\r\n  --> src\\main.rs:6:9\r\n   |\r\n6  | /         std::ptr::copy_nonoverlapping"
+      ],
+      "paths": [],
+      "fns": [
+        "u8_to_u32",
+        "main"
+      ],
+      "callees": [
+        "copy_nonoverlapping"
+      ],
+      "types": [
+        "What",
+        "Output",
+        "Github",
+        "Finished",
+        "Running",
+        "Users",
+        "BACKTRACE",
+        "Nightly",
+        "MIRIFLAGS",
+        "Zmiri",
+        "Version",
+        "Default",
+        "Hotham",
+        "System",
+        "None",
+        "Relevant"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/leostera/lam/issues/9": {
+    "repository": "leostera/lam",
+    "issue_number": "9",
+    "title": "Unsound issue in program",
+    "body_chars": 1692,
+    "needles": {
+      "qualified": [
+        "lam_emu::Program",
+        "std::slice::from_raw_parts",
+        "Program::deserialize",
+        "Literal::List",
+        "List::Nil",
+        "WebSchedulerManager::new",
+        "console_log::init_with_level",
+        "log::Level::Info",
+        "Coordinator::new",
+        "Box::new"
+      ],
+      "paths": [
+        "lib/lam-rts-web/src/lib.rs",
+        "src/lib.rs"
+      ],
+      "fns": [
+        "program",
+        "start"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Program",
+        "Literal",
+        "List",
+        "WebSchedulerManager",
+        "Level",
+        "Info",
+        "Initializing",
+        "Runtime",
+        "COORDINATOR",
+        "Coordinator",
+        "Some",
+        "Hello",
+        "Rust",
+        "Although",
+        "Alternatively"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/m4b/dryad/issues/6": {
+    "repository": "m4b/dryad",
+    "issue_number": "6",
+    "title": "Potential Undefined Behavior in from_executable Due to Unsafe Pointer Usage and Assumptions",
+    "body_chars": 3394,
+    "needles": {
+      "qualified": [
+        "tls::Lachesis",
+        "ProgramHeader::from_raw_parts",
+        "sym::from_raw",
+        "Strtab::from_raw",
+        "sym::Sym",
+        "usize::MAX",
+        "tls::Lachesis::new",
+        "let invalid_phdr_addr = 0xdeadbeefusize; // Invalid address\r\nlet invalid_phnum = usize::MAX;          // Unrealistic number of program headers\r\n\r\nlet result = from_executable"
+      ],
+      "paths": [
+        "src/image.rs"
+      ],
+      "fns": [
+        "from_executable"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "These",
+        "Rust",
+        "L149",
+        "Lachesis",
+        "Result",
+        "SharedObject",
+        "String",
+        "ProgramHeader",
+        "Casting",
+        "Dereferencing",
+        "Assumption",
+        "Valid",
+        "Unchecked",
+        "Arithmetic",
+        "Expressions",
+        "Dynamic",
+        "Assumptions",
+        "Strtab",
+        "Pointers",
+        "Without",
+        "Validation",
+        "Unclear",
+        "Lifetimes",
+        "Panics",
+        "Instead",
+        "Proper",
+        "Error",
+        "This",
+        "Steps",
+        "Reproduce",
+        "Here",
+        "Unrealistic",
+        "Expected",
+        "Validate",
+        "Ensure",
+        "DynamicInfo",
+        "Handle",
+        "Additional",
+        "Context",
+        "Misuse"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/maekawatoshiki/ferrugo/issues/2": {
+    "repository": "maekawatoshiki/ferrugo",
+    "issue_number": "2",
+    "title": "Maybe unsound in CodeAttribute",
+    "body_chars": 1541,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "read_u8_from_code",
+        "read_u16_from_code",
+        "dump_bytecode"
+      ],
+      "callees": [],
+      "types": [
+        "CodeAttribute",
+        "Exception",
+        "AttributeInfo",
+        "Considering",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/maekawatoshiki/rapidus/issues/72": {
+    "repository": "maekawatoshiki/rapidus",
+    "issue_number": "72",
+    "title": "Maybe unsound in cstrp_to_str",
+    "body_chars": 938,
+    "needles": {
+      "qualified": [
+        "ffi::CString",
+        "ptr::null_mut",
+        "use std::{ffi::CString, ptr};\r\npub fn cstrp_to_str"
+      ],
+      "paths": [],
+      "fns": [
+        "cstrp_to_str",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "CString",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/meh/rust-ffmpeg/issues/188": {
+    "repository": "meh/rust-ffmpeg",
+    "issue_number": "188",
+    "title": "Maybe unsound in RateIter::next",
+    "body_chars": 1333,
+    "needles": {
+      "qualified": [
+        "Rational::from",
+        "RateIter::next"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "next",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "RateIter",
+        "AVRational",
+        "Self",
+        "Iterator",
+        "Item",
+        "Rational",
+        "Option",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/michelhe/rustboyadvance-ng/issues/177": {
+    "repository": "michelhe/rustboyadvance-ng",
+    "issue_number": "177",
+    "title": "Maybe unsound in WeakPointer::new",
+    "body_chars": 1359,
+    "needles": {
+      "qualified": [
+        "WeakPointer::new"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "deref",
+        "deref_mut",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "WeakPointer",
+        "Sized",
+        "Self",
+        "Deref",
+        "Target",
+        "DerefMut",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/microsoft/aici/issues/119": {
+    "repository": "microsoft/aici",
+    "issue_number": "119",
+    "title": "maybe unsound in busy_reset",
+    "body_chars": 2648,
+    "needles": {
+      "qualified": [
+        "std::ptr::write_volatile",
+        "MessageChannel::busy_reset",
+        "ptr::write_volatile",
+        "will result in misaligned problem. The pointer type conversion in such way would break the alignment requirement of ptr::write_volatile, and it might lead to unsound behaviors.\n\n**PoC**",
+        "error: Undefined Behavior: accessing memory based on pointer with alignment 1, but alignment 4 is required\n  --> src\\main.rs:20:18\n   |\n20 | ... { std::ptr::write_volatile"
+      ],
+      "paths": [],
+      "fns": [
+        "busy_reset",
+        "ptr_at",
+        "main",
+        "dev",
+        "is",
+        "to"
+      ],
+      "callees": [],
+      "types": [
+        "MessageChannel",
+        "Semaphore",
+        "Github",
+        "Finished",
+        "Running",
+        "Users",
+        "BACKTRACE",
+        "MIRIFLAGS",
+        "Zmiri",
+        "Hello"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/moratorium08/osmium/issues/3": {
+    "repository": "moratorium08/osmium",
+    "issue_number": "3",
+    "title": "Maybe unsound in new?",
+    "body_chars": 879,
+    "needles": {
+      "qualified": [
+        "ElfError::InvalidMagic"
+      ],
+      "paths": [],
+      "fns": [
+        "new"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Result",
+        "ElfError",
+        "ElfHeader",
+        "InvalidMagic"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/moratorium08/osmium/issues/4": {
+    "repository": "moratorium08/osmium",
+    "issue_number": "4",
+    "title": "Unsoundness in receive_data",
+    "body_chars": 2627,
+    "needles": {
+      "qualified": [
+        "trap::TrapFrame",
+        "kernel::Kernel",
+        "str::from_utf8",
+        "slice::from_raw_parts",
+        "SyscallError::InvalidArguments",
+        "files::search",
+        "SyscallError::NotFound",
+        "elf::Elf::new",
+        "SyscallError::IllegalFile",
+        "trap::TrapFrame::new",
+        "memlayout::USER_STACK_BOTTOMN",
+        "Syscall::Execve",
+        "Kernel::new",
+        "TrapFrame::default"
+      ],
+      "paths": [],
+      "fns": [
+        "execve",
+        "main",
+        "syscall_dispatch"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "TrapFrame",
+        "Kernel",
+        "Result",
+        "SyscallError",
+        "InvalidArguments",
+        "Some",
+        "None",
+        "NotFound",
+        "IllegalFile",
+        "Create",
+        "Syscall",
+        "Execve",
+        "Attempt",
+        "This",
+        "Hello",
+        "Rust",
+        "While",
+        "There"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/mstange/samply/issues/719": {
+    "repository": "mstange/samply",
+    "issue_number": "719",
+    "title": "[Unsoundness] Out-of-bounds read in public API parse_unk_size_null_utf16_string due to unsafe loop condition order",
+    "body_chars": 3999,
+    "needles": {
+      "qualified": [
+        "std::alloc",
+        "std::mem::align_of",
+        "std::slice::from_raw_parts",
+        "String::from_utf16_lossy",
+        "u16::MAX",
+        "use std::alloc::{alloc, Layout};\n\n// Code extracted from etw-reader/src/utils.rs for reproduction\nfn is_aligned"
+      ],
+      "paths": [
+        "src/utils.rs"
+      ],
+      "fns": [
+        "is_aligned",
+        "parse_unk_size_null_utf16_string",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Current",
+        "Layout",
+        "Code",
+        "Sized",
+        "String",
+        "HERE",
+        "AlignedData",
+        "Intentionally",
+        "Construct",
+        "Interpreted",
+        "Call",
+        "Hello",
+        "While",
+        "Rust",
+        "Location",
+        "Since",
+        "Safe",
+        "Description",
+        "However",
+        "This",
+        "Proof",
+        "Concept",
+        "Miri",
+        "Output",
+        "Running",
+        "Recommendation",
+        "Alternatively"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/mycelial/mycelite/issues/52": {
+    "repository": "mycelial/mycelite",
+    "issue_number": "52",
+    "title": "Unsoundness in PtrIter::next",
+    "body_chars": 2955,
+    "needles": {
+      "qualified": [
+        "core::ffi::c_int",
+        "core::marker::PhantomData",
+        "std::ptr",
+        "PtrIter::new",
+        "ptr::null",
+        "//! Iterator over sqlite argc/argv pair\r\nuse core::ffi::c_int;\r\nuse core::marker::PhantomData;\r\nuse std::ptr;\r\n\r\n/// Iterator over sqlite pointers\r\n#[derive",
+        "PtrIter::next"
+      ],
+      "paths": [],
+      "fns": [
+        "next",
+        "new",
+        "main",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "PtrIter",
+        "PhantomData",
+        "Iterator",
+        "Copy",
+        "Item",
+        "Option",
+        "None",
+        "Some",
+        "Self",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers",
+        "Debug",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/nash-io/openlimits/issues/204": {
+    "repository": "nash-io/openlimits",
+    "issue_number": "204",
+    "title": "Unsound Use of CStr::from_ptr in new Function",
+    "body_chars": 2235,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr",
+        "field, it cause some problems.\r\n1. Unchecked Pointer Validity:\r\nThe pointer parameter is assumed to be valid and non-null, but there is no validation to enforce this assumption.\r\nIf pointer is null, accessing it with CStr::from_ptr causes undefined behavior.\r\n2. Null-Termination Requirement:\r\nCStr::from_ptr requires that the string is null-terminated. If the input pointer does not point to a null-terminated string, the function will read out of bounds, leading to undefined behavior.\r\n3. No Documentation for Safety Contract:\r\nThe function does not document the safety requirements for the pointer parameter, leaving the caller unaware of the preconditions necessary to avoid UB.\r\n4. Invalid or Dangling Pointers:\r\nIf pointer points to memory that is invalid, already freed, or not properly aligned, the program will exhibit undefined behavior.\r\n\r\n**Suggestion**\r\n\r\n1. mark this function as"
+      ],
+      "paths": [
+        "src/bindings/string/mod.rs"
+      ],
+      "fns": [
+        "new"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Description",
+        "CStr",
+        "This",
+        "Self",
+        "Unchecked",
+        "Validity",
+        "Null",
+        "Termination",
+        "Requirement",
+        "Documentation",
+        "Safety",
+        "Contract",
+        "Dangling",
+        "Pointers",
+        "Suggestion",
+        "Additional",
+        "Context",
+        "Rust"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/nervosnetwork/ckb-vm/issues/444": {
+    "repository": "nervosnetwork/ckb-vm",
+    "issue_number": "444",
+    "title": "Unsoundness in cast_ptr_to_slice",
+    "body_chars": 2343,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts"
+      ],
+      "paths": [],
+      "fns": [
+        "main",
+        "cast_ptr_to_slice",
+        "cast_ptr_to_slice_mut"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "AsmCoreMachine",
+        "Triggers",
+        "Describe",
+        "This",
+        "Reproduce",
+        "Steps",
+        "Create",
+        "Call",
+        "Attempt",
+        "Observe",
+        "Example",
+        "Expected",
+        "Environment",
+        "Windows",
+        "Version",
+        "Commit",
+        "Rust",
+        "Additional",
+        "Below"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/ninja-quant/ninjabook/issues/3": {
+    "repository": "ninja-quant/ninjabook",
+    "issue_number": "3",
+    "title": "Unsound Implementation of get_mut in Orderbook Allows Undefined Behavior",
+    "body_chars": 1625,
+    "needles": {
+      "qualified": [
+        "Buffer::get_unchecked_mut",
+        "Orderbook::get_mut",
+        "Buffer::get_mut"
+      ],
+      "paths": [
+        "src/fixed_orderbook.rs"
+      ],
+      "fns": [
+        "get_mut"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "Description",
+        "Orderbook",
+        "Buffer",
+        "This",
+        "L307",
+        "Level",
+        "Without",
+        "Validation",
+        "Rust",
+        "Documentation",
+        "Safety",
+        "Contract",
+        "There",
+        "Suggestion",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/nixops4/nixops4/issues/65": {
+    "repository": "nixops4/nixops4",
+    "issue_number": "65",
+    "title": "Maybe unsound in new_raw_clone",
+    "body_chars": 2350,
+    "needles": {
+      "qualified": [
+        "raw::StorePath",
+        "Self::new_raw",
+        "raw::store_path_clone",
+        "raw::store_path_name",
+        "pub struct StorePath {\r\n    raw: *mut raw::StorePath,\r\n}\r\nimpl StorePath {\r\n    /// This is a low level function that you shouldn't have to call unless you are developing the Nix bindings.\r\n    ///\r\n    /// Construct a new",
+        "operating on a null pointer, I am not sure what will raw::store_path_clone do on a null pointer but I guess it might trigger undefined behavior"
+      ],
+      "paths": [],
+      "fns": [
+        "new_raw_clone",
+        "new_raw",
+        "name",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "StorePath",
+        "This",
+        "Construct",
+        "Self",
+        "Takes",
+        "Result",
+        "String",
+        "Some",
+        "Considering",
+        "More",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/nuta/kerla/issues/170": {
+    "repository": "nuta/kerla",
+    "issue_number": "170",
+    "title": "Unsoundness in fn parse_str_field",
+    "body_chars": 1254,
+    "needles": {
+      "qualified": [
+        "BytesParser::new",
+        "HashMap::new"
+      ],
+      "paths": [],
+      "fns": [
+        "parse_str_field",
+        "new",
+        "use"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "InitramFs",
+        "BytesParser",
+        "HashMap",
+        "Hello",
+        "Rust",
+        "Although"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/o8vm/krabs/issues/30": {
+    "repository": "o8vm/krabs",
+    "issue_number": "30",
+    "title": "Unsoundness in",
+    "body_chars": 930,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "jmp64",
+        "start_kernel"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Rust",
+        "Although"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/occlum/occlum/issues/1645": {
+    "repository": "occlum/occlum",
+    "issue_number": "1645",
+    "title": "[BUG] Maybe unsound in from_raw_ptr",
+    "body_chars": 531,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "from_raw_ptr"
+      ],
+      "callees": [],
+      "types": [
+        "Result",
+        "Please"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/only-cliches/NoProto/issues/25": {
+    "repository": "only-cliches/NoProto",
+    "issue_number": "25",
+    "title": "Multiple Unsoundness issue",
+    "body_chars": 2925,
+    "needles": {
+      "qualified": [
+        "core::mem::transmute"
+      ],
+      "paths": [
+        "src/hashmap.rs"
+      ],
+      "fns": [
+        "get_32_block",
+        "murmurhash3_x86_32",
+        "main"
+      ],
+      "callees": [
+        "transmute"
+      ],
+      "types": [
+        "Create",
+        "Call",
+        "This",
+        "Hash",
+        "Hello",
+        "Rust",
+        "NoProto",
+        "L127",
+        "When",
+        "Although"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/oreboot/oreboot/issues/776": {
+    "repository": "oreboot/oreboot",
+    "issue_number": "776",
+    "title": "Unsoundness issue in",
+    "body_chars": 1955,
+    "needles": {
+      "qualified": [],
+      "paths": [
+        "src/mainboard/sunxi/nezha/bt0/src/mctl.rs"
+      ],
+      "fns": [
+        "readl",
+        "init_dram"
+      ],
+      "callees": [],
+      "types": [
+        "Safety",
+        "VERBOSE",
+        "DRAM",
+        "Hello",
+        "Rust",
+        "L216",
+        "Although",
+        "However"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/perpetual-ml/perpetual/issues/34": {
+    "repository": "perpetual-ml/perpetual",
+    "issue_number": "34",
+    "title": "Unsound Use of get_unchecked in from_parent_child and from_parent_two_children",
+    "body_chars": 4442,
+    "needles": {
+      "qualified": [
+        "Bin::from_parent_child",
+        "Bin::from_parent_two_children"
+      ],
+      "paths": [
+        "src/histogram.rs"
+      ],
+      "fns": [
+        "from_parent_child",
+        "from_parent_two_children"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Description",
+        "Both",
+        "This",
+        "L174",
+        "L200",
+        "NodeHistogram",
+        "Safety",
+        "Contracts",
+        "Rust",
+        "Exploitation",
+        "Suggestion",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/pipedown/noise/issues/82": {
+    "repository": "pipedown/noise",
+    "issue_number": "82",
+    "title": "Unsoundness in maybe_add_value",
+    "body_chars": 2781,
+    "needles": {
+      "qualified": [
+        "ObjectKeyTypes::Id",
+        "Error::Shred",
+        "str::from_utf8_unchecked",
+        "ObjectKeyTypes::Key",
+        "ObjectKeyTypes::NoKey",
+        "Database::new",
+        "Batch::new"
+      ],
+      "paths": [],
+      "fns": [
+        "maybe_add_value",
+        "main",
+        "_id",
+        "add",
+        "shred"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Parser",
+        "Chars",
+        "Result",
+        "Error",
+        "ObjectKeyTypes",
+        "Shred",
+        "Expected",
+        "Some",
+        "NoKey",
+        "Database",
+        "Assuming",
+        "Batch",
+        "JSON",
+        "Call",
+        "Hello",
+        "Rust",
+        "When",
+        "Since",
+        "There",
+        "This"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/pleco-rs/Pleco/issues/163": {
+    "repository": "pleco-rs/Pleco",
+    "issue_number": "163",
+    "title": "Unsoundness in pleco_engine/src/root_moves/root_moves_list.rs \"insert_score_depth\" and \"insert_score\"",
+    "body_chars": 3579,
+    "needles": {
+      "qualified": [
+        "RootMoveList::new",
+        "let mut root_move_list = RootMoveList::new"
+      ],
+      "paths": [
+        "src/root_moves/root_moves_list.rs",
+        "src/search/mod.rs"
+      ],
+      "fns": [
+        "insert_score_depth",
+        "insert_score",
+        "offset"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "RootMove",
+        "RootMoveList",
+        "Assuming",
+        "Assume",
+        "Index",
+        "While",
+        "Pleco",
+        "L104",
+        "L100",
+        "Description",
+        "Specifically",
+        "Steps",
+        "Reproduce",
+        "Call",
+        "Expected",
+        "Suggested",
+        "Rust",
+        "Additional",
+        "Information",
+        "Please",
+        "Since"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/posit-dev/ark/issues/653": {
+    "repository": "posit-dev/ark",
+    "issue_number": "653",
+    "title": "Maybe unsound in RLocal::new",
+    "body_chars": 1300,
+    "needles": {
+      "qualified": [
+        "libr::get",
+        "libr::set",
+        "RLocal::new"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "RLocal",
+        "Copy",
+        "Self",
+        "Hello",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/posit-dev/ark/issues/729": {
+    "repository": "posit-dev/ark",
+    "issue_number": "729",
+    "title": "Soundness Issue: Unsafe raw pointer operation exposed through safe public API r_show_message",
+    "body_chars": 2351,
+    "needles": {
+      "qualified": [
+        "CStr::from_ptr",
+        "RMain::get",
+        "ark::interface::r_show_message",
+        "std::ptr",
+        "ptr::null",
+        "use ark::interface::r_show_message;\nuse std::ptr;\n\nfn main"
+      ],
+      "paths": [],
+      "fns": [
+        "show_message",
+        "r_show_message",
+        "main",
+        "dev",
+        "interface",
+        "pub",
+        "unsafe"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "RMain",
+        "CStr",
+        "This",
+        "Finished",
+        "Running",
+        "Segmentation",
+        "Handle",
+        "Hello",
+        "Thank",
+        "While",
+        "Rust",
+        "Description",
+        "According",
+        "Result",
+        "Suggested",
+        "Fixes",
+        "Preferred",
+        "Mark",
+        "Alternative",
+        "Reduce",
+        "Most",
+        "Robust",
+        "AdditionalWhile"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/r9os/r9/issues/51": {
+    "repository": "r9os/r9",
+    "issue_number": "51",
+    "title": "Maybe unsound in write_reg groups",
+    "body_chars": 1376,
+    "needles": {
+      "qualified": [
+        "ptr::write_volatile"
+      ],
+      "paths": [],
+      "fns": [
+        "write_reg",
+        "write_or_reg",
+        "read_reg"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "VirtRange",
+        "Read",
+        "RegBlock",
+        "Panics",
+        "Pointers",
+        "When"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/raskr/rust-autograd/issues/65": {
+    "repository": "raskr/rust-autograd",
+    "issue_number": "65",
+    "title": "Unsoundness in gen_random_array",
+    "body_chars": 2143,
+    "needles": {
+      "qualified": [
+        "Vec::with_capacity",
+        "T::from",
+        "NdArray::from_shape_vec_unchecked",
+        "ArrayGen::new",
+        "usize::MAX"
+      ],
+      "paths": [],
+      "fns": [
+        "gen_random_array",
+        "main",
+        "exponential"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "NdArray",
+        "Distribution",
+        "ArrayGen",
+        "Assuming",
+        "Create",
+        "Product",
+        "Call",
+        "Using",
+        "Hello",
+        "Rust",
+        "When",
+        "Finally",
+        "This"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rcore-os/zCore/issues/406": {
+    "repository": "rcore-os/zCore",
+    "issue_number": "406",
+    "title": "unsoundness in nvme_configure_admin_queue(&mut self)",
+    "body_chars": 1267,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "nvme_configure_admin_queue"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rust-bio/rust-htslib/issues/459": {
+    "repository": "rust-bio/rust-htslib",
+    "issue_number": "459",
+    "title": "Multiple unsound problems in bcf crate",
+    "body_chars": 963,
+    "needles": {
+      "qualified": [
+        "htslib::bcf_hdr_t",
+        "slice::from_raw_parts",
+        "ffi::CStr::from_ptr",
+        "pub struct HeaderView {\r\n    pub inner: *mut htslib::bcf_hdr_t,\r\n}\r\n\r\nfn inner"
+      ],
+      "paths": [
+        "src/bcf/header.rs"
+      ],
+      "fns": [
+        "inner",
+        "samples"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "from_ptr"
+      ],
+      "types": [
+        "Since",
+        "L288",
+        "Hello",
+        "Currently",
+        "HeaderView",
+        "CStr",
+        "Record",
+        "Reader"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustcoreutils/posixutils-rs/issues/380": {
+    "repository": "rustcoreutils/posixutils-rs",
+    "issue_number": "380",
+    "title": "Unsoundness in open_at function",
+    "body_chars": 1839,
+    "needles": {
+      "qualified": [
+        "libc::c_char",
+        "FileDescriptor::open_at",
+        "CStr::from_ptr",
+        "libc::O_RDONLY",
+        "Error::new",
+        "ErrorKind::Open",
+        "OwnedDir::new",
+        "ErrorKind::OpenDir",
+        "FileDescriptor::new",
+        "std::ptr::null",
+        "let dir_fd = FileDescriptor::new"
+      ],
+      "paths": [
+        "src/dir.rs"
+      ],
+      "fns": [
+        "open_at"
+      ],
+      "callees": [
+        "from_ptr"
+      ],
+      "types": [
+        "Describe",
+        "CStr",
+        "However",
+        "This",
+        "FileDescriptor",
+        "Result",
+        "Self",
+        "Error",
+        "ErrorKind",
+        "Open",
+        "OwnedDir",
+        "OpenDir",
+        "Reproduce",
+        "Steps",
+        "Call",
+        "Assume",
+        "Null",
+        "Expected",
+        "Additional",
+        "Validating",
+        "Ensuring",
+        "Safely"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2140": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2140",
+    "title": "Corundum is unmaintained and may unsoundness",
+    "body_chars": 130,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [],
+      "callees": [],
+      "types": [
+        "NVSL",
+        "Corundum"
+      ],
+      "has_fence": false,
+      "strong": false,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2141": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2141",
+    "title": "Unsoundly mark unsafe function as safe in crate Ngrammatic",
+    "body_chars": 225,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "ngram_from_id"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Unsoundly",
+        "Ngrammatic"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2146": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2146",
+    "title": "Unsoundness in Pleco crates",
+    "body_chars": 447,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "RootMove",
+        "Specifically",
+        "Pleco"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2149": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2149",
+    "title": "Unsoundness in perpetual",
+    "body_chars": 746,
+    "needles": {
+      "qualified": [],
+      "paths": [],
+      "fns": [
+        "histogram",
+        "from_parent_child",
+        "from_parent_two_children"
+      ],
+      "callees": [
+        "get_unchecked"
+      ],
+      "types": [
+        "Description",
+        "Both",
+        "This",
+        "According"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2150": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2150",
+    "title": "Unsoundness in ninjabook",
+    "body_chars": 495,
+    "needles": {
+      "qualified": [
+        "Buffer::get_unchecked_mut"
+      ],
+      "paths": [],
+      "fns": [
+        "get_mut",
+        "get"
+      ],
+      "callees": [
+        "get_unchecked",
+        "get_unchecked_mut"
+      ],
+      "types": [
+        "Description",
+        "Orderbook",
+        "Buffer",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/rustsec/advisory-db/issues/2151": {
+    "repository": "rustsec/advisory-db",
+    "issue_number": "2151",
+    "title": "Unsoundness in swift-bridge",
+    "body_chars": 304,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts"
+      ],
+      "paths": [],
+      "fns": [],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "FfiSlice"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/sciter-sdk/rust-sciter/issues/150": {
+    "repository": "sciter-sdk/rust-sciter",
+    "issue_number": "150",
+    "title": "Unsoundness in get",
+    "body_chars": 2186,
+    "needles": {
+      "qualified": [
+        "Self::attach",
+        "Box::new",
+        "Box::into_raw",
+        "AssetPtr::adopt",
+        "The issue is that AssetPtr::adopt is a public function that accepts any type T, but internally it assumes T can be safely cast to an iasset. There's no trait bound or type checking to ensure this is valid.\nThe problematic code path is:\n\nadopt takes any *mut T pointer\nIt calls get",
+        "AssetPtr::get",
+        "utf::u2s",
+        "utf::w2sn",
+        "utf::u2sn"
+      ],
+      "paths": [],
+      "fns": [
+        "attach",
+        "adopt",
+        "get",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "AssetPtr",
+        "Attach",
+        "Self",
+        "Create",
+        "NotAnIAsset",
+        "Convert",
+        "Call",
+        "Cast",
+        "Hello",
+        "Rust",
+        "There",
+        "Since"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/servo/mozjs/issues/531": {
+    "repository": "servo/mozjs",
+    "issue_number": "531",
+    "title": "Maybe unsound in CustomAutoRooterGuard::new",
+    "body_chars": 1377,
+    "needles": {
+      "qualified": [
+        "CustomAutoRooterGuard::new"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "CustomAutoRooterGuard",
+        "CustomTrace",
+        "CustomAutoRooter",
+        "JSContext",
+        "Self",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers",
+        "Rooter"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/sgmarz/osblog/issues/40": {
+    "repository": "sgmarz/osblog",
+    "issue_number": "40",
+    "title": "Unsoundness in do_syscall",
+    "body_chars": 2937,
+    "needles": {
+      "qualified": [
+        "std::ptr",
+        "ptr::null_mut",
+        "use std::ptr;\r\n\r\npub struct TrapFrame {\r\n\tpub regs:       [usize; 32], // 0 - 255\r\n\tpub fregs:      [usize; 32], // 256 - 511\r\n\tpub satp:       usize,       // 512 - 519\r\n\tpub pc:         usize,       // 520\r\n\tpub hartid:     usize,       // 528\r\n\tpub qm:         usize,\t\t // 536\r\n}\r\n\r\npub fn do_syscall"
+      ],
+      "paths": [],
+      "fns": [
+        "do_syscall",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "TrapFrame",
+        "Exit",
+        "Currently",
+        "Test",
+        "Unknown",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/signalapp/ringrtc/issues/60": {
+    "repository": "signalapp/ringrtc",
+    "issue_number": "60",
+    "title": "Possible unsoundness in rtc_Bytes::as_slice",
+    "body_chars": 4043,
+    "needles": {
+      "qualified": [
+        "rtc_Bytes::as_slice",
+        "std::slice::from_raw_parts",
+        "libc::size_t",
+        "std::marker::PhantomData",
+        "std::ptr::null",
+        "rtc_Bytes::default",
+        "ptr::slice_from_raw_parts",
+        "use libc::size_t;\r\n\r\npub struct rtc_Bytes",
+        "on by default\r\n\r\nerror: Undefined Behavior: out-of-bounds pointer use: expected a pointer to 10 bytes of memory, but got alloc459 which is only 3 bytes from the end of the allocation\r\n   --> C:\\Users\\ROG\\.rustup\\toolchains\\nightly-x86_64-pc-windows-msvc\\lib\\rustlib\\src\\rust\\library\\core\\src\\slice\\raw.rs:138:9\r\n    |\r\n138 |         &*ptr::slice_from_raw_parts",
+        "--> src\\main.rs:24:18\r\n    |\r\n24  |         unsafe { std::slice::from_raw_parts"
+      ],
+      "paths": [],
+      "fns": [
+        "default",
+        "as_slice",
+        "to_vec",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Description",
+        "This",
+        "PhantomData",
+        "Default",
+        "Self",
+        "Case",
+        "Deliberately",
+        "Directly",
+        "Github",
+        "Compiling",
+        "Finished",
+        "Running",
+        "Users",
+        "RtcBytes",
+        "BACKTRACE",
+        "MIRIFLAGS",
+        "Zmiri",
+        "Suggest"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/smol-rs/async-task/issues/89": {
+    "repository": "smol-rs/async-task",
+    "issue_number": "89",
+    "title": "Maybe Multiple unsoundness problems",
+    "body_chars": 974,
+    "needles": {
+      "qualified": [
+        "Fut::Output"
+      ],
+      "paths": [
+        "src/runnable.rs"
+      ],
+      "fns": [
+        "spawn"
+      ],
+      "callees": [],
+      "types": [
+        "Runnable",
+        "Task",
+        "Output",
+        "FnOnce",
+        "Future",
+        "Send",
+        "Schedule",
+        "Sync",
+        "L363",
+        "Since",
+        "Because",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/starcoinorg/starcoin/issues/4763": {
+    "repository": "starcoinorg/starcoin",
+    "issue_number": "4763",
+    "title": "[Unsoundness] Potential buffer over-read in public API cryptonight_r due to unchecked size parameter",
+    "body_chars": 2777,
+    "needles": {
+      "qualified": [
+        "std::mem::transmute",
+        "Vec::from_raw_parts"
+      ],
+      "paths": [
+        "src/lib.rs"
+      ],
+      "fns": [
+        "cryptonight_r",
+        "main",
+        "size",
+        "cryptonight_hash"
+      ],
+      "callees": [
+        "transmute",
+        "from_raw_parts"
+      ],
+      "types": [
+        "VARIANT",
+        "HEIGHT",
+        "This",
+        "Hello",
+        "Rust",
+        "APIs",
+        "Location",
+        "Analysis",
+        "Although",
+        "Miri",
+        "Buffer",
+        "Over",
+        "However",
+        "Assuming",
+        "Hypothetical",
+        "Since",
+        "Secondary",
+        "Transmute",
+        "While",
+        "Transmuting",
+        "Recommendation",
+        "Validate",
+        "Avoid",
+        "Please",
+        "Thank"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tensorbase/tensorbase/issues/351": {
+    "repository": "tensorbase/tensorbase",
+    "issue_number": "351",
+    "title": "Unsound Use of CString::from_vec_unchecked in bytes_to_cstring",
+    "body_chars": 2337,
+    "needles": {
+      "qualified": [
+        "CString::from_vec_unchecked",
+        "std::ffi::CString::from_vec_unchecked",
+        "std::ffi::NulError",
+        "CString::new"
+      ],
+      "paths": [
+        "crates/base/src/strings.rs"
+      ],
+      "fns": [
+        "bytes_to_cstring",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Description",
+        "CString",
+        "This",
+        "L194",
+        "Validation",
+        "Misleading",
+        "Safety",
+        "Hell",
+        "Invoke",
+        "Expected",
+        "Actual",
+        "Result",
+        "NulError",
+        "Additional",
+        "Context",
+        "Rust"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tensorbase/tensorbase/issues/352": {
+    "repository": "tensorbase/tensorbase",
+    "issue_number": "352",
+    "title": "Public API “shape_slice” “shape_vec” “shape_vec_u8” constructs unaligned references causing Undefined Behavior",
+    "body_chars": 2916,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts",
+        "mem::size_of",
+        "std::mem",
+        "std::slice",
+        "slice::from_raw_parts",
+        "ptr::slice_from_raw_parts",
+        "std::mem::align_of",
+        "use std::mem;\nuse std::slice;\n\n// The vulnerable function from tensorbase/crates/base/src/mem.rs\npub fn shape_slice"
+      ],
+      "paths": [
+        "crates/base/src/mem.rs"
+      ],
+      "fns": [
+        "shape_slice",
+        "main"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Create",
+        "Trigger",
+        "This",
+        "Attempting",
+        "Miri",
+        "Hello",
+        "Rust",
+        "Location",
+        "Description",
+        "However",
+        "According",
+        "Proof",
+        "Concept",
+        "Output",
+        "Running"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tensorchord/pgvecto.rs/issues/653": {
+    "repository": "tensorchord/pgvecto.rs",
+    "issue_number": "653",
+    "title": "Public API try_pod_read_unaligned causes Out-of-Bounds read due to missing length check",
+    "body_chars": 2711,
+    "needles": {
+      "qualified": [
+        "std::mem",
+        "ptr::read_unaligned",
+        "std::mem::size_of",
+        "Since this function is pub and located in a pub mod, it is exposed to external consumers.\nDescription:\nThe function attempts to read a value of type T from a byte slice &[u8] using ptr::read_unaligned. While read_unaligned handles alignment correctly, it assumes the pointer is valid for std::mem::size_of::",
+        "use std::mem;\n\n// Mocking the Pod trait definition from the crate\npub unsafe trait Pod: Copy {}\nunsafe impl Pod for u32 {}\n\n// The vulnerable function from crates/base/src/pod.rs\npub fn try_pod_read_unaligned"
+      ],
+      "paths": [
+        "crates/base/src/pod.rs",
+        "src/main.rs"
+      ],
+      "fns": [
+        "try_pod_read_unaligned",
+        "main"
+      ],
+      "callees": [],
+      "types": [
+        "Mocking",
+        "Copy",
+        "Create",
+        "Attempt",
+        "Read",
+        "Hello",
+        "Rust",
+        "Location",
+        "Since",
+        "Description",
+        "While",
+        "Buffer",
+        "Over",
+        "Proof",
+        "Concept",
+        "Miri",
+        "Output",
+        "Running",
+        "Recommendation",
+        "Panic",
+        "Preserving",
+        "Return",
+        "Option",
+        "Result",
+        "Idiomatic",
+        "Given"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/topiary/topiary/issues/792": {
+    "repository": "topiary/topiary",
+    "issue_number": "792",
+    "title": "Unsoundness in 'parse','child_by_field_name' and 'field_id_for_name'",
+    "body_chars": 2754,
+    "needles": {
+      "qualified": [
+        "std::str::from_utf8_unchecked",
+        "Into::into",
+        "hint::unreachable_unchecked",
+        "**Expected behavior**\r\nThe method should validate the input byte slice for UTF-8 compliance before using std::str::from_utf8_unchecked. Invalid UTF-8 inputs should result in an error instead of causing undefined behavior.\r\n\r\nThe panic output when running the provided example:"
+      ],
+      "paths": [],
+      "fns": [
+        "child_by_field_name",
+        "field_id_for_name",
+        "parse",
+        "main",
+        "from_utf8_unchecked"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "AsRef",
+        "Describe",
+        "This",
+        "Since",
+        "Option",
+        "Self",
+        "Into",
+        "Tree",
+        "Result",
+        "ParserError",
+        "Some",
+        "Reproduce",
+        "Steps",
+        "Create",
+        "Call",
+        "MyStruct",
+        "InnerStruct",
+        "Expected"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/toxoidengine/toxoid/issues/5": {
+    "repository": "toxoidengine/toxoid",
+    "issue_number": "5",
+    "title": "Maybe Unsound in init_image",
+    "body_chars": 1961,
+    "needles": {
+      "qualified": [
+        "core::ffi::c_int",
+        "sg::ImageDesc",
+        "sg::PixelFormat::Rgba8",
+        "sg::ImageData",
+        "sg::Range",
+        "core::ffi::c_void",
+        "Default::default",
+        "sg::init_image",
+        "sg::Image"
+      ],
+      "paths": [],
+      "fns": [
+        "init_image"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "Converts",
+        "RGBA8",
+        "ImageDesc",
+        "PixelFormat",
+        "Rgba8",
+        "ImageData",
+        "Range",
+        "Default",
+        "Image",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tursodatabase/libsql/issues/1859": {
+    "repository": "tursodatabase/libsql",
+    "issue_number": "1859",
+    "title": "Unsound Use of str::from_utf8_unchecked in keyword_token",
+    "body_chars": 2020,
+    "needles": {
+      "qualified": [
+        "str::from_utf8_unchecked",
+        "UncasedStr::new",
+        "std::str::from_utf8",
+        "field, it cause some problems.\r\n1. Undefined Behavior on Invalid UTF-8:\r\nunsafe { str::from_utf8_unchecked"
+      ],
+      "paths": [
+        "src/dialect/mod.rs"
+      ],
+      "fns": [
+        "keyword_token"
+      ],
+      "callees": [
+        "from_utf8_unchecked"
+      ],
+      "types": [
+        "Description",
+        "This",
+        "Option",
+        "TokenType",
+        "KEYWORDS",
+        "UncasedStr",
+        "Safety",
+        "Contract",
+        "Exploitation",
+        "Suggestion",
+        "Additional",
+        "Context"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tursodatabase/libsql/issues/1873": {
+    "repository": "tursodatabase/libsql",
+    "issue_number": "1873",
+    "title": "Maybe unsound in db_version::next_db_version",
+    "body_chars": 1334,
+    "needles": {
+      "qualified": [
+        "db_version::next_db_version"
+      ],
+      "paths": [],
+      "fns": [
+        "next_db_version",
+        "in"
+      ],
+      "callees": [],
+      "types": [
+        "Considering",
+        "Option",
+        "Result",
+        "String",
+        "Some"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/tylerwhall/zephyr-rust/issues/58": {
+    "repository": "tylerwhall/zephyr-rust",
+    "issue_number": "58",
+    "title": "Maybe unsound in free_mutex",
+    "body_chars": 1223,
+    "needles": {
+      "qualified": [
+        "Ordering::Relaxed"
+      ],
+      "paths": [],
+      "fns": [
+        "free_mutex"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "KMutex",
+        "USED",
+        "Ordering",
+        "Relaxed",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/vinc/moros/issues/724": {
+    "repository": "vinc/moros",
+    "issue_number": "724",
+    "title": "Unsound issue in sys::process::exec",
+    "body_chars": 2421,
+    "needles": {
+      "qualified": [
+        "sys::process::page_table",
+        "OffsetPageTable::new",
+        "VirtAddr::new",
+        "sys::mem::alloc_pages",
+        "core::slice::from_raw_parts",
+        "Self::create",
+        "ExitCode::ExecError",
+        "sys::mem::PHYS_MEM_OFFSET",
+        "sys::process::exec"
+      ],
+      "paths": [
+        "src/sys/process.rs"
+      ],
+      "fns": [
+        "exec",
+        "spawn"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "OffsetPageTable",
+        "VirtAddr",
+        "Copy",
+        "Result",
+        "ExitCode",
+        "Self",
+        "ExecError",
+        "Hello",
+        "Rust",
+        "L425",
+        "Although",
+        "Alternatively"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/workflow-rs/workflow-rs/issues/14": {
+    "repository": "workflow-rs/workflow-rs",
+    "issue_number": "14",
+    "title": "unsoundness in buffer_as_slice and buffer_as_slice_mut",
+    "body_chars": 1921,
+    "needles": {
+      "qualified": [
+        "std::slice::from_raw_parts",
+        "std::mem::transmute"
+      ],
+      "paths": [
+        "core/src/utils.rs",
+        "src/utils.rs"
+      ],
+      "fns": [
+        "buffer_as_slice"
+      ],
+      "callees": [
+        "from_raw_parts",
+        "transmute"
+      ],
+      "types": [
+        "Insufficient",
+        "There",
+        "Type",
+        "Reinterpreting",
+        "Since",
+        "According",
+        "Rust"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/xajik/rust-cross-platform-mobile/issues/2": {
+    "repository": "xajik/rust-cross-platform-mobile",
+    "issue_number": "2",
+    "title": "Maybe unsound in JavaString::new",
+    "body_chars": 833,
+    "needles": {
+      "qualified": [
+        "std::ptr::null_mut",
+        "JavaString::new"
+      ],
+      "paths": [],
+      "fns": [
+        "new"
+      ],
+      "callees": [],
+      "types": [
+        "Considering",
+        "JNIEnv",
+        "JavaString",
+        "GetStringUTFChars"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/yamadapc/augmented-audio/issues/615": {
+    "repository": "yamadapc/augmented-audio",
+    "issue_number": "615",
+    "title": "Maybe unsound in SharedGeneric::drop",
+    "body_chars": 1973,
+    "needles": {
+      "qualified": [
+        "Box::into_raw",
+        "Box::new",
+        "Node::with_value",
+        "AtomicPtr::new",
+        "PhantomData::default",
+        "Ordering::Acquire",
+        "Ordering::Release",
+        "Box::from_raw",
+        "SharedGeneric::drop"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "drop",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "SharedGeneric",
+        "Handle",
+        "GarbageCollectorRef",
+        "Node",
+        "NodeTrait",
+        "AtomicPtr",
+        "PhantomData",
+        "Self",
+        "Drop",
+        "Ordering",
+        "Acquire",
+        "Release",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zackradisic/rust-vs-zig/issues/2": {
+    "repository": "zackradisic/rust-vs-zig",
+    "issue_number": "2",
+    "title": "Maybe unsound in ObjClosure",
+    "body_chars": 1013,
+    "needles": {
+      "qualified": [
+        "slice::from_raw_parts",
+        "NonNull::new",
+        "ObjClosure::upvalue_at_slot",
+        "ObjString::as_str",
+        "Stack::offset",
+        "Table::free"
+      ],
+      "paths": [],
+      "fns": [
+        "upvalue_at_slot"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Hello",
+        "ObjClosure",
+        "ObjFunction",
+        "NonNull",
+        "ObjUpvalue",
+        "Option",
+        "None",
+        "ObjString"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zhihu/rucene/issues/19": {
+    "repository": "zhihu/rucene",
+    "issue_number": "19",
+    "title": "Unsoundness in BytesRefHash::pool",
+    "body_chars": 1157,
+    "needles": {
+      "qualified": [
+        "BytesRefHash::pool",
+        "LongsPtr::longs"
+      ],
+      "paths": [],
+      "fns": [
+        "byte_pool",
+        "pool_mut",
+        "is"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "BytesRefHash",
+        "ByteBlockPool",
+        "Considering",
+        "This",
+        "LongsPtr",
+        "DISI"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zhihu/rucene/issues/20": {
+    "repository": "zhihu/rucene",
+    "issue_number": "20",
+    "title": "Unsoundness in UtilMSBIntroSorter::reader",
+    "body_chars": 1557,
+    "needles": {
+      "qualified": [
+        "clippy::mut_from_ref",
+        "UtilMSBIntroSorter::reader"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "reader",
+        "impl",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "MutablePointsReader",
+        "UtilMSBIntroSorter",
+        "Self",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zhihu/rucene/issues/21": {
+    "repository": "zhihu/rucene",
+    "issue_number": "21",
+    "title": "Unsoundness in read_data",
+    "body_chars": 839,
+    "needles": {
+      "qualified": [
+        "Vec::from_raw_parts"
+      ],
+      "paths": [],
+      "fns": [
+        "read_data"
+      ],
+      "callees": [
+        "from_raw_parts"
+      ],
+      "types": [
+        "Hello",
+        "This"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zmwangx/rust-ffmpeg/issues/225": {
+    "repository": "zmwangx/rust-ffmpeg",
+    "issue_number": "225",
+    "title": "Multiple Unsoundness problems in codec",
+    "body_chars": 1520,
+    "needles": {
+      "qualified": [
+        "format::Pixel",
+        "AVPixelFormat::AV_PIX_FMT_NONE"
+      ],
+      "paths": [],
+      "fns": [
+        "new",
+        "next",
+        "or"
+      ],
+      "callees": [],
+      "types": [
+        "Hello",
+        "FormatIter",
+        "AVPixelFormat",
+        "Self",
+        "Iterator",
+        "Item",
+        "Pixel",
+        "Option",
+        "None",
+        "Some",
+        "Considering",
+        "This",
+        "Several",
+        "Pointers",
+        "RateIter",
+        "Codec",
+        "Video",
+        "Audio",
+        "Filter"
+      ],
+      "has_fence": false,
+      "strong": true,
+      "source_priority": "body"
+    }
+  },
+  "https://github.com/zzau13/yarte/issues/319": {
+    "repository": "zzau13/yarte",
+    "issue_number": "319",
+    "title": "Unsoundness in get_nodes",
+    "body_chars": 3794,
+    "needles": {
+      "qualified": [
+        "mem::transmute",
+        "std::mem",
+        "std::rc::Rc",
+        "Vec::new",
+        "String::from",
+        "Rc::new",
+        "std::fmt::Display",
+        "core::fmt::rt::Argument",
+        "std::fmt::write",
+        "std::io::StdoutLock",
+        "std::io::Write",
+        "core::fmt::rt::Argument::",
+        "The unsoundness occurs in the get_nodes function where it uses unsafe { mem::transmute::",
+        "use std::mem;\nuse std::rc::Rc;\n\n// 模拟你的代码中的类型\nstruct Path;\ntype MResult"
+      ],
+      "paths": [],
+      "fns": [
+        "get_nodes",
+        "parse",
+        "main",
+        "resolve_imports",
+        "add_nodes",
+        "get_nodes_from_path"
+      ],
+      "callees": [
+        "transmute"
+      ],
+      "types": [
+        "MResult",
+        "SNode",
+        "PError",
+        "Result",
+        "String",
+        "Debug",
+        "Users",
+        "Display",
+        "Octal",
+        "Binary",
+        "LowerHex",
+        "UpperHex",
+        "LowerExp",
+        "UpperExp",
+        "BACKTRACE",
+        "Argument",
+        "StdoutLock",
+        "Write",
+        "Hello",
+        "Rust",
+        "This"
+      ],
+      "has_fence": true,
+      "strong": true,
+      "source_priority": "body"
+    }
+  }
+}

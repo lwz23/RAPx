@@ -37,6 +37,10 @@ impl StaticWriteToken {
     pub(super) fn new(block: u32, statement: u32) -> Self {
         Self { block, statement }
     }
+
+    pub(super) fn stable_identity(&self) -> String {
+        format!("{}:{}", self.block, self.statement)
+    }
 }
 
 /// A semantic validation binding. Evidence locations are intentionally absent
@@ -121,6 +125,10 @@ where
 
     pub(super) fn may_values(&self) -> &BTreeMap<K, V> {
         &self.may_values
+    }
+
+    pub(super) fn may_values_mut(&mut self) -> &mut BTreeMap<K, V> {
+        &mut self.may_values
     }
 
     pub(super) fn must_validations(&self) -> &BTreeSet<BoundValidation<K, P>> {

@@ -1,0 +1,8 @@
+<queries>
+  <query id="unsoundaudit/p1-public-param"/>
+  <query id="unsoundaudit/p2-public-field"/>
+  <query id="unsoundaudit/p3-internal-invalid"/>
+  <query id="unsoundaudit/p4-internal-bounds"/>
+  <query id="unsoundaudit/p5-generic-nonempty"/>
+  <query id="unsoundaudit/p6-external-behavior"/>
+</queries>

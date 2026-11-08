@@ -1,0 +1,159 @@
+{
+  "active_precision": {
+    "confirmed_bug": 0,
+    "decidable": 2,
+    "false_positive": 2,
+    "false_positive_fraction": {
+      "denominator": 2,
+      "numerator": 2
+    },
+    "false_positive_rate": 1.0,
+    "false_positive_wilson": {
+      "high": 1.0,
+      "low": 0.34238022750665303
+    },
+    "inconclusive": 0,
+    "likely_bug": 0,
+    "total": 2
+  },
+  "campaign_id": "cratesio-2026-08-21",
+  "package_results": [
+    {
+      "control_time_seconds": 1.325,
+      "domain": "byte_buffers",
+      "name": "bytes",
+      "peak_memory_mb": 291.42,
+      "physical_rust_lines": 9881,
+      "scan_time_seconds": 9.951,
+      "terminal_state": "complete_exact",
+      "version": "1.12.1"
+    },
+    {
+      "control_time_seconds": 0.433,
+      "domain": "compact_containers",
+      "name": "smallvec",
+      "peak_memory_mb": 215.44,
+      "physical_rust_lines": 3822,
+      "scan_time_seconds": 6.77,
+      "terminal_state": "complete_exact",
+      "version": "1.15.2"
+    },
+    {
+      "control_time_seconds": 3.615,
+      "domain": "concurrency_reclamation",
+      "name": "crossbeam-epoch",
+      "peak_memory_mb": 120.16,
+      "physical_rust_lines": 4925,
+      "scan_time_seconds": 5.493,
+      "terminal_state": "partial_coverage",
+      "version": "0.9.20"
+    },
+    {
+      "control_time_seconds": 0.494,
+      "domain": "ffi_dynamic_loading",
+      "name": "libloading",
+      "peak_memory_mb": 81.31,
+      "physical_rust_lines": 2833,
+      "scan_time_seconds": 1.583,
+      "terminal_state": "complete_exact",
+      "version": "0.9.0"
+    },
+    {
+      "control_time_seconds": 1.473,
+      "domain": "general_collections",
+      "name": "hashbrown",
+      "peak_memory_mb": 712.02,
+      "physical_rust_lines": 23720,
+      "scan_time_seconds": 24.017,
+      "terminal_state": "complete_exact",
+      "version": "0.17.1"
+    },
+    {
+      "control_time_seconds": 11.844,
+      "domain": "hashing_runtime",
+      "name": "ahash",
+      "peak_memory_mb": 340.74,
+      "physical_rust_lines": 3793,
+      "scan_time_seconds": 13.548,
+      "terminal_state": "complete_exact",
+      "version": "0.8.12"
+    },
+    {
+      "control_time_seconds": 2.411,
+      "domain": "memory_mapping",
+      "name": "memmap2",
+      "peak_memory_mb": 86.74,
+      "physical_rust_lines": 3976,
+      "scan_time_seconds": 3.473,
+      "terminal_state": "complete_exact",
+      "version": "0.9.11"
+    },
+    {
+      "control_time_seconds": 0.612,
+      "domain": "pod_layout_casting",
+      "name": "bytemuck",
+      "peak_memory_mb": 82.8,
+      "physical_rust_lines": 4162,
+      "scan_time_seconds": 1.568,
+      "terminal_state": "complete_exact",
+      "version": "1.25.2"
+    },
+    {
+      "control_time_seconds": 3.801,
+      "domain": "synchronization",
+      "name": "parking_lot_core",
+      "peak_memory_mb": 208.6,
+      "physical_rust_lines": 3687,
+      "scan_time_seconds": 51.26,
+      "terminal_state": "complete_exact",
+      "version": "0.9.12"
+    },
+    {
+      "control_time_seconds": 8.707,
+      "domain": "zero_copy_serialization",
+      "name": "zerocopy",
+      "peak_memory_mb": 964.55,
+      "physical_rust_lines": 28280,
+      "scan_time_seconds": 35.399,
+      "terminal_state": "partial_coverage",
+      "version": "0.8.56"
+    }
+  ],
+  "policy_sha256": "7be8e601723d2171333b389bc5a7eba071cd557140c89d10e0240715bd743c2e",
+  "protocol_sha256": null,
+  "rerun_verification": {
+    "status": "verified_byte_identical",
+    "targets": [
+      {
+        "byte_identical": true,
+        "name": "libloading",
+        "normalized_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "rerun_state": "complete_exact",
+        "version": "0.9.0"
+      },
+      {
+        "byte_identical": true,
+        "name": "hashbrown",
+        "normalized_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "rerun_state": "complete_exact",
+        "version": "0.17.1"
+      }
+    ]
+  },
+  "sampled_audits": {
+    "decisions_breakdown": {
+      "classification_supported": 42
+    },
+    "suppressed_count": 15,
+    "unestablished_count": 27
+  },
+  "schema_version": "rap-unsoundaudit-cratesio-campaign-summary-v1",
+  "selection_date": "2026-08-21",
+  "terminal_states": {
+    "complete_exact": 8,
+    "control_failed": 0,
+    "partial_coverage": 2,
+    "scan_failed": 0,
+    "scan_timeout": 0
+  }
+}

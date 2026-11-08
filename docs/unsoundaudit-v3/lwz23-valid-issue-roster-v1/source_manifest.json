@@ -1,0 +1,29 @@
+{
+  "authority": "Task4AL v2 + Task4AM valid_issues_index.csv",
+  "remote_roots": {
+    "task4al": "results/tse_iue_external_validation/run_20260810_lwz23_authored_issue_audit_v1/production/task4al_reported_issue_outcome_audit_v2",
+    "task4am": "results/tse_iue_external_validation/run_20260810_lwz23_authored_issue_audit_v1/production/task4am_reported_issue_materials_v1"
+  },
+  "files": [
+    {
+      "name": "issue_outcomes.jsonl",
+      "sha256": "e8b2d1db4f313a636ecbb6720023fd64a506785312c858bb59299e178441d5b3"
+    },
+    {
+      "name": "valid_issues_index.csv",
+      "sha256": "0da7d61b8f899ee404eeba3aa5030322da04d4e1d39b4956f8d59987813f85fe"
+    },
+    {
+      "name": "audit_decisions.jsonl",
+      "sha256": "e55381815ee14ec8fad7c459c236f53b8b3d985082e48fa96878d61e1654f9ad"
+    },
+    {
+      "name": "bug_instances.jsonl",
+      "sha256": "395cfe8f35eadd86b27e6ecb91448b2e5de705cf13a64bf5151e8ae2c604e03e"
+    },
+    {
+      "name": "summary.json",
+      "sha256": "4307acf256f6b9f88be2739b6a7d01e6887989a2d7d902cb7cab3e506174ec98"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
   "cargo_jobs": 1,
   "fresh_targets": true,
-  "rap_source_commit": "4256f1db57942bce56be45d81640d822ae220fd3",
+  "rap_source_commit": "eceece382bb0e215bd75bcf8f29abea9a38708c2",
   "runs_per_unit": 2,
   "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
   "schema_version": "unsoundaudit-v3-stdlib-gate-protocol-v1",

@@ -9,10 +9,10 @@ use rapx::{
     RapCallback, RAP_DEFAULT_ARGS,
 };
 use rustc_session::config::ErrorOutputType;
-#[rustversion::before(1.83)]
-use rustc_session::EarlyErrorHandler as EarlyDiagCtxt;
 #[rustversion::since(1.83)]
 use rustc_session::EarlyDiagCtxt;
+#[rustversion::before(1.83)]
+use rustc_session::EarlyErrorHandler as EarlyDiagCtxt;
 use std::env;
 
 #[path = "shared/rap_arg_boundary.rs"]
@@ -38,9 +38,7 @@ fn prepare_invocation() -> Result<(Vec<String>, RapCallback), String> {
             RapAnalysis::RCanary => compiler.enable_rcanary(),
             RapAnalysis::Mop => compiler.enable_mop(),
             RapAnalysis::Dataflow(level) => compiler.enable_dataflow(level),
-            RapAnalysis::UnsafetyIsolation(level) => {
-                compiler.enable_unsafety_isolation(level)
-            }
+            RapAnalysis::UnsafetyIsolation(level) => compiler.enable_unsafety_isolation(level),
             RapAnalysis::Annotation => compiler.enable_annotation(),
             RapAnalysis::CallGraph => compiler.enable_callgraph(),
             RapAnalysis::Opt => compiler.enable_opt(),

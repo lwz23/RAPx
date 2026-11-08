@@ -1,0 +1,227 @@
+{
+  "pattern": "P6",
+  "present_roots": [
+    "open_trait",
+    "dyn_open_trait",
+    "auto_supertrait_open",
+    "callback_result",
+    "direct_ffi_return",
+    "wrapped_ffi_return",
+    "ffi_callback_input",
+    "indirect_ffi_function_pointer",
+    "ffi_out_through_closure"
+  ],
+  "absent_roots": [
+    "validated_trait",
+    "private_trait_behavior",
+    "sealed_trait_behavior",
+    "concrete_trait_dispatch",
+    "concrete_open_trait",
+    "internal_function_pointer",
+    "callback_body_unsafe",
+    "discarded_closure",
+    "overwritten_callback",
+    "sibling_ffi_callsite_does_not_splice",
+    "sibling_ffi_branch_does_not_splice",
+    "opaque_callback_sink",
+    "ffi_boolean_not_an_index",
+    "ffi_aggregate_not_an_index"
+  ],
+  "other_pattern_roots": {},
+  "zero_candidate_roots": [
+    "discarded_closure",
+    "overwritten_callback",
+    "sibling_ffi_callsite_does_not_splice",
+    "sibling_ffi_branch_does_not_splice",
+    "opaque_callback_sink",
+    "internal_function_pointer",
+    "callback_body_unsafe",
+    "concrete_trait_dispatch"
+  ],
+  "suppression_roots": {
+    "validated_trait": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "discharge_model": "exact_validation",
+        "proof_scope": "site_local"
+      }
+    },
+    "private_trait_behavior": {
+      "reason": "trait_not_downstream_implementable",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "open_trait",
+        "openness": "proven_closed"
+      }
+    },
+    "sealed_trait_behavior": {
+      "reason": "trait_not_downstream_implementable",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "open_trait",
+        "openness": "proven_closed"
+      }
+    },
+    "internal_function_pointer": {
+      "reason": "internal_behavior_controller",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "internal_function",
+        "controller": "identity_pointer"
+      }
+    },
+    "overwritten_callback": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "proof_scope": "exact_token_route"
+      }
+    },
+    "sibling_ffi_callsite_does_not_splice": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "proof_scope": "exact_token_route"
+      }
+    },
+    "sibling_ffi_branch_does_not_splice": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "proof_scope": "exact_token_route"
+      }
+    },
+    "ffi_aggregate_not_an_index": [
+      {
+        "reason": "source_cannot_satisfy_requirement",
+        "candidate_pattern": "P1",
+        "evidence_equals": {
+          "capabilities": "typed_value",
+          "source_origin": "public_formal"
+        },
+        "replacement_absent": true
+      },
+      {
+        "reason": "source_cannot_satisfy_requirement",
+        "candidate_pattern": "P6",
+        "replacement_absent": true,
+        "evidence_equals": {
+          "source_origin": "ffi_return",
+          "controller": "ffi_host",
+          "capabilities": "typed_value,validity_bits",
+          "requirement": "argument:1:index_or_address",
+          "proof_scope": "exact_token_route"
+        }
+      }
+    ],
+    "open_trait": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "requirement": "argument:1:index_or_address"
+      },
+      "replacement_pattern": "P6"
+    },
+    "dyn_open_trait": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "requirement": "argument:1:index_or_address"
+      },
+      "replacement_pattern": "P6"
+    },
+    "auto_supertrait_open": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal",
+        "requirement": "argument:1:index_or_address"
+      },
+      "replacement_pattern": "P6"
+    },
+    "concrete_open_trait": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal"
+      },
+      "replacement_absent": true
+    },
+    "ffi_boolean_not_an_index": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal"
+      },
+      "replacement_absent": true
+    }
+  },
+  "unestablished_roots": {
+    "opaque_callback_sink": {
+      "attempted_pattern": "P6",
+      "primary_reason": "unmodeled_unsafe_call"
+    },
+    "callback_body_unsafe": {
+      "attempted_pattern": "P1",
+      "primary_reason": "missing_exact_context",
+      "min_count": 2
+    },
+    "internal_function_pointer": {
+      "attempted_pattern": "P1",
+      "primary_reason": "missing_exact_context"
+    },
+    "concrete_trait_dispatch": {
+      "attempted_pattern": "P1",
+      "primary_reason": "havoced_provenance",
+      "min_count": 2
+    },
+    "private_trait_behavior": {
+      "attempted_pattern": "P1",
+      "primary_reason": "missing_exact_context"
+    },
+    "sealed_trait_behavior": {
+      "attempted_pattern": "P1",
+      "primary_reason": "missing_exact_context"
+    }
+  },
+  "absent_unestablished_roots": [
+    "open_trait",
+    "dyn_open_trait",
+    "auto_supertrait_open",
+    "callback_result",
+    "direct_ffi_return",
+    "wrapped_ffi_return",
+    "ffi_callback_input",
+    "indirect_ffi_function_pointer",
+    "ffi_out_through_closure",
+    "validated_trait",
+    "concrete_open_trait",
+    "discarded_closure",
+    "overwritten_callback",
+    "sibling_ffi_callsite_does_not_splice",
+    "sibling_ffi_branch_does_not_splice",
+    "ffi_boolean_not_an_index",
+    "ffi_aggregate_not_an_index"
+  ]
+}

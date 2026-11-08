@@ -40,7 +40,7 @@ Analyzer Rust source is outside this file map. A detector defect preserves the o
 - Create: `scripts/unsoundaudit-v3/test_cratesio_campaign.py`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Write RED tests for exact policy keys and domain membership**
+- [x] **Step 1: Write RED tests for exact policy keys and domain membership**
 
 Start `test_cratesio_campaign.py` with the same dynamic import convention as the other v3 tests, then add:
 
@@ -74,7 +74,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
 
 Expected: FAIL because the policy and loader do not exist.
 
-- [ ] **Step 2: Add the exact policy**
+- [x] **Step 2: Add the exact policy**
 
 Create `cratesio_campaign_policy.json`:
 
@@ -111,7 +111,7 @@ Create `cratesio_campaign_policy.json`:
 }
 ```
 
-- [ ] **Step 3: Implement canonical primitives and strict loading**
+- [x] **Step 3: Implement canonical primitives and strict loading**
 
 Create `cratesio_campaign_common.py` with this public contract:
 
@@ -160,7 +160,7 @@ def stable_rank(seed: str, identity: str) -> str:
 
 Also implement `read_json`, `read_jsonl`, `write_json`, `exact_keys`, `exact_hex`, `tool_commit`, and `sanitized_environment`. Remove every inherited `RAP_*` and `UNSOUND_SCANNER_*` variable plus Cargo/Rust wrapper, target/profile, Rustup, `DYLD_*`, `LD_*`, and preload variables.
 
-- [ ] **Step 4: Make the focused and full Python gates pass; commit**
+- [x] **Step 4: Make the focused and full Python gates pass; commit**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
@@ -184,7 +184,7 @@ Expected: all tests pass and no bytecode/cache file is added.
 - Modify: `scripts/unsoundaudit-v3/test_cratesio_campaign.py`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Add RED selection tests with injected HTTP responses**
+- [x] **Step 1: Add RED selection tests with injected HTTP responses**
 
 Use in-memory API records and tar.gz archives:
 
@@ -209,7 +209,7 @@ def test_archive_admission_rejects_traversal_symlink_and_test_only_unsafe(self) 
 
 Expected: RED because selector functions are absent.
 
-- [ ] **Step 2: Implement fetch, safe extraction, and admission**
+- [x] **Step 2: Implement fetch, safe extraction, and admission**
 
 Use official endpoints and injectable fetchers:
 
@@ -237,7 +237,7 @@ def safe_members(archive: tarfile.TarFile, expected_root: str) -> list[tarfile.T
 
 `inspect_archive` verifies `Cargo.toml`, exact package name/version, one library target (explicit `[lib].path` or `src/lib.rs`), and at least one lexical `unsafe` keyword in package-local `.rs` files under the library source root, excluding `tests`, `examples`, `benches`, and `target`. Implement a finite Rust lexical scan that skips nested block comments, line comments, byte/normal/raw strings, and character literals before recognizing identifier tokens; add comment-only and string-only negative tests. Record sorted evidence paths, token count, Rust file count, and physical Rust source lines.
 
-- [ ] **Step 3: Implement immutable domain selection**
+- [x] **Step 3: Implement immutable domain selection**
 
 For every domain fetch all five candidate records, sort by `(-total_downloads, crate_name)`, inspect in order, select the first admitted package, and retain every candidate's metadata/admission disposition. Fail before writing a roster if any domain lacks an admitted package. Require ten unique domains and package names, published/independent checksum equality, stable non-yanked versions, and absence of RAP result fields.
 
@@ -250,7 +250,7 @@ python3 scripts/unsoundaudit-v3/select_cratesio_campaign.py \
   --output "$SELECTION_ROOT/roster.json"
 ```
 
-- [ ] **Step 4: Pass no-network tests and commit**
+- [x] **Step 4: Pass no-network tests and commit**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
@@ -269,7 +269,7 @@ git commit -m "feat(unsoundaudit-v3): add crates.io roster freezer"
 - Modify: `scripts/unsoundaudit-v3/test_cratesio_campaign.py`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Add RED tests for all terminal states and exact root selection**
+- [x] **Step 1: Add RED tests for all terminal states and exact root selection**
 
 Use fake Cargo/RAP executables and temporary package trees:
 
@@ -293,7 +293,7 @@ def test_root_receipt_requires_exact_name_version_lib_target(self) -> None:
 
 Also prove environment sanitization, offline locked commands, fresh targets, process-group timeout classification, memory observation without a limit, and continuation after package failure.
 
-- [ ] **Step 2: Reuse existing validators and monitor**
+- [x] **Step 2: Reuse existing validators and monitor**
 
 Import rather than copy:
 
@@ -307,7 +307,7 @@ from validate_receipt import ContractError, read_json, validate_receipt
 
 Use `run_limited(..., wall_time_seconds=900, physical_footprint_limit_bytes=None)` for RAP. Record peak physical footprint and RSS. Apply the same 900-second operational timeout to control, mapping timeout/nonzero to `control_failed`.
 
-- [ ] **Step 3: Implement package preparation and exact commands**
+- [x] **Step 3: Implement package preparation and exact commands**
 
 Each package receives separate `archive`, `source`, `cargo-home`, `control-target`, `scan-target`, `receipts`, `mvp`, and `logs` directories. Verify/re-extract the `.crate`, confirm Cargo metadata name/version/lib identity, generate and hash one lockfile, fetch it, then run:
 
@@ -323,15 +323,15 @@ scan_command = [
 
 The scan environment sets only exact toolchain paths/commits, `CARGO_HOME`, fresh `CARGO_TARGET_DIR`, `CARGO_BUILD_JOBS=1`, `RAP_CLEAN=false`, package source as `UNSOUND_SCANNER_PROJECT_ROOT`, one receipt directory, one MVP directory, and one performance trace. On macOS reconstruct `DYLD_LIBRARY_PATH` only as the exact current sysroot `lib` after binary launch preflight.
 
-- [ ] **Step 4: Validate and cross-check successful scans**
+- [x] **Step 4: Validate and cross-check successful scans**
 
 Validate every formal receipt, select exactly one root name/version/crate/lib receipt, run `validate_development_mvp`, cross-check formal/MVP census and active pattern counts, and require four-state closure. A valid lower-bound output becomes `partial_coverage`; malformed/missing/ambiguous output becomes `scan_failed` with retained reason. Atomically journal `campaign.json` after every package and continue through all ten. The output root must not exist at startup.
 
-- [ ] **Step 5: Implement deterministic semantic normalization and reruns**
+- [x] **Step 5: Implement deterministic semantic normalization and reruns**
 
 Normalize only declared operational fields: absolute temporary roots, timestamps, durations, sampled memory, and process identifiers. Include receipt semantics plus candidates, families, suppression ledger, and unestablished decisions. After ten first runs, rerun the smallest and largest `complete_exact` package by roster source lines with fresh targets and require byte-identical normalized semantics. If fewer than two qualify, record `not_run_fewer_than_two_complete`.
 
-- [ ] **Step 6: Pass focused/full no-build gates and commit**
+- [x] **Step 6: Pass focused/full no-build gates and commit**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
@@ -352,7 +352,7 @@ git commit -m "feat(unsoundaudit-v3): add crates.io campaign runner"
 - Modify: `scripts/unsoundaudit-v3/test_cratesio_campaign.py`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Add RED tests for the review population**
+- [x] **Step 1: Add RED tests for the review population**
 
 Create synthetic exact package outputs:
 
@@ -379,7 +379,7 @@ def test_inconclusive_is_excluded_from_decidable_precision(self) -> None:
 
 Expected: RED before implementation.
 
-- [ ] **Step 2: Implement family grouping and stable sampling**
+- [x] **Step 2: Implement family grouping and stable sampling**
 
 Consume active `families.jsonl` directly. For suppressed rows, call `family_id_for_candidate` from `run_mechanism_pack.py`, group by structural family ID, and retain disposition/reason evidence. For unestablished rows, hash:
 
@@ -392,7 +392,7 @@ Consume active `families.jsonl` directly. For suppressed rows, call `family_id_f
 
 Within each package stratify by pattern, contract precision, terminal reason, and propagation depth. Order ties with `stable_rank(review_seed, stable_identity)`. Select at most three suppressed and five unestablished groups without transferring unused quota across packages.
 
-- [ ] **Step 3: Implement the closed review contract**
+- [x] **Step 3: Implement the closed review contract**
 
 Every template row has immutable evidence and mutable review fields:
 
@@ -417,7 +417,7 @@ Every template row has immutable evidence and mutable review fields:
 
 The displayed IDs are test-fixture values; production rows use the actual validated 64-character lowercase hex identities. Template generation permits null review fields. Final validation requires a reviewer and nonempty rationale for every row. Active labels are exactly `confirmed_bug`, `likely_bug`, `false_positive`, or `inconclusive`; sampled labels are exactly `classification_supported`, `missed_active_witness`, `invalid_safety_proof`, or `inconclusive`.
 
-- [ ] **Step 4: Implement metrics and report rendering**
+- [x] **Step 4: Implement metrics and report rendering**
 
 Compute exact counts/fractions and Wilson intervals without dependencies:
 
@@ -438,7 +438,7 @@ def wilson(successes: int, total: int,
 
 Render summary JSON, family CSV, and Markdown from validated review data. State that the active census is purposive and Wilson intervals are exploratory, not crates.io population confidence intervals.
 
-- [ ] **Step 5: Pass tests and commit**
+- [x] **Step 5: Pass tests and commit**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
@@ -457,7 +457,7 @@ git commit -m "feat(unsoundaudit-v3): add crates.io family review tooling"
 - Create: `docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-protocol.json`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Resolve and freeze the official roster before any RAP package scan**
+- [x] **Step 1: Resolve and freeze the official roster before any RAP package scan**
 
 ```bash
 REPO=/Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2
@@ -473,7 +473,7 @@ cp "$SELECTION_ROOT/roster.json" \
 
 Inspect only selection metadata and unsafe-source admission evidence. Confirm ten unique domains/packages, latest stable non-yanked releases, checksum equality, and no RAP result fields.
 
-- [ ] **Step 2: Commit the roster before analyzer execution**
+- [x] **Step 2: Commit the roster before analyzer execution**
 
 ```bash
 git add docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-roster.json
@@ -481,7 +481,7 @@ git add -p TASK_CONTEXT.md
 git commit -m "docs: freeze crates.io robustness roster"
 ```
 
-- [ ] **Step 3: Build a fresh current `rapx-perf` pair**
+- [x] **Step 3: Build a fresh current `rapx-perf` pair**
 
 ```bash
 TOOLCHAIN=nightly-2026-08-14
@@ -500,7 +500,7 @@ shasum -a 256 "$BIN_DIR/cargo-rapx" "$BIN_DIR/rapx" "$BUILD_ROOT/build.log"
 
 Require embedded rustc commit `ba28ff76f353a722f31c4f3dd2ac4e437d36411b`. Compute Git HEAD, porcelain status, `git diff --binary -- rapx/src rapx/Cargo.toml rapx/Cargo.lock` SHA-256, and a canonical sorted `(relative path, file SHA-256)` manifest over `rapx/src`, `rapx/Cargo.toml`, and `rapx/Cargo.lock`. Write `$BIN_DIR/rapx-build-profile.json` using the existing `unsoundaudit-v3-rap-binary-profile-v1` exact fields: `profile=rapx-perf`, `opt_level=3`, `debug=1`, `debug_assertions=true`, `overflow_checks=true`, `incremental=false`, `target_cargo_profile=dev`, current Git HEAD, current rustc commit, and both binary hashes. The campaign protocol additionally binds the dirty-diff and source-manifest hashes, so a dirty analyzer tree is not misrepresented as the clean HEAD.
 
-- [ ] **Step 4: Admit binaries through the current mechanism pack**
+- [x] **Step 4: Admit binaries through the current mechanism pack**
 
 ```bash
 MECHANISM_ROOT=$(mktemp -d /private/tmp/rapx-cratesio-mechanisms.XXXXXX)
@@ -512,7 +512,7 @@ shasum -a 256 "$MECHANISM_ROOT/result/capability_matrix.json"
 
 Expected: all P1–P6 oracles pass with exact coverage; totals remain 50 active, 49 families, 38 pure suppressions, 12 reclassifications, 28 unestablished, and 128 considered. Drift stops before any crates.io scan.
 
-- [ ] **Step 5: Write, validate, and commit the protocol**
+- [x] **Step 5: Write, validate, and commit the protocol**
 
 Bind the roster/policy hashes, source/binary/build/mechanism hashes, host facts, Cargo/rustc versions, native target, default features, library target, one Cargo job, 900-second wall time, no memory limit, serial order, fresh targets, exact root-receipt rule, and external evidence root.
 
@@ -528,7 +528,7 @@ git commit -m "docs: freeze crates.io robustness protocol"
 - Create externally: `/private/tmp/rapx-cratesio-campaign-2026-08-21-*/`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Start the serial campaign in a fresh evidence root**
+- [x] **Step 1: Start the serial campaign in a fresh evidence root**
 
 ```bash
 EVIDENCE_ROOT=$(mktemp -d /private/tmp/rapx-cratesio-campaign-2026-08-21.XXXXXX)
@@ -544,7 +544,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/run_cratesio_campaign.
 
 The runner journals after every package and continues through the roster. Do not replace failures or rerun ordinary cases selectively.
 
-- [ ] **Step 2: Verify terminal state and exactness accounting**
+- [x] **Step 2: Verify terminal state and exactness accounting**
 
 Require ten package rows. For each `complete_exact` row verify:
 
@@ -556,7 +556,7 @@ active + pure_suppressed + reclassified + unestablished == considered
 
 For failures, verify logs, return codes/signals, elapsed time, and retained partial hashes. Missing/partial output is never zero findings.
 
-- [ ] **Step 3: Verify deterministic reruns and evidence identity**
+- [x] **Step 3: Verify deterministic reruns and evidence identity**
 
 Require one additional fresh scan for smallest/largest complete packages and byte-identical normalized semantics. If fewer than two complete, require `not_run_fewer_than_two_complete`. Hash the campaign journal, per-package resource records, receipts, MVP artifacts, logs, traces, lockfiles, and normalized reruns. Record evidence root, states, performance, coverage, and failures in `TASK_CONTEXT.md`; do not commit large raw data.
 
@@ -567,7 +567,7 @@ Require one additional fresh scan for smallest/largest complete packages and byt
 - Conditionally create: `tests/unsoundaudit-v3/cratesio-bug-repros/`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Generate and hash-freeze the unlabeled review template**
+- [x] **Step 1: Generate and hash-freeze the unlabeled review template**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/review_cratesio_campaign.py template \
@@ -579,15 +579,15 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/review_cratesio_campai
 
 Require every active family, no incomplete-scan family, per-crate quotas, and stable sample hash before reading selected source evidence.
 
-- [ ] **Step 2: Review every active family**
+- [x] **Step 2: Review every active family**
 
 Inspect exact published source, representative, public safe root, source, complete witness, sink contract, safety documentation, type/relationship obligation, feature/target conditions, and code dictionary. Assign one active label with falsifiable rationale. Package reputation and expected paper value are not evidence.
 
-- [ ] **Step 3: Review suppressed and unestablished samples**
+- [x] **Step 3: Review suppressed and unestablished samples**
 
 Decide `classification_supported`, `missed_active_witness`, `invalid_safety_proof`, or `inconclusive`. Record recurring gaps by pattern, reason, precision, and depth; do not calculate a false-negative rate.
 
-- [ ] **Step 4: Validate surviving bug candidates**
+- [x] **Step 4: Validate surviving bug candidates**
 
 For every confirmed/likely family create:
 
@@ -600,7 +600,7 @@ tests/unsoundaudit-v3/cratesio-bug-repros/{package_name}-{family_id[:12]}/README
 
 Use only a safe caller, exact crate version, explicit contract argument, and control/Miri/sanitizer status. If none survive, record an empty candidate-validation array.
 
-- [ ] **Step 5: Validate completed review**
+- [x] **Step 5: Validate completed review**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/review_cratesio_campaign.py validate \
@@ -620,7 +620,7 @@ Expected: each active/sample row labeled exactly once and evidence hashes unchan
 - Create: `docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-report.md`
 - Modify: `TASK_CONTEXT.md`
 
-- [ ] **Step 1: Render machine-readable and narrative outputs**
+- [x] **Step 1: Render machine-readable and narrative outputs**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/review_cratesio_campaign.py report \
@@ -637,11 +637,11 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/unsoundaudit-v3/review_cratesio_campai
 
 Require per-package/aggregate states, performance, unsafe-site/contract coverage, P1–P6 four-state counts, reason distributions, rerun status, all active labels, sample outcomes, candidate status, exact denominators, Wilson intervals, and limitations.
 
-- [ ] **Step 2: Independently recompute totals from raw evidence**
+- [x] **Step 2: Independently recompute totals from raw evidence**
 
 Use a separate short Python command reading only `campaign.json`, JSONL artifacts, and review rows. Match terminal-state, active-family, label, and four-state totals with the generated summary. Any mismatch blocks the report.
 
-- [ ] **Step 3: Run final gates**
+- [x] **Step 3: Run final gates**
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v \
@@ -654,7 +654,7 @@ git status --short
 
 Rerun the current mechanism pack with exact campaign binaries and require the protocol's capability-matrix hash. Do not modify analyzer expectations or add allowlists.
 
-- [ ] **Step 4: Update context and commit tracked campaign evidence**
+- [x] **Step 4: Update context and commit tracked campaign evidence**
 
 Record measured facts, inferences, provisional labels, independent-review status, evidence custody, and unresolved gaps.
 

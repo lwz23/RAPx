@@ -1,0 +1,23 @@
+{
+  "campaign_id": "cratesio-2026-08-21",
+  "files": {
+    "campaign": "/private/tmp/rapx-cratesio-campaign-2026-08-21.Nad5Pu/campaign.json",
+    "campaign_sha256": "b517bc3400b571ca7c634eeff61fb40a79a3219d32efae4337ec314febb0fd82",
+    "csv": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-review.csv",
+    "csv_sha256": "9a1febc9dfff28ed17853726f4638462765fd566ababd28e49586facdb8e73a5",
+    "policy": "tests/unsoundaudit-v3/cratesio_campaign_policy.json",
+    "policy_sha256": "9fe136f457379d1f263970533ceffa63a1699875120f423e5bb5442e1ee35669",
+    "protocol": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-protocol.json",
+    "protocol_sha256": "eaae13eb1d5e8708fdd86524ff83e7063b2bb5bbc678d8ab45f416bb370fe066",
+    "report": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-report.md",
+    "report_sha256": "bcc111194982f3a57a73b9b8788a6869c4443bcd175ea5a5729c08104d51df39",
+    "review": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-review.json",
+    "review_sha256": "53bb05a9620d6fcab3441ae5b277db289acf3a7f485b88d6dfaa2289e303b7b7",
+    "roster": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-roster.json",
+    "roster_sha256": "db171dd4b3c4e0ada8abe26acd44245777b7b9a137a71b1239ea2e336067a129",
+    "summary": "docs/unsoundaudit-v3/cratesio-campaign-2026-08-21-summary.json",
+    "summary_sha256": "5e58bfcd24dcb5b905e1a741e1a959b0b28ca60b6144d6436231826d3d2c9ff9"
+  },
+  "schema_version": "rap-unsoundaudit-cratesio-campaign-evidence-manifest-v1",
+  "selection_date": "2026-08-21"
+}

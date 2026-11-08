@@ -11,10 +11,7 @@ impl FunctionKey {
         Self(display.clone(), display)
     }
 
-    pub fn from_compiler_owner(
-        display: impl Into<String>,
-        def_path_hash: impl AsRef<str>,
-    ) -> Self {
+    pub fn from_compiler_owner(display: impl Into<String>, def_path_hash: impl AsRef<str>) -> Self {
         let display = display.into();
         Self(
             display.clone(),

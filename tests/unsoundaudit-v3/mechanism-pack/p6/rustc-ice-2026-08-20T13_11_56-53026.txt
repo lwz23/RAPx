@@ -1,0 +1,103 @@
+thread 'rustc' panicked at compiler/rustc_hir_analysis/src/collect.rs:1376:13:
+Box<dyn Any>
+stack backtrace:
+   0:        0x1127e4100 - std::backtrace::Backtrace::create::hf8d8871dfcf0d7d4
+   1:        0x110718bfc - <alloc[2e93b50c8ffde2ff]::boxed::Box<rustc_driver_impl[400201fd7ae6f4ff]::install_ice_hook::{closure#0}> as core[6f16417e241742b5]::ops::function::Fn<(&dyn for<'a, 'b> core[6f16417e241742b5]::ops::function::Fn<(&'a std[b2fa5a77f679b2db]::panic::PanicHookInfo<'b>,), Output = ()> + core[6f16417e241742b5]::marker::Send + core[6f16417e241742b5]::marker::Sync, &std[b2fa5a77f679b2db]::panic::PanicHookInfo)>>::call
+   2:        0x1127fe7b0 - std::panicking::rust_panic_with_hook::h231586d7c8e52d0b
+   3:        0x110788140 - std[b2fa5a77f679b2db]::panicking::begin_panic::<rustc_errors[b6c6825254607287]::ExplicitBug>::{closure#0}
+   4:        0x110786e88 - std[b2fa5a77f679b2db]::sys::backtrace::__rust_end_short_backtrace::<std[b2fa5a77f679b2db]::panicking::begin_panic<rustc_errors[b6c6825254607287]::ExplicitBug>::{closure#0}, !>
+   5:        0x114f01524 - std[b2fa5a77f679b2db]::panicking::begin_panic::<rustc_errors[b6c6825254607287]::ExplicitBug>
+   6:        0x110789770 - <rustc_errors[b6c6825254607287]::diagnostic::BugAbort as rustc_errors[b6c6825254607287]::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   7:        0x1113f4f48 - rustc_middle[c10c6c0149de41f5]::util::bug::opt_span_bug_fmt::<rustc_span[d6e65166f7b0be4a]::span_encoding::Span>::{closure#0}
+   8:        0x1113f4dbc - rustc_middle[c10c6c0149de41f5]::ty::context::tls::with_opt::<rustc_middle[c10c6c0149de41f5]::util::bug::opt_span_bug_fmt<rustc_span[d6e65166f7b0be4a]::span_encoding::Span>::{closure#0}, !>::{closure#0}
+   9:        0x1113f4d88 - rustc_middle[c10c6c0149de41f5]::ty::context::tls::with_context_opt::<rustc_middle[c10c6c0149de41f5]::ty::context::tls::with_opt<rustc_middle[c10c6c0149de41f5]::util::bug::opt_span_bug_fmt<rustc_span[d6e65166f7b0be4a]::span_encoding::Span>::{closure#0}, !>::{closure#0}, !>
+  10:        0x114fa3060 - rustc_middle[c10c6c0149de41f5]::util::bug::bug_fmt
+  11:        0x110b0bd3c - rustc_hir_analysis[2b584baf136ce44d]::collect::fn_sig
+  12:        0x111d64ddc - rustc_query_impl[8e5aca56891ad1ab]::plumbing::__rust_begin_short_backtrace::<rustc_query_impl[8e5aca56891ad1ab]::query_impl::fn_sig::dynamic_query::{closure#2}::{closure#0}, rustc_middle[c10c6c0149de41f5]::query::erase::Erased<[u8; 24usize]>>
+  13:        0x111de1548 - <rustc_query_impl[8e5aca56891ad1ab]::query_impl::fn_sig::dynamic_query::{closure#2} as core[6f16417e241742b5]::ops::function::FnOnce<(rustc_middle[c10c6c0149de41f5]::ty::context::TyCtxt, rustc_span[d6e65166f7b0be4a]::def_id::DefId)>>::call_once
+  14:        0x111c6ad54 - rustc_query_system[30e1abe285679be]::query::plumbing::try_execute_query::<rustc_query_impl[8e5aca56891ad1ab]::DynamicConfig<rustc_query_system[30e1abe285679be]::query::caches::DefIdCache<rustc_middle[c10c6c0149de41f5]::query::erase::Erased<[u8; 24usize]>>, false, false, false>, rustc_query_impl[8e5aca56891ad1ab]::plumbing::QueryCtxt, true>
+  15:        0x111f4066c - rustc_query_impl[8e5aca56891ad1ab]::query_impl::fn_sig::get_query_incr::__rust_end_short_backtrace
+  16:        0x104d41cc8 - rustc_middle::query::plumbing::query_get_at::h83e386a7b970123f
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/query/plumbing.rs:143:17
+  17:        0x104d44dfc - rustc_middle::query::<impl rustc_middle::query::plumbing::TyCtxtAt>::fn_sig::hfb4143643ebd52cd
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/query/plumbing.rs:422:31
+  18:        0x104d44dfc - rustc_middle::query::<impl rustc_middle::ty::context::TyCtxt>::fn_sig::hd8faff52ad4a8498
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/query/plumbing.rs:413:35
+  19:        0x104d44dfc - rapx::analysis::unsoundaudit::mir::Engine::is_exact_c_abi::h8d9b01cb577620d6
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:6695:22
+  20:        0x104d44dfc - rapx::analysis::unsoundaudit::mir::Engine::is_exported_ffi_callback::h76200c879140da09
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:6669:9
+  21:        0x104d44dfc - rapx::analysis::unsoundaudit::mir::Engine::normalize_body::{{closure}}::he57caf3900fe4943
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:4687:51
+  22:        0x104d44dfc - core::ops::function::impls::<impl core::ops::function::FnMut<A> for &mut F>::call_mut::hea99a21c190f7d7f
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/function.rs:294:13
+  23:        0x104dffb00 - core::iter::traits::iterator::Iterator::find_map::check::{{closure}}::hf94420f19e3d79b7
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2903:32
+  24:        0x104dffb00 - core::iter::adapters::map::map_try_fold::{{closure}}::h2b3bde421eef2c42
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/adapters/map.rs:95:21
+  25:        0x104dffb00 - core::iter::traits::iterator::Iterator::try_fold::he13032a146f49d8b
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2406:21
+  26:        0x104dffb00 - <core::iter::adapters::map::Map<I,F> as core::iter::traits::iterator::Iterator>::try_fold::h649503f7aac88bb4
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/adapters/map.rs:121:9
+  27:        0x104dffb00 - core::iter::traits::iterator::Iterator::find_map::h7ce982ecd02f5db2
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2909:9
+  28:        0x104dffb00 - <core::iter::adapters::filter_map::FilterMap<I,F> as core::iter::traits::iterator::Iterator>::next::h6039521d3fd8e0b6
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/adapters/filter_map.rs:64:9
+  29:        0x104dffb00 - <alloc::vec::Vec<T> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<T,I>>::from_iter::ha5faf4429620976a
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/spec_from_iter_nested.rs:24:32
+  30:        0x104dffb00 - <alloc::vec::Vec<T> as alloc::vec::spec_from_iter::SpecFromIter<T,I>>::from_iter::h0cb67d4dcc5d2d83
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/spec_from_iter.rs:33:9
+  31:        0x104cebb5c - <alloc::vec::Vec<T> as core::iter::traits::collect::FromIterator<T>>::from_iter::he2d119f655c9764b
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3388:9
+  32:        0x104cebb5c - core::iter::traits::iterator::Iterator::collect::hba28036369d2d0e4
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2001:9
+  33:        0x104cebb5c - <alloc::collections::btree::map::BTreeMap<K,V> as core::iter::traits::collect::FromIterator<(K,V)>>::from_iter::hb84793a8f0d80a97
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/collections/btree/map.rs:2256:34
+  34:        0x104d83f7c - core::iter::traits::iterator::Iterator::collect::h818003714c89533c
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:2001:9
+  35:        0x104d83f7c - rapx::analysis::unsoundaudit::mir::Engine::normalize_body::hfae32c1958783cf4
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:4712:18
+  36:        0x104d6e4c0 - rapx::analysis::unsoundaudit::mir::Engine::collect_bodies::h819734e6a7c68606
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:3594:27
+  37:        0x104d5cf2c - rapx::analysis::unsoundaudit::mir::Engine::run::h0d335ab4ff0ca467
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:2067:9
+  38:        0x104d5b3a0 - rapx::analysis::unsoundaudit::mir::analyze::h57320be150daa524
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit/mir.rs:1932:5
+  39:        0x104f12c94 - rapx::analysis::unsoundaudit::LwzCheck::analyze_and_write::h983a405561b44683
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit.rs:78:34
+  40:        0x104f12c94 - rapx::analysis::unsoundaudit::LwzCheck::start::hdbdf45a86c79fd08
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/analysis/unsoundaudit.rs:65:22
+  41:        0x104eefee4 - rapx::start_analyzer::hc949604e3f9ebf32
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/lib.rs:320:9
+  42:        0x104eefee4 - <rapx::RapCallback as rustc_driver_impl::Callbacks>::after_analysis::{{closure}}::ha4566b867603c4f4
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/lib.rs:125:13
+  43:        0x104eefee4 - rustc_middle::ty::context::GlobalCtxt::enter::{{closure}}::h50c96f60c1150ef8
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/ty/context.rs:1336:37
+  44:        0x104eefee4 - rustc_middle::ty::context::tls::enter_context::{{closure}}::hb35a1fe8d8e2597f
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/ty/context/tls.rs:82:9
+  45:        0x104eefee4 - std::thread::local::LocalKey<T>::try_with::h0b3173a6984852b6
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/thread/local.rs:283:12
+  46:        0x104eefee4 - std::thread::local::LocalKey<T>::with::h2cea7d2ff9ab0438
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/thread/local.rs:260:9
+  47:        0x104eefee4 - rustc_middle::ty::context::tls::enter_context::h3ed630e92a45c6a0
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/ty/context/tls.rs:79:9
+  48:        0x104eefee4 - rustc_middle::ty::context::GlobalCtxt::enter::hc09acaf038d8730f
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_middle/src/ty/context.rs:1336:9
+  49:        0x104fafdc8 - rustc_interface::queries::QueryResult<&rustc_middle::ty::context::GlobalCtxt>::enter::ha9a68efcebbdba21
+                               at /Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/compiler/rustc_interface/src/queries.rs:65:9
+  50:        0x104fafdc8 - <rapx::RapCallback as rustc_driver_impl::Callbacks>::after_analysis::hc63a5d4b78296bc3
+                               at /Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2/rapx/src/lib.rs:121:9
+  51:        0x110698ea8 - <rustc_interface[9d9c8f504b92d6aa]::interface::Compiler>::enter::<rustc_driver_impl[400201fd7ae6f4ff]::run_compiler::{closure#0}::{closure#1}, core[6f16417e241742b5]::result::Result<core[6f16417e241742b5]::option::Option<rustc_interface[9d9c8f504b92d6aa]::queries::Linker>, rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>
+  52:        0x1106edee8 - rustc_span[d6e65166f7b0be4a]::create_session_globals_then::<core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>, rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_with_globals<rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_pool_with_globals<rustc_interface[9d9c8f504b92d6aa]::interface::run_compiler<core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>, rustc_driver_impl[400201fd7ae6f4ff]::run_compiler::{closure#0}>::{closure#1}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}::{closure#0}::{closure#0}>
+  53:        0x1106d090c - std[b2fa5a77f679b2db]::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_with_globals<rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_pool_with_globals<rustc_interface[9d9c8f504b92d6aa]::interface::run_compiler<core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>, rustc_driver_impl[400201fd7ae6f4ff]::run_compiler::{closure#0}>::{closure#1}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}::{closure#0}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>
+  54:        0x1106bea14 - <<std[b2fa5a77f679b2db]::thread::Builder>::spawn_unchecked_<rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_with_globals<rustc_interface[9d9c8f504b92d6aa]::util::run_in_thread_pool_with_globals<rustc_interface[9d9c8f504b92d6aa]::interface::run_compiler<core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>, rustc_driver_impl[400201fd7ae6f4ff]::run_compiler::{closure#0}>::{closure#1}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#0}::{closure#0}, core[6f16417e241742b5]::result::Result<(), rustc_span[d6e65166f7b0be4a]::ErrorGuaranteed>>::{closure#1} as core[6f16417e241742b5]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  55:        0x112808b80 - std::sys::pal::unix::thread::Thread::new::thread_start::hc254266c05857f46
+  56:        0x188891c58 - __pthread_cond_wait
+
+
+rustc version: 1.83.0-nightly (1bc403daa 2024-10-11)
+platform: aarch64-apple-darwin
+
+query stack during panic:
+#0 [fn_sig] computing function signature of `callback_body_unsafe::{closure#0}`
+end of query stack

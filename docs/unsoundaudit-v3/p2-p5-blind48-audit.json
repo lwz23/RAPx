@@ -1,0 +1,1673 @@
+{
+  "families": [
+    {
+      "audit_family_id": "5a8ffa23057107b1c9779bfa750fbce70678c53890c71e6f50dba74b5b8b2038",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 6,
+      "reasons": {
+        "nonpersistent_public_field": 6
+      },
+      "representative": {
+        "callee": "intrinsics::copy_nonoverlapping",
+        "candidate_id": "850d2713a238ad3a5ce153c4c663c3639ae5144550255ffd19314e3d42fb65ed",
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P2",
+        "predicates": [],
+        "root": "fmt::num::<impl fmt::Display for i128>::fmt",
+        "site_id": "4483db0ba59a415b9c9a8a7719b175e61fa8aaab680164a8503aea539a29bfcd",
+        "site_owner": "fmt::num::parse_u64_into",
+        "site_span": {
+          "end": {
+            "column": 86,
+            "line": 653
+          },
+          "path": "library/core/src/fmt/num.rs",
+          "start": {
+            "column": 13,
+            "line": 653
+          }
+        },
+        "source_identity": "public_field:owner=fmt::Formatter::<'a>::pad_integral::write_prefix:field=option::Option::Some::0:access=((_3 as Some).0: &str):base=_3:storage=entry_formal:fmt::Formatter::<'a>::pad_integral::write_prefix:3:versions=:adt=enum:persistent=false@library/core/src/fmt/mod.rs:1365:25-1365:31",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "604bc782c9f8315d7957b99a19fac5c13e41a2592a7d20bf8f207b856426c794",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 14,
+      "reasons": {
+        "nonpersistent_public_field": 14
+      },
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "0db8a5b11d348a1fca59039a4e84fde8a829586258c3b845e4330b82a625555e",
+        "depth": "recursive",
+        "model_id": "condition_true_v1",
+        "pattern": "P2",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "<str::lossy::Debug<'_> as fmt::Debug>::fmt",
+        "site_id": "91123acd350fd889ddb0efbd552ed13f2d4a2cd6d3115cde21c98be0018e1569",
+        "site_owner": "slice::<impl [T]>::binary_search_by",
+        "site_span": {
+          "end": {
+            "column": 63,
+            "line": 2824
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 2824
+          }
+        },
+        "source_identity": "public_field:owner=unicode::unicode_data::skip_search:field=result::Result::Ok::0:access=((_5 as Ok).0: usize):base=_5:storage=untracked:versions=1:6:adt=enum:persistent=false@library/core/src/unicode/unicode_data.rs:74:16-74:19",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 12
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "72c15b20b40715a6ab16d028cb5a4453a2d2d8df1a28b05af51920eddd3a76e0",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 6,
+      "reasons": {
+        "nonpersistent_public_field": 6
+      },
+      "representative": {
+        "callee": "ptr::mut_ptr::<impl *mut T>::add",
+        "candidate_id": "0dbd509733cefb392f6d68a428579ccbcaf9031c9f075b66cd06dab1ddb27333",
+        "depth": "recursive",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P2",
+        "predicates": [],
+        "root": "fmt::num::<impl fmt::Debug for usize>::fmt",
+        "site_id": "3924f7d5a7acb4bc15c65d737b57d2a33ad165e6fa609d700938236667b29b8a",
+        "site_owner": "fmt::num::imp::<impl usize>::_fmt",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 541
+          },
+          "path": "library/core/src/fmt/num.rs",
+          "start": {
+            "column": 5,
+            "line": 529
+          }
+        },
+        "source_identity": "public_field:owner=fmt::Formatter::<'a>::padding:field=ops::control_flow::ControlFlow::Break::0:access=((_33 as Break).0: result::Result<convert::Infallible, fmt::Error>):base=_33:storage=entry_formal:fmt::Formatter::<'a>::padding:1:versions=19:2:adt=enum:persistent=false@library/core/src/fmt/mod.rs:1505:43-1505:44",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "72f7b30f614f179eed9fb01f45b5228097d2b514991b52a7626d0bf56a5473ca",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 2,
+      "reasons": {
+        "nonpersistent_public_field": 2
+      },
+      "representative": {
+        "callee": null,
+        "candidate_id": "ac6b1ae73eba7b47c5157e1f24812dd1fe0ed40c1197fd8f67be30ddca852dd6",
+        "depth": "recursive",
+        "model_id": "language_validity_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "<core_simd::vector::Simd<T, N> as convert::TryFrom<&mut [T]>>::try_from",
+        "site_id": "aa1297482a56aeb513a56d65cb6e3ab66faaad9cba90cb78117f311e086c41b6",
+        "site_owner": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "site_span": {
+          "end": {
+            "column": 48,
+            "line": 638
+          },
+          "path": "library/core/src/mem/maybe_uninit.rs",
+          "start": {
+            "column": 38,
+            "line": 638
+          }
+        },
+        "source_identity": "public_field:owner=<result::Result<T, F> as ops::try_trait::FromResidual<result::Result<convert::Infallible, E>>>::from_residual:field=result::Result::Err::0:access=((_1 as Err).0: E):base=_1:storage=entry_formal:<result::Result<T, F> as ops::try_trait::FromResidual<result::Result<convert::Infallible, E>>>::from_residual:1:versions=:adt=enum:persistent=false@library/core/src/result.rs:2005:17-2005:18",
+        "source_kind": "public_field",
+        "subject_role": "place",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "86040ca8d2cc0ee9679afb4f44a2670b40e0120903888052cc363b41ca197cb5",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 1,
+      "reasons": {
+        "nonpersistent_public_field": 1
+      },
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "40652257f71c15f6b3b07c9488e2736a1ea0d1a76182e1e421966798c644a3e1",
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P2",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "<str as fmt::Debug>::fmt",
+        "site_id": "d942ac3ab93191a91e33ddafdcb59648e9fa004d6007e32e13d5bc8da47dd449",
+        "site_owner": "slice::<impl [T]>::binary_search_by",
+        "site_span": {
+          "end": {
+            "column": 66,
+            "line": 2830
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 2830
+          }
+        },
+        "source_identity": "public_field:owner=<str as fmt::Debug>::fmt:field=ops::control_flow::ControlFlow::Break::0:access=((_4 as Break).0: result::Result<convert::Infallible, fmt::Error>):base=_4:storage=untracked:versions=1:1:adt=enum:persistent=false@library/core/src/fmt/mod.rs:2436:26-2436:27",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 10
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "9b5b9e897875557c7e4adea4bfa9d999ac6acefd284a9efdb195f5099e13c3a7",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P2",
+      "raw_count": 1,
+      "reasons": {
+        "nonpersistent_public_field": 1
+      },
+      "representative": {
+        "callee": "ptr::non_null::NonNull::<T>::new_unchecked",
+        "candidate_id": "fc086eb535f0aed5c0fb1a76d748c944815047bd51558238d5b94d8ffb420a45",
+        "depth": "recursive",
+        "model_id": "nonnull_new_unchecked_v1",
+        "pattern": "P2",
+        "predicates": [
+          "non_null"
+        ],
+        "root": "ptr::non_null::NonNull::<T>::map_addr",
+        "site_id": "21638980507d5ed8876f505aef4335bef5300f987b6a53dcb51f2a286256dee4",
+        "site_owner": "ptr::non_null::NonNull::<T>::with_addr",
+        "site_span": {
+          "end": {
+            "column": 86,
+            "line": 290
+          },
+          "path": "library/core/src/ptr/non_null.rs",
+          "start": {
+            "column": 18,
+            "line": 290
+          }
+        },
+        "source_identity": "public_field:owner=num::nonzero::NonZero::<T>::new_unchecked:field=option::Option::Some::0:access=((_2 as Some).0: num::nonzero::NonZero<T>):base=_2:storage=untracked:versions=0:3:adt=enum:persistent=false@library/core/src/num/nonzero.rs:369:18-369:19",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "10f83d2351b95720c3aca73772e590ad0b0993da6f14dd0a775e577a68e166a2",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "index_or_length,typed_value,validity_bits",
+        "controller": "persistent_public_field:num::flt2dec::strategy::dragon::format_exact:num::flt2dec::decoder::Decoded::minus",
+        "decision_id": "433e8cd48e16e8d5698bf6fa3e5b9986ebdbb7b4e0f8c99f0cdd3a974c3bd58c",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "place:validity_bits",
+        "pattern": "P2",
+        "requirement": "place:validity_bits",
+        "root": "num::flt2dec::strategy::grisu::format_exact",
+        "site_id": "aa1297482a56aeb513a56d65cb6e3ab66faaad9cba90cb78117f311e086c41b6",
+        "source_identity": "public_field:num::flt2dec::strategy::dragon::format_exact:num::flt2dec::decoder::Decoded::minus:((*_1).1: u64):_1:entry_formal::struct:true@library/core/src/num/flt2dec/strategy/dragon.rs:271:32-271:39",
+        "source_kind": "public_field",
+        "subject_role": "place"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "2959585c6484884a69f39017440cc8f8f86e13b78a14c3ca2eec814bd7b2e3d6",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 1,
+      "reasons": {
+        "missing_exact_context": 1
+      },
+      "representative": {
+        "capabilities": "typed_value",
+        "controller": "persistent_public_field:<ops::range::Range<Idx> as clone::Clone>::clone:ops::range::Range::start",
+        "decision_id": "7edb425848030554247fa9b54c8b12f81b4938c2b7044f67b09b97d05a53abb2",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:1:index_or_address",
+        "pattern": "P2",
+        "requirement": "argument:1:index_or_address",
+        "root": "<str as fmt::Debug>::fmt",
+        "site_id": "254cc49c738185fb7a01601d3dc15c488e383182fa3439a2cfedf9ab45ba78ad",
+        "source_identity": "public_field:<ops::range::Range<Idx> as clone::Clone>::clone:ops::range::Range::start:((*_1).0: Idx):_1:entry_formal::struct:true@library/core/src/ops/range.rs:78:10-78:15",
+        "source_kind": "public_field",
+        "subject_role": "argument:1"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "4b6390f783c908dfb1c9bfdfb8429a07e4d91eddf05955497fed5ee82b45d7bf",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "index_or_length,typed_value,validity_bits",
+        "controller": "persistent_public_field:num::flt2dec::strategy::dragon::format_shortest:num::flt2dec::decoder::Decoded::plus",
+        "decision_id": "14a078c65399e974ceac618c4337e9eac90e70f15be613222f71fed897482dd4",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:boolean",
+        "pattern": "P2",
+        "requirement": "argument:0:boolean",
+        "root": "num::flt2dec::strategy::dragon::format_shortest",
+        "site_id": "a024af8732b2fc1bcfe617d4df3f3288389b63cd748914098ce64cc723f86d4e",
+        "source_identity": "public_field:num::flt2dec::strategy::dragon::format_shortest:num::flt2dec::decoder::Decoded::plus:((*_1).2: u64):_1:entry_formal::struct:true@library/core/src/num/flt2dec/strategy/dragon.rs:121:32-121:38",
+        "source_kind": "public_field",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "8ed5da9b084482f25d7eb6490e5a5908a105aa7b7a4354472b1c320cfb3f4b5f",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 1,
+      "reasons": {
+        "missing_exact_context": 1
+      },
+      "representative": {
+        "capabilities": "index_or_length,typed_value,validity_bits",
+        "controller": "persistent_public_field:array::iter::IntoIter::<T, N>::new_unchecked:ops::range::Range::start",
+        "decision_id": "5a7891957d714d0c8883973b6cb9c25b8999a1ac4ac1e5b478c040a059919151",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:address,index_or_address,validity_bits",
+        "pattern": "P2",
+        "requirement": "argument:0:address,index_or_address,validity_bits",
+        "root": "<iter::adapters::map_windows::MapWindows<I, F, N> as iter::traits::iterator::Iterator>::next",
+        "site_id": "6751ffe84558ad3a49b16e434e54b1c57b1b98805c7e29099f3bc9cd65d7e595",
+        "source_identity": "public_field:array::iter::IntoIter::<T, N>::new_unchecked:ops::range::Range::start:(_2.0: usize):_2:entry_formal::struct:true@library/core/src/array/iter.rs:145:56-145:73",
+        "source_kind": "public_field",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "967415f5595959a55436073b482bff0f04ab11a66fdd68efa09d9e31795a8196",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "index_or_length,typed_value,validity_bits",
+        "controller": "persistent_public_field:num::flt2dec::strategy::dragon::format_shortest:num::flt2dec::decoder::Decoded::mant",
+        "decision_id": "4040948f9eb5c7753999fa8ed604aa85c3f04fec8035df11c28f10364181160d",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "address:address,validity_bits",
+        "pattern": "P2",
+        "requirement": "address:address,validity_bits",
+        "root": "num::flt2dec::strategy::dragon::format_shortest",
+        "site_id": "9e4e56460652653d654e0e89669f0f7fc4267c3bd3721aa85dfff728d2a928da",
+        "source_identity": "public_field:num::flt2dec::strategy::dragon::format_shortest:num::flt2dec::decoder::Decoded::mant:((*_1).0: u64):_1:entry_formal::struct:true@library/core/src/num/flt2dec/strategy/dragon.rs:121:13-121:19",
+        "source_kind": "public_field",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "a32a773709015030a23c8d09a249e066741204d59e9d0724e44167537f5f20b7",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P2",
+      "raw_count": 20,
+      "reasons": {
+        "unmodeled_unsafe_call": 20
+      },
+      "representative": {
+        "capabilities": "typed_value",
+        "controller": "persistent_public_field:<num::fmt::Formatted<'a> as clone::Clone>::clone:num::fmt::Formatted::sign",
+        "decision_id": "08c94f3c3b7a74c648efcd794a5409f91c8fe2645c6b93656a4c96d079fd426e",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "<unmodeled>",
+        "pattern": "P2",
+        "requirement": null,
+        "root": "fmt::num::imp::<impl fmt::LowerExp for isize>::fmt",
+        "site_id": "a34fadf4adaae6eed8d6b747394cfd7f50dd73ee77af12196decd1f9f3cfb27f",
+        "source_identity": "public_field:<num::fmt::Formatted<'a> as clone::Clone>::clone:num::fmt::Formatted::sign:((*_1).0: &str):_1:entry_formal::struct:true@library/core/src/num/fmt.rs:74:10-74:15",
+        "source_kind": "public_field",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "sink 合同尚未建模；保留路径与模型缺口，不作安全结论。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "0d81de819048e2223516a82a2968248aa7950ac47c7fbe2608955a500ea7728d",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_implied_by_type": 1
+      },
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "899e64264da47936e54324c66f6d1d1b273a42c5a4fda8e262f73dde9916d654",
+        "depth": "recursive",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "fmt::num::<impl fmt::UpperHex for usize>::fmt",
+        "site_id": "6c08a35bdf229690ef29bd9d9240d82f0c85df291820983ded39558fd8ebf8e7",
+        "site_owner": "ptr::align_offset",
+        "site_span": {
+          "end": {
+            "column": 49,
+            "line": 1979
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 32,
+            "line": 1979
+          }
+        },
+        "source_identity": "ptr::align_offset:unsafe_result:6c08a35bdf229690ef29bd9d9240d82f0c85df291820983ded39558fd8ebf8e7",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 11
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源/目标类型的有效位模式已经蕴含 sink 合同。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "541059c5a153a4b0e8384c4d24f337291582d78c73a459a644be71e4a43027a7",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_discharged": 1
+      },
+      "representative": {
+        "callee": "str::converts::from_utf8_unchecked",
+        "candidate_id": "174260c8963a597ccd8dbb0666fe485cc6f338164b89e892dd93eea794ced533",
+        "depth": "inter_procedural",
+        "model_id": "str_from_utf8_unchecked_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_utf8"
+        ],
+        "root": "ffi::c_str::CStr::to_str",
+        "site_id": "51bfe454cdba78e9c889f76090138a7236c3674d9e3436985fa479b5d56b78bc",
+        "site_owner": "str::converts::from_utf8",
+        "site_span": {
+          "end": {
+            "column": 47,
+            "line": 92
+          },
+          "path": "library/core/src/str/converts.rs",
+          "start": {
+            "column": 25,
+            "line": 92
+          }
+        },
+        "source_identity": "str::converts::from_utf8:unsafe_result:51bfe454cdba78e9c889f76090138a7236c3674d9e3436985fa479b5d56b78bc",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "支配校验、精确关系或完整初始化在该 sink 前形成完整证明。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "8477efafbd0dec6368975b7ce3cedfb64f618284e30b6337166a28369ab7d9ea",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_implied_by_type": 1
+      },
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "8f5f79117d696d8b4cedb370c92735fc6479dd0fe862b0a6569364b46cd9286b",
+        "depth": "intra_procedural",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "ptr::mut_ptr::<impl *mut T>::addr",
+        "site_id": "9f09eb999cc5a1406dc4e1f04714f7f57e8f3c4d6d3895636faca28b692e066d",
+        "site_owner": "ptr::mut_ptr::<impl *mut T>::addr",
+        "site_span": {
+          "end": {
+            "column": 51,
+            "line": 136
+          },
+          "path": "library/core/src/ptr/mut_ptr.rs",
+          "start": {
+            "column": 18,
+            "line": 136
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::addr:unsafe_result:9f09eb999cc5a1406dc4e1f04714f7f57e8f3c4d6d3895636faca28b692e066d",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源/目标类型的有效位模式已经蕴含 sink 合同。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "a3e8107af11e1ea46062d08feca1062ed89ccaf65a56a59a60dc7223ce2b6bc5",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_implied_by_type": 1
+      },
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "0f6e8fc1a7f36b10c330ee258c7fc9aca5d3921322313a050f3e217eea3d21c3",
+        "depth": "inter_procedural",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "num::dec2flt::dec2flt",
+        "site_id": "a8d0cddee8e68b71e2d0b8c91cb969d165b3f7e73b6bd78464d7d39413114ccb",
+        "site_owner": "ptr::const_ptr::<impl *const T>::addr",
+        "site_span": {
+          "end": {
+            "column": 51,
+            "line": 147
+          },
+          "path": "library/core/src/ptr/const_ptr.rs",
+          "start": {
+            "column": 18,
+            "line": 147
+          }
+        },
+        "source_identity": "ptr::const_ptr::<impl *const T>::addr:unsafe_result:a8d0cddee8e68b71e2d0b8c91cb969d165b3f7e73b6bd78464d7d39413114ccb",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 11
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源/目标类型的有效位模式已经蕴含 sink 合同。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "a5e83aca9d341e549738502775a86f3f00a999e354883049c0e3469e3198c430",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_discharged": 1
+      },
+      "representative": {
+        "callee": "str::converts::from_utf8_unchecked",
+        "candidate_id": "bb4944a387c711dd4cba2eac650b7181b54878a6ba011bf8e64ad8261c4fef83",
+        "depth": "intra_procedural",
+        "model_id": "str_from_utf8_unchecked_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_utf8"
+        ],
+        "root": "<str::lossy::Utf8Chunks<'a> as iter::traits::iterator::Iterator>::next",
+        "site_id": "54ed82458139276b9a1a0ff7646bddf7026665eb3b7accbb8d7327a419bf1d53",
+        "site_owner": "<str::lossy::Utf8Chunks<'a> as iter::traits::iterator::Iterator>::next",
+        "site_span": {
+          "end": {
+            "column": 55,
+            "line": 284
+          },
+          "path": "library/core/src/str/lossy.rs",
+          "start": {
+            "column": 29,
+            "line": 284
+          }
+        },
+        "source_identity": "<str::lossy::Utf8Chunks<'a> as iter::traits::iterator::Iterator>::next:unsafe_result:54ed82458139276b9a1a0ff7646bddf7026665eb3b7accbb8d7327a419bf1d53",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "支配校验、精确关系或完整初始化在该 sink 前形成完整证明。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "c47ea9d01e7c92e2e7c44639b50679d81fea8b0c0abe25b9d770289f06c52dac",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "contract_implied_by_type": 1
+      },
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "0f5ec1474f8de8947d311c720d3f37dbcb5ab60c1985e088855c3acac70d412e",
+        "depth": "inter_procedural",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "f32::<impl f32>::to_be_bytes",
+        "site_id": "ffec854fe4a4f4a0d1bdd92605b503114bb4ab5aab016807c3df118099173e2d",
+        "site_owner": "num::<impl u32>::to_ne_bytes",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 1166
+          },
+          "path": "library/core/src/num/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 1148
+          }
+        },
+        "source_identity": "num::<impl u32>::to_ne_bytes:unsafe_result:ffec854fe4a4f4a0d1bdd92605b503114bb4ab5aab016807c3df118099173e2d",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源/目标类型的有效位模式已经蕴含 sink 合同。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "1f46475a6dfca3c59ac158a2f79770ac225d61fd77491d08164e02d52d97ec4e",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "9550b191cf441e50f1e35611a5b9116a2b840825e16deea2a79403f775db7773",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=maybe_uninit_assume_init_v1;predicates=initialized,valid_for_type",
+        "pattern": "P3",
+        "requirement": "result_validity:model=maybe_uninit_assume_init_v1;predicates=initialized,valid_for_type",
+        "root": "<iter::sources::repeat_n::RepeatN<A> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "site_id": "1540ade69c21d209e605da48d3a8d00cf0ca6497f63144e4bfd45436c24da2de",
+        "source_identity": "<iter::sources::repeat_n::RepeatN<A> as iter::traits::unchecked_iterator::UncheckedIterator>::next_unchecked:unsafe_result:1540ade69c21d209e605da48d3a8d00cf0ca6497f63144e4bfd45436c24da2de",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "20691f38be6f847d831c9c09559188e931b6b78b24f66aa655432b4388eefb95",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "missing_exact_context": 1
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "f5bce3441c20fb2a5a54e1c868f4312f44a5f39e65ed81791d8ad74937bff326",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=maybe_uninit_assume_init_v1;predicates=initialized,valid_for_type",
+        "pattern": "P3",
+        "requirement": "result_validity:model=maybe_uninit_assume_init_v1;predicates=initialized,valid_for_type",
+        "root": "slice::<impl [T]>::get_many_mut",
+        "site_id": "dd81797292c44cee1cecb3d368c1dcaf92f75e72287d0187fad8ba8e4438952d",
+        "source_identity": "slice::<impl [T]>::get_many_unchecked_mut:unsafe_result:dd81797292c44cee1cecb3d368c1dcaf92f75e72287d0187fad8ba8e4438952d",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "7e1dfc2ec371e4aa96118a652d86b3268ca225b4f6b75bdc297349658145d232",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 28,
+      "reasons": {
+        "missing_exact_context": 27,
+        "validity_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "0dca4be6025a8cb017b720a2ac3b4f2524282f1cc7aaaa7887e978bcb662839e",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=language_validity_v1;predicates=valid_for_type",
+        "pattern": "P3",
+        "requirement": "result_validity:model=language_validity_v1;predicates=valid_for_type",
+        "root": "time::Duration::abs_diff",
+        "site_id": "aca9437f691c260dd0f46e6eaeeecd6733cbb3b8f4b6ba8eac4aa4dffa0abe94",
+        "source_identity": "time::Duration::new:unsafe_result:aca9437f691c260dd0f46e6eaeeecd6733cbb3b8f4b6ba8eac4aa4dffa0abe94",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "a4c893ccff9e38fbf7ec6931a3c457aa0287278fc9dc4c04c5837fdc305ef5bf",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 28,
+      "reasons": {
+        "missing_exact_context": 27,
+        "validity_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "0371452583e86d19835366002b5deb9949e3d46d40b49b5f09f819a2de488ebb",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=language_validity_v1;predicates=valid_for_type",
+        "pattern": "P3",
+        "requirement": "result_validity:model=language_validity_v1;predicates=valid_for_type",
+        "root": "time::Duration::mul_f32",
+        "site_id": "1e04d308790ef9d36466ae9aabd234554afa1077f2a7789d9f8629d087835b05",
+        "source_identity": "time::Duration::new:unsafe_result:1e04d308790ef9d36466ae9aabd234554afa1077f2a7789d9f8629d087835b05",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "b88d440b56a3d970172dbb5450225fc057ec4c33cf2e5a6a7abddc1802204bba",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 1,
+      "reasons": {
+        "validity_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "1cb5980ea4863c0a17eec80a9e264b70ba42bfe9fc993c8bc08fd26505588762",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=transmute_validity_v1;predicates=valid_for_type",
+        "pattern": "P3",
+        "requirement": "result_validity:model=transmute_validity_v1;predicates=valid_for_type",
+        "root": "core_simd::vendor::arm::neon::<impl convert::From<core_simd::vector::Simd<u8, 8>> for core_arch::arm_shared::neon::uint8x8_t>::from",
+        "site_id": "ad2c42105058324e67e3e45a48ca73f5597066abff4a0728157a577b18044c3b",
+        "source_identity": "core_simd::vendor::arm::neon::<impl convert::From<core_simd::vector::Simd<u8, 8>> for core_arch::arm_shared::neon::uint8x8_t>::from:unsafe_result:ad2c42105058324e67e3e45a48ca73f5597066abff4a0728157a577b18044c3b",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "结果类型有效性义务信息不足。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "c80aed2d0e74a724f9bf0f37420322991d9a567ab10c17aaa54c174ca712e1dd",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P3",
+      "raw_count": 3,
+      "reasons": {
+        "missing_exact_context": 3
+      },
+      "representative": {
+        "capabilities": "validity_bits",
+        "controller": "internal",
+        "decision_id": "420716ac97f1f5a31936c62358897dfc3460622f1edd5da09f910022c699cd1a",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "result_validity:model=str_from_utf8_unchecked_v1;predicates=valid_utf8",
+        "pattern": "P3",
+        "requirement": "result_validity:model=str_from_utf8_unchecked_v1;predicates=valid_utf8",
+        "root": "fmt::num::<impl fmt::Debug for i32>::fmt",
+        "site_id": "a1ea5b67f29d345b1515c415b07255f0d0881fa539d17bd2d94a346f27ed66a7",
+        "source_identity": "fmt::num::imp::<impl i32>::_fmt:unsafe_result:a1ea5b67f29d345b1515c415b07255f0d0881fa539d17bd2d94a346f27ed66a7",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "out"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "06174725aeafe89247eaab4eecf54aa1736a76622583dc19205177d16e241e50",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 1,
+      "reasons": {
+        "derivation_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "40997fc3005869f2ea94280c3c2a0b517dec0621f98aa856998adf4b8db666a2",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:0;predicates=valid_for_read,range_in_bounds,non_null,initialized,valid_for_type,aligned",
+        "pattern": "P4",
+        "requirement": "derivation:argument:0;predicates=valid_for_read,range_in_bounds,non_null,initialized,valid_for_type,aligned",
+        "root": "slice::<impl [f32]>::sort_floats",
+        "site_id": "1530779873f6bda8a0ce3520ba098e166e22bf12003b8bacccdf37002f87708e",
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "0ed98471cfe5cfc28db70244a7cdbbc2985914e8535bf77ac861ada6dfb45555",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 1,
+      "reasons": {
+        "derivation_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "f39df86d6e19b554e4ff9ec0e3f4678f2a6aa9d258a9445f93cc549ca8a0b96c",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:address;predicates=valid_for_read,initialized,aligned",
+        "pattern": "P4",
+        "requirement": "derivation:address;predicates=valid_for_read,initialized,aligned",
+        "root": "<slice::iter::ChunksMut<'a, T> as iter::traits::iterator::Iterator>::next",
+        "site_id": "ff6e2bf1e9a1d42bd71fd9946be39dc710ec7e5c8ad5847dc4be583633b3ae1f",
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::add:derivation:offset:_0@library/core/src/ptr/mut_ptr.rs:1005:18-1005:49",
+        "source_kind": "internal_derivation",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "3a2e0d319dcb02f4acec7913c87b8885dabf7f42c4938cf642b75859639e84eb",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 1,
+      "reasons": {
+        "derivation_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "b45170c5e022a640952e64f363a6a44e3870ec0e27dbe3a5166de6ef0a25465c",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:0;predicates=valid_for_read,range_in_bounds,non_null,initialized,valid_for_type,aligned",
+        "pattern": "P4",
+        "requirement": "derivation:argument:0;predicates=valid_for_read,range_in_bounds,non_null,initialized,valid_for_type,aligned",
+        "root": "slice::<impl [f32]>::sort_floats",
+        "site_id": "e46c8bedab52f79de3008032c29b284d9e306148be2b0f83fc2e9c62b23c9fc7",
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "3b30b5ab0b6f8b611faab4cc222147bd48a22d6215c25b0486fb17159f6e75f6",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "cee01653e69df2c24419157526c19b4de1a583a0265baa36891fffd46ded37c7",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:1:index_or_address",
+        "pattern": "P4",
+        "requirement": "argument:1:index_or_address",
+        "root": "<slice::iter::Split<'a, T, P> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "site_id": "a66eab209f97b1469f1d6542fa84f715b60f54625510d3c724f3aa1908d854ef",
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::add:derivation:offset:_0@library/core/src/ptr/mut_ptr.rs:1005:18-1005:49",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "5062a797656764f3357be9dcec3c05ef2dbf5d0663c32474ea7b43051547ad88",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 2,
+      "reasons": {
+        "missing_exact_context": 2
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "87ce15464f2a770b67e3deb6f15eeb87176126386aecfe7e1654a6cdc769c848",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:1:index_or_address",
+        "pattern": "P4",
+        "requirement": "argument:1:index_or_address",
+        "root": "<slice::iter::RSplit<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "site_id": "a66eab209f97b1469f1d6542fa84f715b60f54625510d3c724f3aa1908d854ef",
+        "source_identity": "num::<impl usize>::overflowing_add:derivation:offset:_5@library/core/src/num/mod.rs:1272:5-1290:6",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "5d8dcf2f1b42dd9ec96b1e71698f8edc3c035ba15496289980bbdf35b7171cb5",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 2,
+      "reasons": {
+        "derivation_obligation_unknown": 2
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "1144693f1a85598ee31f6f77d095032e891a2ce43039116fa3f5bf971be08762",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:0;predicates=condition_true",
+        "pattern": "P4",
+        "requirement": "derivation:argument:0;predicates=condition_true",
+        "root": "num::<impl i16>::isqrt",
+        "site_id": "c2d2261f4bd2454c16520227ad4d58e4ff4eef7007cfd55215d5abbd6b87da24",
+        "source_identity": "num::<impl i16>::checked_isqrt:derivation:unchecked_boolean_relation:_11@library/core/src/num/mod.rs:313:5-332:6",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "681e265c2308f743ec8a9bf965e73aa69c55bc72f3a785f4a6928599bbf75255",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 3,
+      "reasons": {
+        "missing_exact_context": 3
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "3a2214fc62afd98417ee26d266b120d8d5252f8c20454c11ef9ffe17345cf9a3",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "address:address,validity_bits",
+        "pattern": "P4",
+        "requirement": "address:address,validity_bits",
+        "root": "<sync::atomic::AtomicI32 as fmt::Debug>::fmt",
+        "site_id": "53d9f5e1d885447257cbc27e66fef53488493ff8182ded378a3dd78764408bdf",
+        "source_identity": "fmt::Formatter::<'a>::padding:derivation:offset:_18@library/core/src/fmt/mod.rs:1501:48-1501:61",
+        "source_kind": "internal_derivation",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "7165ef2be86c12d8d05dedd822f4948ebca0adb77fe9ed37c9879be3452740ed",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 3,
+      "reasons": {
+        "missing_exact_context": 3
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "00c40a60a87a41de65dc8082d07de806cf3315df99de2da86c8a92758b7e44e0",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "address:address,validity_bits",
+        "pattern": "P4",
+        "requirement": "address:address,validity_bits",
+        "root": "<sync::atomic::AtomicIsize as fmt::Debug>::fmt",
+        "site_id": "bd60cee0540a0e50a5ce11d8613ed130c877c55047ccfea23cf183e9ff26ca9c",
+        "source_identity": "ptr::align_offset:derivation:offset:_25@library/core/src/ptr/mod.rs:2010:31-2010:62",
+        "source_kind": "internal_derivation",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "92314ce8ec3f8e5e430522fad02075c15f5a1b5e138ef60ea46eea1a1fcf98ba",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 1,
+      "reasons": {
+        "derivation_obligation_unknown": 1
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "61753327efa1ee8ed12bd702f7428165a295af2e7192ad177ba5e44bb22277b0",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:address;predicates=valid_for_read,initialized,aligned",
+        "pattern": "P4",
+        "requirement": "derivation:address;predicates=valid_for_read,initialized,aligned",
+        "root": "sync::atomic::AtomicIsize::get_mut_slice",
+        "site_id": "54e45e0338c44d7b7a2e9bf63b16e490ac80b77979f5f365e38ea55b80184df8",
+        "source_identity": "sync::atomic::AtomicIsize::get_mut_slice:derivation:layout:_5@library/core/src/sync/atomic.rs:3290:1-3294:2",
+        "source_kind": "internal_derivation",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "928dad69546208d225f78d32dcbd759ef499fc1b4a62236a613da57e8ae5b559",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 16,
+      "reasons": {
+        "derivation_obligation_unknown": 16
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "0b5ea90adaf8a5d3c9f550e90617dbfe4922ee2f716dfdd67dba398d7131e6ec",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:0;predicates=condition_true",
+        "pattern": "P4",
+        "requirement": "derivation:argument:0;predicates=condition_true",
+        "root": "num::nonzero::NonZero::<u128>::isqrt",
+        "site_id": "e21f7c0c6da83952cea6fec6f03d2019d95db018ffd10a15941ff59e1a71d2f5",
+        "source_identity": "num::int_sqrt::u32_stages:derivation:unchecked_boolean_relation:_103@library/core/src/num/int_sqrt.rs:272:18-272:49",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "e1a26b04fd13e0283c2accadfbcb1d23d6658f9d4d27ca8538cc19337eab9a45",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 3,
+      "reasons": {
+        "derivation_obligation_unknown": 3
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "1bb0ffdbe3b830700e49fb6772c12fe1f677742301c32e4d52181d71c3640251",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:1;predicates=in_bounds",
+        "pattern": "P4",
+        "requirement": "derivation:argument:1;predicates=in_bounds",
+        "root": "slice::sort::stable::drift::sort",
+        "site_id": "0f57fbd295f5e33e8412053e88192638becf53f2eef6c9bc04acbd91857e4ee0",
+        "source_identity": "slice::sort::stable::drift::sort:derivation:offset:_92@library/core/src/slice/sort/stable/drift.rs:91:34-91:61",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "ea459ef19a8dc08f9ea800b2e46d3b278b5b57d821f3c2b73df2dbb2b27645c5",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P4",
+      "raw_count": 2,
+      "reasons": {
+        "derivation_obligation_unknown": 2
+      },
+      "representative": {
+        "capabilities": "finite_derivation",
+        "controller": "internal",
+        "decision_id": "414258ad8b6aba044f6fa52a47e25bae2967ded622dfaee832f025b84ba43541",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "derivation:argument:1;predicates=in_bounds",
+        "pattern": "P4",
+        "requirement": "derivation:argument:1;predicates=in_bounds",
+        "root": "<slice::iter::Split<'a, T, P> as iter::traits::iterator::Iterator>::next",
+        "site_id": "0dfc3327cd9f4b7277aebdbbeb78175be59546ef4f5fcba6074d9e5e4dad23d9",
+        "source_identity": "<slice::iter::Iter<'a, T> as iter::traits::iterator::Iterator>::position:derivation:offset:_30@library/core/src/slice/iter.rs:134:1-142:3",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "23214e04e59c5e9bc3b33996dfe0bb054e40af0688534a76a82933f6daea500f",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 393,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 393
+      },
+      "representative": {
+        "callee": null,
+        "candidate_id": "004053fe658d5a61db49d76e0510e26d9a01e1da744df5e7ad3bddf81175d36f",
+        "depth": "recursive",
+        "model_id": "language_validity_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "core_simd::ops::<impl ops::bit::Shr for core_simd::vector::Simd<i8, N>>::shr",
+        "site_id": "aa1297482a56aeb513a56d65cb6e3ab66faaad9cba90cb78117f311e086c41b6",
+        "site_owner": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "site_span": {
+          "end": {
+            "column": 48,
+            "line": 638
+          },
+          "path": "library/core/src/mem/maybe_uninit.rs",
+          "start": {
+            "column": 38,
+            "line": 638
+          }
+        },
+        "source_identity": "mem::maybe_uninit::MaybeUninit::<T>::as_mut_ptr:generic_capability:kind=representation_preserving_pointer_view;controllers=type:mem::maybe_uninit::MaybeUninit<T>::T;associated_items=;terms=source_pointee=form=composite;controllers=type:mem::maybe_uninit::MaybeUninit<T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:mem::maybe_uninit::MaybeUninit<T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=representation_preserving_view@library/core/src/mem/maybe_uninit.rs:580:9-580:33",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "place",
+        "witness_length": 9
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "502271593a86213b9ae75d7e63a933586508363f851d500c71ddc7db3a881a29",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 40,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 40
+      },
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "02a685b8f3308379c6447e7b9a99276faf4bab93bf18d454c4388de35cbd1364",
+        "depth": "recursive",
+        "model_id": "condition_true_v1",
+        "pattern": "P5",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeTo<usize>>::index_mut",
+        "site_id": "a024af8732b2fc1bcfe617d4df3f3288389b63cd748914098ce64cc723f86d4e",
+        "site_owner": "<slice::iter::Iter<'a, T> as iter::traits::iterator::Iterator>::rposition",
+        "site_span": {
+          "end": {
+            "column": 3,
+            "line": 142
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 134
+          }
+        },
+        "source_identity": "slice::iter::Iter::<'a, T>::new:generic_capability:kind=representation_preserving_pointer_view;controllers=type:slice::iter::Iter<'a, T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:slice::iter::Iter<'a, T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:slice::iter::Iter<'a, T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;requirement=representation_preserving_view@library/core/src/slice/iter.rs:96:63-96:88",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "54f337fbd438bd98070867f2c6f089f23d20d242ff99b719b8b3416c79875a5c",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 3,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 3
+      },
+      "representative": {
+        "callee": "ptr::const_ptr::<impl *const T>::add",
+        "candidate_id": "2ccdd03bad298919befcd40f4f12dacf1c71b88dd5b19f68b082d04b540069f5",
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P5",
+        "predicates": [],
+        "root": "fmt::num::imp::<impl fmt::Display for i8>::fmt",
+        "site_id": "5ca522593fa1ff9135e8b5dab02ad7cfbda76b75e174c6719dd1dd937397fd57",
+        "site_owner": "fmt::num::imp::<impl i8>::_fmt",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 541
+          },
+          "path": "library/core/src/fmt/num.rs",
+          "start": {
+            "column": 5,
+            "line": 529
+          }
+        },
+        "source_identity": "ptr::non_null::NonNull::<T>::as_ptr:generic_capability:kind=representation_preserving_pointer_view;controllers=type:ptr::non_null::NonNull<T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::non_null::NonNull<T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::non_null::NonNull<T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;requirement=representation_preserving_view@library/core/src/ptr/non_null.rs:329:9-329:31",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "9904c5600d2b609767afb56233294d1d6c3d2fe611c2388faf7c3437a2d025f7",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 4,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 4
+      },
+      "representative": {
+        "callee": "sync::atomic::atomic_load",
+        "candidate_id": "1b32d3c8f4be8a8dd97fd4d2958a21963280d8b10cfeff1283b08daaa79518ff",
+        "depth": "intra_procedural",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P5",
+        "predicates": [],
+        "root": "sync::atomic::AtomicPtr::<T>::load",
+        "site_id": "6da30479211b6a0a3d04c266dac96f5d37d2c147086df088bb82bd3b43b3d7de",
+        "site_owner": "sync::atomic::AtomicPtr::<T>::load",
+        "site_span": {
+          "end": {
+            "column": 50,
+            "line": 1443
+          },
+          "path": "library/core/src/sync/atomic.rs",
+          "start": {
+            "column": 18,
+            "line": 1443
+          }
+        },
+        "source_identity": "sync::atomic::AtomicPtr::<T>::load:generic_capability:kind=representation_preserving_pointer_view;controllers=type:sync::atomic::AtomicPtr<T>::T;associated_items=;terms=source_pointee=form=composite;controllers=type:sync::atomic::AtomicPtr<T>::T;aliases=;eq=0;size=8;align=8;inhabited=unknown;target_pointee=form=composite;controllers=type:sync::atomic::AtomicPtr<T>::T;aliases=;eq=0;size=8;align=8;inhabited=unknown;requirement=representation_preserving_view@library/core/src/sync/atomic.rs:1443:30-1443:42",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "9bd14af86f8a39dc68f2d107d715cd2bd2a0ef33059d895db3efcf9f601713c9",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 20,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 20
+      },
+      "representative": {
+        "callee": "ptr::const_ptr::<impl *const T>::add",
+        "candidate_id": "07fb3edfc39881dc25971fa9a79fedf6fea7605ee4202e49d2c70f2f69e0d5e2",
+        "depth": "recursive",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P5",
+        "predicates": [],
+        "root": "fmt::num::imp::<impl fmt::LowerExp for u16>::fmt",
+        "site_id": "cefd8746c92a0e8368cc041f8507ab190c12f0133c36ddd615e19f46966ecb24",
+        "site_owner": "fmt::num::imp::exp_u64",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 545
+          },
+          "path": "library/core/src/fmt/num.rs",
+          "start": {
+            "column": 5,
+            "line": 542
+          }
+        },
+        "source_identity": "intrinsics::copy_nonoverlapping:generic_capability:kind=representation_preserving_pointer_view;controllers=type:intrinsics::copy_nonoverlapping::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:intrinsics::copy_nonoverlapping::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=concrete;controllers=;aliases=;eq=unknown;size=0;align=1;inhabited=unknown;requirement=representation_preserving_view@library/core/src/intrinsics.rs:3310:28-3310:42",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "bbce270fd9fddf0b64676498d992e305c20f3b49281f2ddcdea18f76ea2df902",
+      "family_key_kind": "production_candidate_family",
+      "pattern": "P5",
+      "raw_count": 4,
+      "reasons": {
+        "pointer_view_has_no_capability_gap": 4
+      },
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "14c87491413865bef8731c199d269e78ea556a8f0f8c2d0e616612b04aad1249",
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P5",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "<str::lossy::Debug<'_> as fmt::Debug>::fmt",
+        "site_id": "91123acd350fd889ddb0efbd552ed13f2d4a2cd6d3115cde21c98be0018e1569",
+        "site_owner": "slice::<impl [T]>::binary_search_by",
+        "site_span": {
+          "end": {
+            "column": 63,
+            "line": 2824
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 2824
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast_const:generic_capability:kind=representation_preserving_pointer_view;controllers=type:ptr::mut_ptr::<impl *mut T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=0;size=unknown;align=unknown;inhabited=unknown;requirement=representation_preserving_view@library/core/src/ptr/mut_ptr.rs:102:9-102:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 11
+      },
+      "review": {
+        "assessment": "proven_not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "转换保持表示，不产生独立的泛型布局能力缺口。"
+      },
+      "state": "suppressed"
+    },
+    {
+      "audit_family_id": "333bd2795a5a12c93e5d1b72961d81a80c693b0a5bd142d1329611be66c7f29b",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 9,
+      "reasons": {
+        "generic_witness_unknown": 9
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "27b056305ce8e97fcbe7dfc63b4f3ecbaf1f8e8d68ece2ee638330492e225a8d",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:index_or_address",
+        "pattern": "P5",
+        "requirement": "argument:0:index_or_address",
+        "root": "slice::<impl [T]>::sort_unstable",
+        "site_id": "7a686ffe946cd3d8a7677c7e6ccf627f9ffe75804ddb9b83f796707afe72e50e",
+        "source_identity": "ptr::const_ptr::<impl *const T>::is_null:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=concrete;controllers=;aliases=;eq=unknown;size=1;align=1;inhabited=unknown;requirement=pointer_layout:positive:1@library/core/src/ptr/const_ptr.rs:54:28-54:45",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "617a169ab6256f838364662223394cab607bbeb43f1bbb8e8e885ffcd515464f",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 10,
+      "reasons": {
+        "unknown_capability_match": 10
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "0fbe3aad51f6c6e02f3ae755aa3a9478e7932da4422c1692194ab54ea7e9338d",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:boolean",
+        "pattern": "P5",
+        "requirement": "argument:0:boolean",
+        "root": "<slice::iter::Iter<'a, T> as iter::traits::iterator::Iterator>::position",
+        "site_id": "55ef5651e9c597c666135f743fdee944deee0b87fb9c46de84d58c7969887111",
+        "source_identity": "ptr::const_ptr::<impl *const T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T,type:ptr::const_ptr::<impl *const T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::const_ptr::<impl *const T>::cast::U@library/core/src/ptr/const_ptr.rs:63:9-63:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源能力与 sink 义务的兼容性未能确定。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "7d5bcd8e7e56d019199dab421def192b13887d81a23471d3c417c55bf52119cf",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 2,
+      "reasons": {
+        "unknown_capability_match": 2
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "6188654b9bddf6a3851b9390d16549160d197ac81b476fcbf3b50ef0c7daad6f",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "address:address,validity_bits",
+        "pattern": "P5",
+        "requirement": "address:address,validity_bits",
+        "root": "core_simd::masks::mask_impl::Mask::<T, N>::to_bitmask_vector",
+        "site_id": "267f5dbca4b0f57365806a457b54b68e6df45a01c6335c03ce1bfe2d87cb56fb",
+        "source_identity": "core_simd::masks::mask_impl::Mask::<T, N>::to_bitmask_vector:generic_capability:kind=associated_sequence_shape;controllers=const:core_simd::masks::mask_impl::Mask::<T, N>::N;associated_items=core_simd::lane_count::SupportedLaneCount::BitMask;terms=sequence=form=alias;controllers=const:core_simd::masks::mask_impl::Mask::<T, N>::N;aliases=core_simd::lane_count::SupportedLaneCount::BitMask;eq=unknown;size=8;align=8;inhabited=unknown;element=form=concrete;controllers=;aliases=;eq=unknown;size=1;align=1;inhabited=unknown;requirement=associated_sequence_nonempty@library/portable-simd/crates/core_simd/src/masks/full_masks.rs:164:38-164:52",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "address"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "源能力与 sink 义务的兼容性未能确定。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "831e02144ec6b89404862032d2e76c2e37bb877262e0995d1a3a2a56c6e2fc23",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 5,
+      "reasons": {
+        "missing_exact_context": 5
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "45c3151bf56752c9843546538e1c7b81034067e3d0efc859c6eefc6af9957528",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:address,index_or_address,validity_bits",
+        "pattern": "P5",
+        "requirement": "argument:0:address,index_or_address,validity_bits",
+        "root": "array::ascii::<impl [u8; N]>::as_ascii",
+        "site_id": "b8c18cb3e36d347b8582c7cb7aebbd7ff945dc0ee179d125acf120b69085f196",
+        "source_identity": "ptr::const_ptr::<impl *const T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T,type:ptr::const_ptr::<impl *const T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::const_ptr::<impl *const T>::cast::U@library/core/src/ptr/const_ptr.rs:63:9-63:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "8bbea375036bc41f14c2bb4c64cac6982be86ba50a56f876f067a4c26d52aae4",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 1,
+      "reasons": {
+        "generic_witness_unknown": 1
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "5aa9742b10830efd6db60797d74a615c32c19c51b3111bee6c89ac24f7212e9e",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "argument:0:address",
+        "pattern": "P5",
+        "requirement": "argument:0:address",
+        "root": "ptr::non_null::NonNull::<T>::from_raw_parts",
+        "site_id": "ed06b336a72d5aa15a9ea3c996a6ea93d3f17995e0e9d13a8fcab33807df56b2",
+        "source_identity": "ptr::const_ptr::<impl *const T>::is_null:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=concrete;controllers=;aliases=;eq=unknown;size=1;align=1;inhabited=unknown;requirement=pointer_layout:positive:1@library/core/src/ptr/const_ptr.rs:54:28-54:45",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "state": "unestablished"
+    },
+    {
+      "audit_family_id": "ce1a4305a05fd869fdd21461342007064b95d2523791e0a5dfe93f61dd9ad12e",
+      "family_key_kind": "report_only_unestablished_decision_family",
+      "pattern": "P5",
+      "raw_count": 3,
+      "reasons": {
+        "generic_witness_unknown": 3
+      },
+      "representative": {
+        "capabilities": "unknown",
+        "controller": "unknown",
+        "decision_id": "0e7a62ddfe4011dba17f250a88a668c1752ae09705b3214c3175dcbdd4da20a2",
+        "depth": "<unavailable-in-unestablished-schema>",
+        "model_id": "<unmodeled>",
+        "pattern": "P5",
+        "requirement": null,
+        "root": "slice::sort::stable::sort",
+        "site_id": "a6affd14f68864724bcc291fe223e0a5b544e3149e50980ba265582efac56f5c",
+        "source_identity": "ptr::const_ptr::<impl *const T>::is_null:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=concrete;controllers=;aliases=;eq=unknown;size=1;align=1;inhabited=unknown;requirement=pointer_layout:positive:1@library/core/src/ptr/const_ptr.rs:54:28-54:45",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0"
+      },
+      "review": {
+        "assessment": "unknown_not_active_retained",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "state": "unestablished"
+    }
+  ],
+  "population_note": "The final exact core population contains zero active families. Therefore active oversampling is inapplicable; the blind sample audits 24 suppressed and 24 unestablished residual decision families. This sample is not an estimator of total false-positive rate.",
+  "schema_version": "rap-unsoundaudit-p2-p5-blind48-audit-v1",
+  "selection": {
+    "quotas": {
+      "P2": 12,
+      "P3": 12,
+      "P4": 12,
+      "P5": 12
+    },
+    "seed": "p2-p5-blind48-v1",
+    "state_balancing": "equal allocation among states present in each pattern, then round-robin strata and sha256 order",
+    "strata": [
+      "pattern",
+      "state",
+      "contract model or requirement bucket",
+      "propagation depth when present"
+    ]
+  },
+  "summary": {
+    "active_families_available": 0,
+    "active_obvious_false_positives_found": 0,
+    "families": 48,
+    "patterns": {
+      "P2": 12,
+      "P3": 12,
+      "P4": 12,
+      "P5": 12
+    },
+    "states": {
+      "suppressed": 18,
+      "unestablished": 30
+    }
+  }
+}

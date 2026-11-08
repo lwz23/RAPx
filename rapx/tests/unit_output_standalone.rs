@@ -8,19 +8,18 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use unit_output::{
-    atomic_write, atomic_write_with_rename, atomic_write_with_writer, crate_skip_reason,
-    build_verification_receipt_from_environment_with_current_exe, dispatch_phase_from_argv,
-    embedded_rap_compiler_commit, fnv1a64_hex, json_output_path,
-    nested_workspace_wrapper_reason, parse_inner_timeout_seconds, parse_rustc_commit,
-    parse_build_verification_challenge, parse_build_verification_mode,
+    atomic_write, atomic_write_with_rename, atomic_write_with_writer,
+    build_verification_receipt_from_environment_with_current_exe, crate_skip_reason,
+    dispatch_phase_from_argv, embedded_rap_compiler_commit, fnv1a64_hex, json_output_path,
+    nested_workspace_wrapper_reason, parse_build_verification_challenge,
+    parse_build_verification_mode, parse_inner_timeout_seconds, parse_rustc_commit,
     route_rustc_unit, rustc_commit_from_runner, rustc_path_from_wrapper_args,
     sanitize_file_component, validate_commit_hash, validate_exact_tool_path,
     verify_expected_commit, write_skip_receipt, BuildVerificationActual, DispatchPhase,
     IdentityEnvironment, UnitIdentity, UnitRoute,
 };
 
-const VERIFICATION_HASH: &str =
-    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const VERIFICATION_HASH: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const VERIFICATION_COMMIT: &str = "0123456789abcdef0123456789abcdef01234567";
 static VERIFICATION_ENV_MUTEX: Mutex<()> = Mutex::new(());
 const VERIFICATION_ENV_KEYS: &[&str] = &[
@@ -47,10 +46,7 @@ struct EnvironmentRestore {
 impl EnvironmentRestore {
     fn capture(keys: &[&'static str]) -> Self {
         Self {
-            values: keys
-                .iter()
-                .map(|key| (*key, env::var_os(key)))
-                .collect(),
+            values: keys.iter().map(|key| (*key, env::var_os(key))).collect(),
         }
     }
 
@@ -114,10 +110,7 @@ fn verification_challenge_for(actual: &BuildVerificationActual) -> String {
     valid_verification_challenge()
         .replace("/verify/bin/cargo-rapx", &actual.cargo_rapx_path)
         .replace("/verify/bin/rapx", &actual.rapx_path)
-        .replace(
-            "/toolchain/bin/rustc",
-            &actual.cargo_supplied_rustc_path,
-        )
+        .replace("/toolchain/bin/rustc", &actual.cargo_supplied_rustc_path)
         .replace("/toolchain/lib", &actual.loader_path)
 }
 
@@ -134,22 +127,34 @@ fn build_verification_rejects_duplicate_json_keys() {
         "\"schema\":\"rap-build-verification-challenge-v1\",\"schema\":\"rap-build-verification-challenge-v1\",",
         1,
     );
-    assert!(parse_build_verification_challenge(&json, VERIFICATION_HASH, &verification_actual())
-        .expect_err("duplicate keys must be rejected")
-        .contains("duplicate"));
+    assert!(
+        parse_build_verification_challenge(&json, VERIFICATION_HASH, &verification_actual())
+            .expect_err("duplicate keys must be rejected")
+            .contains("duplicate")
+    );
 }
 
 #[test]
 fn build_verification_rejects_missing_and_unknown_challenge_fields() {
     let missing = valid_verification_challenge().replacen("\"attempt_id\":\"attempt-1\",", "", 1);
-    assert!(parse_build_verification_challenge(&missing, VERIFICATION_HASH, &verification_actual()).is_err());
+    assert!(parse_build_verification_challenge(
+        &missing,
+        VERIFICATION_HASH,
+        &verification_actual()
+    )
+    .is_err());
 
     let unknown = valid_verification_challenge().replacen(
         "\"attempt_id\":\"attempt-1\",",
         "\"attempt_id\":\"attempt-1\",\"unexpected\":\"field\",",
         1,
     );
-    assert!(parse_build_verification_challenge(&unknown, VERIFICATION_HASH, &verification_actual()).is_err());
+    assert!(parse_build_verification_challenge(
+        &unknown,
+        VERIFICATION_HASH,
+        &verification_actual()
+    )
+    .is_err());
 }
 
 #[test]
@@ -184,16 +189,17 @@ fn build_verification_rejects_bad_challenge_input_hash_and_path() {
         "\"path\":\"relative/rapx\"",
         1,
     );
-    assert!(parse_build_verification_challenge(&bad_path, VERIFICATION_HASH, &verification_actual()).is_err());
+    assert!(parse_build_verification_challenge(
+        &bad_path,
+        VERIFICATION_HASH,
+        &verification_actual()
+    )
+    .is_err());
 }
 
 #[test]
 fn build_verification_rejects_escaped_nul_in_material_path() {
-    let nul_path = valid_verification_challenge().replacen(
-        "/source/rap",
-        "/source/ra\\u0000p",
-        1,
-    );
+    let nul_path = valid_verification_challenge().replacen("/source/rap", "/source/ra\\u0000p", 1);
     assert!(parse_build_verification_challenge(
         &nul_path,
         VERIFICATION_HASH,
@@ -210,20 +216,13 @@ fn build_verification_json_combines_surrogate_pairs_and_rejects_bad_pairs() {
         "\"first_line\":\"cargo \\uD83D\\uDE00\"",
         1,
     );
-    let receipt = parse_build_verification_challenge(
-        &emoji,
-        VERIFICATION_HASH,
-        &verification_actual(),
-    )
-    .expect("valid UTF-16 surrogate pair");
+    let receipt =
+        parse_build_verification_challenge(&emoji, VERIFICATION_HASH, &verification_actual())
+            .expect("valid UTF-16 surrogate pair");
     assert_eq!(receipt.cargo_identity.first_line, "cargo 😀");
 
     for bad_escape in ["\\uD83D", "\\uDE00\\uD83D", "\\uD83D\\uD83D"] {
-        let invalid = valid_verification_challenge().replacen(
-            "cargo 1.0",
-            bad_escape,
-            1,
-        );
+        let invalid = valid_verification_challenge().replacen("cargo 1.0", bad_escape, 1);
         assert!(parse_build_verification_challenge(
             &invalid,
             VERIFICATION_HASH,
@@ -257,32 +256,68 @@ fn build_verification_json_has_size_and_nesting_limits() {
 #[test]
 fn build_verification_rejects_executable_sibling_and_rustc_mismatches() {
     let mut actual = verification_actual();
-    actual.expected_challenge = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    actual.expected_challenge =
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string();
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.rapx_path = "/other/rapx".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.cargo_rapx_path = "/other/cargo-rapx".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.cargo_supplied_rustc_path = "/other/rustc".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.cargo_supplied_rustc_commit = "fedcba9876543210fedcba9876543210fedcba98".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.loader_path = "/caller/bogus-loader".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 
     let mut actual = verification_actual();
     actual.loader_environment_variable = "BOGUS_LIBRARY_PATH".to_string();
-    assert!(parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual).is_err());
+    assert!(parse_build_verification_challenge(
+        &valid_verification_challenge(),
+        VERIFICATION_HASH,
+        &actual
+    )
+    .is_err());
 }
 
 #[test]
@@ -295,12 +330,8 @@ fn build_verification_accepts_only_cargo_target_deps_loader_prepend() {
     .expect("loader paths join")
     .into_string()
     .expect("loader paths are Unicode");
-    parse_build_verification_challenge(
-        &valid_verification_challenge(),
-        VERIFICATION_HASH,
-        &actual,
-    )
-    .expect("Cargo's deterministic target/debug/deps prepend must be accepted");
+    parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual)
+        .expect("Cargo's deterministic target/debug/deps prepend must be accepted");
 
     actual.loader_path = env::join_paths([
         PathBuf::from("/caller/ambient"),
@@ -330,12 +361,8 @@ fn build_verification_accepts_legacy_cargo_deterministic_loader_prefixes() {
     .expect("loader paths join")
     .into_string()
     .expect("loader paths are Unicode");
-    parse_build_verification_challenge(
-        &valid_verification_challenge(),
-        VERIFICATION_HASH,
-        &actual,
-    )
-    .expect("legacy Cargo's deterministic loader prefixes must be accepted");
+    parse_build_verification_challenge(&valid_verification_challenge(), VERIFICATION_HASH, &actual)
+        .expect("legacy Cargo's deterministic loader prefixes must be accepted");
 
     actual.loader_path = env::join_paths([
         PathBuf::from("/caller/ambient"),
@@ -368,7 +395,10 @@ fn valid_build_verification_envelope_has_stable_receipt_fields() {
     assert_eq!(envelope.cargo_rapx_path, "/verify/bin/cargo-rapx");
     assert_eq!(envelope.rapx_path, "/verify/bin/rapx");
     assert_eq!(envelope.rustc_path, "/toolchain/bin/rustc");
-    assert_eq!(envelope.loader_environment_variable, VERIFICATION_LOADER_VARIABLE);
+    assert_eq!(
+        envelope.loader_environment_variable,
+        VERIFICATION_LOADER_VARIABLE
+    );
     assert_eq!(envelope.loader_path, "/toolchain/lib");
     assert_eq!(envelope.loader_contents_sha256, VERIFICATION_HASH);
     assert_eq!(envelope.fixture_project_root, "/verify/work/fixture");
@@ -453,12 +483,8 @@ fn build_verification_environment_entry_reads_file_and_binds_rustc_path() {
     );
     environment.set(VERIFICATION_LOADER_VARIABLE, "/caller/bogus-loader");
 
-    fs::write(&challenge_path, vec![b' '; 64 * 1024 + 1])
-        .expect("oversized challenge fixture");
-    environment.set(
-        "UNSOUND_SCANNER_RAP_CARGO_SUPPLIED_RUSTC_PATH",
-        &rustc,
-    );
+    fs::write(&challenge_path, vec![b' '; 64 * 1024 + 1]).expect("oversized challenge fixture");
+    environment.set("UNSOUND_SCANNER_RAP_CARGO_SUPPLIED_RUSTC_PATH", &rustc);
     environment.set(VERIFICATION_LOADER_VARIABLE, &actual.loader_path);
     let error = build_verification_receipt_from_environment_with_current_exe(&rapx)
         .expect_err("oversized challenge file must fail");
@@ -474,10 +500,7 @@ fn build_verification_environment_entry_reads_file_and_binds_rustc_path() {
         .expect_err("Cargo-supplied rustc path mismatch must fail");
     assert!(error.contains("rustc path"), "{error}");
 
-    environment.set(
-        "UNSOUND_SCANNER_RAP_CARGO_SUPPLIED_RUSTC_PATH",
-        &rustc,
-    );
+    environment.set("UNSOUND_SCANNER_RAP_CARGO_SUPPLIED_RUSTC_PATH", &rustc);
     environment.set(VERIFICATION_LOADER_VARIABLE, "/caller/bogus-loader");
     let error = build_verification_receipt_from_environment_with_current_exe(&rapx)
         .expect_err("ambient loader path mismatch must fail");
@@ -884,16 +907,12 @@ fn assert_skip_receipt(route: UnitRoute, expected_reason: &str) {
 
 #[test]
 fn cargo_primary_package_with_bound_manifest_routes_absolute_source_to_analysis() {
-    let project = std::env::temp_dir().join(format!(
-        "rap-primary-routing-{}",
-        std::process::id()
-    ));
+    let project = std::env::temp_dir().join(format!("rap-primary-routing-{}", std::process::id()));
     let _ = fs::remove_dir_all(&project);
     fs::create_dir_all(project.join("src")).expect("project source directory");
     let manifest = project.join("Cargo.toml");
     let source = project.join("src/lib.rs");
-    fs::write(&manifest, b"[package]\nname='demo'\nversion='0.1.0'\n")
-        .expect("manifest fixture");
+    fs::write(&manifest, b"[package]\nname='demo'\nversion='0.1.0'\n").expect("manifest fixture");
     fs::write(&source, b"pub fn demo() {}\n").expect("source fixture");
     let args = vec![
         "/toolchain/rustc".to_string(),
@@ -928,8 +947,7 @@ fn repository_local_non_primary_package_routes_to_analysis() {
     fs::create_dir_all(member.join("src")).expect("member source directory");
     let manifest = member.join("Cargo.toml");
     let source = member.join("src/lib.rs");
-    fs::write(&manifest, b"[package]\nname='member'\nversion='0.1.0'\n")
-        .expect("member manifest");
+    fs::write(&manifest, b"[package]\nname='member'\nversion='0.1.0'\n").expect("member manifest");
     fs::write(&source, b"pub fn member() {}\n").expect("member source");
     let args = vec![
         "/toolchain/rustc".to_string(),
@@ -954,22 +972,21 @@ fn repository_local_non_primary_package_routes_to_analysis() {
 
 #[test]
 fn non_primary_manifest_outside_project_is_an_explicit_skip() {
-    let outside = std::env::temp_dir().join(format!(
-        "rap-non-primary-outside-{}",
-        std::process::id()
-    ));
-    let project = std::env::temp_dir().join(format!(
-        "rap-non-primary-project-{}",
-        std::process::id()
-    ));
+    let outside =
+        std::env::temp_dir().join(format!("rap-non-primary-outside-{}", std::process::id()));
+    let project =
+        std::env::temp_dir().join(format!("rap-non-primary-project-{}", std::process::id()));
     let _ = fs::remove_dir_all(&outside);
     let _ = fs::remove_dir_all(&project);
     fs::create_dir_all(outside.join("src")).expect("outside source directory");
     fs::create_dir_all(&project).expect("project directory");
     let manifest = outside.join("Cargo.toml");
     let source = outside.join("src/lib.rs");
-    fs::write(&manifest, b"[package]\nname='third-party'\nversion='1.2.3'\n")
-        .expect("outside manifest");
+    fs::write(
+        &manifest,
+        b"[package]\nname='third-party'\nversion='1.2.3'\n",
+    )
+    .expect("outside manifest");
     fs::write(&source, b"pub fn third_party() {}\n").expect("outside source");
     let args = vec![
         "/toolchain/rustc".to_string(),
@@ -1002,8 +1019,7 @@ fn rustc_non_unit_probe_is_passed_through_without_fabricating_a_skip_receipt() {
     ];
 
     assert_eq!(
-        route_rustc_unit(&args, &IdentityEnvironment::default())
-            .expect("probe route resolves"),
+        route_rustc_unit(&args, &IdentityEnvironment::default()).expect("probe route resolves"),
         UnitRoute::PassThrough,
     );
 }
@@ -1042,14 +1058,8 @@ fn proc_macro_route_produces_an_explicit_skip_receipt() {
 
 #[test]
 fn primary_manifest_outside_project_root_is_an_explicit_skip() {
-    let outside = std::env::temp_dir().join(format!(
-        "rap-outside-manifest-{}",
-        std::process::id()
-    ));
-    let project = std::env::temp_dir().join(format!(
-        "rap-bound-project-{}",
-        std::process::id()
-    ));
+    let outside = std::env::temp_dir().join(format!("rap-outside-manifest-{}", std::process::id()));
+    let project = std::env::temp_dir().join(format!("rap-bound-project-{}", std::process::id()));
     let _ = fs::remove_dir_all(&outside);
     let _ = fs::remove_dir_all(&project);
     fs::create_dir_all(outside.join("src")).expect("outside source directory");
@@ -1081,23 +1091,97 @@ fn primary_manifest_outside_project_root_is_an_explicit_skip() {
 }
 
 #[test]
+fn primary_isolated_manifest_with_in_tree_source_is_analyzed() {
+    let project =
+        std::env::temp_dir().join(format!("rap-isolate-project-{}", std::process::id()));
+    let isolated =
+        std::env::temp_dir().join(format!("rap-isolate-manifest-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&project);
+    let _ = fs::remove_dir_all(&isolated);
+    fs::create_dir_all(project.join("src")).expect("project source directory");
+    fs::create_dir_all(&isolated).expect("isolated manifest directory");
+    let source = project.join("src/lib.rs");
+    let manifest = isolated.join("Cargo.toml");
+    fs::write(&source, b"pub fn handle_from_ext() {}\n").expect("in-tree source");
+    fs::write(
+        &manifest,
+        format!(
+            "[package]\nname=\"isolated\"\nversion=\"0.1.0\"\n\n[lib]\npath = \"{}\"\n",
+            source.display()
+        ),
+    )
+    .expect("isolated manifest");
+    let args = vec![
+        "/toolchain/rustc".to_string(),
+        "--crate-name=isolated".to_string(),
+        "--crate-type=lib".to_string(),
+        source.display().to_string(),
+    ];
+    let environment = routing_environment(
+        manifest.to_str().expect("manifest UTF-8"),
+        project.to_str().expect("project UTF-8"),
+        true,
+    );
+
+    let route = route_rustc_unit(&args, &environment).expect("isolated primary route resolves");
+    let UnitRoute::Analyze(identity) = route else {
+        panic!("isolated primary crate with in-tree source must be analyzed, got {route:?}")
+    };
+    assert_eq!(identity.source_path, source.display().to_string());
+
+    fs::remove_dir_all(project).expect("remove project fixture");
+    fs::remove_dir_all(isolated).expect("remove isolated fixture");
+}
+
+#[test]
+fn non_primary_isolated_manifest_with_in_tree_source_is_still_skipped() {
+    let project =
+        std::env::temp_dir().join(format!("rap-isolate-dep-project-{}", std::process::id()));
+    let isolated =
+        std::env::temp_dir().join(format!("rap-isolate-dep-manifest-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&project);
+    let _ = fs::remove_dir_all(&isolated);
+    fs::create_dir_all(project.join("src")).expect("project source directory");
+    fs::create_dir_all(&isolated).expect("isolated manifest directory");
+    let source = project.join("src/lib.rs");
+    let manifest = isolated.join("Cargo.toml");
+    fs::write(&source, b"pub fn dep() {}\n").expect("in-tree source");
+    fs::write(&manifest, b"[package]\nname=\"dep\"\nversion=\"0.1.0\"\n")
+        .expect("isolated manifest");
+    let args = vec![
+        "/toolchain/rustc".to_string(),
+        "--crate-name=dep".to_string(),
+        "--crate-type=lib".to_string(),
+        source.display().to_string(),
+    ];
+    let environment = routing_environment(
+        manifest.to_str().expect("manifest UTF-8"),
+        project.to_str().expect("project UTF-8"),
+        false,
+    );
+
+    let route = route_rustc_unit(&args, &environment).expect("non-primary isolated route resolves");
+    let UnitRoute::Skip { reason, .. } = route else {
+        panic!("non-primary isolated crate must stay skipped, got {route:?}")
+    };
+    assert_eq!(reason, "manifest_outside_project");
+
+    fs::remove_dir_all(project).expect("remove project fixture");
+    fs::remove_dir_all(isolated).expect("remove isolated fixture");
+}
+
+#[test]
 fn primary_source_outside_bound_manifest_is_an_explicit_skip() {
-    let project = std::env::temp_dir().join(format!(
-        "rap-source-bound-project-{}",
-        std::process::id()
-    ));
-    let outside = std::env::temp_dir().join(format!(
-        "rap-source-outside-{}",
-        std::process::id()
-    ));
+    let project =
+        std::env::temp_dir().join(format!("rap-source-bound-project-{}", std::process::id()));
+    let outside = std::env::temp_dir().join(format!("rap-source-outside-{}", std::process::id()));
     let _ = fs::remove_dir_all(&project);
     let _ = fs::remove_dir_all(&outside);
     fs::create_dir_all(&project).expect("project directory");
     fs::create_dir_all(&outside).expect("outside directory");
     let manifest = project.join("Cargo.toml");
     let source = outside.join("lib.rs");
-    fs::write(&manifest, b"[package]\nname='demo'\nversion='0.1.0'\n")
-        .expect("manifest fixture");
+    fs::write(&manifest, b"[package]\nname='demo'\nversion='0.1.0'\n").expect("manifest fixture");
     fs::write(&source, b"pub fn outside() {}\n").expect("outside source");
     let args = vec![
         "/toolchain/rustc".to_string(),
@@ -1202,10 +1286,8 @@ fn nested_workspace_wrapper_is_rejected_only_when_nonempty() {
 
 #[test]
 fn exact_tool_path_must_be_absolute_existing_file_and_canonical() {
-    let directory = std::env::temp_dir().join(format!(
-        "rap-exact-tool-path-test-{}",
-        std::process::id()
-    ));
+    let directory =
+        std::env::temp_dir().join(format!("rap-exact-tool-path-test-{}", std::process::id()));
     let _ = fs::remove_dir_all(&directory);
     fs::create_dir(&directory).expect("temporary directory");
     let tool = directory.join("cargo");
@@ -1235,7 +1317,12 @@ fn expected_commit_requires_valid_equal_receipt() {
         verify_expected_commit(expected, Some(expected), "exact rustc"),
         Ok(expected.to_string())
     );
-    assert!(verify_expected_commit("f123456789abcdef0123456789abcdef01234567", Some(expected), "exact rustc").is_err());
+    assert!(verify_expected_commit(
+        "f123456789abcdef0123456789abcdef01234567",
+        Some(expected),
+        "exact rustc"
+    )
+    .is_err());
     assert!(verify_expected_commit(expected, None, "exact rustc").is_err());
 }
 

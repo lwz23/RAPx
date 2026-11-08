@@ -1,0 +1,2785 @@
+{
+  "families": [
+    {
+      "family_id": "2393198405444cac2ec591057fc3fdf7ca96c116386d1c9af2fcb9940b5d682e",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 2
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1,
+        "nonpersistent_public_field": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": null,
+        "candidate_id": "aed336d2a8636acee16dd8909f2d14e3ba57d396504cdefc5c371032b0084623",
+        "depth": "recursive",
+        "model_id": "language_validity_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "num::flt2dec::strategy::dragon::format_exact",
+        "site_id": "aa1297482a56aeb513a56d65cb6e3ab66faaad9cba90cb78117f311e086c41b6",
+        "site_owner": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "site_span": {
+          "end": {
+            "column": 48,
+            "line": 638
+          },
+          "path": "library/core/src/mem/maybe_uninit.rs",
+          "start": {
+            "column": 38,
+            "line": 638
+          }
+        },
+        "source_identity": "public_field:owner=num::flt2dec::strategy::dragon::format_exact:field=num::flt2dec::decoder::Decoded::plus:access=((*_1).2: u64):base=_1:storage=entry_formal:num::flt2dec::strategy::dragon::format_exact:1:versions=:adt=struct:persistent=true@library/core/src/num/flt2dec/strategy/dragon.rs:270:32-270:38",
+        "source_kind": "public_field",
+        "subject_role": "place",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。；字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "language_validity_v1"
+      }
+    },
+    {
+      "family_id": "5994033861cc58dc3e72c25d7d90a66a0030716aadbe16cfebe7161edaa2dfed",
+      "mapped_member_count": 46,
+      "mapping_methods": [
+        "audited P2 Reexported/nameability source gate"
+      ],
+      "new_member_state_counts": {
+        "suppressed": 46
+      },
+      "new_reason_counts": {
+        "source_not_externally_nameable": 46
+      },
+      "new_state": "suppressed",
+      "old_member_count": 46,
+      "old_public_root_fanout": 46,
+      "old_raw_count": 46,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "slice::<impl [T]>::get_unchecked",
+        "candidate_id": "3093dde8c911788979995e585307565201d83a1d5a1027162360bd16cf80e51a",
+        "depth": "recursive",
+        "model_id": "slice_get_unchecked_v1",
+        "pattern": "P2",
+        "predicates": [
+          "in_bounds"
+        ],
+        "root": "fmt::write",
+        "site_id": "fe81e0e917a639ff9df0f1871231639657e8bd069fe8f0cf0a8170f8f4ad629c",
+        "site_owner": "fmt::run",
+        "site_span": {
+          "end": {
+            "column": 58,
+            "line": 1232
+          },
+          "path": "library/core/src/fmt/mod.rs",
+          "start": {
+            "column": 26,
+            "line": 1232
+          }
+        },
+        "source_identity": "public_field:owner=fmt::run:field=fmt::rt::Placeholder::width:access=((*_2).5: fmt::rt::Count):base=_2:storage=entry_formal:fmt::run:2:versions=:adt=struct:persistent=true@library/core/src/fmt/mod.rs:1224:36-1224:46",
+        "source_kind": "public_field",
+        "subject_role": "argument:1",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段位于未重导出的私有模块，外部调用者不能把它作为可控 P2 公共状态源。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "slice_get_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "5f8d8dfbf673e5a69fc3ea54c76b1409645f4a53d7a571c5afeeb161f36f5a9f",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": null,
+        "candidate_id": "fdb548d340cc3b7e370dd0cb949ddeabf6dfd6362a3f34528760e9ec63bb57e6",
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "str::traits::<impl slice::index::SliceIndex<str> for range::RangeFrom<usize>>::index_mut",
+        "site_id": "db44dab6341653bb9b58e6befd51d40f91fda69c01d2ffbb1b8ba1eb50cb6186",
+        "site_owner": "<slice::iter::Iter<'a, T> as iter::traits::iterator::Iterator>::rposition",
+        "site_span": {
+          "end": {
+            "column": 3,
+            "line": 142
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 134
+          }
+        },
+        "source_identity": "public_field:owner=str::traits::<impl slice::index::SliceIndex<str> for range::RangeFrom<usize>>::index_mut:field=range::RangeFrom::start:access=(_1.0: usize):base=_1:storage=entry_formal:str::traits::<impl slice::index::SliceIndex<str> for range::RangeFrom<usize>>::index_mut:1:versions=:adt=struct:persistent=true@library/core/src/str/traits.rs:602:44-602:54",
+        "source_kind": "public_field",
+        "subject_role": "address",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "67d8fee10f2863dcd6228bc37013686acc2766270b0586fc2a4fe2b3ee92cb51",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 2
+      },
+      "new_reason_counts": {
+        "unmodeled_unsafe_call": 2
+      },
+      "new_state": "mixed",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "panicking::panic_fmt::panic_impl",
+        "candidate_id": "14a4fd63451edc0db1618dd06f905eea88a139fd6a2dff47b26e384e9937c5ec",
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P2",
+        "predicates": [],
+        "root": "str::traits::<impl slice::index::SliceIndex<str> for range::RangeInclusive<usize>>::index",
+        "site_id": "c83406561ee411b56cc87c34a1090e6e0afcfb1eda1d89503ed468555f9770f4",
+        "site_owner": "panicking::panic_fmt",
+        "site_span": {
+          "end": {
+            "column": 29,
+            "line": 74
+          },
+          "path": "library/core/src/panicking.rs",
+          "start": {
+            "column": 14,
+            "line": 74
+          }
+        },
+        "source_identity": "public_field:owner=str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get:field=range::Range::end:access=(_1.1: usize):base=_1:storage=entry_formal:str::traits::<impl slice::index::SliceIndex<str> for range::Range<usize>>::get:1:versions=:adt=struct:persistent=true@library/core/src/str/traits.rs:267:39-267:47",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "sink 合同尚未建模；保留路径与模型缺口，不作安全结论。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>"
+      }
+    },
+    {
+      "family_id": "72f42d54f553b6ebdefa812a690d51798dc6d1bdb98b2b8d8b3e711f20b66a76",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "unmodeled_unsafe_call": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "intrinsics::ptr_offset_from_unsigned",
+        "candidate_id": "346055468a9bda83da06f5edb50e98f193d2692cea565d838cf5929873d456b7",
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P2",
+        "predicates": [],
+        "root": "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::index_mut",
+        "site_id": "2172152f6a15e3181edcd4482143dc02a17d4c03b212fd445332fb7c137f156b",
+        "site_owner": "ptr::const_ptr::<impl *const T>::sub_ptr",
+        "site_span": {
+          "end": {
+            "column": 68,
+            "line": 774
+          },
+          "path": "library/core/src/ptr/const_ptr.rs",
+          "start": {
+            "column": 18,
+            "line": 774
+          }
+        },
+        "source_identity": "public_field:owner=str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::index_mut:field=ops::range::RangeFrom::start:access=(_1.0: usize):base=_1:storage=entry_formal:str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::index_mut:1:versions=:adt=struct:persistent=true@library/core/src/str/traits.rs:547:44-547:54",
+        "source_kind": "public_field",
+        "subject_role": "argument:1",
+        "witness_length": 9
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "sink 合同尚未建模；保留路径与模型缺口，不作安全结论。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "<opaque/unmodeled>"
+      }
+    },
+    {
+      "family_id": "882a2d9cd49ab522e4066351b009815477eb126a562540ab6f71f9cd1fb27fff",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 2
+      },
+      "new_reason_counts": {
+        "unmodeled_unsafe_call": 2
+      },
+      "new_state": "mixed",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "mem::maybe_uninit::MaybeUninit::<T>::slice_assume_init_mut",
+        "candidate_id": "0cc5937ed81fdcb1b8321e75302b6a5f24113fc55d12fb8ca74c697690b128d1",
+        "depth": "recursive",
+        "model_id": "<opaque/unmodeled>",
+        "pattern": "P2",
+        "predicates": [],
+        "root": "num::flt2dec::strategy::dragon::format_shortest",
+        "site_id": "42d22e68229e3a07af8450b41506cf8f5ba9d2b35928b91b7e323d49237b8bd3",
+        "site_owner": "num::flt2dec::strategy::dragon::format_shortest",
+        "site_span": {
+          "end": {
+            "column": 93,
+            "line": 250
+          },
+          "path": "library/core/src/num/flt2dec/strategy/dragon.rs",
+          "start": {
+            "column": 44,
+            "line": 250
+          }
+        },
+        "source_identity": "public_field:owner=num::flt2dec::strategy::dragon::format_shortest:field=num::flt2dec::decoder::Decoded::plus:access=((*_1).2: u64):base=_1:storage=entry_formal:num::flt2dec::strategy::dragon::format_shortest:1:versions=:adt=struct:persistent=true@library/core/src/num/flt2dec/strategy/dragon.rs:130:50-130:56",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "sink 合同尚未建模；保留路径与模型缺口，不作安全结论。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "<opaque/unmodeled>"
+      }
+    },
+    {
+      "family_id": "9c06ecd1c24e6f8dda831bb39e65842d59561a592d2ebe7e52de79d53b9f6b1e",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 2
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1,
+        "unknown_capability_match": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "5b11120c3332ce0a003ffe75e402ec2d42aa009e04d1df2564548c9159ddefb7",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "iter::range::<impl iter::traits::iterator::Iterator for ops::range::RangeFrom<A>>::next",
+        "site_id": "6751ffe84558ad3a49b16e434e54b1c57b1b98805c7e29099f3bc9cd65d7e595",
+        "site_owner": "mem::replace",
+        "site_span": {
+          "end": {
+            "column": 37,
+            "line": 871
+          },
+          "path": "library/core/src/mem/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 871
+          }
+        },
+        "source_identity": "public_field:owner=iter::range::<impl iter::traits::iterator::Iterator for ops::range::RangeFrom<A>>::next:field=ops::range::RangeFrom::start:access=((*_1).0: A):base=_1:storage=entry_formal:iter::range::<impl iter::traits::iterator::Iterator for ops::range::RangeFrom<A>>::next:1:versions=:adt=struct:persistent=true@library/core/src/iter/range.rs:1012:27-1012:42",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。；源能力与 sink 义务的兼容性未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "9e71e3e769c10d48628cd79b6ee7b8bb0df8ea965e64ed74902455101a6f9e21",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "nonpersistent_public_field": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "58cb99c17f717e6be0c997d0debf1e2b6cba1e1d31bc4961abea61d3970e069a",
+        "depth": "recursive",
+        "model_id": "ptr_read_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "<iter::adapters::map_windows::MapWindows<I, F, N> as iter::traits::iterator::Iterator>::next",
+        "site_id": "6751ffe84558ad3a49b16e434e54b1c57b1b98805c7e29099f3bc9cd65d7e595",
+        "site_owner": "mem::replace",
+        "site_span": {
+          "end": {
+            "column": 37,
+            "line": 871
+          },
+          "path": "library/core/src/mem/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 871
+          }
+        },
+        "source_identity": "public_field:owner=array::iter::IntoIter::<T, N>::new_unchecked:field=ops::range::Range::start:access=(_2.0: usize):base=_2:storage=entry_formal:array::iter::IntoIter::<T, N>::new_unchecked:2:versions=:adt=struct:persistent=true@library/core/src/array/iter.rs:145:56-145:73",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "c2887a38b793242e58351bcb6c8a7a56d1ecd5a35f34d158f8bd935efb64a199",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "nonpersistent_public_field": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "slice::<impl [T]>::get_unchecked",
+        "candidate_id": "b40be8ade89bf7d56045674950203c9eb3c36f898aeee90baf354ca9e38f3050",
+        "depth": "inter_procedural",
+        "model_id": "slice_get_unchecked_v1",
+        "pattern": "P2",
+        "predicates": [
+          "in_bounds"
+        ],
+        "root": "<range::Range<Idx> as fmt::Debug>::fmt",
+        "site_id": "1aa304ecb829cee7bdbf10d9e69a89c4cfbacc040e6ef5445e3d7dd382a97fec",
+        "site_owner": "fmt::write",
+        "site_span": {
+          "end": {
+            "column": 66,
+            "line": 1197
+          },
+          "path": "library/core/src/fmt/mod.rs",
+          "start": {
+            "column": 38,
+            "line": 1197
+          }
+        },
+        "source_identity": "public_field:owner=<range::Range<Idx> as fmt::Debug>::fmt:field=range::Range::start:access=((*_1).0: Idx):base=_1:storage=entry_formal:<range::Range<Idx> as fmt::Debug>::fmt:1:versions=:adt=struct:persistent=true@library/core/src/range.rs:65:9-65:19",
+        "source_kind": "public_field",
+        "subject_role": "argument:1",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "slice_get_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "c60e85dd605f0058501dcd7efe4481115e5210df50f484cbd0b8c129c41c41c2",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "nonpersistent_public_field": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": null,
+        "candidate_id": "b15b130d3d2faed24231f902ba5b1b04ebbba3bfb283cac990021dc9554f56a6",
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P2",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "<ops::range::RangeFrom<Idx> as fmt::Debug>::fmt",
+        "site_id": "589a41553d69d20d4fcd1e63cacbee0200b7a3a113c1e2c1a516db06c24578de",
+        "site_owner": "slice::<impl [T]>::get_unchecked",
+        "site_span": {
+          "end": {
+            "column": 45,
+            "line": 672
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 19,
+            "line": 672
+          }
+        },
+        "source_identity": "public_field:owner=<ops::range::RangeFrom<Idx> as fmt::Debug>::fmt:field=ops::range::RangeFrom::start:access=((*_1).0: Idx):base=_1:storage=entry_formal:<ops::range::RangeFrom<Idx> as fmt::Debug>::fmt:1:versions=:adt=struct:persistent=true@library/core/src/ops/range.rs:198:9-198:19",
+        "source_kind": "public_field",
+        "subject_role": "address",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "d905cef4f46a26399700074faabb20145c14f7c965d1e05b95a54c4ee03f259d",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "suppressed": 1
+      },
+      "new_reason_counts": {
+        "nonpersistent_public_field": 1
+      },
+      "new_state": "suppressed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "b8184573edf68b69e1d3f32d2051a326d7226e785ce63f99dec2a949d6490cf2",
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P2",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "<str::lossy::Debug<'_> as fmt::Debug>::fmt",
+        "site_id": "91123acd350fd889ddb0efbd552ed13f2d4a2cd6d3115cde21c98be0018e1569",
+        "site_owner": "slice::<impl [T]>::binary_search_by",
+        "site_span": {
+          "end": {
+            "column": 63,
+            "line": 2824
+          },
+          "path": "library/core/src/slice/mod.rs",
+          "start": {
+            "column": 22,
+            "line": 2824
+          }
+        },
+        "source_identity": "public_field:owner=fmt::run:field=fmt::rt::Placeholder::width:access=((*_2).5: fmt::rt::Count):base=_2:storage=entry_formal:fmt::run:2:versions=:adt=struct:persistent=true@library/core/src/fmt/mod.rs:1224:36-1224:46",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 11
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "字段不具备对外持续可控存储，P2 起点义务不成立。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "fc2b7ac823f53cfbda27cbbc95723798a75099a08f668bb9e2b830e6b19ebdf3",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "mixed": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "mixed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P2",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "9dfdc2c72ed8c73220a8847a878f396a5fd64c162e0ca2172f57383010691fc2",
+        "depth": "recursive",
+        "model_id": "condition_true_v1",
+        "pattern": "P2",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::index_mut",
+        "site_id": "a024af8732b2fc1bcfe617d4df3f3288389b63cd748914098ce64cc723f86d4e",
+        "site_owner": "<slice::iter::Iter<'a, T> as iter::traits::iterator::Iterator>::rposition",
+        "site_span": {
+          "end": {
+            "column": 3,
+            "line": 142
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 134
+          }
+        },
+        "source_identity": "public_field:owner=str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::get_unchecked_mut:field=ops::range::RangeFrom::start:access=(_1.0: usize):base=_1:storage=entry_formal:str::traits::<impl slice::index::SliceIndex<str> for ops::range::RangeFrom<usize>>::get_unchecked_mut:1:versions=:adt=struct:persistent=true@library/core/src/str/traits.rs:530:19-530:29",
+        "source_kind": "public_field",
+        "subject_role": "argument:0",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "26482938ee3c02520e9ac9128af4b8cee1dfb6cbd97e2a4b7a31ec0a335019f2",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "str::converts::from_utf8_unchecked",
+        "candidate_id": "7602d667530dc985443678d54b294ceca3f67cb20e048b77ce681720014b3e2c",
+        "depth": "recursive",
+        "model_id": "str_from_utf8_unchecked_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_utf8"
+        ],
+        "root": "fmt::num::<impl fmt::LowerHex for u64>::fmt",
+        "site_id": "eb9e8e1340406e9ba340c7b504879ecd6f4f13172a891450f2f5f93649eb0522",
+        "site_owner": "str::iter::Chars::<'a>::as_str",
+        "site_span": {
+          "end": {
+            "column": 59,
+            "line": 161
+          },
+          "path": "library/core/src/str/iter.rs",
+          "start": {
+            "column": 18,
+            "line": 161
+          }
+        },
+        "source_identity": "str::iter::Chars::<'a>::as_str:unsafe_result:eb9e8e1340406e9ba340c7b504879ecd6f4f13172a891450f2f5f93649eb0522",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "str_from_utf8_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "2b5d9aaee34115c1b5b1dac2536032749c77dfd7ebbc97487e31c33d6d2ea2c7",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "time::Nanoseconds",
+        "candidate_id": "70f249ce0098dbdb77094f06c7c9a9a2467ffb685acd0e200052f78b9c2d0d3b",
+        "depth": "inter_procedural",
+        "model_id": "language_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "time::Duration::div_f64",
+        "site_id": "1e04d308790ef9d36466ae9aabd234554afa1077f2a7789d9f8629d087835b05",
+        "site_owner": "time::Duration::new",
+        "site_span": {
+          "end": {
+            "column": 64,
+            "line": 214
+          },
+          "path": "library/core/src/time.rs",
+          "start": {
+            "column": 46,
+            "line": 214
+          }
+        },
+        "source_identity": "time::Duration::new:unsafe_result:1e04d308790ef9d36466ae9aabd234554afa1077f2a7789d9f8629d087835b05",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "language_validity_v1"
+      }
+    },
+    {
+      "family_id": "323fdd860481f237d9a74449e072e41728d6d20cffec6cf276900d651b3d5208",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "candidate_id": "242a5eafeb79f9c0f83873046bc00316497c22dd333ba8cf05f37b9f2dc4c6a8",
+        "depth": "recursive",
+        "model_id": "maybe_uninit_assume_init_v1",
+        "pattern": "P3",
+        "predicates": [
+          "initialized",
+          "valid_for_type"
+        ],
+        "root": "core_simd::ops::shift_scalar::<impl ops::bit::Shr<u32> for core_simd::vector::Simd<u32, N>>::shr",
+        "site_id": "3e96107a376c8110c6183271406b1901927d84d7182c100c704587f0428ec29f",
+        "site_owner": "core_simd::vector::Simd::<T, N>::load",
+        "site_span": {
+          "end": {
+            "column": 30,
+            "line": 208
+          },
+          "path": "library/portable-simd/crates/core_simd/src/vector.rs",
+          "start": {
+            "column": 13,
+            "line": 208
+          }
+        },
+        "source_identity": "core_simd::vector::Simd::<T, N>::load:unsafe_result:3e96107a376c8110c6183271406b1901927d84d7182c100c704587f0428ec29f",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "maybe_uninit_assume_init_v1"
+      }
+    },
+    {
+      "family_id": "748af14c2015ec70cea7188b89ef563dbde44b14935f9c0b4488bca4a3f5f300",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "b9bbed9e24a1511410b7fb940bd427d9de6aaaa819eb6bbc38f8352ee9f74f70",
+        "depth": "recursive",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "num::<impl u64>::from_str_radix",
+        "site_id": "b3fa9bcf4ddf10d5a5082c864fa8183ad597a18e49081fa23bc55b9cddf73489",
+        "site_owner": "str::<impl str>::as_bytes",
+        "site_span": {
+          "end": {
+            "column": 38,
+            "line": 302
+          },
+          "path": "library/core/src/str/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 302
+          }
+        },
+        "source_identity": "str::<impl str>::as_bytes:unsafe_result:b3fa9bcf4ddf10d5a5082c864fa8183ad597a18e49081fa23bc55b9cddf73489",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "transmute_validity_v1"
+      }
+    },
+    {
+      "family_id": "7588311418b648c074e2362ed1fa8f6927b28fe9929d2b60aa92518cd8890366",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "validity_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "str::converts::from_utf8_unchecked",
+        "candidate_id": "0dfeb11367ebe78f450ec8f5716f0d6afac9bd1dd2d40ba827c6deec3272e6f1",
+        "depth": "intra_procedural",
+        "model_id": "str_from_utf8_unchecked_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_utf8"
+        ],
+        "root": "str::<impl str>::trim_ascii_start",
+        "site_id": "1d0f21d57d7a38e8a34a81b0bc8c0e131ca6b61e614d788498584ababe7f6142",
+        "site_owner": "str::<impl str>::trim_ascii_start",
+        "site_span": {
+          "end": {
+            "column": 84,
+            "line": 2536
+          },
+          "path": "library/core/src/str/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 2536
+          }
+        },
+        "source_identity": "str::<impl str>::trim_ascii_start:unsafe_result:1d0f21d57d7a38e8a34a81b0bc8c0e131ca6b61e614d788498584ababe7f6142",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "结果类型有效性义务信息不足。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "str_from_utf8_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "7a9dfe71db94745f9a51f3adca964b2d8bccff73d571d9bca8f0d576ba0d097c",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "ptr::non_null::NonNull",
+        "candidate_id": "211a11a90a48179279467a69ce57a3fb38f094b305e59e97b18d85edaee106ba",
+        "depth": "recursive",
+        "model_id": "language_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "<ptr::non_null::NonNull<T> as fmt::Pointer>::fmt",
+        "site_id": "5bddc26faeca5873f74001d2ea4174ba27dd060afcbdbc45bec40c9872dbb033",
+        "site_owner": "ptr::non_null::NonNull::<T>::cast",
+        "site_span": {
+          "end": {
+            "column": 62,
+            "line": 427
+          },
+          "path": "library/core/src/ptr/non_null.rs",
+          "start": {
+            "column": 18,
+            "line": 427
+          }
+        },
+        "source_identity": "ptr::non_null::NonNull::<T>::cast:unsafe_result:5bddc26faeca5873f74001d2ea4174ba27dd060afcbdbc45bec40c9872dbb033",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 12
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "language_validity_v1"
+      }
+    },
+    {
+      "family_id": "8f4ea19359d29b365fea0e969b177ddf67cf6cc92b23b30b0054580981951744",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "validity_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "time::Nanoseconds",
+        "candidate_id": "5d51baef9829e0139791e42ca7e2f8cf9f0a11022aa9c2ea938ec469b96656b6",
+        "depth": "intra_procedural",
+        "model_id": "language_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "time::Duration::from_micros",
+        "site_id": "a71cc800f16e89fc8872b778aa279390fdeb6883dbfe607b0b421d8d4608013e",
+        "site_owner": "time::Duration::from_micros",
+        "site_span": {
+          "end": {
+            "column": 81,
+            "line": 294
+          },
+          "path": "library/core/src/time.rs",
+          "start": {
+            "column": 37,
+            "line": 294
+          }
+        },
+        "source_identity": "time::Duration::from_micros:unsafe_result:a71cc800f16e89fc8872b778aa279390fdeb6883dbfe607b0b421d8d4608013e",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "结果类型有效性义务信息不足。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "language_validity_v1"
+      }
+    },
+    {
+      "family_id": "a6585c3858dd7459243794f67e9523c7832b156087d6b3f93d56c045198251be",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "validity_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "1f721401469583c0a6d92b3c4d5cb9ee5c3c39109e7644ca606af757d77d1c2f",
+        "depth": "intra_procedural",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "<core_simd::vector::Simd<f32, 1> as core_simd::to_bytes::ToBytes>::to_ne_bytes",
+        "site_id": "56eb1ab1793a14a9477553fbf06e8dc33467120877a45f35e432ea8c8d635baa",
+        "site_owner": "<core_simd::vector::Simd<f32, 1> as core_simd::to_bytes::ToBytes>::to_ne_bytes",
+        "site_span": {
+          "end": {
+            "column": 26,
+            "line": 144
+          },
+          "path": "library/portable-simd/crates/core_simd/src/to_bytes.rs",
+          "start": {
+            "column": 1,
+            "line": 144
+          }
+        },
+        "source_identity": "<core_simd::vector::Simd<f32, 1> as core_simd::to_bytes::ToBytes>::to_ne_bytes:unsafe_result:56eb1ab1793a14a9477553fbf06e8dc33467120877a45f35e432ea8c8d635baa",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "结果类型有效性义务信息不足。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "transmute_validity_v1"
+      }
+    },
+    {
+      "family_id": "b9ea7284345d07fd82c3b9de365693bb0ac150c41d9a71b6eaade95b641ccab8",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "candidate_id": "fc6f5b492852986a8d0036638d362fe326bf52e2ca8e01a410dd01754e9bceab",
+        "depth": "inter_procedural",
+        "model_id": "maybe_uninit_assume_init_v1",
+        "pattern": "P3",
+        "predicates": [
+          "initialized",
+          "valid_for_type"
+        ],
+        "root": "core_simd::swizzle::<impl core_simd::vector::Simd<T, N>>::resize",
+        "site_id": "3e96107a376c8110c6183271406b1901927d84d7182c100c704587f0428ec29f",
+        "site_owner": "core_simd::vector::Simd::<T, N>::load",
+        "site_span": {
+          "end": {
+            "column": 30,
+            "line": 208
+          },
+          "path": "library/portable-simd/crates/core_simd/src/vector.rs",
+          "start": {
+            "column": 13,
+            "line": 208
+          }
+        },
+        "source_identity": "core_simd::vector::Simd::<T, N>::load:unsafe_result:3e96107a376c8110c6183271406b1901927d84d7182c100c704587f0428ec29f",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "maybe_uninit_assume_init_v1"
+      }
+    },
+    {
+      "family_id": "c1aacf67981f0b27901049d4fe0490cfa9860ed3e17deae7c2d70bd7f474d51d",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "str::converts::from_utf8_unchecked",
+        "candidate_id": "7bd87390cca97ddc726d071d43e64b06a89a083d0f673b3ecafa3830ce6a0586",
+        "depth": "inter_procedural",
+        "model_id": "str_from_utf8_unchecked_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_utf8"
+        ],
+        "root": "fmt::float::<impl fmt::Display for f32>::fmt",
+        "site_id": "a85a82a179ca37d09465d720254270d641c00b535a5f09a5f84801fb687c4881",
+        "site_owner": "fmt::Formatter::<'a>::write_formatted_parts::write_bytes",
+        "site_span": {
+          "end": {
+            "column": 63,
+            "line": 1571
+          },
+          "path": "library/core/src/fmt/mod.rs",
+          "start": {
+            "column": 36,
+            "line": 1571
+          }
+        },
+        "source_identity": "fmt::Formatter::<'a>::write_formatted_parts::write_bytes:unsafe_result:a85a82a179ca37d09465d720254270d641c00b535a5f09a5f84801fb687c4881",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "str_from_utf8_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "fd03fe42c551fd9bf4a354f1caecc44efd6efaaee9e77eabbb707abd4a1b958b",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "intrinsics::transmute",
+        "candidate_id": "7d25c316125cfa213cb782044d205ddf0be9d1766a53b4b108c2309ef01c9d84",
+        "depth": "inter_procedural",
+        "model_id": "transmute_validity_v1",
+        "pattern": "P3",
+        "predicates": [
+          "valid_for_type"
+        ],
+        "root": "fmt::num::<impl fmt::Binary for u8>::fmt",
+        "site_id": "b3fa9bcf4ddf10d5a5082c864fa8183ad597a18e49081fa23bc55b9cddf73489",
+        "site_owner": "str::<impl str>::as_bytes",
+        "site_span": {
+          "end": {
+            "column": 38,
+            "line": 302
+          },
+          "path": "library/core/src/str/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 302
+          }
+        },
+        "source_identity": "str::<impl str>::as_bytes:unsafe_result:b3fa9bcf4ddf10d5a5082c864fa8183ad597a18e49081fa23bc55b9cddf73489",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "transmute_validity_v1"
+      }
+    },
+    {
+      "family_id": "ffbdd6f04d2ab7f6ebb80304dd6b2dfc80829c9cdabfa1899506342441cf1de8",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "initialization_state_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P3",
+      "representative": {
+        "callee": "mem::maybe_uninit::MaybeUninit::<T>::assume_init",
+        "candidate_id": "8b9004c475bf2e3eb6e56db7803ffed9a7ddb2891b7e91f2b5026113affe9f75",
+        "depth": "intra_procedural",
+        "model_id": "maybe_uninit_assume_init_v1",
+        "pattern": "P3",
+        "predicates": [
+          "initialized",
+          "valid_for_type"
+        ],
+        "root": "<ffi::va_list::VaListImpl<'f> as clone::Clone>::clone",
+        "site_id": "92eb09f3455b0f004ac6e6b1ff919ee5bb6884d8f35201c2788fb84b92816055",
+        "site_owner": "<ffi::va_list::VaListImpl<'f> as clone::Clone>::clone",
+        "site_span": {
+          "end": {
+            "column": 31,
+            "line": 266
+          },
+          "path": "library/core/src/ffi/va_list.rs",
+          "start": {
+            "column": 13,
+            "line": 266
+          }
+        },
+        "source_identity": "<ffi::va_list::VaListImpl<'f> as clone::Clone>::clone:unsafe_result:92eb09f3455b0f004ac6e6b1ff919ee5bb6884d8f35201c2788fb84b92816055",
+        "source_kind": "internal_unsafe_origin",
+        "subject_role": "result",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "sink 前的完整初始化状态无法确定。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "maybe_uninit_assume_init_v1"
+      }
+    },
+    {
+      "family_id": "3c1ae4e469548c4cdaa975eeffbc95a407ec450aad77e8f7d54ebcc976deac30",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "60f858321f00ecf87cc5267a4c2070f3d05b3486b869aeb64c0317367bb72576",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "slice::<impl [f32]>::sort_floats",
+        "site_id": "e46c8bedab52f79de3008032c29b284d9e306148be2b0f83fc2e9c62b23c9fc7",
+        "site_owner": "ptr::swap_nonoverlapping_simple_untyped",
+        "site_span": {
+          "end": {
+            "column": 44,
+            "line": 1217
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 37,
+            "line": 1217
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 14
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "3d88a0d3c5246901cfa1cf5608694af06ca1b54aa38d815c0c546c2361ee5c5f",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": null,
+        "candidate_id": "d1f527373e2c1ed43de85b4c5877d76bb98a7b477023595ed2fecf32559f80cd",
+        "depth": "intra_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "sync::atomic::AtomicU64::from_mut_slice",
+        "site_id": "373a700bcf412172a15b7e3e6a1ce70075c894cd76b2eb25ffbaa610f178878d",
+        "site_owner": "sync::atomic::AtomicU64::from_mut_slice",
+        "site_span": {
+          "end": {
+            "column": 2,
+            "line": 3189
+          },
+          "path": "library/core/src/sync/atomic.rs",
+          "start": {
+            "column": 1,
+            "line": 3173
+          }
+        },
+        "source_identity": "sync::atomic::AtomicU64::from_mut_slice:derivation:layout:_7@sync::atomic::AtomicU64::from_mut_slice:0:12@library/core/src/sync/atomic.rs:3173:1-3189:2",
+        "source_kind": "internal_derivation",
+        "subject_role": "address",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "45960e0456585baa5bbfc3e9d381cb8f71624fbd1e29e8e1f55eab11bc4115f4",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "acd2bb786dc8f7281d5aa5bac25aa01022956b3bbd2fa7b9bda6dc2bcdaf42be",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "slice::<impl [f32]>::sort_floats",
+        "site_id": "1530779873f6bda8a0ce3520ba098e166e22bf12003b8bacccdf37002f87708e",
+        "site_owner": "ptr::swap_nonoverlapping_simple_untyped",
+        "site_span": {
+          "end": {
+            "column": 44,
+            "line": 1216
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 37,
+            "line": 1216
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 14
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "45bb00281cf339c45ea8f60e1424f14229e8b5b7e53e1dac01aa282ebe66836b",
+      "mapped_member_count": 4,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 4
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 4
+      },
+      "new_state": "unestablished",
+      "old_member_count": 4,
+      "old_public_root_fanout": 4,
+      "old_raw_count": 4,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "f1f2d63fa6bf2bf7bd3e49dc40e4c826bb9cffb1b3f2ac18d6683ca162a3a12f",
+        "depth": "recursive",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "num::<impl u128>::isqrt",
+        "site_id": "0ee0e55833c5dbd68ef97022fd1177f438e37fa273a62f5d4e41f068c9a6fa03",
+        "site_owner": "num::int_sqrt::u128_stages",
+        "site_span": {
+          "end": {
+            "column": 50,
+            "line": 299
+          },
+          "path": "library/core/src/num/int_sqrt.rs",
+          "start": {
+            "column": 18,
+            "line": 299
+          }
+        },
+        "source_identity": "num::int_sqrt::u128_stages:derivation:unchecked_boolean_relation:_103@num::int_sqrt::u128_stages:33:6@library/core/src/num/int_sqrt.rs:299:18-299:50",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "606eb044e9f34f3f4b09af5e4e82bbc3c9d5bbbb68ae91ba2ba0af7fa8919705",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 2
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 2
+      },
+      "new_state": "unestablished",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": null,
+        "candidate_id": "63f45de8935b3aefb429ff8fc7a0935a41f84b07a17c6822c007c5a5009c7e57",
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "<slice::iter::RChunksExactMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "site_id": "020020c5990b3b9707fe9974bd39f70f30e8369d337f2f47b78603db7566dc20",
+        "site_owner": "<slice::iter::RChunksExactMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::next_back",
+        "site_span": {
+          "end": {
+            "column": 37,
+            "line": 3217
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 32,
+            "line": 3217
+          }
+        },
+        "source_identity": "num::<impl usize>::overflowing_add:derivation:offset:_5@num::<impl usize>::overflowing_add:0:11@library/core/src/num/mod.rs:1272:5-1290:6",
+        "source_kind": "internal_derivation",
+        "subject_role": "address",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "73122c29e9990010f3fd60d931662c30f21945cab31709c9b039b759622ccb2e",
+      "mapped_member_count": 12,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 12
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 12
+      },
+      "new_state": "unestablished",
+      "old_member_count": 12,
+      "old_public_root_fanout": 12,
+      "old_raw_count": 12,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "16df9c47bdfe2e435677c1577860f6f1793226bbcfa261d0edb73baf1bd58bde",
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "num::<impl usize>::isqrt",
+        "site_id": "3b8b12ec4befc58efb7ff70ccefad556a7d08ecccfe23a6ca84eb1a6bd682d19",
+        "site_owner": "num::int_sqrt::u64_stages",
+        "site_span": {
+          "end": {
+            "column": 37,
+            "line": 284
+          },
+          "path": "library/core/src/num/int_sqrt.rs",
+          "start": {
+            "column": 18,
+            "line": 284
+          }
+        },
+        "source_identity": "num::int_sqrt::u64_stages:derivation:unchecked_boolean_relation:_27@num::int_sqrt::u64_stages:8:10@library/core/src/num/int_sqrt.rs:284:18-284:37",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "865463f8e2d7582a3422043b1b16f2bab66f01b73f37942438fe81798a1cadd2",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 2
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 2
+      },
+      "new_state": "unestablished",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "c484962cc190d5d2307bde1170860e31402dae14d893c2f9f5ed62beefcb12a7",
+        "depth": "intra_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "num::<impl i32>::checked_isqrt",
+        "site_id": "3b99fb4b6f35146b72d4af03ac973ac716469d3a2c0398f6da87e5e160c69234",
+        "site_owner": "num::<impl i32>::checked_isqrt",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 355
+          },
+          "path": "library/core/src/num/mod.rs",
+          "start": {
+            "column": 5,
+            "line": 336
+          }
+        },
+        "source_identity": "num::<impl i32>::checked_isqrt:derivation:unchecked_boolean_relation:_8@num::<impl i32>::checked_isqrt:3:6@library/core/src/num/mod.rs:336:5-355:6",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "9d37cef26218cb1742cdb81f85f8795c8cb7c1fcee40d9327b5eeb6d3b05e514",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": null,
+        "candidate_id": "f1d1a6fbecdb74cce7064f439ceb9c35e8be7ea5e82a4ffb78e9d9b6c4ced3fe",
+        "depth": "intra_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "sync::atomic::AtomicI32::from_mut",
+        "site_id": "f76061c1ce18c9056941705e7e80fd58def459b1684a550fce91b7120e24901f",
+        "site_owner": "sync::atomic::AtomicI32::from_mut",
+        "site_span": {
+          "end": {
+            "column": 2,
+            "line": 3135
+          },
+          "path": "library/core/src/sync/atomic.rs",
+          "start": {
+            "column": 1,
+            "line": 3119
+          }
+        },
+        "source_identity": "sync::atomic::AtomicI32::from_mut:derivation:layout:_7@sync::atomic::AtomicI32::from_mut:0:12@library/core/src/sync/atomic.rs:3119:1-3135:2",
+        "source_kind": "internal_derivation",
+        "subject_role": "address",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "a10d59f83418dd281dc4f130837262290408bfe538f1f4de6681c103e05c826c",
+      "mapped_member_count": 125,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 125
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 125
+      },
+      "new_state": "unestablished",
+      "old_member_count": 125,
+      "old_public_root_fanout": 125,
+      "old_raw_count": 125,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": null,
+        "candidate_id": "8e7c5b897dbd1c8c1536ed522140dda10eab3925e0abcbc1181640e26eb0c1b0",
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "slice::memchr::memrchr",
+        "site_id": "4baaf9cbe7e22d507250fd38a45fbc35920b1e16b2c25b99558009e1eb3d5276",
+        "site_owner": "slice::raw::from_raw_parts",
+        "site_span": {
+          "end": {
+            "column": 47,
+            "line": 138
+          },
+          "path": "library/core/src/slice/raw.rs",
+          "start": {
+            "column": 10,
+            "line": 138
+          }
+        },
+        "source_identity": "slice::<impl [T]>::align_to:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:slice::<impl [T]>::T,type:slice::<impl [T]>::align_to::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:slice::<impl [T]>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:slice::<impl [T]>::align_to::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:slice::<impl [T]>::align_to::U@library/core/src/slice/mod.rs:3901:36-3901:61",
+        "source_kind": "internal_derivation",
+        "subject_role": "address",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "a35c284f4107cdeb3a1cf23f71f13b8b9477eda30e2d015323996611f6557f63",
+      "mapped_member_count": 4,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 4
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 4
+      },
+      "new_state": "unestablished",
+      "old_member_count": 4,
+      "old_public_root_fanout": 4,
+      "old_raw_count": 4,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "slice::<impl [T]>::get_unchecked",
+        "candidate_id": "81b89723c22e2a12b0ccf0d0c76926b7ab78359e181aa464b69ebcc25a28bfdd",
+        "depth": "recursive",
+        "model_id": "slice_get_unchecked_v1",
+        "pattern": "P4",
+        "predicates": [
+          "in_bounds"
+        ],
+        "root": "<hash::sip::SipHasher as hash::Hasher>::write",
+        "site_id": "a938058e0fada6d5b6d790a5f1e3e49770392932cbc67e5cb2a0424d5ca22445",
+        "site_owner": "hash::sip::u8to64_le",
+        "site_span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        },
+        "source_identity": "<hash::sip::Hasher<S> as hash::Hasher>::write:derivation:offset:_78@<hash::sip::Hasher<S> as hash::Hasher>::write:32:7@library/core/src/hash/sip.rs:295:13-295:19",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "slice_get_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "cdae54969888e29c642aec39a8fa142183d671da6506edd0a6fa20059ff6e5fb",
+      "mapped_member_count": 4,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 4
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 4
+      },
+      "new_state": "unestablished",
+      "old_member_count": 4,
+      "old_public_root_fanout": 4,
+      "old_raw_count": 4,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "9603f5d17a059191c6377fe778329fc039759b1ca03f8a15d8747366a10eedaf",
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "num::<impl u128>::isqrt",
+        "site_id": "07e7e7339253b464bd09e375bc1685b4befb8da75672dd2e41d08f521ec7aa22",
+        "site_owner": "num::int_sqrt::u128_stages",
+        "site_span": {
+          "end": {
+            "column": 38,
+            "line": 298
+          },
+          "path": "library/core/src/num/int_sqrt.rs",
+          "start": {
+            "column": 18,
+            "line": 298
+          }
+        },
+        "source_identity": "num::int_sqrt::u128_stages:derivation:unchecked_boolean_relation:_27@num::int_sqrt::u128_stages:8:10@library/core/src/num/int_sqrt.rs:298:18-298:38",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "d48bd6b1db9b6a398f4c1c502a819f4cf93f4fc36b7b29c04dd2aa38b9fedf1c",
+      "mapped_member_count": 4,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 4
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 4
+      },
+      "new_state": "unestablished",
+      "old_member_count": 4,
+      "old_public_root_fanout": 4,
+      "old_raw_count": 4,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "f107dda91716ad3b54e52b3de861a72f9f07ac81982bf7601473257fedf0cbcc",
+        "depth": "recursive",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "num::<impl u128>::isqrt",
+        "site_id": "1c5e2ac4ffbef3a3e5eba627a8939486d4423ad5605ca6f25e5a76a5174714f2",
+        "site_owner": "num::int_sqrt::u128_stages",
+        "site_span": {
+          "end": {
+            "column": 50,
+            "line": 301
+          },
+          "path": "library/core/src/num/int_sqrt.rs",
+          "start": {
+            "column": 18,
+            "line": 301
+          }
+        },
+        "source_identity": "num::int_sqrt::u128_stages:derivation:unchecked_boolean_relation:_255@num::int_sqrt::u128_stages:83:6@library/core/src/num/int_sqrt.rs:301:18-301:50",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 6
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "d986880a4de8bbd41f2180f0bc8f46dd3734cfe34320b08a1630724da6d7e2bf",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "hint::assert_unchecked",
+        "candidate_id": "554d274cecb60e8c2134fbb09205a539cb4ef274cc32ff10aec5c7271875fcd6",
+        "depth": "intra_procedural",
+        "model_id": "condition_true_v1",
+        "pattern": "P4",
+        "predicates": [
+          "condition_true"
+        ],
+        "root": "<slice::iter::IterMut<'a, T> as iter::traits::iterator::Iterator>::position",
+        "site_id": "1d029b7a3e2996a4378474063c96c48391a4cbf9ff2eef0725b64f662bf5fdde",
+        "site_owner": "<slice::iter::IterMut<'a, T> as iter::traits::iterator::Iterator>::position",
+        "site_span": {
+          "end": {
+            "column": 72,
+            "line": 368
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 368
+          }
+        },
+        "source_identity": "<slice::iter::IterMut<'a, T> as iter::traits::iterator::Iterator>::position:derivation:unchecked_boolean_relation:_26@<slice::iter::IterMut<'a, T> as iter::traits::iterator::Iterator>::position:11:9@library/core/src/slice/iter.rs:368:1-368:72",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:0",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "condition_true_v1"
+      }
+    },
+    {
+      "family_id": "defe08d3e7303b5974cf4cc5d1cd65289c9ffde87497693158705e8762f688b2",
+      "mapped_member_count": 3,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 3
+      },
+      "new_reason_counts": {
+        "missing_exact_context": 3
+      },
+      "new_state": "unestablished",
+      "old_member_count": 3,
+      "old_public_root_fanout": 3,
+      "old_raw_count": 3,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": null,
+        "candidate_id": "b64509167e5a87a6b95bca2e16ee7d58dfc50860dad3682000d9ec973b55c146",
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P4",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "fmt::num::imp::<impl fmt::Display for i16>::fmt",
+        "site_id": "82c21016035d8f41d2192396b06ac4f9c82d172b4b84769c339aa2aa2ce6bb2f",
+        "site_owner": "fmt::num::imp::<impl i16>::_fmt",
+        "site_span": {
+          "end": {
+            "column": 6,
+            "line": 541
+          },
+          "path": "library/core/src/fmt/num.rs",
+          "start": {
+            "column": 5,
+            "line": 529
+          }
+        },
+        "source_identity": "fmt::num::imp::<impl u16>::_fmt:derivation:offset:_55@fmt::num::imp::<impl u16>::_fmt:18:8@library/core/src/fmt/num.rs:529:5-541:6",
+        "source_kind": "internal_derivation",
+        "subject_role": "address",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "实际调用点 corridor 未完整建立；保留上下文缺口。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "f210fd67e649d38c88c9db2a6ea4b823095aeee69c5ffd1a50e35e582ff0ce4c",
+      "mapped_member_count": 3,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 3
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 3
+      },
+      "new_state": "unestablished",
+      "old_member_count": 3,
+      "old_public_root_fanout": 3,
+      "old_raw_count": 3,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "slice::<impl [T]>::get_unchecked_mut",
+        "candidate_id": "f2b7b8807bbe6dfaf18a73cf7cb90fcf4a3f79d6667023e10f9c8f6be371f656",
+        "depth": "intra_procedural",
+        "model_id": "slice_get_unchecked_v1",
+        "pattern": "P4",
+        "predicates": [
+          "in_bounds"
+        ],
+        "root": "slice::sort::stable::drift::sort",
+        "site_id": "0f57fbd295f5e33e8412053e88192638becf53f2eef6c9bc04acbd91857e4ee0",
+        "site_owner": "slice::sort::stable::drift::sort",
+        "site_span": {
+          "end": {
+            "column": 81,
+            "line": 93
+          },
+          "path": "library/core/src/slice/sort/stable/drift.rs",
+          "start": {
+            "column": 35,
+            "line": 93
+          }
+        },
+        "source_identity": "slice::sort::stable::drift::sort:derivation:offset:_92@slice::sort::stable::drift::sort:40:1@library/core/src/slice/sort/stable/drift.rs:91:34-91:61",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1",
+        "witness_length": 3
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "intra_procedural",
+        "model_id": "slice_get_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "fd86e313b37a983bc1c43675cf05f9e627e0fea312cf035e12a877e1f01adf64",
+      "mapped_member_count": 4,
+      "mapping_methods": [
+        "root-site-role loose family bridge"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 4
+      },
+      "new_reason_counts": {
+        "derivation_obligation_unknown": 4
+      },
+      "new_state": "unestablished",
+      "old_member_count": 4,
+      "old_public_root_fanout": 4,
+      "old_raw_count": 4,
+      "old_state": "active",
+      "pattern": "P4",
+      "representative": {
+        "callee": "slice::<impl [T]>::get_unchecked",
+        "candidate_id": "f7c53d193e2140367413c3f8a252b793896b111db6c531b61066411e40fa3609",
+        "depth": "inter_procedural",
+        "model_id": "slice_get_unchecked_v1",
+        "pattern": "P4",
+        "predicates": [
+          "in_bounds"
+        ],
+        "root": "<hash::sip::SipHasher as hash::Hasher>::write",
+        "site_id": "a938058e0fada6d5b6d790a5f1e3e49770392932cbc67e5cb2a0424d5ca22445",
+        "site_owner": "hash::sip::u8to64_le",
+        "site_span": {
+          "end": {
+            "column": 55,
+            "line": 137
+          },
+          "path": "library/core/src/hash/sip.rs",
+          "start": {
+            "column": 27,
+            "line": 137
+          }
+        },
+        "source_identity": "hash::sip::u8to64_le:derivation:offset:_48@hash::sip::u8to64_le:22:4@library/core/src/hash/sip.rs:128:9-128:15",
+        "source_kind": "internal_derivation",
+        "subject_role": "argument:1",
+        "witness_length": 5
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "有限关系义务无法在当前证明域内求解。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "slice_get_unchecked_v1"
+      }
+    },
+    {
+      "family_id": "1631f324b593870694f07485461edeeaee4a146e0dfd64128f2c5fb7675049ac",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 1
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 1
+      },
+      "new_state": "unestablished",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": null,
+        "candidate_id": "ef4274ed56fb332c726f01d1804fe17e6307c8e117d541fc13dd45fd87aa1945",
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "slice::<impl [T]>::as_simd_mut",
+        "site_id": "f5fbc1f7cf5c33dbef0e8c86d04367516333fb1316d6f12527ee1369ffc9a6dc",
+        "site_owner": "slice::raw::from_raw_parts_mut",
+        "site_span": {
+          "end": {
+            "column": 55,
+            "line": 193
+          },
+          "path": "library/core/src/slice/raw.rs",
+          "start": {
+            "column": 14,
+            "line": 193
+          }
+        },
+        "source_identity": "slice::<impl [T]>::align_to_mut:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:slice::<impl [T]>::T,type:slice::<impl [T]>::align_to_mut::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:slice::<impl [T]>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:slice::<impl [T]>::align_to_mut::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:slice::<impl [T]>::align_to_mut::U@library/core/src/slice/mod.rs:3974:40-3974:57",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "address",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "18ebde3caac34ec289cdb909c02e75b266335c06ec3fd32802ae0fb95d20c23c",
+      "mapped_member_count": 2,
+      "mapping_methods": [
+        "exact_candidate_id"
+      ],
+      "new_member_state_counts": {
+        "suppressed": 2
+      },
+      "new_reason_counts": {
+        "root_has_no_relevant_capability_surface": 2
+      },
+      "new_state": "suppressed",
+      "old_member_count": 2,
+      "old_public_root_fanout": 2,
+      "old_raw_count": 2,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": null,
+        "candidate_id": "a558210e5a1fb2c4d47f151d30f746b9a90c209e8554e7ed101a35e650155c51",
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "<slice::iter::IterMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::nth_back",
+        "site_id": "635af20c7ebd1eed3854353633cde5fe00722bc234af7583813ee73ad9ba2a7f",
+        "site_owner": "<slice::iter::IterMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::nth_back",
+        "site_span": {
+          "end": {
+            "column": 72,
+            "line": 368
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 368
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "address",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "调用点实例化后没有相关泛型/const 能力缺口，或具体路线已经证明满足合同。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "36feb62091a1fb5fff4529ad8a9b5c13d04255694a875e1ad97201e5656ebbd8",
+      "mapped_member_count": 39,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 39
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 39
+      },
+      "new_state": "unestablished",
+      "old_member_count": 39,
+      "old_public_root_fanout": 39,
+      "old_raw_count": 39,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": "ptr::read_unaligned",
+        "candidate_id": "070ae2e6fdb00c680c8f0dfd7dd156379a83215d176f092a29b73d5343118801",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_unaligned_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type"
+        ],
+        "root": "<core_simd::vector::Simd<f32, N> as core_simd::simd::num::float::SimdFloat>::from_bits",
+        "site_id": "4e9383e8ee9a78717953d5370452f74b01f1424026fd8883f371f458b24a803e",
+        "site_owner": "mem::transmute_copy",
+        "site_span": {
+          "end": {
+            "column": 70,
+            "line": 1021
+          },
+          "path": "library/core/src/mem/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 1021
+          }
+        },
+        "source_identity": "mem::transmute_copy:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:mem::transmute_copy::Dst,type:mem::transmute_copy::Src;associated_items=;terms=source_pointee=form=direct_param;controllers=type:mem::transmute_copy::Src;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:mem::transmute_copy::Dst;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:mem::transmute_copy::Dst@library/core/src/mem/mod.rs:1021:38-1021:69",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_unaligned_v1"
+      }
+    },
+    {
+      "family_id": "a945664faee59ea2eb1de50f18425bc5cb9c358cce175ed0cfb692734ac92a89",
+      "mapped_member_count": 39,
+      "mapping_methods": [
+        "exact_candidate_id",
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "suppressed": 5,
+        "unestablished": 34
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 34,
+        "root_has_no_relevant_capability_surface": 5
+      },
+      "new_state": "mixed",
+      "old_member_count": 39,
+      "old_public_root_fanout": 39,
+      "old_raw_count": 39,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "4c88ffdfb4ff3f171eee8fb0d35236b56e142156053e55cb7a4fd9b103229217",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "<core_simd::vector::Simd<f64, N> as core_simd::simd::num::float::SimdFloat>::from_bits",
+        "site_id": "e1a45fb72d36ea0c68afe03f806fd0e8dee3455f9210ea25614377110b0204c8",
+        "site_owner": "mem::transmute_copy",
+        "site_span": {
+          "end": {
+            "column": 60,
+            "line": 1026
+          },
+          "path": "library/core/src/mem/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 1026
+          }
+        },
+        "source_identity": "mem::transmute_copy:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:mem::transmute_copy::Dst,type:mem::transmute_copy::Src;associated_items=;terms=source_pointee=form=direct_param;controllers=type:mem::transmute_copy::Src;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:mem::transmute_copy::Dst;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:mem::transmute_copy::Dst@library/core/src/mem/mod.rs:1026:28-1026:59",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。；调用点实例化后没有相关泛型/const 能力缺口，或具体路线已经证明满足合同。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "b8127d5caf7f16fa8d2be0c6962c8679e30a1d9251c6c9116f0577a320300238",
+      "mapped_member_count": 6,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 6
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 6
+      },
+      "new_state": "unestablished",
+      "old_member_count": 6,
+      "old_public_root_fanout": 6,
+      "old_raw_count": 6,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": null,
+        "candidate_id": "08cca6aa5fb646f97a3f3fb7cbbebdf09874e6f74eaa2eacf8ab7d00cc8d1ddc",
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "slice::<impl [[T; N]]>::as_flattened_mut",
+        "site_id": "f5fbc1f7cf5c33dbef0e8c86d04367516333fb1316d6f12527ee1369ffc9a6dc",
+        "site_owner": "slice::raw::from_raw_parts_mut",
+        "site_span": {
+          "end": {
+            "column": 55,
+            "line": 193
+          },
+          "path": "library/core/src/slice/raw.rs",
+          "start": {
+            "column": 14,
+            "line": 193
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "address",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "recursive",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "bd3215a1c94d3bc448226d7350e32db28dbb03795eb1f2f3ce79b385779e3f2b",
+      "mapped_member_count": 1,
+      "mapping_methods": [
+        "exact_candidate_id"
+      ],
+      "new_member_state_counts": {
+        "suppressed": 1
+      },
+      "new_reason_counts": {
+        "root_has_no_relevant_capability_surface": 1
+      },
+      "new_state": "suppressed",
+      "old_member_count": 1,
+      "old_public_root_fanout": 1,
+      "old_raw_count": 1,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": null,
+        "candidate_id": "d63e619a78d1de0a46b28ee789cc61306c12d26989186bce5fa9b4653a7a4ba3",
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "initialized",
+          "aligned"
+        ],
+        "root": "<slice::iter::IterMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "site_id": "0f4edd5b60b5e90508984a23bee868e1afb9298d278dab1c869d9e8841dda650",
+        "site_owner": "<slice::iter::IterMut<'a, T> as iter::traits::double_ended::DoubleEndedIterator>::advance_back_by",
+        "site_span": {
+          "end": {
+            "column": 72,
+            "line": 368
+          },
+          "path": "library/core/src/slice/iter.rs",
+          "start": {
+            "column": 1,
+            "line": 368
+          }
+        },
+        "source_identity": "ptr::const_ptr::<impl *const T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::const_ptr::<impl *const T>::T,type:ptr::const_ptr::<impl *const T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::const_ptr::<impl *const T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::const_ptr::<impl *const T>::cast::U@library/core/src/ptr/const_ptr.rs:63:9-63:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "address",
+        "witness_length": 4
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "调用点实例化后没有相关泛型/const 能力缺口，或具体路线已经证明满足合同。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "raw_pointer_access_v1"
+      }
+    },
+    {
+      "family_id": "c376341a661fd5f6cc249c38544cbccad7d04b7a4f4a38c476921d09b0afd532",
+      "mapped_member_count": 7,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 7
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 7
+      },
+      "new_state": "unestablished",
+      "old_member_count": 7,
+      "old_public_root_fanout": 7,
+      "old_raw_count": 7,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": "ptr::read",
+        "candidate_id": "d3411247301a55f94e80b701f6ccbaef34b4c0e16b9658e467fdf465ee906fbc",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type",
+          "aligned"
+        ],
+        "root": "slice::<impl [T]>::swap_with_slice",
+        "site_id": "1530779873f6bda8a0ce3520ba098e166e22bf12003b8bacccdf37002f87708e",
+        "site_owner": "ptr::swap_nonoverlapping_simple_untyped",
+        "site_span": {
+          "end": {
+            "column": 44,
+            "line": 1216
+          },
+          "path": "library/core/src/ptr/mod.rs",
+          "start": {
+            "column": 37,
+            "line": 1216
+          }
+        },
+        "source_identity": "ptr::mut_ptr::<impl *mut T>::cast:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:ptr::mut_ptr::<impl *mut T>::T,type:ptr::mut_ptr::<impl *mut T>::cast::U;associated_items=;terms=source_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::T;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:ptr::mut_ptr::<impl *mut T>::cast::U;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:ptr::mut_ptr::<impl *mut T>::cast::U@library/core/src/ptr/mut_ptr.rs:45:9-45:18",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 8
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_v1"
+      }
+    },
+    {
+      "family_id": "e9697a399477f9aafd5deab23598babbbccc2e83f423aeaff7a20e791ab4a40c",
+      "mapped_member_count": 3,
+      "mapping_methods": [
+        "root-site-role-source decision tuple"
+      ],
+      "new_member_state_counts": {
+        "unestablished": 3
+      },
+      "new_reason_counts": {
+        "generic_witness_unknown": 3
+      },
+      "new_state": "unestablished",
+      "old_member_count": 3,
+      "old_public_root_fanout": 3,
+      "old_raw_count": 3,
+      "old_state": "active",
+      "pattern": "P5",
+      "representative": {
+        "callee": "ptr::read_unaligned",
+        "candidate_id": "075d10030f8aaf9e42668b183e2aa88ee87706cb77f8d7373d89d734b102a10a",
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_unaligned_v1",
+        "pattern": "P5",
+        "predicates": [
+          "valid_for_read",
+          "range_in_bounds",
+          "non_null",
+          "initialized",
+          "valid_for_type"
+        ],
+        "root": "core_simd::swizzle_dyn::<impl core_simd::vector::Simd<u8, N>>::swizzle_dyn",
+        "site_id": "4e9383e8ee9a78717953d5370452f74b01f1424026fd8883f371f458b24a803e",
+        "site_owner": "mem::transmute_copy",
+        "site_span": {
+          "end": {
+            "column": 70,
+            "line": 1021
+          },
+          "path": "library/core/src/mem/mod.rs",
+          "start": {
+            "column": 18,
+            "line": 1021
+          }
+        },
+        "source_identity": "mem::transmute_copy:generic_capability:kind=pointer_layout_reinterpretation;controllers=type:mem::transmute_copy::Dst,type:mem::transmute_copy::Src;associated_items=;terms=source_pointee=form=direct_param;controllers=type:mem::transmute_copy::Src;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;target_pointee=form=direct_param;controllers=type:mem::transmute_copy::Dst;aliases=;eq=unknown;size=unknown;align=unknown;inhabited=unknown;requirement=pointer_layout:symbolic:type:mem::transmute_copy::Dst@library/core/src/mem/mod.rs:1026:28-1026:59",
+        "source_kind": "generic_capability_gap",
+        "subject_role": "argument:0",
+        "witness_length": 7
+      },
+      "review": {
+        "assessment": "not_active",
+        "obvious_false_positive_remains_active": false,
+        "rationale": "合法泛型实例的有限反例 witness 未能确定。"
+      },
+      "selection_stratum": {
+        "depth": "inter_procedural",
+        "model_id": "ptr_read_unaligned_v1"
+      }
+    }
+  ],
+  "mapping": {
+    "exact": "candidate_id into final suppression ledger",
+    "limitation": "unestablished schema intentionally omits the old candidate family_id and P3 exposure; exact candidate IDs are preferred, then root/site/role/source tuples, then a disclosed pattern/root/site/normalized-role/source-kind family bridge. Loose bridges are family-level continuity evidence, not exact candidate identity.",
+    "unestablished_fallback": "(pattern, public_root, unsafe_site_id, operand_role, source.kind, source.identity)"
+  },
+  "roster_status": "deterministically reconstructed; the earlier manually reviewed 48-family roster was not persisted, so this artifact does not claim identity with that missing roster",
+  "schema_version": "rap-unsoundaudit-p2-p5-old48-audit-v1",
+  "selection": {
+    "quotas": {
+      "P2": 12,
+      "P3": 12,
+      "P4": 16,
+      "P5": 8
+    },
+    "seed": "p2-p5-old48-reconstruction-v1",
+    "strata": [
+      "pattern",
+      "contract.model_id",
+      "propagation.depth"
+    ],
+    "within_stratum_order": "sha256(seed, family_id)"
+  },
+  "summary": {
+    "families": 48,
+    "new_states": {
+      "mixed": 10,
+      "suppressed": 4,
+      "unestablished": 34
+    },
+    "unmapped_families": 0
+  }
+}

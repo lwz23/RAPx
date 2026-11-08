@@ -1,9 +1,10 @@
-mod contract_catalog;
 mod candidate;
+mod contract_catalog;
 mod dataflow;
 mod endpoint_flow;
 mod influence;
 mod mir;
+mod missing_sanitizer;
 mod perf_trace;
 mod relations;
 #[cfg(test)]
@@ -18,9 +19,9 @@ use crate::utils::unit_output::{
 };
 use perf_trace::PerfTrace;
 use rustc_middle::ty::TyCtxt;
+use serde_json::Value;
 #[cfg(test)]
 use serde_json::{json, Map};
-use serde_json::Value;
 #[cfg(test)]
 use std::collections::BTreeSet;
 use std::env;
@@ -75,7 +76,7 @@ impl<'tcx> LwzCheck<'tcx> {
             return Ok(());
         }
         trace.event("analysis", "begin", [])?;
-        let analysis = match mir::analyze(self.tcx, &mut trace) {
+        let mut analysis = match mir::analyze(self.tcx, &mut trace) {
             Ok(analysis) => {
                 trace.event(
                     "analysis",
@@ -93,6 +94,7 @@ impl<'tcx> LwzCheck<'tcx> {
             }
         };
         trace.event("receipt", "begin", [])?;
+        v3_output::emit_mvp_output(&mut analysis, &mut trace)?;
         match self.maybe_write_json_summary(analysis) {
             Ok(()) => trace.event("receipt", "end", [("success", 1)]),
             Err(error) => {

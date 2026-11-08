@@ -1,0 +1,14 @@
+{
+  "issues": 148,
+  "has_fence": 141,
+  "has_fn": 147,
+  "has_strong_fn": 133,
+  "has_path": 66,
+  "has_callee": 91,
+  "src_exists": 142,
+  "located": 136,
+  "matchable": 147,
+  "unmatchable": [
+    "rustsec/advisory-db#2140 Corundum is unmaintained and may unsoundness"
+  ]
+}

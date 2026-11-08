@@ -1,0 +1,2570 @@
+{
+  "schema": "lwz23-valid-issue-clone-plan-v1",
+  "revision_rule_zh": "每个仓库先按该仓最早一条有效 Issue 的 created_at，取默认分支上 --before 该时刻的最后一次提交，作为上报前版本。同一仓库后续 Issue 另记 SHA，扫描时再切。",
+  "scan_repositories": 125,
+  "scan_issues": 142,
+  "repositories": [
+    {
+      "repository": "Amanieu/atomic-rs",
+      "clone_url": "https://github.com/Amanieu/atomic-rs.git",
+      "issues": [
+        {
+          "repository": "Amanieu/atomic-rs",
+          "clone_url": "https://github.com/Amanieu/atomic-rs.git",
+          "issue_url": "https://github.com/Amanieu/atomic-rs/issues/46",
+          "issue_number": 46,
+          "title": "Maybe Multiple unsoundness problems",
+          "created_at": "2025-09-08T12:40:41Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-09-08T12:40:41Z",
+      "primary_issue_url": "https://github.com/Amanieu/atomic-rs/issues/46"
+    },
+    {
+      "repository": "Andy-Python-Programmer/aero",
+      "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+      "issues": [
+        {
+          "repository": "Andy-Python-Programmer/aero",
+          "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+          "issue_url": "https://github.com/Andy-Python-Programmer/aero/issues/120",
+          "issue_number": 120,
+          "title": "Unsoundness in Utsname::name and other function",
+          "created_at": "2024-12-02T08:03:51Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "Andy-Python-Programmer/aero",
+          "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+          "issue_url": "https://github.com/Andy-Python-Programmer/aero/issues/121",
+          "issue_number": 121,
+          "title": "Maybe unsound in some as_ptr usage",
+          "created_at": "2025-01-07T06:26:04Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-02T08:03:51Z",
+      "primary_issue_url": "https://github.com/Andy-Python-Programmer/aero/issues/120"
+    },
+    {
+      "repository": "BrowserWorks/waterfox",
+      "clone_url": "https://github.com/BrowserWorks/waterfox.git",
+      "issues": [
+        {
+          "repository": "BrowserWorks/waterfox",
+          "clone_url": "https://github.com/BrowserWorks/waterfox.git",
+          "issue_url": "https://github.com/BrowserWorks/waterfox/issues/3980",
+          "issue_number": 3980,
+          "title": "[Unsoundness] Safe function peek_from_slice causes UB via malicious Peek implementation",
+          "created_at": "2025-11-25T08:24:37Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-11-25T08:24:37Z",
+      "primary_issue_url": "https://github.com/BrowserWorks/waterfox/issues/3980"
+    },
+    {
+      "repository": "CosmWasm/cosmwasm",
+      "clone_url": "https://github.com/CosmWasm/cosmwasm.git",
+      "issues": [
+        {
+          "repository": "CosmWasm/cosmwasm",
+          "clone_url": "https://github.com/CosmWasm/cosmwasm.git",
+          "issue_url": "https://github.com/CosmWasm/cosmwasm/issues/2305",
+          "issue_number": 2305,
+          "title": "Maybe unsound in as_bytes",
+          "created_at": "2024-12-05T12:36:22Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-05T12:36:22Z",
+      "primary_issue_url": "https://github.com/CosmWasm/cosmwasm/issues/2305"
+    },
+    {
+      "repository": "DioxusLabs/blitz",
+      "clone_url": "https://github.com/DioxusLabs/blitz.git",
+      "issues": [
+        {
+          "repository": "DioxusLabs/blitz",
+          "clone_url": "https://github.com/DioxusLabs/blitz.git",
+          "issue_url": "https://github.com/DioxusLabs/blitz/issues/169",
+          "issue_number": 169,
+          "title": "Unsoundness problem in Node::tree",
+          "created_at": "2024-12-09T14:33:19Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T14:33:19Z",
+      "primary_issue_url": "https://github.com/DioxusLabs/blitz/issues/169"
+    },
+    {
+      "repository": "Eugeny/russh",
+      "clone_url": "https://github.com/Eugeny/russh.git",
+      "issues": [
+        {
+          "repository": "Eugeny/russh",
+          "clone_url": "https://github.com/Eugeny/russh.git",
+          "issue_url": "https://github.com/Eugeny/russh/issues/394",
+          "issue_number": 394,
+          "title": "Potential unsoundness in memcpy",
+          "created_at": "2024-11-25T08:35:02Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T08:35:02Z",
+      "primary_issue_url": "https://github.com/Eugeny/russh/issues/394"
+    },
+    {
+      "repository": "Indra-db/Flecs-Rust",
+      "clone_url": "https://github.com/Indra-db/Flecs-Rust.git",
+      "issues": [
+        {
+          "repository": "Indra-db/Flecs-Rust",
+          "clone_url": "https://github.com/Indra-db/Flecs-Rust.git",
+          "issue_url": "https://github.com/Indra-db/Flecs-Rust/issues/210",
+          "issue_number": 210,
+          "title": "Maybe unsound in Cursor::new",
+          "created_at": "2024-12-10T09:29:42Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T09:29:42Z",
+      "primary_issue_url": "https://github.com/Indra-db/Flecs-Rust/issues/210"
+    },
+    {
+      "repository": "IsaacWoods/poplar",
+      "clone_url": "https://github.com/IsaacWoods/poplar.git",
+      "issues": [
+        {
+          "repository": "IsaacWoods/poplar",
+          "clone_url": "https://github.com/IsaacWoods/poplar.git",
+          "issue_url": "https://github.com/IsaacWoods/poplar/issues/117",
+          "issue_number": 117,
+          "title": "Maybe unsound in dma::write",
+          "created_at": "2024-12-04T13:54:29Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-04T13:54:29Z",
+      "primary_issue_url": "https://github.com/IsaacWoods/poplar/issues/117"
+    },
+    {
+      "repository": "Kudaes/DInvoke_rs",
+      "clone_url": "https://github.com/Kudaes/DInvoke_rs.git",
+      "issues": [
+        {
+          "repository": "Kudaes/DInvoke_rs",
+          "clone_url": "https://github.com/Kudaes/DInvoke_rs.git",
+          "issue_url": "https://github.com/Kudaes/DInvoke_rs/issues/10",
+          "issue_number": 10,
+          "title": "Unsoundness in fn clean_dos_header",
+          "created_at": "2025-03-04T11:22:14Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-04T11:22:14Z",
+      "primary_issue_url": "https://github.com/Kudaes/DInvoke_rs/issues/10"
+    },
+    {
+      "repository": "Kudaes/Elevator",
+      "clone_url": "https://github.com/Kudaes/Elevator.git",
+      "issues": [
+        {
+          "repository": "Kudaes/Elevator",
+          "clone_url": "https://github.com/Kudaes/Elevator.git",
+          "issue_url": "https://github.com/Kudaes/Elevator/issues/9",
+          "issue_number": 9,
+          "title": "Maybe unsound in get_pe_metadata",
+          "created_at": "2024-12-11T12:32:54Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-11T12:32:54Z",
+      "primary_issue_url": "https://github.com/Kudaes/Elevator/issues/9"
+    },
+    {
+      "repository": "Lightprotocol/light-protocol",
+      "clone_url": "https://github.com/Lightprotocol/light-protocol.git",
+      "issues": [
+        {
+          "repository": "Lightprotocol/light-protocol",
+          "clone_url": "https://github.com/Lightprotocol/light-protocol.git",
+          "issue_url": "https://github.com/Lightprotocol/light-protocol/issues/1382",
+          "issue_number": 1382,
+          "title": "Maybe unsound in ConcurrentMerkleTree",
+          "created_at": "2024-12-09T16:55:56Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:55:56Z",
+      "primary_issue_url": "https://github.com/Lightprotocol/light-protocol/issues/1382"
+    },
+    {
+      "repository": "MarcusRainbow/QuantMath",
+      "clone_url": "https://github.com/MarcusRainbow/QuantMath.git",
+      "issues": [
+        {
+          "repository": "MarcusRainbow/QuantMath",
+          "clone_url": "https://github.com/MarcusRainbow/QuantMath.git",
+          "issue_url": "https://github.com/MarcusRainbow/QuantMath/issues/54",
+          "issue_number": 54,
+          "title": "Multiple unsound issue",
+          "created_at": "2025-02-28T15:15:19Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-02-28T15:15:19Z",
+      "primary_issue_url": "https://github.com/MarcusRainbow/QuantMath/issues/54"
+    },
+    {
+      "repository": "MegEngine/MegFlow",
+      "clone_url": "https://github.com/MegEngine/MegFlow.git",
+      "issues": [
+        {
+          "repository": "MegEngine/MegFlow",
+          "clone_url": "https://github.com/MegEngine/MegFlow.git",
+          "issue_url": "https://github.com/MegEngine/MegFlow/issues/87",
+          "issue_number": 87,
+          "title": "Maybe unsound in store",
+          "created_at": "2024-12-09T06:10:19Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-09T06:10:19Z",
+      "primary_issue_url": "https://github.com/MegEngine/MegFlow/issues/87"
+    },
+    {
+      "repository": "Mufanc/z-loader",
+      "clone_url": "https://github.com/Mufanc/z-loader.git",
+      "issues": [
+        {
+          "repository": "Mufanc/z-loader",
+          "clone_url": "https://github.com/Mufanc/z-loader.git",
+          "issue_url": "https://github.com/Mufanc/z-loader/issues/6",
+          "issue_number": 6,
+          "title": "Maybe unsound in SpecializeArgs::env",
+          "created_at": "2024-12-09T16:50:40Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:50:40Z",
+      "primary_issue_url": "https://github.com/Mufanc/z-loader/issues/6"
+    },
+    {
+      "repository": "NVSL/Corundum",
+      "clone_url": "https://github.com/NVSL/Corundum.git",
+      "issues": [
+        {
+          "repository": "NVSL/Corundum",
+          "clone_url": "https://github.com/NVSL/Corundum.git",
+          "issue_url": "https://github.com/NVSL/Corundum/issues/7",
+          "issue_number": 7,
+          "title": "Unsoundness in src/vec.rs/to_str and maybe unmaintained",
+          "created_at": "2024-11-12T08:24:48Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-12T08:24:48Z",
+      "primary_issue_url": "https://github.com/NVSL/Corundum/issues/7"
+    },
+    {
+      "repository": "NetSys/NetBricks",
+      "clone_url": "https://github.com/NetSys/NetBricks.git",
+      "issues": [
+        {
+          "repository": "NetSys/NetBricks",
+          "clone_url": "https://github.com/NetSys/NetBricks.git",
+          "issue_url": "https://github.com/NetSys/NetBricks/issues/110",
+          "issue_number": 110,
+          "title": "Potential Unsoundness in replace_header",
+          "created_at": "2024-11-25T08:59:40Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        },
+        {
+          "repository": "NetSys/NetBricks",
+          "clone_url": "https://github.com/NetSys/NetBricks.git",
+          "issue_url": "https://github.com/NetSys/NetBricks/issues/111",
+          "issue_number": 111,
+          "title": "Potential Unsoundness in remove_from_payload_head and add_to_payload_head",
+          "created_at": "2024-11-25T09:05:32Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-25T08:59:40Z",
+      "primary_issue_url": "https://github.com/NetSys/NetBricks/issues/110"
+    },
+    {
+      "repository": "Noeda/rllama",
+      "clone_url": "https://github.com/Noeda/rllama.git",
+      "issues": [
+        {
+          "repository": "Noeda/rllama",
+          "clone_url": "https://github.com/Noeda/rllama.git",
+          "issue_url": "https://github.com/Noeda/rllama/issues/19",
+          "issue_number": 19,
+          "title": "Potential Undefined Behavior in data_u16_to_gpu Due to Unsafe Pointer Usage",
+          "created_at": "2024-11-30T11:15:01Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T11:15:01Z",
+      "primary_issue_url": "https://github.com/Noeda/rllama/issues/19"
+    },
+    {
+      "repository": "Pagefind/pagefind",
+      "clone_url": "https://github.com/Pagefind/pagefind.git",
+      "issues": [
+        {
+          "repository": "Pagefind/pagefind",
+          "clone_url": "https://github.com/Pagefind/pagefind.git",
+          "issue_url": "https://github.com/Pagefind/pagefind/issues/752",
+          "issue_number": 752,
+          "title": "Maybe unsound in request_filter_indexes and its groups",
+          "created_at": "2024-12-11T07:07:46Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        },
+        {
+          "repository": "Pagefind/pagefind",
+          "clone_url": "https://github.com/Pagefind/pagefind.git",
+          "issue_url": "https://github.com/Pagefind/pagefind/issues/985",
+          "issue_number": 985,
+          "title": "[Soundness] Public safe API request_filter_indexes allows dereferencing arbitrary raw pointers",
+          "created_at": "2025-11-25T07:07:18Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2024-12-11T07:07:46Z",
+      "primary_issue_url": "https://github.com/Pagefind/pagefind/issues/752"
+    },
+    {
+      "repository": "PersiaML/PERSIA",
+      "clone_url": "https://github.com/PersiaML/PERSIA.git",
+      "issues": [
+        {
+          "repository": "PersiaML/PERSIA",
+          "clone_url": "https://github.com/PersiaML/PERSIA.git",
+          "issue_url": "https://github.com/PersiaML/PERSIA/issues/509",
+          "issue_number": 509,
+          "title": "Potential Unsoundness in get_shard_by_index Function due to Unchecked Indexing",
+          "created_at": "2024-11-25T05:03:50Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T05:03:50Z",
+      "primary_issue_url": "https://github.com/PersiaML/PERSIA/issues/509"
+    },
+    {
+      "repository": "Phala-Network/phala-blockchain",
+      "clone_url": "https://github.com/Phala-Network/phala-blockchain.git",
+      "issues": [
+        {
+          "repository": "Phala-Network/phala-blockchain",
+          "clone_url": "https://github.com/Phala-Network/phala-blockchain.git",
+          "issue_url": "https://github.com/Phala-Network/phala-blockchain/issues/1592",
+          "issue_number": 1592,
+          "title": "Unsoundness in \"string_from_c_char\"",
+          "created_at": "2024-11-27T08:38:03Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-27T08:38:03Z",
+      "primary_issue_url": "https://github.com/Phala-Network/phala-blockchain/issues/1592"
+    },
+    {
+      "repository": "QuarkContainer/Quark",
+      "clone_url": "https://github.com/QuarkContainer/Quark.git",
+      "issues": [
+        {
+          "repository": "QuarkContainer/Quark",
+          "clone_url": "https://github.com/QuarkContainer/Quark.git",
+          "issue_url": "https://github.com/QuarkContainer/Quark/issues/1354",
+          "issue_number": 1354,
+          "title": "Maybe unsound in IOBuff::Buf",
+          "created_at": "2024-12-07T13:08:41Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-07T13:08:41Z",
+      "primary_issue_url": "https://github.com/QuarkContainer/Quark/issues/1354"
+    },
+    {
+      "repository": "RWTH-OS/eduOS-rs",
+      "clone_url": "https://github.com/RWTH-OS/eduOS-rs.git",
+      "issues": [
+        {
+          "repository": "RWTH-OS/eduOS-rs",
+          "clone_url": "https://github.com/RWTH-OS/eduOS-rs.git",
+          "issue_url": "https://github.com/RWTH-OS/eduOS-rs/issues/46",
+          "issue_number": 46,
+          "title": "unsoundness in  RomHandle::new",
+          "created_at": "2024-11-25T13:03:40Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T13:03:40Z",
+      "primary_issue_url": "https://github.com/RWTH-OS/eduOS-rs/issues/46"
+    },
+    {
+      "repository": "Ralith/hecs",
+      "clone_url": "https://github.com/Ralith/hecs.git",
+      "issues": [
+        {
+          "repository": "Ralith/hecs",
+          "clone_url": "https://github.com/Ralith/hecs.git",
+          "issue_url": "https://github.com/Ralith/hecs/issues/385",
+          "issue_number": 385,
+          "title": "Maybe unsound in 'get_mut'",
+          "created_at": "2024-11-25T08:24:45Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T08:24:45Z",
+      "primary_issue_url": "https://github.com/Ralith/hecs/issues/385"
+    },
+    {
+      "repository": "RedisJSON/RedisJSON",
+      "clone_url": "https://github.com/RedisJSON/RedisJSON.git",
+      "issues": [
+        {
+          "repository": "RedisJSON/RedisJSON",
+          "clone_url": "https://github.com/RedisJSON/RedisJSON.git",
+          "issue_url": "https://github.com/RedisJSON/RedisJSON/issues/1305",
+          "issue_number": 1305,
+          "title": "Maybe multiple unsound problem in c_api",
+          "created_at": "2024-12-09T07:30:57Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 10
+        }
+      ],
+      "primary_created_at": "2024-12-09T07:30:57Z",
+      "primary_issue_url": "https://github.com/RedisJSON/RedisJSON/issues/1305"
+    },
+    {
+      "repository": "Ruddle/Fomos",
+      "clone_url": "https://github.com/Ruddle/Fomos.git",
+      "issues": [
+        {
+          "repository": "Ruddle/Fomos",
+          "clone_url": "https://github.com/Ruddle/Fomos.git",
+          "issue_url": "https://github.com/Ruddle/Fomos/issues/5",
+          "issue_number": 5,
+          "title": "Unsoundness in to_bytes",
+          "created_at": "2024-12-04T14:40:49Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-04T14:40:49Z",
+      "primary_issue_url": "https://github.com/Ruddle/Fomos/issues/5"
+    },
+    {
+      "repository": "SitinCloud/Owlyshield",
+      "clone_url": "https://github.com/SitinCloud/Owlyshield.git",
+      "issues": [
+        {
+          "repository": "SitinCloud/Owlyshield",
+          "clone_url": "https://github.com/SitinCloud/Owlyshield.git",
+          "issue_url": "https://github.com/SitinCloud/Owlyshield/issues/59",
+          "issue_number": 59,
+          "title": "Unsoundness in UnicodeString::as_string_ext",
+          "created_at": "2024-12-05T06:37:12Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-05T06:37:12Z",
+      "primary_issue_url": "https://github.com/SitinCloud/Owlyshield/issues/59"
+    },
+    {
+      "repository": "Starlight-JS/starlight",
+      "clone_url": "https://github.com/Starlight-JS/starlight.git",
+      "issues": [
+        {
+          "repository": "Starlight-JS/starlight",
+          "clone_url": "https://github.com/Starlight-JS/starlight.git",
+          "issue_url": "https://github.com/Starlight-JS/starlight/issues/137",
+          "issue_number": 137,
+          "title": "Possible unsound problems in crates/starlight/src/vm/environment.rs",
+          "created_at": "2024-12-02T09:01:33Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-02T09:01:33Z",
+      "primary_issue_url": "https://github.com/Starlight-JS/starlight/issues/137"
+    },
+    {
+      "repository": "Teach2Breach/Tempest",
+      "clone_url": "https://github.com/Teach2Breach/Tempest.git",
+      "issues": [
+        {
+          "repository": "Teach2Breach/Tempest",
+          "clone_url": "https://github.com/Teach2Breach/Tempest.git",
+          "issue_url": "https://github.com/Teach2Breach/Tempest/issues/11",
+          "issue_number": 11,
+          "title": "Maybe unsound in get_function_address",
+          "created_at": "2024-12-11T12:37:48Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2024-12-11T12:37:48Z",
+      "primary_issue_url": "https://github.com/Teach2Breach/Tempest/issues/11"
+    },
+    {
+      "repository": "Traverse-Research/gpu-allocator",
+      "clone_url": "https://github.com/Traverse-Research/gpu-allocator.git",
+      "issues": [
+        {
+          "repository": "Traverse-Research/gpu-allocator",
+          "clone_url": "https://github.com/Traverse-Research/gpu-allocator.git",
+          "issue_url": "https://github.com/Traverse-Research/gpu-allocator/issues/255",
+          "issue_number": 255,
+          "title": "Maybe Unsound in from_winapi_d3d12_resource_desc",
+          "created_at": "2024-12-10T13:46:30Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T13:46:30Z",
+      "primary_issue_url": "https://github.com/Traverse-Research/gpu-allocator/issues/255"
+    },
+    {
+      "repository": "Umio-Yasuno/amdgpu_top",
+      "clone_url": "https://github.com/Umio-Yasuno/amdgpu_top.git",
+      "issues": [
+        {
+          "repository": "Umio-Yasuno/amdgpu_top",
+          "clone_url": "https://github.com/Umio-Yasuno/amdgpu_top.git",
+          "issue_url": "https://github.com/Umio-Yasuno/amdgpu_top/issues/104",
+          "issue_number": 104,
+          "title": "Unsoundness in 'pub fn get'",
+          "created_at": "2024-11-25T08:15:23Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T08:15:23Z",
+      "primary_issue_url": "https://github.com/Umio-Yasuno/amdgpu_top/issues/104"
+    },
+    {
+      "repository": "Xudong-Huang/may",
+      "clone_url": "https://github.com/Xudong-Huang/may.git",
+      "issues": [
+        {
+          "repository": "Xudong-Huang/may",
+          "clone_url": "https://github.com/Xudong-Huang/may.git",
+          "issue_url": "https://github.com/Xudong-Huang/may/issues/112",
+          "issue_number": 112,
+          "title": "Unsound Use of get_unchecked in wakeup Function",
+          "created_at": "2024-11-30T13:41:03Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:41:03Z",
+      "primary_issue_url": "https://github.com/Xudong-Huang/may/issues/112"
+    },
+    {
+      "repository": "apache/datafusion-comet",
+      "clone_url": "https://github.com/apache/datafusion-comet.git",
+      "issues": [
+        {
+          "repository": "apache/datafusion-comet",
+          "clone_url": "https://github.com/apache/datafusion-comet.git",
+          "issue_url": "https://github.com/apache/datafusion-comet/issues/1141",
+          "issue_number": 1141,
+          "title": "Maybe Undefined Behavior in StringView::as_utf8_str",
+          "created_at": "2024-12-05T06:26:08Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-05T06:26:08Z",
+      "primary_issue_url": "https://github.com/apache/datafusion-comet/issues/1141"
+    },
+    {
+      "repository": "arceos-org/arceos",
+      "clone_url": "https://github.com/arceos-org/arceos.git",
+      "issues": [
+        {
+          "repository": "arceos-org/arceos",
+          "clone_url": "https://github.com/arceos-org/arceos.git",
+          "issue_url": "https://github.com/arceos-org/arceos/issues/204",
+          "issue_number": 204,
+          "title": "Unsoundness in run_cmd",
+          "created_at": "2024-11-25T07:05:43Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T07:05:43Z",
+      "primary_issue_url": "https://github.com/arceos-org/arceos/issues/204"
+    },
+    {
+      "repository": "archseer/enigma",
+      "clone_url": "https://github.com/archseer/enigma.git",
+      "issues": [
+        {
+          "repository": "archseer/enigma",
+          "clone_url": "https://github.com/archseer/enigma.git",
+          "issue_url": "https://github.com/archseer/enigma/issues/44",
+          "issue_number": 44,
+          "title": "Unsound problem in InstrPtr::module",
+          "created_at": "2024-12-09T13:37:26Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "archseer/enigma",
+          "clone_url": "https://github.com/archseer/enigma.git",
+          "issue_url": "https://github.com/archseer/enigma/issues/45",
+          "issue_number": 45,
+          "title": "Unsoundness in cmp",
+          "created_at": "2025-03-04T11:39:50Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T13:37:26Z",
+      "primary_issue_url": "https://github.com/archseer/enigma/issues/44"
+    },
+    {
+      "repository": "asg017/sqlite-loadable-rs",
+      "clone_url": "https://github.com/asg017/sqlite-loadable-rs.git",
+      "issues": [
+        {
+          "repository": "asg017/sqlite-loadable-rs",
+          "clone_url": "https://github.com/asg017/sqlite-loadable-rs.git",
+          "issue_url": "https://github.com/asg017/sqlite-loadable-rs/issues/24",
+          "issue_number": 24,
+          "title": "Maybe unsound in set_argv_index and set_omit",
+          "created_at": "2024-12-09T08:47:26Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2024-12-09T08:47:26Z",
+      "primary_issue_url": "https://github.com/asg017/sqlite-loadable-rs/issues/24"
+    },
+    {
+      "repository": "astonbitecode/j4rs",
+      "clone_url": "https://github.com/astonbitecode/j4rs.git",
+      "issues": [
+        {
+          "repository": "astonbitecode/j4rs",
+          "clone_url": "https://github.com/astonbitecode/j4rs.git",
+          "issue_url": "https://github.com/astonbitecode/j4rs/issues/138",
+          "issue_number": 138,
+          "title": "Unsoundness in to_rust_string may cause UB due to unsafe assumptions about the input pointer",
+          "created_at": "2024-11-27T07:52:52Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "astonbitecode/j4rs",
+          "clone_url": "https://github.com/astonbitecode/j4rs.git",
+          "issue_url": "https://github.com/astonbitecode/j4rs/issues/140",
+          "issue_number": 140,
+          "title": "Unsoundness in drop_c_string",
+          "created_at": "2024-11-28T05:59:45Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-27T07:52:52Z",
+      "primary_issue_url": "https://github.com/astonbitecode/j4rs/issues/138"
+    },
+    {
+      "repository": "async-rs/async-std",
+      "clone_url": "https://github.com/async-rs/async-std.git",
+      "issues": [
+        {
+          "repository": "async-rs/async-std",
+          "clone_url": "https://github.com/async-rs/async-std.git",
+          "issue_url": "https://github.com/async-rs/async-std/issues/1103",
+          "issue_number": 1103,
+          "title": "Maybe Multiple unsoundness problems",
+          "created_at": "2025-09-08T12:24:20Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-09-08T12:24:20Z",
+      "primary_issue_url": "https://github.com/async-rs/async-std/issues/1103"
+    },
+    {
+      "repository": "awslabs/snapchange",
+      "clone_url": "https://github.com/awslabs/snapchange.git",
+      "issues": [
+        {
+          "repository": "awslabs/snapchange",
+          "clone_url": "https://github.com/awslabs/snapchange.git",
+          "issue_url": "https://github.com/awslabs/snapchange/issues/43",
+          "issue_number": 43,
+          "title": "Unsoundness in pub field \"console_output\"",
+          "created_at": "2024-12-23T08:56:54Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-23T08:56:54Z",
+      "primary_issue_url": "https://github.com/awslabs/snapchange/issues/43"
+    },
+    {
+      "repository": "aya-rs/aya",
+      "clone_url": "https://github.com/aya-rs/aya.git",
+      "issues": [
+        {
+          "repository": "aya-rs/aya",
+          "clone_url": "https://github.com/aya-rs/aya.git",
+          "issue_url": "https://github.com/aya-rs/aya/issues/1112",
+          "issue_number": 1112,
+          "title": "Multiple unsoundness problems in aya-ebpf/programs",
+          "created_at": "2024-12-09T09:18:20Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 5
+        }
+      ],
+      "primary_created_at": "2024-12-09T09:18:20Z",
+      "primary_issue_url": "https://github.com/aya-rs/aya/issues/1112"
+    },
+    {
+      "repository": "bbodi/rustarok",
+      "clone_url": "https://github.com/bbodi/rustarok.git",
+      "issues": [
+        {
+          "repository": "bbodi/rustarok",
+          "clone_url": "https://github.com/bbodi/rustarok.git",
+          "issue_url": "https://github.com/bbodi/rustarok/issues/25",
+          "issue_number": 25,
+          "title": "unsoundness in write_f32 groups",
+          "created_at": "2025-01-06T07:33:10Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-01-06T07:33:10Z",
+      "primary_issue_url": "https://github.com/bbodi/rustarok/issues/25"
+    },
+    {
+      "repository": "beling/bsuccinct-rs",
+      "clone_url": "https://github.com/beling/bsuccinct-rs.git",
+      "issues": [
+        {
+          "repository": "beling/bsuccinct-rs",
+          "clone_url": "https://github.com/beling/bsuccinct-rs.git",
+          "issue_url": "https://github.com/beling/bsuccinct-rs/issues/11",
+          "issue_number": 11,
+          "title": "possible unsound code",
+          "created_at": "2025-09-15T09:24:05Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-09-15T09:24:05Z",
+      "primary_issue_url": "https://github.com/beling/bsuccinct-rs/issues/11"
+    },
+    {
+      "repository": "bennetthardwick/rust-obs-plugins",
+      "clone_url": "https://github.com/bennetthardwick/rust-obs-plugins.git",
+      "issues": [
+        {
+          "repository": "bennetthardwick/rust-obs-plugins",
+          "clone_url": "https://github.com/bennetthardwick/rust-obs-plugins.git",
+          "issue_url": "https://github.com/bennetthardwick/rust-obs-plugins/issues/52",
+          "issue_number": 52,
+          "title": "Maybe unsound in VideoDataSourceContext::pointer",
+          "created_at": "2024-12-09T16:24:30Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:24:30Z",
+      "primary_issue_url": "https://github.com/bennetthardwick/rust-obs-plugins/issues/52"
+    },
+    {
+      "repository": "bergercookie/asm-lsp",
+      "clone_url": "https://github.com/bergercookie/asm-lsp.git",
+      "issues": [
+        {
+          "repository": "bergercookie/asm-lsp",
+          "clone_url": "https://github.com/bergercookie/asm-lsp.git",
+          "issue_url": "https://github.com/bergercookie/asm-lsp/issues/187",
+          "issue_number": 187,
+          "title": "get_str and get_string Are Unsound Due to Unchecked UTF-8 Operations",
+          "created_at": "2024-11-30T12:24:29Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-30T12:24:29Z",
+      "primary_issue_url": "https://github.com/bergercookie/asm-lsp/issues/187"
+    },
+    {
+      "repository": "bluealloy/revm",
+      "clone_url": "https://github.com/bluealloy/revm.git",
+      "issues": [
+        {
+          "repository": "bluealloy/revm",
+          "clone_url": "https://github.com/bluealloy/revm.git",
+          "issue_url": "https://github.com/bluealloy/revm/issues/1902",
+          "issue_number": 1902,
+          "title": "Maybe unsound in ExtBytecode",
+          "created_at": "2024-12-09T09:47:23Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T09:47:23Z",
+      "primary_issue_url": "https://github.com/bluealloy/revm/issues/1902"
+    },
+    {
+      "repository": "bluss/arrayvec",
+      "clone_url": "https://github.com/bluss/arrayvec.git",
+      "issues": [
+        {
+          "repository": "bluss/arrayvec",
+          "clone_url": "https://github.com/bluss/arrayvec.git",
+          "issue_url": "https://github.com/bluss/arrayvec/issues/300",
+          "issue_number": 300,
+          "title": "Maybe Multiple unsoundness problems",
+          "created_at": "2025-09-08T11:54:28Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-09-08T11:54:28Z",
+      "primary_issue_url": "https://github.com/bluss/arrayvec/issues/300"
+    },
+    {
+      "repository": "blyssprivacy/sdk",
+      "clone_url": "https://github.com/blyssprivacy/sdk.git",
+      "issues": [
+        {
+          "repository": "blyssprivacy/sdk",
+          "clone_url": "https://github.com/blyssprivacy/sdk.git",
+          "issue_url": "https://github.com/blyssprivacy/sdk/issues/35",
+          "issue_number": 35,
+          "title": "Undefined Behavior in Db::get_nice_slice due to Unaligned Reference",
+          "created_at": "2024-12-05T05:56:24Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-05T05:56:24Z",
+      "primary_issue_url": "https://github.com/blyssprivacy/sdk/issues/35"
+    },
+    {
+      "repository": "bnb-chain/revm",
+      "clone_url": "https://github.com/bnb-chain/revm.git",
+      "issues": [
+        {
+          "repository": "bnb-chain/revm",
+          "clone_url": "https://github.com/bnb-chain/revm.git",
+          "issue_url": "https://github.com/bnb-chain/revm/issues/89",
+          "issue_number": 89,
+          "title": "Maybe unsound in current_opcode",
+          "created_at": "2024-12-09T13:30:40Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T13:30:40Z",
+      "primary_issue_url": "https://github.com/bnb-chain/revm/issues/89"
+    },
+    {
+      "repository": "brson/rust-sdl",
+      "clone_url": "https://github.com/brson/rust-sdl.git",
+      "issues": [
+        {
+          "repository": "brson/rust-sdl",
+          "clone_url": "https://github.com/brson/rust-sdl.git",
+          "issue_url": "https://github.com/brson/rust-sdl/issues/168",
+          "issue_number": 168,
+          "title": "Maybe unsound in Surface::raw",
+          "created_at": "2024-12-09T16:28:46Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:28:46Z",
+      "primary_issue_url": "https://github.com/brson/rust-sdl/issues/168"
+    },
+    {
+      "repository": "capnproto/capnproto-rust",
+      "clone_url": "https://github.com/capnproto/capnproto-rust.git",
+      "issues": [
+        {
+          "repository": "capnproto/capnproto-rust",
+          "clone_url": "https://github.com/capnproto/capnproto-rust.git",
+          "issue_url": "https://github.com/capnproto/capnproto-rust/issues/534",
+          "issue_number": 534,
+          "title": "Maybe unsound in set_capability_pointer",
+          "created_at": "2024-12-09T07:33:46Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-09T07:33:46Z",
+      "primary_issue_url": "https://github.com/capnproto/capnproto-rust/issues/534"
+    },
+    {
+      "repository": "cea-sec/sanzu",
+      "clone_url": "https://github.com/cea-sec/sanzu.git",
+      "issues": [
+        {
+          "repository": "cea-sec/sanzu",
+          "clone_url": "https://github.com/cea-sec/sanzu.git",
+          "issue_url": "https://github.com/cea-sec/sanzu/issues/309",
+          "issue_number": 309,
+          "title": "Unsoundness in AVFrame::plane",
+          "created_at": "2024-12-09T16:15:44Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:15:44Z",
+      "primary_issue_url": "https://github.com/cea-sec/sanzu/issues/309"
+    },
+    {
+      "repository": "changlan/kytan",
+      "clone_url": "https://github.com/changlan/kytan.git",
+      "issues": [
+        {
+          "repository": "changlan/kytan",
+          "clone_url": "https://github.com/changlan/kytan.git",
+          "issue_url": "https://github.com/changlan/kytan/issues/39",
+          "issue_number": 39,
+          "title": "Unsoundness in raw_cksum",
+          "created_at": "2025-03-03T10:52:45Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T10:52:45Z",
+      "primary_issue_url": "https://github.com/changlan/kytan/issues/39"
+    },
+    {
+      "repository": "chinedufn/swift-bridge",
+      "clone_url": "https://github.com/chinedufn/swift-bridge.git",
+      "issues": [
+        {
+          "repository": "chinedufn/swift-bridge",
+          "clone_url": "https://github.com/chinedufn/swift-bridge.git",
+          "issue_url": "https://github.com/chinedufn/swift-bridge/issues/304",
+          "issue_number": 304,
+          "title": "Bug report: Unsoundness  in FfiSlice::as_slice",
+          "created_at": "2024-12-02T08:43:57Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-02T08:43:57Z",
+      "primary_issue_url": "https://github.com/chinedufn/swift-bridge/issues/304"
+    },
+    {
+      "repository": "crabml/crabml",
+      "clone_url": "https://github.com/crabml/crabml.git",
+      "issues": [
+        {
+          "repository": "crabml/crabml",
+          "clone_url": "https://github.com/crabml/crabml.git",
+          "issue_url": "https://github.com/crabml/crabml/issues/218",
+          "issue_number": 218,
+          "title": "Unsoundness issue in fn vec_fma_f16_f16_neon",
+          "created_at": "2025-03-03T08:39:21Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2025-03-03T08:39:21Z",
+      "primary_issue_url": "https://github.com/crabml/crabml/issues/218"
+    },
+    {
+      "repository": "danielpclark/rutie",
+      "clone_url": "https://github.com/danielpclark/rutie.git",
+      "issues": [
+        {
+          "repository": "danielpclark/rutie",
+          "clone_url": "https://github.com/danielpclark/rutie.git",
+          "issue_url": "https://github.com/danielpclark/rutie/issues/190",
+          "issue_number": 190,
+          "title": "Unsoundness in parse_arguments",
+          "created_at": "2024-11-25T13:40:42Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-25T13:40:42Z",
+      "primary_issue_url": "https://github.com/danielpclark/rutie/issues/190"
+    },
+    {
+      "repository": "datenlord/async-rdma",
+      "clone_url": "https://github.com/datenlord/async-rdma.git",
+      "issues": [
+        {
+          "repository": "datenlord/async-rdma",
+          "clone_url": "https://github.com/datenlord/async-rdma.git",
+          "issue_url": "https://github.com/datenlord/async-rdma/issues/125",
+          "issue_number": 125,
+          "title": "Maybe unsound issue in cm_connect_helper",
+          "created_at": "2025-03-01T17:05:15Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-01T17:05:15Z",
+      "primary_issue_url": "https://github.com/datenlord/async-rdma/issues/125"
+    },
+    {
+      "repository": "dnglab/dnglab",
+      "clone_url": "https://github.com/dnglab/dnglab.git",
+      "issues": [
+        {
+          "repository": "dnglab/dnglab",
+          "clone_url": "https://github.com/dnglab/dnglab.git",
+          "issue_url": "https://github.com/dnglab/dnglab/issues/488",
+          "issue_number": 488,
+          "title": "Not sure whether it is a UB?",
+          "created_at": "2024-12-04T09:28:22Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-04T09:28:22Z",
+      "primary_issue_url": "https://github.com/dnglab/dnglab/issues/488"
+    },
+    {
+      "repository": "dontpanic92/OpenPAL3",
+      "clone_url": "https://github.com/dontpanic92/OpenPAL3.git",
+      "issues": [
+        {
+          "repository": "dontpanic92/OpenPAL3",
+          "clone_url": "https://github.com/dontpanic92/OpenPAL3.git",
+          "issue_url": "https://github.com/dontpanic92/OpenPAL3/issues/51",
+          "issue_number": 51,
+          "title": "Maybe unsound in add_ref",
+          "created_at": "2024-12-09T08:40:25Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2024-12-09T08:40:25Z",
+      "primary_issue_url": "https://github.com/dontpanic92/OpenPAL3/issues/51"
+    },
+    {
+      "repository": "douchuan/jvm",
+      "clone_url": "https://github.com/douchuan/jvm.git",
+      "issues": [
+        {
+          "repository": "douchuan/jvm",
+          "clone_url": "https://github.com/douchuan/jvm.git",
+          "issue_url": "https://github.com/douchuan/jvm/issues/13",
+          "issue_number": 13,
+          "title": "Unsound Use of std::str::from_utf8_unchecked in find_symbol",
+          "created_at": "2024-11-30T12:53:40Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        },
+        {
+          "repository": "douchuan/jvm",
+          "clone_url": "https://github.com/douchuan/jvm.git",
+          "issue_url": "https://github.com/douchuan/jvm/issues/14",
+          "issue_number": 14,
+          "title": "Unsoundness in load_class_from_path",
+          "created_at": "2025-03-04T10:44:26Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T12:53:40Z",
+      "primary_issue_url": "https://github.com/douchuan/jvm/issues/13"
+    },
+    {
+      "repository": "dragonflyoss/nydus",
+      "clone_url": "https://github.com/dragonflyoss/nydus.git",
+      "issues": [
+        {
+          "repository": "dragonflyoss/nydus",
+          "clone_url": "https://github.com/dragonflyoss/nydus.git",
+          "issue_url": "https://github.com/dragonflyoss/nydus/issues/1814",
+          "issue_number": 1814,
+          "title": "[Unsoundness] Undefined Behavior in public API alloc_buf due to uninitialized memory usage",
+          "created_at": "2025-11-24T08:59:57Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-11-24T08:59:57Z",
+      "primary_issue_url": "https://github.com/dragonflyoss/nydus/issues/1814"
+    },
+    {
+      "repository": "eclipse-zenoh/zenoh",
+      "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+      "issues": [
+        {
+          "repository": "eclipse-zenoh/zenoh",
+          "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+          "issue_url": "https://github.com/eclipse-zenoh/zenoh/issues/1643",
+          "issue_number": 1643,
+          "title": "Unsoundness in OwnedDescriptor::atomic",
+          "created_at": "2024-12-09T14:47:23Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "eclipse-zenoh/zenoh",
+          "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+          "issue_url": "https://github.com/eclipse-zenoh/zenoh/issues/1683",
+          "issue_number": 1683,
+          "title": "Maybe unsound in watchdog::descriptor::confirm",
+          "created_at": "2024-12-24T08:03:07Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T14:47:23Z",
+      "primary_issue_url": "https://github.com/eclipse-zenoh/zenoh/issues/1643"
+    },
+    {
+      "repository": "everx-labs/ever-sdk",
+      "clone_url": "https://github.com/everx-labs/ever-sdk.git",
+      "issues": [
+        {
+          "repository": "everx-labs/ever-sdk",
+          "clone_url": "https://github.com/everx-labs/ever-sdk.git",
+          "issue_url": "https://github.com/everx-labs/ever-sdk/issues/1062",
+          "issue_number": 1062,
+          "title": "Maybe unsound in StringData",
+          "created_at": "2024-12-06T07:30:01Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-06T07:30:01Z",
+      "primary_issue_url": "https://github.com/everx-labs/ever-sdk/issues/1062"
+    },
+    {
+      "repository": "evmar/n2",
+      "clone_url": "https://github.com/evmar/n2.git",
+      "issues": [
+        {
+          "repository": "evmar/n2",
+          "clone_url": "https://github.com/evmar/n2.git",
+          "issue_url": "https://github.com/evmar/n2/issues/121",
+          "issue_number": 121,
+          "title": "Bug Report: Invalid Input Handling in `Scanner::slice` Method",
+          "created_at": "2024-11-11T06:24:35Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "evmar/n2",
+          "clone_url": "https://github.com/evmar/n2.git",
+          "issue_url": "https://github.com/evmar/n2/issues/122",
+          "issue_number": 122,
+          "title": "Bug Report: Out of Bounds Access in `Scanner::peek` Method",
+          "created_at": "2024-11-11T06:40:04Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "evmar/n2",
+          "clone_url": "https://github.com/evmar/n2.git",
+          "issue_url": "https://github.com/evmar/n2/issues/123",
+          "issue_number": 123,
+          "title": "Bug Report: Invalid Input Handling in `Scanner::peek_newline` Method",
+          "created_at": "2024-11-11T06:52:17Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-11T06:24:35Z",
+      "primary_issue_url": "https://github.com/evmar/n2/issues/121"
+    },
+    {
+      "repository": "evmar/retrowin32",
+      "clone_url": "https://github.com/evmar/retrowin32.git",
+      "issues": [
+        {
+          "repository": "evmar/retrowin32",
+          "clone_url": "https://github.com/evmar/retrowin32.git",
+          "issue_url": "https://github.com/evmar/retrowin32/issues/72",
+          "issue_number": 72,
+          "title": "Unsoundness in safe 'copy' function may cause UB due to lack of bounds checks",
+          "created_at": "2024-11-27T07:13:36Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "evmar/retrowin32",
+          "clone_url": "https://github.com/evmar/retrowin32.git",
+          "issue_url": "https://github.com/evmar/retrowin32/issues/74",
+          "issue_number": 74,
+          "title": "Arg<T> Implementation Allows Undefined Behavior Due to Unsafe Pointer Operations",
+          "created_at": "2024-12-03T15:40:17Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-27T07:13:36Z",
+      "primary_issue_url": "https://github.com/evmar/retrowin32/issues/72"
+    },
+    {
+      "repository": "flaneur2020/pua-lang",
+      "clone_url": "https://github.com/flaneur2020/pua-lang.git",
+      "issues": [
+        {
+          "repository": "flaneur2020/pua-lang",
+          "clone_url": "https://github.com/flaneur2020/pua-lang.git",
+          "issue_url": "https://github.com/flaneur2020/pua-lang/issues/76",
+          "issue_number": 76,
+          "title": "dealloc Function Causes Undefined Behavior Due to Improper Use of Vec::from_raw_parts",
+          "created_at": "2024-11-30T10:57:49Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T10:57:49Z",
+      "primary_issue_url": "https://github.com/flaneur2020/pua-lang/issues/76"
+    },
+    {
+      "repository": "fugue-re/fugue-core",
+      "clone_url": "https://github.com/fugue-re/fugue-core.git",
+      "issues": [
+        {
+          "repository": "fugue-re/fugue-core",
+          "clone_url": "https://github.com/fugue-re/fugue-core.git",
+          "issue_url": "https://github.com/fugue-re/fugue-core/issues/18",
+          "issue_number": 18,
+          "title": "Unsound Use of get_unchecked in unchecked_symbol",
+          "created_at": "2024-11-30T13:18:35Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:18:35Z",
+      "primary_issue_url": "https://github.com/fugue-re/fugue-core/issues/18"
+    },
+    {
+      "repository": "georust/gdal",
+      "clone_url": "https://github.com/georust/gdal.git",
+      "issues": [
+        {
+          "repository": "georust/gdal",
+          "clone_url": "https://github.com/georust/gdal.git",
+          "issue_url": "https://github.com/georust/gdal/issues/588",
+          "issue_number": 588,
+          "title": "Unsoundness in \"_string\" and \"_pathbuf\"",
+          "created_at": "2024-11-27T08:34:00Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-27T08:34:00Z",
+      "primary_issue_url": "https://github.com/georust/gdal/issues/588"
+    },
+    {
+      "repository": "gluon-lang/gluon",
+      "clone_url": "https://github.com/gluon-lang/gluon.git",
+      "issues": [
+        {
+          "repository": "gluon-lang/gluon",
+          "clone_url": "https://github.com/gluon-lang/gluon.git",
+          "issue_url": "https://github.com/gluon-lang/gluon/issues/969",
+          "issue_number": 969,
+          "title": "WriteOnly::write can cause stack overflow or out-of-memory error with large inputs",
+          "created_at": "2024-12-03T06:18:41Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-03T06:18:41Z",
+      "primary_issue_url": "https://github.com/gluon-lang/gluon/issues/969"
+    },
+    {
+      "repository": "hermit-os/uhyve",
+      "clone_url": "https://github.com/hermit-os/uhyve.git",
+      "issues": [
+        {
+          "repository": "hermit-os/uhyve",
+          "clone_url": "https://github.com/hermit-os/uhyve.git",
+          "issue_url": "https://github.com/hermit-os/uhyve/issues/834",
+          "issue_number": 834,
+          "title": "Maybe unsound in Vring::_flags",
+          "created_at": "2024-12-10T09:35:21Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "hermit-os/uhyve",
+          "clone_url": "https://github.com/hermit-os/uhyve.git",
+          "issue_url": "https://github.com/hermit-os/uhyve/issues/855",
+          "issue_number": 855,
+          "title": "Maybe unsound in virtio's write_ fn groups",
+          "created_at": "2025-01-06T08:05:41Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2024-12-10T09:35:21Z",
+      "primary_issue_url": "https://github.com/hermit-os/uhyve/issues/834"
+    },
+    {
+      "repository": "imazen/imageflow",
+      "clone_url": "https://github.com/imazen/imageflow.git",
+      "issues": [
+        {
+          "repository": "imazen/imageflow",
+          "clone_url": "https://github.com/imazen/imageflow.git",
+          "issue_url": "https://github.com/imazen/imageflow/issues/655",
+          "issue_number": 655,
+          "title": "Maybe unsound in ffi::BitmapBgra pixels field",
+          "created_at": "2024-12-24T08:42:27Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-24T08:42:27Z",
+      "primary_issue_url": "https://github.com/imazen/imageflow/issues/655"
+    },
+    {
+      "repository": "inherd/coco",
+      "clone_url": "https://github.com/inherd/coco.git",
+      "issues": [
+        {
+          "repository": "inherd/coco",
+          "clone_url": "https://github.com/inherd/coco.git",
+          "issue_url": "https://github.com/inherd/coco/issues/101",
+          "issue_number": 101,
+          "title": "Unsoundness in run_ctags",
+          "created_at": "2025-03-04T10:17:08Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-04T10:17:08Z",
+      "primary_issue_url": "https://github.com/inherd/coco/issues/101"
+    },
+    {
+      "repository": "jeaye/ncurses-rs",
+      "clone_url": "https://github.com/jeaye/ncurses-rs.git",
+      "issues": [
+        {
+          "repository": "jeaye/ncurses-rs",
+          "clone_url": "https://github.com/jeaye/ncurses-rs.git",
+          "issue_url": "https://github.com/jeaye/ncurses-rs/issues/224",
+          "issue_number": 224,
+          "title": "Unsoundness in ptr_to_string may cause UB due to unsafe assumptions about pointer validity and string encoding",
+          "created_at": "2024-11-27T08:02:13Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-27T08:02:13Z",
+      "primary_issue_url": "https://github.com/jeaye/ncurses-rs/issues/224"
+    },
+    {
+      "repository": "jfecher/ante",
+      "clone_url": "https://github.com/jfecher/ante.git",
+      "issues": [
+        {
+          "repository": "jfecher/ante",
+          "clone_url": "https://github.com/jfecher/ante.git",
+          "issue_url": "https://github.com/jfecher/ante/issues/221",
+          "issue_number": 221,
+          "title": "[Unsoundness] Critical soundness violations in public API src/util/trustme.rs (make_mut_ref, extend_lifetime)",
+          "created_at": "2025-11-25T07:34:42Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2025-11-25T07:34:42Z",
+      "primary_issue_url": "https://github.com/jfecher/ante/issues/221"
+    },
+    {
+      "repository": "joaoviictorti/shadow",
+      "clone_url": "https://github.com/joaoviictorti/shadow.git",
+      "issues": [
+        {
+          "repository": "joaoviictorti/shadow",
+          "clone_url": "https://github.com/joaoviictorti/shadow.git",
+          "issue_url": "https://github.com/joaoviictorti/shadow/issues/5",
+          "issue_number": 5,
+          "title": "Maybe unsound in add_remove_port_toggle",
+          "created_at": "2024-12-09T06:46:33Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T06:46:33Z",
+      "primary_issue_url": "https://github.com/joaoviictorti/shadow/issues/5"
+    },
+    {
+      "repository": "kahing/catfs",
+      "clone_url": "https://github.com/kahing/catfs.git",
+      "issues": [
+        {
+          "repository": "kahing/catfs",
+          "clone_url": "https://github.com/kahing/catfs.git",
+          "issue_url": "https://github.com/kahing/catfs/issues/77",
+          "issue_number": 77,
+          "title": "[Unsoundness] Critical: Public API make_self allows arbitrary lifetime extension leading to Use-After-Free",
+          "created_at": "2025-11-26T09:10:20Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-11-26T09:10:20Z",
+      "primary_issue_url": "https://github.com/kahing/catfs/issues/77"
+    },
+    {
+      "repository": "kcl-lang/kcl",
+      "clone_url": "https://github.com/kcl-lang/kcl.git",
+      "issues": [
+        {
+          "repository": "kcl-lang/kcl",
+          "clone_url": "https://github.com/kcl-lang/kcl.git",
+          "issue_url": "https://github.com/kcl-lang/kcl/issues/1776",
+          "issue_number": 1776,
+          "title": "Maybe unsound in c2str_vec",
+          "created_at": "2024-12-09T07:48:22Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T07:48:22Z",
+      "primary_issue_url": "https://github.com/kcl-lang/kcl/issues/1776"
+    },
+    {
+      "repository": "laptou/jsi-rs",
+      "clone_url": "https://github.com/laptou/jsi-rs.git",
+      "issues": [
+        {
+          "repository": "laptou/jsi-rs",
+          "clone_url": "https://github.com/laptou/jsi-rs.git",
+          "issue_url": "https://github.com/laptou/jsi-rs/issues/5",
+          "issue_number": 5,
+          "title": "Maybe unsound in new_unchecked",
+          "created_at": "2024-12-10T14:35:06Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T14:35:06Z",
+      "primary_issue_url": "https://github.com/laptou/jsi-rs/issues/5"
+    },
+    {
+      "repository": "leetvr/hotham",
+      "clone_url": "https://github.com/leetvr/hotham.git",
+      "issues": [
+        {
+          "repository": "leetvr/hotham",
+          "clone_url": "https://github.com/leetvr/hotham.git",
+          "issue_url": "https://github.com/leetvr/hotham/issues/449",
+          "issue_number": 449,
+          "title": "[Bug]: Unsoundness in u8_to_u32",
+          "created_at": "2025-01-07T07:02:49Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-01-07T07:02:49Z",
+      "primary_issue_url": "https://github.com/leetvr/hotham/issues/449"
+    },
+    {
+      "repository": "leostera/lam",
+      "clone_url": "https://github.com/leostera/lam.git",
+      "issues": [
+        {
+          "repository": "leostera/lam",
+          "clone_url": "https://github.com/leostera/lam.git",
+          "issue_url": "https://github.com/leostera/lam/issues/9",
+          "issue_number": 9,
+          "title": "Unsound issue in program",
+          "created_at": "2025-03-03T05:50:36Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T05:50:36Z",
+      "primary_issue_url": "https://github.com/leostera/lam/issues/9"
+    },
+    {
+      "repository": "m4b/dryad",
+      "clone_url": "https://github.com/m4b/dryad.git",
+      "issues": [
+        {
+          "repository": "m4b/dryad",
+          "clone_url": "https://github.com/m4b/dryad.git",
+          "issue_url": "https://github.com/m4b/dryad/issues/6",
+          "issue_number": 6,
+          "title": "Potential Undefined Behavior in from_executable Due to Unsafe Pointer Usage and Assumptions",
+          "created_at": "2024-11-30T11:10:56Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T11:10:56Z",
+      "primary_issue_url": "https://github.com/m4b/dryad/issues/6"
+    },
+    {
+      "repository": "maekawatoshiki/ferrugo",
+      "clone_url": "https://github.com/maekawatoshiki/ferrugo.git",
+      "issues": [
+        {
+          "repository": "maekawatoshiki/ferrugo",
+          "clone_url": "https://github.com/maekawatoshiki/ferrugo.git",
+          "issue_url": "https://github.com/maekawatoshiki/ferrugo/issues/2",
+          "issue_number": 2,
+          "title": "Maybe unsound in CodeAttribute",
+          "created_at": "2024-12-09T16:59:08Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T16:59:08Z",
+      "primary_issue_url": "https://github.com/maekawatoshiki/ferrugo/issues/2"
+    },
+    {
+      "repository": "maekawatoshiki/rapidus",
+      "clone_url": "https://github.com/maekawatoshiki/rapidus.git",
+      "issues": [
+        {
+          "repository": "maekawatoshiki/rapidus",
+          "clone_url": "https://github.com/maekawatoshiki/rapidus.git",
+          "issue_url": "https://github.com/maekawatoshiki/rapidus/issues/72",
+          "issue_number": 72,
+          "title": "Maybe unsound in cstrp_to_str",
+          "created_at": "2024-12-09T06:58:17Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T06:58:17Z",
+      "primary_issue_url": "https://github.com/maekawatoshiki/rapidus/issues/72"
+    },
+    {
+      "repository": "meh/rust-ffmpeg",
+      "clone_url": "https://github.com/meh/rust-ffmpeg.git",
+      "issues": [
+        {
+          "repository": "meh/rust-ffmpeg",
+          "clone_url": "https://github.com/meh/rust-ffmpeg.git",
+          "issue_url": "https://github.com/meh/rust-ffmpeg/issues/188",
+          "issue_number": 188,
+          "title": "Maybe unsound in RateIter::next",
+          "created_at": "2024-12-10T08:13:27Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T08:13:27Z",
+      "primary_issue_url": "https://github.com/meh/rust-ffmpeg/issues/188"
+    },
+    {
+      "repository": "michelhe/rustboyadvance-ng",
+      "clone_url": "https://github.com/michelhe/rustboyadvance-ng.git",
+      "issues": [
+        {
+          "repository": "michelhe/rustboyadvance-ng",
+          "clone_url": "https://github.com/michelhe/rustboyadvance-ng.git",
+          "issue_url": "https://github.com/michelhe/rustboyadvance-ng/issues/177",
+          "issue_number": 177,
+          "title": "Maybe unsound in WeakPointer::new",
+          "created_at": "2024-12-10T08:03:34Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T08:03:34Z",
+      "primary_issue_url": "https://github.com/michelhe/rustboyadvance-ng/issues/177"
+    },
+    {
+      "repository": "microsoft/aici",
+      "clone_url": "https://github.com/microsoft/aici.git",
+      "issues": [
+        {
+          "repository": "microsoft/aici",
+          "clone_url": "https://github.com/microsoft/aici.git",
+          "issue_url": "https://github.com/microsoft/aici/issues/119",
+          "issue_number": 119,
+          "title": "maybe unsound in busy_reset",
+          "created_at": "2025-01-03T02:56:16Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-01-03T02:56:16Z",
+      "primary_issue_url": "https://github.com/microsoft/aici/issues/119"
+    },
+    {
+      "repository": "moratorium08/osmium",
+      "clone_url": "https://github.com/moratorium08/osmium.git",
+      "issues": [
+        {
+          "repository": "moratorium08/osmium",
+          "clone_url": "https://github.com/moratorium08/osmium.git",
+          "issue_url": "https://github.com/moratorium08/osmium/issues/3",
+          "issue_number": 3,
+          "title": "Maybe unsound in new?",
+          "created_at": "2024-12-09T06:32:56Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "moratorium08/osmium",
+          "clone_url": "https://github.com/moratorium08/osmium.git",
+          "issue_url": "https://github.com/moratorium08/osmium/issues/4",
+          "issue_number": 4,
+          "title": "Unsoundness in receive_data",
+          "created_at": "2025-03-04T11:30:17Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-09T06:32:56Z",
+      "primary_issue_url": "https://github.com/moratorium08/osmium/issues/3"
+    },
+    {
+      "repository": "mstange/samply",
+      "clone_url": "https://github.com/mstange/samply.git",
+      "issues": [
+        {
+          "repository": "mstange/samply",
+          "clone_url": "https://github.com/mstange/samply.git",
+          "issue_url": "https://github.com/mstange/samply/issues/719",
+          "issue_number": 719,
+          "title": "[Unsoundness] Out-of-bounds read in public API parse_unk_size_null_utf16_string due to unsafe loop condition order",
+          "created_at": "2025-11-24T09:38:23Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-11-24T09:38:23Z",
+      "primary_issue_url": "https://github.com/mstange/samply/issues/719"
+    },
+    {
+      "repository": "mycelial/mycelite",
+      "clone_url": "https://github.com/mycelial/mycelite.git",
+      "issues": [
+        {
+          "repository": "mycelial/mycelite",
+          "clone_url": "https://github.com/mycelial/mycelite.git",
+          "issue_url": "https://github.com/mycelial/mycelite/issues/52",
+          "issue_number": 52,
+          "title": "Unsoundness in PtrIter::next",
+          "created_at": "2024-12-10T06:29:26Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T06:29:26Z",
+      "primary_issue_url": "https://github.com/mycelial/mycelite/issues/52"
+    },
+    {
+      "repository": "nash-io/openlimits",
+      "clone_url": "https://github.com/nash-io/openlimits.git",
+      "issues": [
+        {
+          "repository": "nash-io/openlimits",
+          "clone_url": "https://github.com/nash-io/openlimits.git",
+          "issue_url": "https://github.com/nash-io/openlimits/issues/204",
+          "issue_number": 204,
+          "title": "Unsound Use of CStr::from_ptr in new Function",
+          "created_at": "2024-11-30T13:10:13Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:10:13Z",
+      "primary_issue_url": "https://github.com/nash-io/openlimits/issues/204"
+    },
+    {
+      "repository": "nervosnetwork/ckb-vm",
+      "clone_url": "https://github.com/nervosnetwork/ckb-vm.git",
+      "issues": [
+        {
+          "repository": "nervosnetwork/ckb-vm",
+          "clone_url": "https://github.com/nervosnetwork/ckb-vm.git",
+          "issue_url": "https://github.com/nervosnetwork/ckb-vm/issues/444",
+          "issue_number": 444,
+          "title": "Unsoundness in cast_ptr_to_slice",
+          "created_at": "2024-11-25T13:14:46Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-25T13:14:46Z",
+      "primary_issue_url": "https://github.com/nervosnetwork/ckb-vm/issues/444"
+    },
+    {
+      "repository": "ninja-quant/ninjabook",
+      "clone_url": "https://github.com/ninja-quant/ninjabook.git",
+      "issues": [
+        {
+          "repository": "ninja-quant/ninjabook",
+          "clone_url": "https://github.com/ninja-quant/ninjabook.git",
+          "issue_url": "https://github.com/ninja-quant/ninjabook/issues/3",
+          "issue_number": 3,
+          "title": "Unsound Implementation of get_mut in Orderbook Allows Undefined Behavior",
+          "created_at": "2024-11-30T12:18:31Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-30T12:18:31Z",
+      "primary_issue_url": "https://github.com/ninja-quant/ninjabook/issues/3"
+    },
+    {
+      "repository": "nixops4/nixops4",
+      "clone_url": "https://github.com/nixops4/nixops4.git",
+      "issues": [
+        {
+          "repository": "nixops4/nixops4",
+          "clone_url": "https://github.com/nixops4/nixops4.git",
+          "issue_url": "https://github.com/nixops4/nixops4/issues/65",
+          "issue_number": 65,
+          "title": "Maybe unsound in new_raw_clone",
+          "created_at": "2024-12-10T14:12:59Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T14:12:59Z",
+      "primary_issue_url": "https://github.com/nixops4/nixops4/issues/65"
+    },
+    {
+      "repository": "nuta/kerla",
+      "clone_url": "https://github.com/nuta/kerla.git",
+      "issues": [
+        {
+          "repository": "nuta/kerla",
+          "clone_url": "https://github.com/nuta/kerla.git",
+          "issue_url": "https://github.com/nuta/kerla/issues/170",
+          "issue_number": 170,
+          "title": "Unsoundness in fn parse_str_field",
+          "created_at": "2025-03-03T12:16:32Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T12:16:32Z",
+      "primary_issue_url": "https://github.com/nuta/kerla/issues/170"
+    },
+    {
+      "repository": "o8vm/krabs",
+      "clone_url": "https://github.com/o8vm/krabs.git",
+      "issues": [
+        {
+          "repository": "o8vm/krabs",
+          "clone_url": "https://github.com/o8vm/krabs.git",
+          "issue_url": "https://github.com/o8vm/krabs/issues/30",
+          "issue_number": 30,
+          "title": "Unsoundness in",
+          "created_at": "2025-03-03T11:47:59Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T11:47:59Z",
+      "primary_issue_url": "https://github.com/o8vm/krabs/issues/30"
+    },
+    {
+      "repository": "occlum/occlum",
+      "clone_url": "https://github.com/occlum/occlum.git",
+      "issues": [
+        {
+          "repository": "occlum/occlum",
+          "clone_url": "https://github.com/occlum/occlum.git",
+          "issue_url": "https://github.com/occlum/occlum/issues/1645",
+          "issue_number": 1645,
+          "title": "[BUG] Maybe unsound in from_raw_ptr",
+          "created_at": "2024-12-08T14:03:07Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-08T14:03:07Z",
+      "primary_issue_url": "https://github.com/occlum/occlum/issues/1645"
+    },
+    {
+      "repository": "only-cliches/NoProto",
+      "clone_url": "https://github.com/only-cliches/NoProto.git",
+      "issues": [
+        {
+          "repository": "only-cliches/NoProto",
+          "clone_url": "https://github.com/only-cliches/NoProto.git",
+          "issue_url": "https://github.com/only-cliches/NoProto/issues/25",
+          "issue_number": 25,
+          "title": "Multiple Unsoundness issue",
+          "created_at": "2025-03-03T08:48:26Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2025-03-03T08:48:26Z",
+      "primary_issue_url": "https://github.com/only-cliches/NoProto/issues/25"
+    },
+    {
+      "repository": "oreboot/oreboot",
+      "clone_url": "https://github.com/oreboot/oreboot.git",
+      "issues": [
+        {
+          "repository": "oreboot/oreboot",
+          "clone_url": "https://github.com/oreboot/oreboot.git",
+          "issue_url": "https://github.com/oreboot/oreboot/issues/776",
+          "issue_number": 776,
+          "title": "Unsoundness issue in",
+          "created_at": "2025-03-03T05:27:41Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T05:27:41Z",
+      "primary_issue_url": "https://github.com/oreboot/oreboot/issues/776"
+    },
+    {
+      "repository": "perpetual-ml/perpetual",
+      "clone_url": "https://github.com/perpetual-ml/perpetual.git",
+      "issues": [
+        {
+          "repository": "perpetual-ml/perpetual",
+          "clone_url": "https://github.com/perpetual-ml/perpetual.git",
+          "issue_url": "https://github.com/perpetual-ml/perpetual/issues/34",
+          "issue_number": 34,
+          "title": "Unsound Use of get_unchecked in from_parent_child and from_parent_two_children",
+          "created_at": "2024-11-30T13:16:03Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:16:03Z",
+      "primary_issue_url": "https://github.com/perpetual-ml/perpetual/issues/34"
+    },
+    {
+      "repository": "pipedown/noise",
+      "clone_url": "https://github.com/pipedown/noise.git",
+      "issues": [
+        {
+          "repository": "pipedown/noise",
+          "clone_url": "https://github.com/pipedown/noise.git",
+          "issue_url": "https://github.com/pipedown/noise/issues/82",
+          "issue_number": 82,
+          "title": "Unsoundness in maybe_add_value",
+          "created_at": "2025-03-04T10:30:00Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-04T10:30:00Z",
+      "primary_issue_url": "https://github.com/pipedown/noise/issues/82"
+    },
+    {
+      "repository": "pleco-rs/Pleco",
+      "clone_url": "https://github.com/pleco-rs/Pleco.git",
+      "issues": [
+        {
+          "repository": "pleco-rs/Pleco",
+          "clone_url": "https://github.com/pleco-rs/Pleco.git",
+          "issue_url": "https://github.com/pleco-rs/Pleco/issues/163",
+          "issue_number": 163,
+          "title": "Unsoundness in pleco_engine/src/root_moves/root_moves_list.rs \"insert_score_depth\" and \"insert_score\"",
+          "created_at": "2024-11-27T06:37:57Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-27T06:37:57Z",
+      "primary_issue_url": "https://github.com/pleco-rs/Pleco/issues/163"
+    },
+    {
+      "repository": "posit-dev/ark",
+      "clone_url": "https://github.com/posit-dev/ark.git",
+      "issues": [
+        {
+          "repository": "posit-dev/ark",
+          "clone_url": "https://github.com/posit-dev/ark.git",
+          "issue_url": "https://github.com/posit-dev/ark/issues/653",
+          "issue_number": 653,
+          "title": "Maybe unsound in RLocal::new",
+          "created_at": "2024-12-10T09:12:00Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 4
+        },
+        {
+          "repository": "posit-dev/ark",
+          "clone_url": "https://github.com/posit-dev/ark.git",
+          "issue_url": "https://github.com/posit-dev/ark/issues/729",
+          "issue_number": 729,
+          "title": "Soundness Issue: Unsafe raw pointer operation exposed through safe public API r_show_message",
+          "created_at": "2025-02-27T15:25:27Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T09:12:00Z",
+      "primary_issue_url": "https://github.com/posit-dev/ark/issues/653"
+    },
+    {
+      "repository": "r9os/r9",
+      "clone_url": "https://github.com/r9os/r9.git",
+      "issues": [
+        {
+          "repository": "r9os/r9",
+          "clone_url": "https://github.com/r9os/r9.git",
+          "issue_url": "https://github.com/r9os/r9/issues/51",
+          "issue_number": 51,
+          "title": "Maybe unsound in write_reg groups",
+          "created_at": "2025-01-06T07:43:01Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-01-06T07:43:01Z",
+      "primary_issue_url": "https://github.com/r9os/r9/issues/51"
+    },
+    {
+      "repository": "raskr/rust-autograd",
+      "clone_url": "https://github.com/raskr/rust-autograd.git",
+      "issues": [
+        {
+          "repository": "raskr/rust-autograd",
+          "clone_url": "https://github.com/raskr/rust-autograd.git",
+          "issue_url": "https://github.com/raskr/rust-autograd/issues/65",
+          "issue_number": 65,
+          "title": "Unsoundness in gen_random_array",
+          "created_at": "2025-03-04T10:51:23Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-04T10:51:23Z",
+      "primary_issue_url": "https://github.com/raskr/rust-autograd/issues/65"
+    },
+    {
+      "repository": "rcore-os/zCore",
+      "clone_url": "https://github.com/rcore-os/zCore.git",
+      "issues": [
+        {
+          "repository": "rcore-os/zCore",
+          "clone_url": "https://github.com/rcore-os/zCore.git",
+          "issue_url": "https://github.com/rcore-os/zCore/issues/406",
+          "issue_number": 406,
+          "title": "unsoundness in nvme_configure_admin_queue(&mut self)",
+          "created_at": "2025-01-02T07:31:17Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2025-01-02T07:31:17Z",
+      "primary_issue_url": "https://github.com/rcore-os/zCore/issues/406"
+    },
+    {
+      "repository": "rust-bio/rust-htslib",
+      "clone_url": "https://github.com/rust-bio/rust-htslib.git",
+      "issues": [
+        {
+          "repository": "rust-bio/rust-htslib",
+          "clone_url": "https://github.com/rust-bio/rust-htslib.git",
+          "issue_url": "https://github.com/rust-bio/rust-htslib/issues/459",
+          "issue_number": 459,
+          "title": "Multiple unsound problems in bcf crate",
+          "created_at": "2024-12-05T13:24:42Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 5
+        }
+      ],
+      "primary_created_at": "2024-12-05T13:24:42Z",
+      "primary_issue_url": "https://github.com/rust-bio/rust-htslib/issues/459"
+    },
+    {
+      "repository": "rustcoreutils/posixutils-rs",
+      "clone_url": "https://github.com/rustcoreutils/posixutils-rs.git",
+      "issues": [
+        {
+          "repository": "rustcoreutils/posixutils-rs",
+          "clone_url": "https://github.com/rustcoreutils/posixutils-rs.git",
+          "issue_url": "https://github.com/rustcoreutils/posixutils-rs/issues/380",
+          "issue_number": 380,
+          "title": "Unsoundness in open_at function",
+          "created_at": "2024-11-27T08:23:26Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-11-27T08:23:26Z",
+      "primary_issue_url": "https://github.com/rustcoreutils/posixutils-rs/issues/380"
+    },
+    {
+      "repository": "sciter-sdk/rust-sciter",
+      "clone_url": "https://github.com/sciter-sdk/rust-sciter.git",
+      "issues": [
+        {
+          "repository": "sciter-sdk/rust-sciter",
+          "clone_url": "https://github.com/sciter-sdk/rust-sciter.git",
+          "issue_url": "https://github.com/sciter-sdk/rust-sciter/issues/150",
+          "issue_number": 150,
+          "title": "Unsoundness in get",
+          "created_at": "2025-03-04T11:08:14Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 5
+        }
+      ],
+      "primary_created_at": "2025-03-04T11:08:14Z",
+      "primary_issue_url": "https://github.com/sciter-sdk/rust-sciter/issues/150"
+    },
+    {
+      "repository": "servo/mozjs",
+      "clone_url": "https://github.com/servo/mozjs.git",
+      "issues": [
+        {
+          "repository": "servo/mozjs",
+          "clone_url": "https://github.com/servo/mozjs.git",
+          "issue_url": "https://github.com/servo/mozjs/issues/531",
+          "issue_number": 531,
+          "title": "Maybe unsound in CustomAutoRooterGuard::new",
+          "created_at": "2024-12-10T09:23:46Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-12-10T09:23:46Z",
+      "primary_issue_url": "https://github.com/servo/mozjs/issues/531"
+    },
+    {
+      "repository": "sgmarz/osblog",
+      "clone_url": "https://github.com/sgmarz/osblog.git",
+      "issues": [
+        {
+          "repository": "sgmarz/osblog",
+          "clone_url": "https://github.com/sgmarz/osblog.git",
+          "issue_url": "https://github.com/sgmarz/osblog/issues/40",
+          "issue_number": 40,
+          "title": "Unsoundness in do_syscall",
+          "created_at": "2024-12-09T06:41:57Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T06:41:57Z",
+      "primary_issue_url": "https://github.com/sgmarz/osblog/issues/40"
+    },
+    {
+      "repository": "signalapp/ringrtc",
+      "clone_url": "https://github.com/signalapp/ringrtc.git",
+      "issues": [
+        {
+          "repository": "signalapp/ringrtc",
+          "clone_url": "https://github.com/signalapp/ringrtc.git",
+          "issue_url": "https://github.com/signalapp/ringrtc/issues/60",
+          "issue_number": 60,
+          "title": "Possible unsoundness in rtc_Bytes::as_slice",
+          "created_at": "2024-12-05T06:56:09Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-05T06:56:09Z",
+      "primary_issue_url": "https://github.com/signalapp/ringrtc/issues/60"
+    },
+    {
+      "repository": "smol-rs/async-task",
+      "clone_url": "https://github.com/smol-rs/async-task.git",
+      "issues": [
+        {
+          "repository": "smol-rs/async-task",
+          "clone_url": "https://github.com/smol-rs/async-task.git",
+          "issue_url": "https://github.com/smol-rs/async-task/issues/89",
+          "issue_number": 89,
+          "title": "Maybe Multiple unsoundness problems",
+          "created_at": "2025-09-08T12:32:38Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-09-08T12:32:38Z",
+      "primary_issue_url": "https://github.com/smol-rs/async-task/issues/89"
+    },
+    {
+      "repository": "starcoinorg/starcoin",
+      "clone_url": "https://github.com/starcoinorg/starcoin.git",
+      "issues": [
+        {
+          "repository": "starcoinorg/starcoin",
+          "clone_url": "https://github.com/starcoinorg/starcoin.git",
+          "issue_url": "https://github.com/starcoinorg/starcoin/issues/4763",
+          "issue_number": 4763,
+          "title": "[Unsoundness] Potential buffer over-read in public API cryptonight_r due to unchecked size parameter",
+          "created_at": "2025-11-25T08:59:59Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2025-11-25T08:59:59Z",
+      "primary_issue_url": "https://github.com/starcoinorg/starcoin/issues/4763"
+    },
+    {
+      "repository": "tensorbase/tensorbase",
+      "clone_url": "https://github.com/tensorbase/tensorbase.git",
+      "issues": [
+        {
+          "repository": "tensorbase/tensorbase",
+          "clone_url": "https://github.com/tensorbase/tensorbase.git",
+          "issue_url": "https://github.com/tensorbase/tensorbase/issues/351",
+          "issue_number": 351,
+          "title": "Unsound Use of CString::from_vec_unchecked in bytes_to_cstring",
+          "created_at": "2024-11-30T13:25:01Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 5
+        },
+        {
+          "repository": "tensorbase/tensorbase",
+          "clone_url": "https://github.com/tensorbase/tensorbase.git",
+          "issue_url": "https://github.com/tensorbase/tensorbase/issues/352",
+          "issue_number": 352,
+          "title": "Public API “shape_slice” “shape_vec” “shape_vec_u8” constructs unaligned references causing Undefined Behavior",
+          "created_at": "2025-11-25T09:14:49Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:25:01Z",
+      "primary_issue_url": "https://github.com/tensorbase/tensorbase/issues/351"
+    },
+    {
+      "repository": "tensorchord/pgvecto.rs",
+      "clone_url": "https://github.com/tensorchord/pgvecto.rs.git",
+      "issues": [
+        {
+          "repository": "tensorchord/pgvecto.rs",
+          "clone_url": "https://github.com/tensorchord/pgvecto.rs.git",
+          "issue_url": "https://github.com/tensorchord/pgvecto.rs/issues/653",
+          "issue_number": 653,
+          "title": "Public API try_pod_read_unaligned causes Out-of-Bounds read due to missing length check",
+          "created_at": "2025-11-25T09:30:29Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2025-11-25T09:30:29Z",
+      "primary_issue_url": "https://github.com/tensorchord/pgvecto.rs/issues/653"
+    },
+    {
+      "repository": "topiary/topiary",
+      "clone_url": "https://github.com/topiary/topiary.git",
+      "issues": [
+        {
+          "repository": "topiary/topiary",
+          "clone_url": "https://github.com/topiary/topiary.git",
+          "issue_url": "https://github.com/topiary/topiary/issues/792",
+          "issue_number": 792,
+          "title": "Unsoundness in 'parse','child_by_field_name' and 'field_id_for_name'",
+          "created_at": "2024-11-25T07:42:50Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        }
+      ],
+      "primary_created_at": "2024-11-25T07:42:50Z",
+      "primary_issue_url": "https://github.com/topiary/topiary/issues/792"
+    },
+    {
+      "repository": "toxoidengine/toxoid",
+      "clone_url": "https://github.com/toxoidengine/toxoid.git",
+      "issues": [
+        {
+          "repository": "toxoidengine/toxoid",
+          "clone_url": "https://github.com/toxoidengine/toxoid.git",
+          "issue_url": "https://github.com/toxoidengine/toxoid/issues/5",
+          "issue_number": 5,
+          "title": "Maybe Unsound in init_image",
+          "created_at": "2024-12-11T12:21:26Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-11T12:21:26Z",
+      "primary_issue_url": "https://github.com/toxoidengine/toxoid/issues/5"
+    },
+    {
+      "repository": "tursodatabase/libsql",
+      "clone_url": "https://github.com/tursodatabase/libsql.git",
+      "issues": [
+        {
+          "repository": "tursodatabase/libsql",
+          "clone_url": "https://github.com/tursodatabase/libsql.git",
+          "issue_url": "https://github.com/tursodatabase/libsql/issues/1859",
+          "issue_number": 1859,
+          "title": "Unsound Use of str::from_utf8_unchecked in keyword_token",
+          "created_at": "2024-11-30T13:30:00Z",
+          "state": "closed",
+          "accepted_and_fixed": true,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "tursodatabase/libsql",
+          "clone_url": "https://github.com/tursodatabase/libsql.git",
+          "issue_url": "https://github.com/tursodatabase/libsql/issues/1873",
+          "issue_number": 1873,
+          "title": "Maybe unsound in db_version::next_db_version",
+          "created_at": "2024-12-09T07:41:52Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2024-11-30T13:30:00Z",
+      "primary_issue_url": "https://github.com/tursodatabase/libsql/issues/1859"
+    },
+    {
+      "repository": "tylerwhall/zephyr-rust",
+      "clone_url": "https://github.com/tylerwhall/zephyr-rust.git",
+      "issues": [
+        {
+          "repository": "tylerwhall/zephyr-rust",
+          "clone_url": "https://github.com/tylerwhall/zephyr-rust.git",
+          "issue_url": "https://github.com/tylerwhall/zephyr-rust/issues/58",
+          "issue_number": 58,
+          "title": "Maybe unsound in free_mutex",
+          "created_at": "2024-12-11T13:14:58Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-11T13:14:58Z",
+      "primary_issue_url": "https://github.com/tylerwhall/zephyr-rust/issues/58"
+    },
+    {
+      "repository": "vinc/moros",
+      "clone_url": "https://github.com/vinc/moros.git",
+      "issues": [
+        {
+          "repository": "vinc/moros",
+          "clone_url": "https://github.com/vinc/moros.git",
+          "issue_url": "https://github.com/vinc/moros/issues/724",
+          "issue_number": 724,
+          "title": "Unsound issue in sys::process::exec",
+          "created_at": "2025-03-03T04:56:08Z",
+          "state": "closed",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T04:56:08Z",
+      "primary_issue_url": "https://github.com/vinc/moros/issues/724"
+    },
+    {
+      "repository": "workflow-rs/workflow-rs",
+      "clone_url": "https://github.com/workflow-rs/workflow-rs.git",
+      "issues": [
+        {
+          "repository": "workflow-rs/workflow-rs",
+          "clone_url": "https://github.com/workflow-rs/workflow-rs.git",
+          "issue_url": "https://github.com/workflow-rs/workflow-rs/issues/14",
+          "issue_number": 14,
+          "title": "unsoundness in buffer_as_slice and buffer_as_slice_mut",
+          "created_at": "2025-09-16T09:09:32Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 2
+        }
+      ],
+      "primary_created_at": "2025-09-16T09:09:32Z",
+      "primary_issue_url": "https://github.com/workflow-rs/workflow-rs/issues/14"
+    },
+    {
+      "repository": "xajik/rust-cross-platform-mobile",
+      "clone_url": "https://github.com/xajik/rust-cross-platform-mobile.git",
+      "issues": [
+        {
+          "repository": "xajik/rust-cross-platform-mobile",
+          "clone_url": "https://github.com/xajik/rust-cross-platform-mobile.git",
+          "issue_url": "https://github.com/xajik/rust-cross-platform-mobile/issues/2",
+          "issue_number": 2,
+          "title": "Maybe unsound in JavaString::new",
+          "created_at": "2024-12-09T07:03:15Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T07:03:15Z",
+      "primary_issue_url": "https://github.com/xajik/rust-cross-platform-mobile/issues/2"
+    },
+    {
+      "repository": "yamadapc/augmented-audio",
+      "clone_url": "https://github.com/yamadapc/augmented-audio.git",
+      "issues": [
+        {
+          "repository": "yamadapc/augmented-audio",
+          "clone_url": "https://github.com/yamadapc/augmented-audio.git",
+          "issue_url": "https://github.com/yamadapc/augmented-audio/issues/615",
+          "issue_number": 615,
+          "title": "Maybe unsound in SharedGeneric::drop",
+          "created_at": "2024-12-10T08:55:14Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-10T08:55:14Z",
+      "primary_issue_url": "https://github.com/yamadapc/augmented-audio/issues/615"
+    },
+    {
+      "repository": "zackradisic/rust-vs-zig",
+      "clone_url": "https://github.com/zackradisic/rust-vs-zig.git",
+      "issues": [
+        {
+          "repository": "zackradisic/rust-vs-zig",
+          "clone_url": "https://github.com/zackradisic/rust-vs-zig.git",
+          "issue_url": "https://github.com/zackradisic/rust-vs-zig/issues/2",
+          "issue_number": 2,
+          "title": "Maybe unsound in ObjClosure",
+          "created_at": "2024-12-06T07:17:25Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 4
+        }
+      ],
+      "primary_created_at": "2024-12-06T07:17:25Z",
+      "primary_issue_url": "https://github.com/zackradisic/rust-vs-zig/issues/2"
+    },
+    {
+      "repository": "zhihu/rucene",
+      "clone_url": "https://github.com/zhihu/rucene.git",
+      "issues": [
+        {
+          "repository": "zhihu/rucene",
+          "clone_url": "https://github.com/zhihu/rucene.git",
+          "issue_url": "https://github.com/zhihu/rucene/issues/19",
+          "issue_number": 19,
+          "title": "Unsoundness in BytesRefHash::pool",
+          "created_at": "2024-12-09T14:41:06Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 3
+        },
+        {
+          "repository": "zhihu/rucene",
+          "clone_url": "https://github.com/zhihu/rucene.git",
+          "issue_url": "https://github.com/zhihu/rucene/issues/20",
+          "issue_number": 20,
+          "title": "Unsoundness in UtilMSBIntroSorter::reader",
+          "created_at": "2024-12-10T07:15:20Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        },
+        {
+          "repository": "zhihu/rucene",
+          "clone_url": "https://github.com/zhihu/rucene.git",
+          "issue_url": "https://github.com/zhihu/rucene/issues/21",
+          "issue_number": 21,
+          "title": "Unsoundness in read_data",
+          "created_at": "2025-01-02T07:26:20Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2024-12-09T14:41:06Z",
+      "primary_issue_url": "https://github.com/zhihu/rucene/issues/19"
+    },
+    {
+      "repository": "zmwangx/rust-ffmpeg",
+      "clone_url": "https://github.com/zmwangx/rust-ffmpeg.git",
+      "issues": [
+        {
+          "repository": "zmwangx/rust-ffmpeg",
+          "clone_url": "https://github.com/zmwangx/rust-ffmpeg.git",
+          "issue_url": "https://github.com/zmwangx/rust-ffmpeg/issues/225",
+          "issue_number": 225,
+          "title": "Multiple Unsoundness problems in codec",
+          "created_at": "2024-12-10T08:17:19Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 6
+        }
+      ],
+      "primary_created_at": "2024-12-10T08:17:19Z",
+      "primary_issue_url": "https://github.com/zmwangx/rust-ffmpeg/issues/225"
+    },
+    {
+      "repository": "zzau13/yarte",
+      "clone_url": "https://github.com/zzau13/yarte.git",
+      "issues": [
+        {
+          "repository": "zzau13/yarte",
+          "clone_url": "https://github.com/zzau13/yarte.git",
+          "issue_url": "https://github.com/zzau13/yarte/issues/319",
+          "issue_number": 319,
+          "title": "Unsoundness in get_nodes",
+          "created_at": "2025-03-03T12:47:51Z",
+          "state": "open",
+          "accepted_and_fixed": false,
+          "local_instance_count": 1
+        }
+      ],
+      "primary_created_at": "2025-03-03T12:47:51Z",
+      "primary_issue_url": "https://github.com/zzau13/yarte/issues/319"
+    }
+  ]
+}

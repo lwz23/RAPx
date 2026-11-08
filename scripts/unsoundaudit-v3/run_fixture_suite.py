@@ -58,6 +58,33 @@ def fail(message: str) -> None:
     raise RunnerError(message)
 
 
+def command_commit(path: Path) -> str:
+    output = subprocess.check_output([str(path), "-Vv"], text=True)
+    for line in output.splitlines():
+        if line.startswith("commit-hash:"):
+            return line.split()[1]
+    fail(f"{path} -Vv has no commit-hash")
+
+
+def pin_exact_toolchain(cargo: Path) -> Path:
+    rustc = cargo.with_name("rustc")
+    if not rustc.is_file():
+        fail(f"rustc sibling missing: {rustc}")
+    sysroot = Path(
+        subprocess.check_output([str(rustc), "--print", "sysroot"], text=True).strip()
+    )
+    lib = str(sysroot / "lib")
+    old_ld = os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["LD_LIBRARY_PATH"] = lib if not old_ld else f"{lib}:{old_ld}"
+    os.environ["UNSOUND_SCANNER_EXACT_CARGO_PATH"] = str(cargo)
+    os.environ["UNSOUND_SCANNER_EXACT_CARGO_COMMIT"] = command_commit(cargo)
+    os.environ["RUSTC"] = str(rustc)
+    os.environ["UNSOUND_SCANNER_EXPECTED_RUSTC_PATH"] = str(rustc)
+    os.environ["UNSOUND_SCANNER_EXPECTED_RUSTC_COMMIT"] = command_commit(rustc)
+    os.environ["RUST_SYSROOT"] = str(sysroot)
+    return rustc
+
+
 def canonical_json(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, indent=2, ensure_ascii=False) + "\n").encode()
 
@@ -317,6 +344,7 @@ def main() -> int:
         repo_root = args.repo_root.expanduser().resolve(strict=True)
         schema_path = args.schema.expanduser().resolve(strict=True)
         cargo = args.cargo.expanduser().resolve(strict=True)
+        pin_exact_toolchain(cargo)
         bin_dir = args.rap_bin_dir.expanduser().resolve(strict=True)
         cargo_rapx = (bin_dir / "cargo-rapx").resolve(strict=True)
         (bin_dir / "rapx").resolve(strict=True)

@@ -1,0 +1,313 @@
+{
+  "campaign_id": "cratesio-2026-08-21",
+  "packages": [
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/buf/buf_impl.rs",
+          "src/buf/buf_mut.rs",
+          "src/buf/limit.rs",
+          "src/buf/take.rs",
+          "src/buf/uninit_slice.rs",
+          "src/bytes.rs",
+          "src/bytes_mut.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 9881,
+        "rust_file_count": 19,
+        "unsafe_token_count": 103
+      },
+      "archive_filename": "bytes-1.12.1.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/bytes-1.12.1.crate",
+      "archive_sha256": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "domain": "byte_buffers",
+      "name": "bytes",
+      "published_checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 959683354,
+      "version": "1.12.1"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/lib.rs",
+          "src/tests.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 3822,
+        "rust_file_count": 4,
+        "unsafe_token_count": 54
+      },
+      "archive_filename": "smallvec-1.15.2.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/smallvec-1.15.2.crate",
+      "archive_sha256": "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90",
+      "domain": "compact_containers",
+      "name": "smallvec",
+      "published_checksum": "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 1092234343,
+      "version": "1.15.2"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/atomic.rs",
+          "src/collector.rs",
+          "src/deferred.rs",
+          "src/guard.rs",
+          "src/internal.rs",
+          "src/sync/list.rs",
+          "src/sync/once_lock.rs",
+          "src/sync/queue.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 4925,
+        "rust_file_count": 12,
+        "unsafe_token_count": 101
+      },
+      "archive_filename": "crossbeam-epoch-0.9.20.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/crossbeam-epoch-0.9.20.crate",
+      "archive_sha256": "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f",
+      "domain": "concurrency_reclamation",
+      "name": "crossbeam-epoch",
+      "published_checksum": "2d6914041f254d6e9176c01941b21115dcfb7089e55135a35411081bd106ef3f",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 610051099,
+      "version": "0.9.20"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/os/unix/mod.rs",
+          "src/os/windows/mod.rs",
+          "src/safe.rs",
+          "src/test_helpers.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 2833,
+        "rust_file_count": 12,
+        "unsafe_token_count": 46
+      },
+      "archive_filename": "libloading-0.9.0.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/libloading-0.9.0.crate",
+      "archive_sha256": "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60",
+      "domain": "ffi_dynamic_loading",
+      "name": "libloading",
+      "published_checksum": "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 485014927,
+      "version": "0.9.0"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/alloc.rs",
+          "src/control/bitmask.rs",
+          "src/control/group/lsx.rs",
+          "src/control/group/neon.rs",
+          "src/control/group/sse2.rs",
+          "src/external_trait_impls/rayon/map.rs",
+          "src/external_trait_impls/rayon/raw.rs",
+          "src/external_trait_impls/rayon/table.rs",
+          "src/map.rs",
+          "src/raw.rs",
+          "src/raw_entry.rs",
+          "src/rustc_entry.rs",
+          "src/scopeguard.rs",
+          "src/table.rs",
+          "src/util.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 23720,
+        "rust_file_count": 28,
+        "unsafe_token_count": 315
+      },
+      "archive_filename": "hashbrown-0.17.1.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/hashbrown-0.17.1.crate",
+      "archive_sha256": "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a",
+      "domain": "general_collections",
+      "name": "hashbrown",
+      "published_checksum": "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 2227036811,
+      "version": "0.17.1"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/operations.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 3793,
+        "rust_file_count": 10,
+        "unsafe_token_count": 7
+      },
+      "archive_filename": "ahash-0.8.12.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/ahash-0.8.12.crate",
+      "archive_sha256": "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75",
+      "domain": "hashing_runtime",
+      "name": "ahash",
+      "published_checksum": "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75",
+      "rejected_candidates": [
+        {
+          "name": "rustc-hash",
+          "reason": "package rustc-hash@2.1.3 has no package-local unsafe code in library source",
+          "selection_rank": 1,
+          "total_downloads": 726191543,
+          "version": "2.1.3"
+        }
+      ],
+      "selection_rank": 2,
+      "total_downloads": 722766571,
+      "version": "0.8.12"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/advice.rs",
+          "src/lib.rs",
+          "src/unix.rs",
+          "src/windows.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 3976,
+        "rust_file_count": 5,
+        "unsafe_token_count": 112
+      },
+      "archive_filename": "memmap2-0.9.11.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/memmap2-0.9.11.crate",
+      "archive_sha256": "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0",
+      "domain": "memory_mapping",
+      "name": "memmap2",
+      "published_checksum": "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 316017546,
+      "version": "0.9.11"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/allocation.rs",
+          "src/anybitpattern.rs",
+          "src/checked.rs",
+          "src/contiguous.rs",
+          "src/internal.rs",
+          "src/lib.rs",
+          "src/must.rs",
+          "src/no_uninit.rs",
+          "src/pod.rs",
+          "src/pod_in_option.rs",
+          "src/transparent.rs",
+          "src/zeroable.rs",
+          "src/zeroable_in_option.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 4162,
+        "rust_file_count": 15,
+        "unsafe_token_count": 253
+      },
+      "archive_filename": "bytemuck-1.25.2.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/bytemuck-1.25.2.crate",
+      "archive_sha256": "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797",
+      "domain": "pod_layout_casting",
+      "name": "bytemuck",
+      "published_checksum": "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 338685922,
+      "version": "1.25.2"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/parking_lot.rs",
+          "src/thread_parker/generic.rs",
+          "src/thread_parker/linux.rs",
+          "src/thread_parker/mod.rs",
+          "src/thread_parker/redox.rs",
+          "src/thread_parker/sgx.rs",
+          "src/thread_parker/unix.rs",
+          "src/thread_parker/wasm.rs",
+          "src/thread_parker/wasm_atomic.rs",
+          "src/thread_parker/windows/bindings.rs",
+          "src/thread_parker/windows/keyed_event.rs",
+          "src/thread_parker/windows/mod.rs",
+          "src/thread_parker/windows/waitaddress.rs",
+          "src/util.rs",
+          "src/word_lock.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 3687,
+        "rust_file_count": 17,
+        "unsafe_token_count": 128
+      },
+      "archive_filename": "parking_lot_core-0.9.12.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/parking_lot_core-0.9.12.crate",
+      "archive_sha256": "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1",
+      "domain": "synchronization",
+      "name": "parking_lot_core",
+      "published_checksum": "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 1033473467,
+      "version": "0.9.12"
+    },
+    {
+      "admission": {
+        "evidence_paths": [
+          "src/byte_slice.rs",
+          "src/byteorder.rs",
+          "src/error.rs",
+          "src/impls.rs",
+          "src/layout.rs",
+          "src/lib.rs",
+          "src/macros.rs",
+          "src/pointer/inner.rs",
+          "src/pointer/invariant.rs",
+          "src/pointer/mod.rs",
+          "src/pointer/ptr.rs",
+          "src/pointer/transmute.rs",
+          "src/ref.rs",
+          "src/split_at.rs",
+          "src/util/macro_util.rs",
+          "src/util/macros.rs",
+          "src/util/mod.rs",
+          "src/wrappers.rs"
+        ],
+        "has_unsafe": true,
+        "lib_target_path": "src/lib.rs",
+        "physical_rust_lines": 28280,
+        "rust_file_count": 20,
+        "unsafe_token_count": 406
+      },
+      "archive_filename": "zerocopy-0.8.56.crate",
+      "archive_path": "/private/tmp/rapx-cratesio-selection.svKO8Y/zerocopy-0.8.56.crate",
+      "archive_sha256": "556764e583adb45a9f8d413c2a147fa7e8d821e48e12b14fd560b607998b75eb",
+      "domain": "zero_copy_serialization",
+      "name": "zerocopy",
+      "published_checksum": "556764e583adb45a9f8d413c2a147fa7e8d821e48e12b14fd560b607998b75eb",
+      "rejected_candidates": [],
+      "selection_rank": 1,
+      "total_downloads": 826313744,
+      "version": "0.8.56"
+    }
+  ],
+  "policy_sha256": "7be8e601723d2171333b389bc5a7eba071cd557140c89d10e0240715bd743c2e",
+  "schema_version": "rap-unsoundaudit-cratesio-campaign-roster-v1",
+  "selection_date": "2026-08-21"
+}

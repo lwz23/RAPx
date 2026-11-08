@@ -1,0 +1,601 @@
+{
+  "active_delta": {
+    "P2": {
+      "families": -1863,
+      "raw": -11059
+    },
+    "P3": {
+      "families": -2273,
+      "raw": -2273
+    },
+    "P4": {
+      "families": -126,
+      "raw": -511
+    },
+    "P5": {
+      "families": -74,
+      "raw": -280
+    }
+  },
+  "baseline": {
+    "family_count_note": "active/suppressed/reclassified use the production candidate-family key; unestablished uses a report-only root-free decision-family key because unestablished.jsonl intentionally has no candidate family_id.",
+    "label": "baseline-2026-08-21-p1-p6-core",
+    "patterns": {
+      "P2": {
+        "active": {
+          "family_count": 1863,
+          "raw_count": 11059,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 179769
+        },
+        "reclassified": {
+          "family_count": 5568,
+          "raw_count": 50600,
+          "reasons": [
+            {
+              "family_count": 5568,
+              "raw_count": 50600,
+              "reason": "nonpersistent_public_field"
+            }
+          ]
+        },
+        "suppressed": {
+          "family_count": 10322,
+          "raw_count": 118110,
+          "reasons": [
+            {
+              "family_count": 10322,
+              "raw_count": 118110,
+              "reason": "nonpersistent_public_field"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        }
+      },
+      "P3": {
+        "active": {
+          "family_count": 2273,
+          "raw_count": 2273,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 3584
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 1311,
+          "raw_count": 1311,
+          "reasons": [
+            {
+              "family_count": 1310,
+              "raw_count": 1310,
+              "reason": "contract_implied_by_type"
+            },
+            {
+              "family_count": 1,
+              "raw_count": 1,
+              "reason": "contract_discharged"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        }
+      },
+      "P4": {
+        "active": {
+          "family_count": 126,
+          "raw_count": 511,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 511
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "unestablished": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        }
+      },
+      "P5": {
+        "active": {
+          "family_count": 74,
+          "raw_count": 280,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 148294
+        },
+        "reclassified": {
+          "family_count": 2090,
+          "raw_count": 24039,
+          "reasons": [
+            {
+              "family_count": 2083,
+              "raw_count": 23853,
+              "reason": "pointer_view_has_no_capability_gap"
+            },
+            {
+              "family_count": 7,
+              "raw_count": 186,
+              "reason": "root_has_no_relevant_capability_surface"
+            }
+          ]
+        },
+        "suppressed": {
+          "family_count": 13243,
+          "raw_count": 123975,
+          "reasons": [
+            {
+              "family_count": 13234,
+              "raw_count": 123959,
+              "reason": "pointer_view_has_no_capability_gap"
+            },
+            {
+              "family_count": 9,
+              "raw_count": 16,
+              "reason": "root_has_no_relevant_capability_surface"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        }
+      }
+    },
+    "totals": {
+      "active": {
+        "family_state_incidences": 4336,
+        "raw_count": 14123
+      },
+      "considered": {
+        "raw_count": 332158
+      },
+      "reclassified": {
+        "family_state_incidences": 7658,
+        "raw_count": 74639
+      },
+      "suppressed": {
+        "family_state_incidences": 24876,
+        "raw_count": 243396
+      },
+      "unestablished": {
+        "family_state_incidences": 0,
+        "raw_count": 0
+      }
+    }
+  },
+  "core_execution": {
+    "analyzer_profile": {
+      "cargo_rapx_sha256": "cdc9961c6168811015e881b1eea1f5bd6d95d2490a26ccd4a9c65c125a9a5ad5",
+      "debug": 1,
+      "debug_assertions": true,
+      "incremental": false,
+      "opt_level": 3,
+      "overflow_checks": true,
+      "profile": "rapx-perf",
+      "rap_source_commit": "7629938daf847442b5c83ecb99527e758ab50a48",
+      "rapx_sha256": "2bd77bb84a0c4df3ad4dbff299474c25b41cde8b94c3dd486d77533da4e6b229",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "schema_version": "unsoundaudit-v3-rap-binary-profile-v1",
+      "target_cargo_profile": "dev"
+    },
+    "binary_profile_rap_source_commit": "7629938daf847442b5c83ecb99527e758ab50a48",
+    "command": [
+      "/private/tmp/rapx-p2p5-perf-target.8kEhug/rapx-perf/cargo-rapx",
+      "rapx",
+      "-unsoundaudit",
+      "--",
+      "-Z",
+      "build-std=core",
+      "--target",
+      "aarch64-apple-darwin",
+      "--lib",
+      "--locked",
+      "--jobs",
+      "1"
+    ],
+    "counts": {
+      "active_count": 0,
+      "considered_count": 503632,
+      "coverage_failure_count": 0,
+      "family_count": 0,
+      "pattern_counts": {
+        "P1": 0,
+        "P2": 0,
+        "P3": 0,
+        "P4": 0,
+        "P5": 0,
+        "P6": 0
+      },
+      "pure_suppressed_count": 320856,
+      "reclassified_count": 0,
+      "suppressed_count": 320856,
+      "unestablished_count": 182776
+    },
+    "coverage": {
+      "complete": true,
+      "semantics": "exact",
+      "unsafe_site_census": {
+        "ambiguous": 0,
+        "bound_exact": 10747,
+        "by_kind": [
+          {
+            "count": 1,
+            "kind": "inline_assembly"
+          },
+          {
+            "count": 386,
+            "kind": "raw_pointer_dereference"
+          },
+          {
+            "count": 15,
+            "kind": "restricted_validity_initialization"
+          },
+          {
+            "count": 2,
+            "kind": "union_field_access"
+          },
+          {
+            "count": 10508,
+            "kind": "unsafe_call"
+          }
+        ],
+        "discovered": 10912,
+        "elided": 0,
+        "optimized_away_exact": 165,
+        "unbound": 0
+      }
+    },
+    "development_single_run": true,
+    "evidence_scope": "dirty_live_tree_development_measurement",
+    "execution": {
+      "classification": "success",
+      "elapsed_seconds": 850.62,
+      "max_physical_footprint_bytes": 8947475864,
+      "max_rss_bytes": 5600395264,
+      "memory_limit_metric": "physical_footprint",
+      "phase": "scan",
+      "returncode": 0,
+      "run": 1
+    },
+    "family_target": {
+      "claim_admissible": true,
+      "limit": 100,
+      "met": true
+    },
+    "fresh_target": true,
+    "hashes": {
+      "binary_profile_sidecar_sha256": "682c2b283dcfe58c22809e34516779dfa09d5f79472bd6eec338079af5a5e34a",
+      "candidates_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "cargo_rapx_sha256": "cdc9961c6168811015e881b1eea1f5bd6d95d2490a26ccd4a9c65c125a9a5ad5",
+      "cargo_sha256": "ce2ce889ef707df1428c6c9d8913ca06ce3305904b9637fe38e5cdeed0158414",
+      "coverage_sha256": "3c35b34e16e66abe1bcd8fc327340781c9a5c00a56f01ed8fcdbf2aa8fa97b83",
+      "families_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "performance_trace_sha256": "6aa8010f444bae4b790a77d920ecbdf11870daddab09c3875a1246196459b6dd",
+      "rapx_sha256": "2bd77bb84a0c4df3ad4dbff299474c25b41cde8b94c3dd486d77533da4e6b229",
+      "rustc_sha256": "c1ce80f10d335487db5b9e8dccd7ac8fd04bda472c811ac4e52f95695b0a9e23",
+      "scan_log_sha256": "c0194f7a9916adf387276d0c923962b36393d6f2f3d3e51a15830d2b41a01520",
+      "suppression_ledger_sha256": "aea7269c97e986ce4486a7bf3e961edd21ec5a178c1a5e00c3aab0a42e5f2913",
+      "unestablished_sha256": "c37eccca9aa86028ee6965559b7ab0f4e2d95bc727b59873577744509e4d6d3b"
+    },
+    "limits": {
+      "memory_limit_enforced": false,
+      "memory_limit_metric": "physical_footprint",
+      "physical_footprint_limit_bytes": null,
+      "protocol_physical_footprint_limit_bytes": 8589934592,
+      "wall_time_seconds": 900
+    },
+    "nonformal": true,
+    "protocol_rap_source_commit": "eceece382bb0e215bd75bcf8f29abea9a38708c2",
+    "protocol_sha256": "234d25770a1e6e179358dccae24e6e7bac620ba1b9f6fb92deb8378b97349a7e",
+    "roots": {
+      "driver": "/private/var/folders/ff/2l889lzd6nv4jz3n0khdlpt40000gn/T/rapx-v3-stdlib-core-development-driver.i3satvlh",
+      "fresh_target": "/private/var/folders/ff/2l889lzd6nv4jz3n0khdlpt40000gn/T/rapx-v3-stdlib-core-development-target.p9y8piso",
+      "isolated_cargo_home": "/private/var/folders/ff/2l889lzd6nv4jz3n0khdlpt40000gn/T/rapx-v3-stdlib-core-development-target.p9y8piso/cargo-home",
+      "mvp_output": "/private/tmp/rapx-p2p5-core-final-pass.oNdFBf/result/mvp",
+      "performance_trace": "/private/tmp/rapx-p2p5-core-final-pass.oNdFBf/result/logs/perf.jsonl",
+      "project": "/Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust/library/core",
+      "repository": "/Users/liaowenzhao/Documents/RAP重构/RAPx-unsoundaudit-v2",
+      "rust_source": "/Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin/lib/rustlib/src/rust",
+      "rust_sysroot": "/Users/liaowenzhao/.rustup/toolchains/nightly-2024-10-12-aarch64-apple-darwin"
+    },
+    "runs_per_unit": 1,
+    "schema_version": "unsoundaudit-v3-stdlib-development-single-run-v1",
+    "source_commit_gates": {
+      "binary_profile_source_commit_enforced": false,
+      "repository_source_commit_enforced": false
+    },
+    "status": "success",
+    "toolchain": {
+      "cargo_commit": "15fbd2f607d4defc87053b8b76bf5038f2483cf4",
+      "embedded_rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "embedded_rustc_evidence": "trusted_build_profile_sidecar_bound_to_binary_hashes",
+      "rustc_commit": "1bc403daadbebb553ccc211a0a8eebb73989665f",
+      "target_triple": "aarch64-apple-darwin"
+    },
+    "unit": "core"
+  },
+  "definitions": {
+    "active": "exact realizable violation witness",
+    "family_warning": "Family counts are state incidences. Unestablished rows lack production family IDs, so their report-only decision-family counts must not be added to production candidate-family counts as one common population.",
+    "reclassified": "independently established lower/other pattern",
+    "suppressed": "complete safety/non-applicability proof",
+    "unestablished": "path retained but model/proof incomplete"
+  },
+  "final": {
+    "family_count_note": "active/suppressed/reclassified use the production candidate-family key; unestablished uses a report-only root-free decision-family key because unestablished.jsonl intentionally has no candidate family_id.",
+    "label": "p2-p5-final-core",
+    "patterns": {
+      "P2": {
+        "active": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 171674
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 14790,
+          "raw_count": 163667,
+          "reasons": [
+            {
+              "family_count": 14702,
+              "raw_count": 163417,
+              "reason": "nonpersistent_public_field"
+            },
+            {
+              "family_count": 88,
+              "raw_count": 250,
+              "reason": "source_cannot_satisfy_requirement"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 1595,
+          "raw_count": 8007,
+          "reasons": [
+            {
+              "family_count": 1098,
+              "raw_count": 5824,
+              "reason": "unmodeled_unsafe_call"
+            },
+            {
+              "family_count": 485,
+              "raw_count": 2170,
+              "reason": "missing_exact_context"
+            },
+            {
+              "family_count": 13,
+              "raw_count": 13,
+              "reason": "unknown_capability_match"
+            }
+          ]
+        }
+      },
+      "P3": {
+        "active": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 3583
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 1334,
+          "raw_count": 1334,
+          "reasons": [
+            {
+              "family_count": 1332,
+              "raw_count": 1332,
+              "reason": "contract_implied_by_type"
+            },
+            {
+              "family_count": 2,
+              "raw_count": 2,
+              "reason": "contract_discharged"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 225,
+          "raw_count": 2249,
+          "reasons": [
+            {
+              "family_count": 159,
+              "raw_count": 2053,
+              "reason": "missing_exact_context"
+            },
+            {
+              "family_count": 194,
+              "raw_count": 194,
+              "reason": "validity_obligation_unknown"
+            },
+            {
+              "family_count": 2,
+              "raw_count": 2,
+              "reason": "initialization_state_unknown"
+            }
+          ]
+        }
+      },
+      "P4": {
+        "active": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 1004
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "unestablished": {
+          "family_count": 290,
+          "raw_count": 1004,
+          "reasons": [
+            {
+              "family_count": 184,
+              "raw_count": 542,
+              "reason": "missing_exact_context"
+            },
+            {
+              "family_count": 106,
+              "raw_count": 462,
+              "reason": "derivation_obligation_unknown"
+            }
+          ]
+        }
+      },
+      "P5": {
+        "active": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "considered": {
+          "raw_count": 202769
+        },
+        "reclassified": {
+          "family_count": 0,
+          "raw_count": 0,
+          "reasons": []
+        },
+        "suppressed": {
+          "family_count": 14672,
+          "raw_count": 148026,
+          "reasons": [
+            {
+              "family_count": 14608,
+              "raw_count": 146792,
+              "reason": "pointer_view_has_no_capability_gap"
+            },
+            {
+              "family_count": 64,
+              "raw_count": 1234,
+              "reason": "root_has_no_relevant_capability_surface"
+            }
+          ]
+        },
+        "unestablished": {
+          "family_count": 3770,
+          "raw_count": 54743,
+          "reasons": [
+            {
+              "family_count": 2179,
+              "raw_count": 30916,
+              "reason": "unmodeled_unsafe_call"
+            },
+            {
+              "family_count": 1273,
+              "raw_count": 16949,
+              "reason": "generic_witness_unknown"
+            },
+            {
+              "family_count": 283,
+              "raw_count": 5331,
+              "reason": "missing_exact_context"
+            },
+            {
+              "family_count": 86,
+              "raw_count": 1547,
+              "reason": "unknown_capability_match"
+            }
+          ]
+        }
+      }
+    },
+    "totals": {
+      "active": {
+        "family_state_incidences": 0,
+        "raw_count": 0
+      },
+      "considered": {
+        "raw_count": 379030
+      },
+      "reclassified": {
+        "family_state_incidences": 0,
+        "raw_count": 0
+      },
+      "suppressed": {
+        "family_state_incidences": 30796,
+        "raw_count": 313027
+      },
+      "unestablished": {
+        "family_state_incidences": 5880,
+        "raw_count": 66003
+      }
+    }
+  },
+  "generated_from": {
+    "baseline": "/private/tmp/rapx-v3-core-p1-utf8-binder-12g.tIStBG/result",
+    "final": "/private/tmp/rapx-p2p5-core-final-pass.oNdFBf/result"
+  },
+  "mechanism_recall": {
+    "current_matches_pinned": true,
+    "pinned_active_by_pattern": {
+      "P1": 2,
+      "P2": 7,
+      "P3": 15,
+      "P4": 9,
+      "P5": 8,
+      "P6": 9
+    },
+    "pinned_totals": {
+      "active": 50,
+      "considered": 128,
+      "families": 49,
+      "pure_suppressed": 38,
+      "reclassified": 12,
+      "unestablished": 28
+    },
+    "positive_root_count": 30,
+    "positive_roots_active": 30,
+    "target_pattern_recall": "30/30"
+  },
+  "schema_version": "rap-unsoundaudit-p2-p5-state-comparison-v1"
+}

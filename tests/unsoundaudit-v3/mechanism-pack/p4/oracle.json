@@ -1,0 +1,71 @@
+{
+  "pattern": "P4",
+  "present_roots": [
+    "Arena::internal_bounds",
+    "Arena::internal_width",
+    "assert_diamond_without_must_proof_stays_p4",
+    "assert_internal_comparison_is_p4",
+    "assert_stale_comparison_stays_p4",
+    "restricted_target_is_p4",
+    "wider_target_is_p4"
+  ],
+  "absent_roots": [
+    "Arena::checked",
+    "assert_guarded_comparison_is_discharged",
+    "SafeFlag::as_bool_mut"
+  ],
+  "zero_candidate_roots": [
+    "Arena::checked",
+    "assert_guarded_comparison_is_discharged",
+    "ordinary_assert_is_not_an_unsafe_sink",
+    "assert_public_bool_is_p1",
+    "bypass_stays_p1"
+  ],
+  "other_pattern_roots": {
+    "transparent_aggregate_stays_p1": "P1",
+    "validity_weakening_view_stays_p1": "P1"
+  },
+  "suppression_roots": {
+    "bypass_stays_p1": {
+      "reason": "source_cannot_satisfy_requirement",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capabilities": "typed_value",
+        "source_origin": "public_formal"
+      }
+    },
+    "Arena::checked": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P4",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "discharge_model": "exact_validation",
+        "proof_scope": "site_local"
+      }
+    },
+    "assert_guarded_comparison_is_discharged": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P4",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "discharge_model": "exact_relation",
+        "proof_scope": "site_local"
+      }
+    }
+  },
+  "unestablished_roots": {
+    "bypass_stays_p1": {
+      "attempted_pattern": "P1",
+      "primary_reason": "havoced_provenance"
+    },
+    "assert_public_bool_is_p1": {
+      "attempted_pattern": "P1",
+      "primary_reason": "havoced_provenance"
+    },
+    "SafeFlag::as_bool_mut": {
+      "attempted_pattern": "P4",
+      "primary_reason": "derivation_obligation_unknown"
+    }
+  }
+}

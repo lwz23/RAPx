@@ -1,0 +1,111 @@
+{
+  "pattern": "P2",
+  "present_roots": [
+    "PublicRaw::read_public",
+    "PublicRaw::field_overwritten_on_one_path",
+    "PublicRaw::base_overwritten_on_one_path",
+    "NestedRaw::ancestor_overwritten_on_one_path",
+    "read_public_through_helper"
+  ],
+  "absent_roots": [
+    "PublicRaw::read_private",
+    "PublicRaw::opaque_sink",
+    "PublicRaw::overwritten",
+    "PublicRaw::field_overwritten",
+    "PublicRaw::field_overwritten_on_all_paths",
+    "PublicRaw::base_overwritten",
+    "NestedRaw::ancestor_overwritten",
+    "PublicChoice::read_payload",
+    "read_local_aggregate",
+    "PublicCallback::overwritten",
+    "PublicCallback::base_overwritten",
+    "PrivateCallback::invoke",
+    "local_internal_callback",
+    "CallbackChoice::invoke",
+    "unrelated_constant_through_helper",
+    "read_unnameable_public_field"
+  ],
+  "zero_candidate_roots": [
+    "PublicRaw::read_private",
+    "PublicRaw::overwritten",
+    "PublicRaw::field_overwritten",
+    "PublicRaw::field_overwritten_on_all_paths",
+    "PublicRaw::base_overwritten",
+    "NestedRaw::ancestor_overwritten",
+    "PublicCallback::overwritten",
+    "PublicCallback::base_overwritten",
+    "PrivateCallback::invoke",
+    "local_internal_callback",
+    "unrelated_constant_through_helper",
+    "PublicChoice::read_payload",
+    "read_unnameable_public_field"
+  ],
+  "other_pattern_roots": {
+    "read_local_aggregate": "P1",
+    "CallbackChoice::invoke": "P6"
+  },
+  "suppression_roots": {
+    "PublicChoice::read_payload": [
+      {
+        "reason": "source_cannot_satisfy_requirement",
+        "candidate_pattern": "P1",
+        "replacement_absent": true,
+        "evidence_equals": {
+          "capabilities": "typed_value",
+          "source_origin": "public_formal"
+        }
+      },
+      {
+        "reason": "nonpersistent_public_field",
+        "candidate_pattern": "P2",
+        "replacement_absent": true,
+        "evidence_equals": {
+          "adt_kind": "enum",
+          "storage": "entry_formal"
+        }
+      }
+    ],
+    "read_local_aggregate": {
+      "reason": "nonpersistent_public_field",
+      "candidate_pattern": "P2",
+      "replacement_pattern": "P1",
+      "evidence_equals": {
+        "adt_kind": "struct",
+        "storage": "definitely_local"
+      }
+    },
+    "PublicCallback::overwritten": {
+      "reason": "internal_behavior_controller",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "internal_function",
+        "controller": "zero_pointer"
+      }
+    },
+    "PublicCallback::base_overwritten": {
+      "reason": "internal_behavior_controller",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "internal_function",
+        "controller": "zero_pointer"
+      }
+    },
+    "local_internal_callback": {
+      "reason": "internal_behavior_controller",
+      "candidate_pattern": "P6",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "controller_kind": "internal_function",
+        "controller": "zero_pointer"
+      }
+    }
+  },
+  "unestablished_roots": {
+    "PublicRaw::opaque_sink": {
+      "attempted_pattern": "P2",
+      "primary_reason": "unmodeled_unsafe_call"
+    }
+  }
+}

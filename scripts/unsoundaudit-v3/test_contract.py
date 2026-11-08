@@ -67,6 +67,7 @@ def minimal_receipt() -> dict:
         "unsafe_site_census": {
             "discovered": 1,
             "bound_exact": 1,
+            "optimized_away_exact": 0,
             "unbound": 0,
             "ambiguous": 0,
             "elided": 0,
@@ -92,6 +93,7 @@ def minimal_receipt() -> dict:
         },
         "finding_count": 0,
         "findings": [],
+        "missing_sanitizer_warnings": [],
         "code_dictionary": [],
     }
 
@@ -223,6 +225,7 @@ class RapUnitV3ContractTests(unittest.TestCase):
         receipt["unsafe_site_census"] = {
             "discovered": 1,
             "bound_exact": 0,
+            "optimized_away_exact": 0,
             "unbound": 1,
             "ambiguous": 0,
             "elided": 0,

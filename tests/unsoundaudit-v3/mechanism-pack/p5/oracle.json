@@ -1,0 +1,108 @@
+{
+  "pattern": "P5",
+  "present_roots": [
+    "generic_nonempty",
+    "generic_layout",
+    "forwarded_generic_layout",
+    "parametric_and_concrete",
+    "cross_owner_generic_layout"
+  ],
+  "absent_roots": [
+    "fixed_nonempty",
+    "concrete_layout_only",
+    "concrete_layout_violation",
+    "cross_owner_unmatched_sibling",
+    "cross_owner_equal_projection",
+    "cross_owner_strengthened_projection",
+    "same_pointee_view",
+    "slice_element_view",
+    "maybe_uninit_view"
+  ],
+  "zero_candidate_roots": [
+    "fixed_nonempty",
+    "concrete_layout_only",
+    "cross_owner_unmatched_sibling",
+    "non_usize_const_dispatch",
+    "slice_element_view"
+  ],
+  "other_pattern_roots": {
+    "concrete_layout_violation": "P4",
+    "same_pointee_view": "P1",
+    "maybe_uninit_view": "P1"
+  },
+  "suppression_roots": {
+    "concrete_layout_only": {
+      "reason": "root_has_no_relevant_capability_surface",
+      "candidate_pattern": "P5",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capability_kind": "pointer_layout_reinterpretation",
+        "gate": "all_realizable_concrete_routes_proven_satisfied"
+      }
+    },
+    "cross_owner_unmatched_sibling": {
+      "reason": "root_has_no_relevant_capability_surface",
+      "candidate_pattern": "P5",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capability_kind": "pointer_layout_reinterpretation",
+        "gate": "all_realizable_concrete_routes_proven_satisfied"
+      }
+    },
+    "cross_owner_equal_projection": {
+      "reason": "root_has_no_relevant_capability_surface",
+      "candidate_pattern": "P5",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "capability_kind": "pointer_layout_reinterpretation",
+        "gate": "all_realizable_concrete_routes_proven_satisfied"
+      }
+    },
+    "concrete_layout_violation": {
+      "reason": "root_has_no_relevant_capability_surface",
+      "candidate_pattern": "P5",
+      "replacement_pattern": "P4",
+      "evidence_equals": {
+        "capability_kind": "pointer_layout_reinterpretation",
+        "gate": "concrete_route_proven_violation"
+      }
+    },
+    "same_pointee_view": {
+      "reason": "pointer_view_has_no_capability_gap",
+      "candidate_pattern": "P5",
+      "replacement_pattern": "P1",
+      "evidence_equals": {
+        "capability_kind": "representation_preserving_pointer_view",
+        "gate": "representation_preserving_view"
+      }
+    },
+    "slice_element_view": {
+      "reason": "pointer_view_has_no_capability_gap",
+      "candidate_pattern": "P5",
+      "evidence_equals": {
+        "capability_kind": "representation_preserving_pointer_view",
+        "gate": "representation_preserving_view"
+      },
+      "replacement_absent": true
+    },
+    "maybe_uninit_view": {
+      "reason": "pointer_view_has_no_capability_gap",
+      "candidate_pattern": "P5",
+      "replacement_pattern": "P1",
+      "evidence_equals": {
+        "capability_kind": "representation_preserving_pointer_view",
+        "gate": "representation_preserving_view"
+      }
+    }
+  },
+  "unestablished_roots": {
+    "slice_element_view": {
+      "attempted_pattern": "P1",
+      "primary_reason": "opaque_transform"
+    }
+  },
+  "absent_unestablished_roots": [
+    "cross_owner_unmatched_sibling",
+    "cross_owner_equal_projection"
+  ]
+}

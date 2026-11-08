@@ -1,0 +1,68 @@
+{
+  "pattern": "P1",
+  "present_roots": [
+    "direct",
+    "five_hop",
+    "vec_index",
+    "string_from_bytes",
+    "slice_from_ptr",
+    "cstr_from_ptr",
+    "ptr_add",
+    "ptr_copy",
+    "vec_from_raw"
+  ],
+  "absent_roots": [
+    "guarded",
+    "opaque_public_input",
+    "guarded_vec",
+    "already_unsafe_from_raw"
+  ],
+  "suppression_roots": {
+    "guarded": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "discharge_model": "exact_validation",
+        "proof_scope": "site_local"
+      }
+    },
+    "guarded_vec": {
+      "reason": "contract_discharged",
+      "candidate_pattern": "P1",
+      "replacement_absent": true,
+      "evidence_equals": {
+        "discharge_model": "exact_validation",
+        "proof_scope": "site_local"
+      }
+    }
+  },
+  "unestablished_roots": {
+    "opaque_public_input": {
+      "attempted_pattern": "P1",
+      "primary_reason": "unmodeled_unsafe_call"
+    },
+    "vec_index": {
+      "attempted_pattern": "P1",
+      "primary_reason": "havoced_provenance"
+    },
+    "guarded_vec": {
+      "attempted_pattern": "P1",
+      "primary_reason": "havoced_provenance"
+    }
+  },
+  "absent_unestablished_roots": [
+    "direct",
+    "five_hop",
+    "guarded",
+    "string_from_bytes",
+    "slice_from_ptr",
+    "cstr_from_ptr",
+    "ptr_add",
+    "ptr_copy",
+    "vec_from_raw"
+  ],
+  "zero_candidate_roots": [
+    "already_unsafe_from_raw"
+  ]
+}

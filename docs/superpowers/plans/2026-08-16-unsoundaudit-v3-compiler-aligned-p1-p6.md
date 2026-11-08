@@ -175,7 +175,7 @@
 - [x] Run all Rust/Python tests with 0 failed and 0 ignored under both supported adapters.
 - [x] Run original 27 twice and require semantic aggregate `3/2/2/2/1/2`.
 - [x] Run challenge 27 twice and require P1=13, P2–P6=0.
-- [ ] Compare debug, stock-release, and `rapx-perf` semantic projections.
+- [x] Compare debug, stock-release, and `rapx-perf` semantic projections.
 - [ ] Verify v1/v2 frozen hashes and preservation tag remain unchanged.
 - [ ] Run 2024 core/alloc/std twice with 900/1800/3600-second and 8/10/12-GiB physical-footprint gates.
 - [ ] Run current census/binding/pattern/real-project sentinel and core twice with 900 seconds / 8 GiB.

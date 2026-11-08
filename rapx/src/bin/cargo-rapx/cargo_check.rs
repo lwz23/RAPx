@@ -63,11 +63,9 @@ pub(super) fn exact_cargo_path() -> &'static Path {
 fn exact_rustc_path() -> &'static Path {
     EXACT_RUSTC_PATH.get_or_init(|| {
         let expected_path_value = env::var("UNSOUND_SCANNER_EXPECTED_RUSTC_PATH").ok();
-        let expected_path = validate_exact_tool_path(
-            expected_path_value.as_deref(),
-            "expected exact rustc",
-        )
-        .unwrap_or_else(|err| rap_error_and_exit(err));
+        let expected_path =
+            validate_exact_tool_path(expected_path_value.as_deref(), "expected exact rustc")
+                .unwrap_or_else(|err| rap_error_and_exit(err));
         let configured_path_value = env::var("RUSTC").ok();
         let configured_path =
             validate_exact_tool_path(configured_path_value.as_deref(), "configured rustc")
@@ -82,12 +80,8 @@ fn exact_rustc_path() -> &'static Path {
         let actual_commit = tool_commit(&configured_path, "exact rustc")
             .unwrap_or_else(|err| rap_error_and_exit(err));
         let expected_commit = env::var("UNSOUND_SCANNER_EXPECTED_RUSTC_COMMIT").ok();
-        verify_expected_commit(
-            &actual_commit,
-            expected_commit.as_deref(),
-            "exact rustc",
-        )
-        .unwrap_or_else(|err| rap_error_and_exit(err));
+        verify_expected_commit(&actual_commit, expected_commit.as_deref(), "exact rustc")
+            .unwrap_or_else(|err| rap_error_and_exit(err));
         configured_path
     })
 }
@@ -123,12 +117,14 @@ fn cargo_check(dir: &Utf8Path) {
     cmd.env("RUSTC", exact_rustc_path());
     cmd.env_remove("RUSTC_WORKSPACE_WRAPPER");
     if env::var_os("UNSOUND_SCANNER_PROJECT_ROOT").is_none() {
-        let project_root = Path::new(dir.as_str()).canonicalize().unwrap_or_else(|err| {
-            rap_error_and_exit(format!(
-                "failed to resolve RAP project root '{}': {err}",
-                dir
-            ))
-        });
+        let project_root = Path::new(dir.as_str())
+            .canonicalize()
+            .unwrap_or_else(|err| {
+                rap_error_and_exit(format!(
+                    "failed to resolve RAP project root '{}': {err}",
+                    dir
+                ))
+            });
         cmd.env("UNSOUND_SCANNER_PROJECT_ROOT", project_root);
     }
 

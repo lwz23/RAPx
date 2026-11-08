@@ -1,0 +1,5424 @@
+{
+  "schema": "lwz23-valid-issue-scan-roster-v1",
+  "frozen": true,
+  "author": {
+    "github_login": "lwz23",
+    "user_id": 160561672
+  },
+  "window": {
+    "start_inclusive": "2024-11-01T00:00:00Z",
+    "end_exclusive": "2026-01-01T00:00:00Z"
+  },
+  "validity_rule_zh": "维护者（OWNER/MEMBER/COLLABORATOR）未明确否定、且作者未明确撤回的 in-scope unsoundness Issue 视为有效。沉默、关闭、not_planned、建议标 unsafe 均仍有效。",
+  "counts": {
+    "authored_issues": 160,
+    "scope_excluded_issues": 2,
+    "in_scope_issues": 158,
+    "valid_issues": 148,
+    "explicitly_rebutted_or_withdrawn_issues": 10,
+    "accepted_and_fixed_issues": 27,
+    "valid_issues_on_scan_repos": 142,
+    "valid_issues_on_advisory_db": 6,
+    "scan_repositories": 125,
+    "host_repositories_including_advisory_db": 126,
+    "local_bug_instances_on_valid_issues": 241,
+    "canonical_bug_instances_after_cross_issue_dedup": 230
+  },
+  "scan_universe": {
+    "exclusive": true,
+    "note_zh": "在发布下一版 roster 之前，RAP 回放只扫描 scan_repositories 中的 125 个仓库及其 142 条有效 Issue。rustsec/advisory-db 的 6 条有效 Issue 保留在 issues 账本中，不作为独立扫描仓。不要加入 2026-07 bindgen、窗口外 Issue，或 82 条非 lwz23 IUE 语料。"
+  },
+  "not_yet_frozen": [
+    "vulnerable_revision",
+    "package",
+    "target_kind",
+    "Cargo.lock 策略"
+  ],
+  "source_manifest": {
+    "authority": "Task4AL v2 + Task4AM valid_issues_index.csv",
+    "remote_roots": {
+      "task4al": "results/tse_iue_external_validation/run_20260810_lwz23_authored_issue_audit_v1/production/task4al_reported_issue_outcome_audit_v2",
+      "task4am": "results/tse_iue_external_validation/run_20260810_lwz23_authored_issue_audit_v1/production/task4am_reported_issue_materials_v1"
+    },
+    "files": [
+      {
+        "name": "issue_outcomes.jsonl",
+        "sha256": "e8b2d1db4f313a636ecbb6720023fd64a506785312c858bb59299e178441d5b3"
+      },
+      {
+        "name": "valid_issues_index.csv",
+        "sha256": "0da7d61b8f899ee404eeba3aa5030322da04d4e1d39b4956f8d59987813f85fe"
+      },
+      {
+        "name": "audit_decisions.jsonl",
+        "sha256": "e55381815ee14ec8fad7c459c236f53b8b3d985082e48fa96878d61e1654f9ad"
+      },
+      {
+        "name": "bug_instances.jsonl",
+        "sha256": "395cfe8f35eadd86b27e6ecb91448b2e5de705cf13a64bf5151e8ae2c604e03e"
+      },
+      {
+        "name": "summary.json",
+        "sha256": "4307acf256f6b9f88be2739b6a7d01e6887989a2d7d902cb7cab3e506174ec98"
+      }
+    ]
+  },
+  "scan_repositories": [
+    {
+      "repository": "Amanieu/atomic-rs",
+      "clone_url": "https://github.com/Amanieu/atomic-rs.git",
+      "html_url": "https://github.com/Amanieu/atomic-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Amanieu/atomic-rs/issues/46"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Andy-Python-Programmer/aero",
+      "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+      "html_url": "https://github.com/Andy-Python-Programmer/aero",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/Andy-Python-Programmer/aero/issues/120",
+        "https://github.com/Andy-Python-Programmer/aero/issues/121"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "BrowserWorks/waterfox",
+      "clone_url": "https://github.com/BrowserWorks/waterfox.git",
+      "html_url": "https://github.com/BrowserWorks/waterfox",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/BrowserWorks/waterfox/issues/3980"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "CosmWasm/cosmwasm",
+      "clone_url": "https://github.com/CosmWasm/cosmwasm.git",
+      "html_url": "https://github.com/CosmWasm/cosmwasm",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/CosmWasm/cosmwasm/issues/2305"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "DioxusLabs/blitz",
+      "clone_url": "https://github.com/DioxusLabs/blitz.git",
+      "html_url": "https://github.com/DioxusLabs/blitz",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/DioxusLabs/blitz/issues/169"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Eugeny/russh",
+      "clone_url": "https://github.com/Eugeny/russh.git",
+      "html_url": "https://github.com/Eugeny/russh",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Eugeny/russh/issues/394"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Indra-db/Flecs-Rust",
+      "clone_url": "https://github.com/Indra-db/Flecs-Rust.git",
+      "html_url": "https://github.com/Indra-db/Flecs-Rust",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Indra-db/Flecs-Rust/issues/210"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "IsaacWoods/poplar",
+      "clone_url": "https://github.com/IsaacWoods/poplar.git",
+      "html_url": "https://github.com/IsaacWoods/poplar",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/IsaacWoods/poplar/issues/117"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Kudaes/DInvoke_rs",
+      "clone_url": "https://github.com/Kudaes/DInvoke_rs.git",
+      "html_url": "https://github.com/Kudaes/DInvoke_rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Kudaes/DInvoke_rs/issues/10"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Kudaes/Elevator",
+      "clone_url": "https://github.com/Kudaes/Elevator.git",
+      "html_url": "https://github.com/Kudaes/Elevator",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Kudaes/Elevator/issues/9"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Lightprotocol/light-protocol",
+      "clone_url": "https://github.com/Lightprotocol/light-protocol.git",
+      "html_url": "https://github.com/Lightprotocol/light-protocol",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Lightprotocol/light-protocol/issues/1382"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "MarcusRainbow/QuantMath",
+      "clone_url": "https://github.com/MarcusRainbow/QuantMath.git",
+      "html_url": "https://github.com/MarcusRainbow/QuantMath",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/MarcusRainbow/QuantMath/issues/54"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "MegEngine/MegFlow",
+      "clone_url": "https://github.com/MegEngine/MegFlow.git",
+      "html_url": "https://github.com/MegEngine/MegFlow",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/MegEngine/MegFlow/issues/87"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Mufanc/z-loader",
+      "clone_url": "https://github.com/Mufanc/z-loader.git",
+      "html_url": "https://github.com/Mufanc/z-loader",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Mufanc/z-loader/issues/6"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "NVSL/Corundum",
+      "clone_url": "https://github.com/NVSL/Corundum.git",
+      "html_url": "https://github.com/NVSL/Corundum",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/NVSL/Corundum/issues/7"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "NetSys/NetBricks",
+      "clone_url": "https://github.com/NetSys/NetBricks.git",
+      "html_url": "https://github.com/NetSys/NetBricks",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/NetSys/NetBricks/issues/110",
+        "https://github.com/NetSys/NetBricks/issues/111"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Noeda/rllama",
+      "clone_url": "https://github.com/Noeda/rllama.git",
+      "html_url": "https://github.com/Noeda/rllama",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Noeda/rllama/issues/19"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Pagefind/pagefind",
+      "clone_url": "https://github.com/Pagefind/pagefind.git",
+      "html_url": "https://github.com/Pagefind/pagefind",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/Pagefind/pagefind/issues/752",
+        "https://github.com/Pagefind/pagefind/issues/985"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 6,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "PersiaML/PERSIA",
+      "clone_url": "https://github.com/PersiaML/PERSIA.git",
+      "html_url": "https://github.com/PersiaML/PERSIA",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/PersiaML/PERSIA/issues/509"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Phala-Network/phala-blockchain",
+      "clone_url": "https://github.com/Phala-Network/phala-blockchain.git",
+      "html_url": "https://github.com/Phala-Network/phala-blockchain",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Phala-Network/phala-blockchain/issues/1592"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "QuarkContainer/Quark",
+      "clone_url": "https://github.com/QuarkContainer/Quark.git",
+      "html_url": "https://github.com/QuarkContainer/Quark",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/QuarkContainer/Quark/issues/1354"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "RWTH-OS/eduOS-rs",
+      "clone_url": "https://github.com/RWTH-OS/eduOS-rs.git",
+      "html_url": "https://github.com/RWTH-OS/eduOS-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/RWTH-OS/eduOS-rs/issues/46"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Ralith/hecs",
+      "clone_url": "https://github.com/Ralith/hecs.git",
+      "html_url": "https://github.com/Ralith/hecs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Ralith/hecs/issues/385"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "RedisJSON/RedisJSON",
+      "clone_url": "https://github.com/RedisJSON/RedisJSON.git",
+      "html_url": "https://github.com/RedisJSON/RedisJSON",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/RedisJSON/RedisJSON/issues/1305"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 10,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Ruddle/Fomos",
+      "clone_url": "https://github.com/Ruddle/Fomos.git",
+      "html_url": "https://github.com/Ruddle/Fomos",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Ruddle/Fomos/issues/5"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "SitinCloud/Owlyshield",
+      "clone_url": "https://github.com/SitinCloud/Owlyshield.git",
+      "html_url": "https://github.com/SitinCloud/Owlyshield",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/SitinCloud/Owlyshield/issues/59"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Starlight-JS/starlight",
+      "clone_url": "https://github.com/Starlight-JS/starlight.git",
+      "html_url": "https://github.com/Starlight-JS/starlight",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Starlight-JS/starlight/issues/137"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Teach2Breach/Tempest",
+      "clone_url": "https://github.com/Teach2Breach/Tempest.git",
+      "html_url": "https://github.com/Teach2Breach/Tempest",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Teach2Breach/Tempest/issues/11"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Traverse-Research/gpu-allocator",
+      "clone_url": "https://github.com/Traverse-Research/gpu-allocator.git",
+      "html_url": "https://github.com/Traverse-Research/gpu-allocator",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Traverse-Research/gpu-allocator/issues/255"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Umio-Yasuno/amdgpu_top",
+      "clone_url": "https://github.com/Umio-Yasuno/amdgpu_top.git",
+      "html_url": "https://github.com/Umio-Yasuno/amdgpu_top",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Umio-Yasuno/amdgpu_top/issues/104"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "Xudong-Huang/may",
+      "clone_url": "https://github.com/Xudong-Huang/may.git",
+      "html_url": "https://github.com/Xudong-Huang/may",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/Xudong-Huang/may/issues/112"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "apache/datafusion-comet",
+      "clone_url": "https://github.com/apache/datafusion-comet.git",
+      "html_url": "https://github.com/apache/datafusion-comet",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/apache/datafusion-comet/issues/1141"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "arceos-org/arceos",
+      "clone_url": "https://github.com/arceos-org/arceos.git",
+      "html_url": "https://github.com/arceos-org/arceos",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/arceos-org/arceos/issues/204"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "archseer/enigma",
+      "clone_url": "https://github.com/archseer/enigma.git",
+      "html_url": "https://github.com/archseer/enigma",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/archseer/enigma/issues/44",
+        "https://github.com/archseer/enigma/issues/45"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "asg017/sqlite-loadable-rs",
+      "clone_url": "https://github.com/asg017/sqlite-loadable-rs.git",
+      "html_url": "https://github.com/asg017/sqlite-loadable-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/asg017/sqlite-loadable-rs/issues/24"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "astonbitecode/j4rs",
+      "clone_url": "https://github.com/astonbitecode/j4rs.git",
+      "html_url": "https://github.com/astonbitecode/j4rs",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/astonbitecode/j4rs/issues/138",
+        "https://github.com/astonbitecode/j4rs/issues/140"
+      ],
+      "accepted_and_fixed_issue_count": 2,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "async-rs/async-std",
+      "clone_url": "https://github.com/async-rs/async-std.git",
+      "html_url": "https://github.com/async-rs/async-std",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/async-rs/async-std/issues/1103"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "awslabs/snapchange",
+      "clone_url": "https://github.com/awslabs/snapchange.git",
+      "html_url": "https://github.com/awslabs/snapchange",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/awslabs/snapchange/issues/43"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "aya-rs/aya",
+      "clone_url": "https://github.com/aya-rs/aya.git",
+      "html_url": "https://github.com/aya-rs/aya",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/aya-rs/aya/issues/1112"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 5,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bbodi/rustarok",
+      "clone_url": "https://github.com/bbodi/rustarok.git",
+      "html_url": "https://github.com/bbodi/rustarok",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bbodi/rustarok/issues/25"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "beling/bsuccinct-rs",
+      "clone_url": "https://github.com/beling/bsuccinct-rs.git",
+      "html_url": "https://github.com/beling/bsuccinct-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/beling/bsuccinct-rs/issues/11"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bennetthardwick/rust-obs-plugins",
+      "clone_url": "https://github.com/bennetthardwick/rust-obs-plugins.git",
+      "html_url": "https://github.com/bennetthardwick/rust-obs-plugins",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bennetthardwick/rust-obs-plugins/issues/52"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bergercookie/asm-lsp",
+      "clone_url": "https://github.com/bergercookie/asm-lsp.git",
+      "html_url": "https://github.com/bergercookie/asm-lsp",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bergercookie/asm-lsp/issues/187"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bluealloy/revm",
+      "clone_url": "https://github.com/bluealloy/revm.git",
+      "html_url": "https://github.com/bluealloy/revm",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bluealloy/revm/issues/1902"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bluss/arrayvec",
+      "clone_url": "https://github.com/bluss/arrayvec.git",
+      "html_url": "https://github.com/bluss/arrayvec",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bluss/arrayvec/issues/300"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "blyssprivacy/sdk",
+      "clone_url": "https://github.com/blyssprivacy/sdk.git",
+      "html_url": "https://github.com/blyssprivacy/sdk",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/blyssprivacy/sdk/issues/35"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "bnb-chain/revm",
+      "clone_url": "https://github.com/bnb-chain/revm.git",
+      "html_url": "https://github.com/bnb-chain/revm",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/bnb-chain/revm/issues/89"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "brson/rust-sdl",
+      "clone_url": "https://github.com/brson/rust-sdl.git",
+      "html_url": "https://github.com/brson/rust-sdl",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/brson/rust-sdl/issues/168"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "capnproto/capnproto-rust",
+      "clone_url": "https://github.com/capnproto/capnproto-rust.git",
+      "html_url": "https://github.com/capnproto/capnproto-rust",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/capnproto/capnproto-rust/issues/534"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "cea-sec/sanzu",
+      "clone_url": "https://github.com/cea-sec/sanzu.git",
+      "html_url": "https://github.com/cea-sec/sanzu",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/cea-sec/sanzu/issues/309"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "changlan/kytan",
+      "clone_url": "https://github.com/changlan/kytan.git",
+      "html_url": "https://github.com/changlan/kytan",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/changlan/kytan/issues/39"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "chinedufn/swift-bridge",
+      "clone_url": "https://github.com/chinedufn/swift-bridge.git",
+      "html_url": "https://github.com/chinedufn/swift-bridge",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/chinedufn/swift-bridge/issues/304"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "crabml/crabml",
+      "clone_url": "https://github.com/crabml/crabml.git",
+      "html_url": "https://github.com/crabml/crabml",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/crabml/crabml/issues/218"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "danielpclark/rutie",
+      "clone_url": "https://github.com/danielpclark/rutie.git",
+      "html_url": "https://github.com/danielpclark/rutie",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/danielpclark/rutie/issues/190"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "datenlord/async-rdma",
+      "clone_url": "https://github.com/datenlord/async-rdma.git",
+      "html_url": "https://github.com/datenlord/async-rdma",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/datenlord/async-rdma/issues/125"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "dnglab/dnglab",
+      "clone_url": "https://github.com/dnglab/dnglab.git",
+      "html_url": "https://github.com/dnglab/dnglab",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/dnglab/dnglab/issues/488"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "dontpanic92/OpenPAL3",
+      "clone_url": "https://github.com/dontpanic92/OpenPAL3.git",
+      "html_url": "https://github.com/dontpanic92/OpenPAL3",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/dontpanic92/OpenPAL3/issues/51"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "douchuan/jvm",
+      "clone_url": "https://github.com/douchuan/jvm.git",
+      "html_url": "https://github.com/douchuan/jvm",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/douchuan/jvm/issues/13",
+        "https://github.com/douchuan/jvm/issues/14"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "dragonflyoss/nydus",
+      "clone_url": "https://github.com/dragonflyoss/nydus.git",
+      "html_url": "https://github.com/dragonflyoss/nydus",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/dragonflyoss/nydus/issues/1814"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "eclipse-zenoh/zenoh",
+      "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+      "html_url": "https://github.com/eclipse-zenoh/zenoh",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/eclipse-zenoh/zenoh/issues/1643",
+        "https://github.com/eclipse-zenoh/zenoh/issues/1683"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "everx-labs/ever-sdk",
+      "clone_url": "https://github.com/everx-labs/ever-sdk.git",
+      "html_url": "https://github.com/everx-labs/ever-sdk",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/everx-labs/ever-sdk/issues/1062"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "evmar/n2",
+      "clone_url": "https://github.com/evmar/n2.git",
+      "html_url": "https://github.com/evmar/n2",
+      "issue_count": 3,
+      "issue_urls": [
+        "https://github.com/evmar/n2/issues/121",
+        "https://github.com/evmar/n2/issues/122",
+        "https://github.com/evmar/n2/issues/123"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "evmar/retrowin32",
+      "clone_url": "https://github.com/evmar/retrowin32.git",
+      "html_url": "https://github.com/evmar/retrowin32",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/evmar/retrowin32/issues/72",
+        "https://github.com/evmar/retrowin32/issues/74"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "flaneur2020/pua-lang",
+      "clone_url": "https://github.com/flaneur2020/pua-lang.git",
+      "html_url": "https://github.com/flaneur2020/pua-lang",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/flaneur2020/pua-lang/issues/76"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "fugue-re/fugue-core",
+      "clone_url": "https://github.com/fugue-re/fugue-core.git",
+      "html_url": "https://github.com/fugue-re/fugue-core",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/fugue-re/fugue-core/issues/18"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "georust/gdal",
+      "clone_url": "https://github.com/georust/gdal.git",
+      "html_url": "https://github.com/georust/gdal",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/georust/gdal/issues/588"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "gluon-lang/gluon",
+      "clone_url": "https://github.com/gluon-lang/gluon.git",
+      "html_url": "https://github.com/gluon-lang/gluon",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/gluon-lang/gluon/issues/969"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "hermit-os/uhyve",
+      "clone_url": "https://github.com/hermit-os/uhyve.git",
+      "html_url": "https://github.com/hermit-os/uhyve",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/hermit-os/uhyve/issues/834",
+        "https://github.com/hermit-os/uhyve/issues/855"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "imazen/imageflow",
+      "clone_url": "https://github.com/imazen/imageflow.git",
+      "html_url": "https://github.com/imazen/imageflow",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/imazen/imageflow/issues/655"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "inherd/coco",
+      "clone_url": "https://github.com/inherd/coco.git",
+      "html_url": "https://github.com/inherd/coco",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/inherd/coco/issues/101"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "jeaye/ncurses-rs",
+      "clone_url": "https://github.com/jeaye/ncurses-rs.git",
+      "html_url": "https://github.com/jeaye/ncurses-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/jeaye/ncurses-rs/issues/224"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "jfecher/ante",
+      "clone_url": "https://github.com/jfecher/ante.git",
+      "html_url": "https://github.com/jfecher/ante",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/jfecher/ante/issues/221"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "joaoviictorti/shadow",
+      "clone_url": "https://github.com/joaoviictorti/shadow.git",
+      "html_url": "https://github.com/joaoviictorti/shadow",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/joaoviictorti/shadow/issues/5"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "kahing/catfs",
+      "clone_url": "https://github.com/kahing/catfs.git",
+      "html_url": "https://github.com/kahing/catfs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/kahing/catfs/issues/77"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "kcl-lang/kcl",
+      "clone_url": "https://github.com/kcl-lang/kcl.git",
+      "html_url": "https://github.com/kcl-lang/kcl",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/kcl-lang/kcl/issues/1776"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "laptou/jsi-rs",
+      "clone_url": "https://github.com/laptou/jsi-rs.git",
+      "html_url": "https://github.com/laptou/jsi-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/laptou/jsi-rs/issues/5"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "leetvr/hotham",
+      "clone_url": "https://github.com/leetvr/hotham.git",
+      "html_url": "https://github.com/leetvr/hotham",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/leetvr/hotham/issues/449"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "leostera/lam",
+      "clone_url": "https://github.com/leostera/lam.git",
+      "html_url": "https://github.com/leostera/lam",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/leostera/lam/issues/9"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "m4b/dryad",
+      "clone_url": "https://github.com/m4b/dryad.git",
+      "html_url": "https://github.com/m4b/dryad",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/m4b/dryad/issues/6"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "maekawatoshiki/ferrugo",
+      "clone_url": "https://github.com/maekawatoshiki/ferrugo.git",
+      "html_url": "https://github.com/maekawatoshiki/ferrugo",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/maekawatoshiki/ferrugo/issues/2"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "maekawatoshiki/rapidus",
+      "clone_url": "https://github.com/maekawatoshiki/rapidus.git",
+      "html_url": "https://github.com/maekawatoshiki/rapidus",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/maekawatoshiki/rapidus/issues/72"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "meh/rust-ffmpeg",
+      "clone_url": "https://github.com/meh/rust-ffmpeg.git",
+      "html_url": "https://github.com/meh/rust-ffmpeg",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/meh/rust-ffmpeg/issues/188"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "michelhe/rustboyadvance-ng",
+      "clone_url": "https://github.com/michelhe/rustboyadvance-ng.git",
+      "html_url": "https://github.com/michelhe/rustboyadvance-ng",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/michelhe/rustboyadvance-ng/issues/177"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "microsoft/aici",
+      "clone_url": "https://github.com/microsoft/aici.git",
+      "html_url": "https://github.com/microsoft/aici",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/microsoft/aici/issues/119"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "moratorium08/osmium",
+      "clone_url": "https://github.com/moratorium08/osmium.git",
+      "html_url": "https://github.com/moratorium08/osmium",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/moratorium08/osmium/issues/3",
+        "https://github.com/moratorium08/osmium/issues/4"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "mstange/samply",
+      "clone_url": "https://github.com/mstange/samply.git",
+      "html_url": "https://github.com/mstange/samply",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/mstange/samply/issues/719"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "mycelial/mycelite",
+      "clone_url": "https://github.com/mycelial/mycelite.git",
+      "html_url": "https://github.com/mycelial/mycelite",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/mycelial/mycelite/issues/52"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "nash-io/openlimits",
+      "clone_url": "https://github.com/nash-io/openlimits.git",
+      "html_url": "https://github.com/nash-io/openlimits",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/nash-io/openlimits/issues/204"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "nervosnetwork/ckb-vm",
+      "clone_url": "https://github.com/nervosnetwork/ckb-vm.git",
+      "html_url": "https://github.com/nervosnetwork/ckb-vm",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/nervosnetwork/ckb-vm/issues/444"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "ninja-quant/ninjabook",
+      "clone_url": "https://github.com/ninja-quant/ninjabook.git",
+      "html_url": "https://github.com/ninja-quant/ninjabook",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/ninja-quant/ninjabook/issues/3"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "nixops4/nixops4",
+      "clone_url": "https://github.com/nixops4/nixops4.git",
+      "html_url": "https://github.com/nixops4/nixops4",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/nixops4/nixops4/issues/65"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "nuta/kerla",
+      "clone_url": "https://github.com/nuta/kerla.git",
+      "html_url": "https://github.com/nuta/kerla",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/nuta/kerla/issues/170"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "o8vm/krabs",
+      "clone_url": "https://github.com/o8vm/krabs.git",
+      "html_url": "https://github.com/o8vm/krabs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/o8vm/krabs/issues/30"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "occlum/occlum",
+      "clone_url": "https://github.com/occlum/occlum.git",
+      "html_url": "https://github.com/occlum/occlum",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/occlum/occlum/issues/1645"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "only-cliches/NoProto",
+      "clone_url": "https://github.com/only-cliches/NoProto.git",
+      "html_url": "https://github.com/only-cliches/NoProto",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/only-cliches/NoProto/issues/25"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "oreboot/oreboot",
+      "clone_url": "https://github.com/oreboot/oreboot.git",
+      "html_url": "https://github.com/oreboot/oreboot",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/oreboot/oreboot/issues/776"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "perpetual-ml/perpetual",
+      "clone_url": "https://github.com/perpetual-ml/perpetual.git",
+      "html_url": "https://github.com/perpetual-ml/perpetual",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/perpetual-ml/perpetual/issues/34"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "pipedown/noise",
+      "clone_url": "https://github.com/pipedown/noise.git",
+      "html_url": "https://github.com/pipedown/noise",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/pipedown/noise/issues/82"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "pleco-rs/Pleco",
+      "clone_url": "https://github.com/pleco-rs/Pleco.git",
+      "html_url": "https://github.com/pleco-rs/Pleco",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/pleco-rs/Pleco/issues/163"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "posit-dev/ark",
+      "clone_url": "https://github.com/posit-dev/ark.git",
+      "html_url": "https://github.com/posit-dev/ark",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/posit-dev/ark/issues/653",
+        "https://github.com/posit-dev/ark/issues/729"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 5,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "r9os/r9",
+      "clone_url": "https://github.com/r9os/r9.git",
+      "html_url": "https://github.com/r9os/r9",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/r9os/r9/issues/51"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "raskr/rust-autograd",
+      "clone_url": "https://github.com/raskr/rust-autograd.git",
+      "html_url": "https://github.com/raskr/rust-autograd",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/raskr/rust-autograd/issues/65"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "rcore-os/zCore",
+      "clone_url": "https://github.com/rcore-os/zCore.git",
+      "html_url": "https://github.com/rcore-os/zCore",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/rcore-os/zCore/issues/406"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "rust-bio/rust-htslib",
+      "clone_url": "https://github.com/rust-bio/rust-htslib.git",
+      "html_url": "https://github.com/rust-bio/rust-htslib",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/rust-bio/rust-htslib/issues/459"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 5,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "rustcoreutils/posixutils-rs",
+      "clone_url": "https://github.com/rustcoreutils/posixutils-rs.git",
+      "html_url": "https://github.com/rustcoreutils/posixutils-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/rustcoreutils/posixutils-rs/issues/380"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "sciter-sdk/rust-sciter",
+      "clone_url": "https://github.com/sciter-sdk/rust-sciter.git",
+      "html_url": "https://github.com/sciter-sdk/rust-sciter",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/sciter-sdk/rust-sciter/issues/150"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 5,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "servo/mozjs",
+      "clone_url": "https://github.com/servo/mozjs.git",
+      "html_url": "https://github.com/servo/mozjs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/servo/mozjs/issues/531"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "sgmarz/osblog",
+      "clone_url": "https://github.com/sgmarz/osblog.git",
+      "html_url": "https://github.com/sgmarz/osblog",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/sgmarz/osblog/issues/40"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "signalapp/ringrtc",
+      "clone_url": "https://github.com/signalapp/ringrtc.git",
+      "html_url": "https://github.com/signalapp/ringrtc",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/signalapp/ringrtc/issues/60"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "smol-rs/async-task",
+      "clone_url": "https://github.com/smol-rs/async-task.git",
+      "html_url": "https://github.com/smol-rs/async-task",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/smol-rs/async-task/issues/89"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "starcoinorg/starcoin",
+      "clone_url": "https://github.com/starcoinorg/starcoin.git",
+      "html_url": "https://github.com/starcoinorg/starcoin",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/starcoinorg/starcoin/issues/4763"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "tensorbase/tensorbase",
+      "clone_url": "https://github.com/tensorbase/tensorbase.git",
+      "html_url": "https://github.com/tensorbase/tensorbase",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/tensorbase/tensorbase/issues/351",
+        "https://github.com/tensorbase/tensorbase/issues/352"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 8,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "tensorchord/pgvecto.rs",
+      "clone_url": "https://github.com/tensorchord/pgvecto.rs.git",
+      "html_url": "https://github.com/tensorchord/pgvecto.rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/tensorchord/pgvecto.rs/issues/653"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "topiary/topiary",
+      "clone_url": "https://github.com/topiary/topiary.git",
+      "html_url": "https://github.com/topiary/topiary",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/topiary/topiary/issues/792"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "toxoidengine/toxoid",
+      "clone_url": "https://github.com/toxoidengine/toxoid.git",
+      "html_url": "https://github.com/toxoidengine/toxoid",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/toxoidengine/toxoid/issues/5"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "tursodatabase/libsql",
+      "clone_url": "https://github.com/tursodatabase/libsql.git",
+      "html_url": "https://github.com/tursodatabase/libsql",
+      "issue_count": 2,
+      "issue_urls": [
+        "https://github.com/tursodatabase/libsql/issues/1859",
+        "https://github.com/tursodatabase/libsql/issues/1873"
+      ],
+      "accepted_and_fixed_issue_count": 1,
+      "local_instance_count": 3,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "tylerwhall/zephyr-rust",
+      "clone_url": "https://github.com/tylerwhall/zephyr-rust.git",
+      "html_url": "https://github.com/tylerwhall/zephyr-rust",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/tylerwhall/zephyr-rust/issues/58"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "vinc/moros",
+      "clone_url": "https://github.com/vinc/moros.git",
+      "html_url": "https://github.com/vinc/moros",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/vinc/moros/issues/724"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "workflow-rs/workflow-rs",
+      "clone_url": "https://github.com/workflow-rs/workflow-rs.git",
+      "html_url": "https://github.com/workflow-rs/workflow-rs",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/workflow-rs/workflow-rs/issues/14"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 2,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "xajik/rust-cross-platform-mobile",
+      "clone_url": "https://github.com/xajik/rust-cross-platform-mobile.git",
+      "html_url": "https://github.com/xajik/rust-cross-platform-mobile",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/xajik/rust-cross-platform-mobile/issues/2"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "yamadapc/augmented-audio",
+      "clone_url": "https://github.com/yamadapc/augmented-audio.git",
+      "html_url": "https://github.com/yamadapc/augmented-audio",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/yamadapc/augmented-audio/issues/615"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "zackradisic/rust-vs-zig",
+      "clone_url": "https://github.com/zackradisic/rust-vs-zig.git",
+      "html_url": "https://github.com/zackradisic/rust-vs-zig",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/zackradisic/rust-vs-zig/issues/2"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 4,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "zhihu/rucene",
+      "clone_url": "https://github.com/zhihu/rucene.git",
+      "html_url": "https://github.com/zhihu/rucene",
+      "issue_count": 3,
+      "issue_urls": [
+        "https://github.com/zhihu/rucene/issues/19",
+        "https://github.com/zhihu/rucene/issues/20",
+        "https://github.com/zhihu/rucene/issues/21"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 5,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "zmwangx/rust-ffmpeg",
+      "clone_url": "https://github.com/zmwangx/rust-ffmpeg.git",
+      "html_url": "https://github.com/zmwangx/rust-ffmpeg",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/zmwangx/rust-ffmpeg/issues/225"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 6,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "repository": "zzau13/yarte",
+      "clone_url": "https://github.com/zzau13/yarte.git",
+      "html_url": "https://github.com/zzau13/yarte",
+      "issue_count": 1,
+      "issue_urls": [
+        "https://github.com/zzau13/yarte/issues/319"
+      ],
+      "accepted_and_fixed_issue_count": 0,
+      "local_instance_count": 1,
+      "scan_status": "frozen_not_scanned"
+    }
+  ],
+  "issues": [
+    {
+      "issue_url": "https://github.com/Amanieu/atomic-rs/issues/46",
+      "repository": "Amanieu/atomic-rs",
+      "clone_url": "https://github.com/Amanieu/atomic-rs.git",
+      "issue_number": 46,
+      "title": "Maybe Multiple unsoundness problems",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cba74ba5070be204447e6491"
+      ],
+      "canonical_instance_keys": [
+        "Amanieu/atomic-rs#46:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Andy-Python-Programmer/aero/issues/120",
+      "repository": "Andy-Python-Programmer/aero",
+      "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+      "issue_number": 120,
+      "title": "Unsoundness in Utsname::name and other function",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_383f1796f6f17786e3f04a34"
+      ],
+      "canonical_instance_keys": [
+        "Andy-Python-Programmer/aero#120:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Andy-Python-Programmer/aero/issues/121",
+      "repository": "Andy-Python-Programmer/aero",
+      "clone_url": "https://github.com/Andy-Python-Programmer/aero.git",
+      "issue_number": 121,
+      "title": "Maybe unsound in some as_ptr usage",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_6b1341f3b15516d6b1507e95",
+        "instance_d72444213993e7a43c40b47d"
+      ],
+      "canonical_instance_keys": [
+        "Andy-Python-Programmer/aero#121:obligation:01",
+        "Andy-Python-Programmer/aero#121:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/BrowserWorks/waterfox/issues/3980",
+      "repository": "BrowserWorks/waterfox",
+      "clone_url": "https://github.com/BrowserWorks/waterfox.git",
+      "issue_number": 3980,
+      "title": "[Unsoundness] Safe function peek_from_slice causes UB via malicious Peek implementation",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_d57ca2ef4c738de6efef06b8"
+      ],
+      "canonical_instance_keys": [
+        "BrowserWorks/waterfox#3980:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/CosmWasm/cosmwasm/issues/2305",
+      "repository": "CosmWasm/cosmwasm",
+      "clone_url": "https://github.com/CosmWasm/cosmwasm.git",
+      "issue_number": 2305,
+      "title": "Maybe unsound in as_bytes",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_0e426a831d91b63962dc27b3"
+      ],
+      "canonical_instance_keys": [
+        "CosmWasm/cosmwasm#2305:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/DioxusLabs/blitz/issues/169",
+      "repository": "DioxusLabs/blitz",
+      "clone_url": "https://github.com/DioxusLabs/blitz.git",
+      "issue_number": 169,
+      "title": "Unsoundness problem in Node::tree",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6fe0d3a7940ef2477b120246"
+      ],
+      "canonical_instance_keys": [
+        "DioxusLabs/blitz#169:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Eugeny/russh/issues/394",
+      "repository": "Eugeny/russh",
+      "clone_url": "https://github.com/Eugeny/russh.git",
+      "issue_number": 394,
+      "title": "Potential unsoundness in memcpy",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6af09189d961ad3b0e396e35"
+      ],
+      "canonical_instance_keys": [
+        "Eugeny/russh#394:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Indra-db/Flecs-Rust/issues/210",
+      "repository": "Indra-db/Flecs-Rust",
+      "clone_url": "https://github.com/Indra-db/Flecs-Rust.git",
+      "issue_number": 210,
+      "title": "Maybe unsound in Cursor::new",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2cbaf85eacfedd5bc6965908"
+      ],
+      "canonical_instance_keys": [
+        "Indra-db/Flecs-Rust#210:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/IsaacWoods/poplar/issues/117",
+      "repository": "IsaacWoods/poplar",
+      "clone_url": "https://github.com/IsaacWoods/poplar.git",
+      "issue_number": 117,
+      "title": "Maybe unsound in dma::write",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_08e5a090fbfe1312d69c49d4"
+      ],
+      "canonical_instance_keys": [
+        "IsaacWoods/poplar#117:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Kudaes/DInvoke_rs/issues/10",
+      "repository": "Kudaes/DInvoke_rs",
+      "clone_url": "https://github.com/Kudaes/DInvoke_rs.git",
+      "issue_number": 10,
+      "title": "Unsoundness in fn clean_dos_header",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_ab81dcf8ecd6bbc8471a9f80"
+      ],
+      "canonical_instance_keys": [
+        "Kudaes/DInvoke_rs#10:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Kudaes/Elevator/issues/9",
+      "repository": "Kudaes/Elevator",
+      "clone_url": "https://github.com/Kudaes/Elevator.git",
+      "issue_number": 9,
+      "title": "Maybe unsound in get_pe_metadata",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_4bec5ba583c208a388d616fe",
+        "instance_9379437b054e9773598e75b4"
+      ],
+      "canonical_instance_keys": [
+        "Kudaes/Elevator#9:obligation:01",
+        "Kudaes/Elevator#9:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Lightprotocol/light-protocol/issues/1382",
+      "repository": "Lightprotocol/light-protocol",
+      "clone_url": "https://github.com/Lightprotocol/light-protocol.git",
+      "issue_number": 1382,
+      "title": "Maybe unsound in ConcurrentMerkleTree",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2e1bcaecfa7a1bfbea8d2f9c"
+      ],
+      "canonical_instance_keys": [
+        "Lightprotocol/light-protocol#1382:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/MarcusRainbow/QuantMath/issues/54",
+      "repository": "MarcusRainbow/QuantMath",
+      "clone_url": "https://github.com/MarcusRainbow/QuantMath.git",
+      "issue_number": 54,
+      "title": "Multiple unsound issue",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_d6072c100a87f5d6689a3f72"
+      ],
+      "canonical_instance_keys": [
+        "MarcusRainbow/QuantMath#54:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/MegEngine/MegFlow/issues/87",
+      "repository": "MegEngine/MegFlow",
+      "clone_url": "https://github.com/MegEngine/MegFlow.git",
+      "issue_number": 87,
+      "title": "Maybe unsound in store",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_32b33f86ab5e105e9bf022f3",
+        "instance_141cbc8c42d6fbc58910c37f"
+      ],
+      "canonical_instance_keys": [
+        "MegEngine/MegFlow#87:obligation:01",
+        "MegEngine/MegFlow#87:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Mufanc/z-loader/issues/6",
+      "repository": "Mufanc/z-loader",
+      "clone_url": "https://github.com/Mufanc/z-loader.git",
+      "issue_number": 6,
+      "title": "Maybe unsound in SpecializeArgs::env",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_3d9370df4b950e8a5802aeee"
+      ],
+      "canonical_instance_keys": [
+        "Mufanc/z-loader#6:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/NVSL/Corundum/issues/7",
+      "repository": "NVSL/Corundum",
+      "clone_url": "https://github.com/NVSL/Corundum.git",
+      "issue_number": 7,
+      "title": "Unsoundness in src/vec.rs/to_str and maybe unmaintained",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6c2a54a49617b52a5dcadfeb"
+      ],
+      "canonical_instance_keys": [
+        "NVSL/Corundum#7:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/NetSys/NetBricks/issues/110",
+      "repository": "NetSys/NetBricks",
+      "clone_url": "https://github.com/NetSys/NetBricks.git",
+      "issue_number": 110,
+      "title": "Potential Unsoundness in replace_header",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_679c8eb5e16e449356c98017",
+        "instance_cc3d4aa92843a55cf2e5806f"
+      ],
+      "canonical_instance_keys": [
+        "NetSys/NetBricks#110:obligation:01",
+        "NetSys/NetBricks#110:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/NetSys/NetBricks/issues/111",
+      "repository": "NetSys/NetBricks",
+      "clone_url": "https://github.com/NetSys/NetBricks.git",
+      "issue_number": 111,
+      "title": "Potential Unsoundness in remove_from_payload_head and add_to_payload_head",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_287020aafc18cd7dcf705ba3",
+        "instance_d96a1a64699d4f04586966a9"
+      ],
+      "canonical_instance_keys": [
+        "NetSys/NetBricks#111:obligation:01",
+        "NetSys/NetBricks#111:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Noeda/rllama/issues/19",
+      "repository": "Noeda/rllama",
+      "clone_url": "https://github.com/Noeda/rllama.git",
+      "issue_number": 19,
+      "title": "Potential Undefined Behavior in data_u16_to_gpu Due to Unsafe Pointer Usage",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_1f27961c211f26099e7d1279"
+      ],
+      "canonical_instance_keys": [
+        "Noeda/rllama#19:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Pagefind/pagefind/issues/752",
+      "repository": "Pagefind/pagefind",
+      "clone_url": "https://github.com/Pagefind/pagefind.git",
+      "issue_number": 752,
+      "title": "Maybe unsound in request_filter_indexes and its groups",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_056b1ab0fccf8bfeb32018d4",
+        "instance_e5e6803cae8e07029744b9db"
+      ],
+      "canonical_instance_keys": [
+        "Pagefind/pagefind#752:obligation:01",
+        "Pagefind/pagefind#752:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Pagefind/pagefind/issues/985",
+      "repository": "Pagefind/pagefind",
+      "clone_url": "https://github.com/Pagefind/pagefind.git",
+      "issue_number": 985,
+      "title": "[Soundness] Public safe API request_filter_indexes allows dereferencing arbitrary raw pointers",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_056b1ab0fccf8bfeb32018d4",
+        "instance_e5e6803cae8e07029744b9db",
+        "instance_cb6d6017f12d34cc4685b6b9",
+        "instance_69f188e6f7b2fb49b1d9eda3"
+      ],
+      "canonical_instance_keys": [
+        "Pagefind/pagefind#752:obligation:01",
+        "Pagefind/pagefind#752:obligation:02",
+        "Pagefind/pagefind#985:obligation:03",
+        "Pagefind/pagefind#985:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/PersiaML/PERSIA/issues/509",
+      "repository": "PersiaML/PERSIA",
+      "clone_url": "https://github.com/PersiaML/PERSIA.git",
+      "issue_number": 509,
+      "title": "Potential Unsoundness in get_shard_by_index Function due to Unchecked Indexing",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_644c99dc602395141e42e843"
+      ],
+      "canonical_instance_keys": [
+        "PersiaML/PERSIA#509:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Phala-Network/phala-blockchain/issues/1592",
+      "repository": "Phala-Network/phala-blockchain",
+      "clone_url": "https://github.com/Phala-Network/phala-blockchain.git",
+      "issue_number": 1592,
+      "title": "Unsoundness in \"string_from_c_char\"",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_dd886dc9dd516362db4c30a2"
+      ],
+      "canonical_instance_keys": [
+        "Phala-Network/phala-blockchain#1592:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/QuarkContainer/Quark/issues/1354",
+      "repository": "QuarkContainer/Quark",
+      "clone_url": "https://github.com/QuarkContainer/Quark.git",
+      "issue_number": 1354,
+      "title": "Maybe unsound in IOBuff::Buf",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6e76211ac99feb33054c962b"
+      ],
+      "canonical_instance_keys": [
+        "QuarkContainer/Quark#1354:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/RWTH-OS/eduOS-rs/issues/46",
+      "repository": "RWTH-OS/eduOS-rs",
+      "clone_url": "https://github.com/RWTH-OS/eduOS-rs.git",
+      "issue_number": 46,
+      "title": "unsoundness in  RomHandle::new",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_7d91200fa931c5287b7b445b"
+      ],
+      "canonical_instance_keys": [
+        "RWTH-OS/eduOS-rs#46:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Ralith/hecs/issues/385",
+      "repository": "Ralith/hecs",
+      "clone_url": "https://github.com/Ralith/hecs.git",
+      "issue_number": 385,
+      "title": "Maybe unsound in 'get_mut'",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_d1a16419d47345e2b4577360"
+      ],
+      "canonical_instance_keys": [
+        "Ralith/hecs#385:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/RedisJSON/RedisJSON/issues/1305",
+      "repository": "RedisJSON/RedisJSON",
+      "clone_url": "https://github.com/RedisJSON/RedisJSON.git",
+      "issue_number": 1305,
+      "title": "Maybe multiple unsound problem in c_api",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 10,
+      "instance_ids": [
+        "instance_89df79b38490b3d13540d089",
+        "instance_d424a036cfeeb668380bc3dd",
+        "instance_825544e8b831249d34c96f2e",
+        "instance_5bf4d077367abdb9bfc50538",
+        "instance_83be13d823dcf8f837e739a5",
+        "instance_2fd23e3ec2cd6fee7b247784",
+        "instance_0a38b22ac524351dda149732",
+        "instance_c21cfc54eccacd06b27165a5",
+        "instance_b3b6d63203b75b70bf0afbb0",
+        "instance_1799a4ed1ac264472ea49684"
+      ],
+      "canonical_instance_keys": [
+        "RedisJSON/RedisJSON#1305:obligation:01",
+        "RedisJSON/RedisJSON#1305:obligation:02",
+        "RedisJSON/RedisJSON#1305:obligation:03",
+        "RedisJSON/RedisJSON#1305:obligation:04",
+        "RedisJSON/RedisJSON#1305:obligation:05",
+        "RedisJSON/RedisJSON#1305:obligation:06",
+        "RedisJSON/RedisJSON#1305:obligation:07",
+        "RedisJSON/RedisJSON#1305:obligation:08",
+        "RedisJSON/RedisJSON#1305:obligation:09",
+        "RedisJSON/RedisJSON#1305:obligation:10"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Ruddle/Fomos/issues/5",
+      "repository": "Ruddle/Fomos",
+      "clone_url": "https://github.com/Ruddle/Fomos.git",
+      "issue_number": 5,
+      "title": "Unsoundness in to_bytes",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_ffb2a6735c8d3655295ceec6"
+      ],
+      "canonical_instance_keys": [
+        "Ruddle/Fomos#5:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/SitinCloud/Owlyshield/issues/59",
+      "repository": "SitinCloud/Owlyshield",
+      "clone_url": "https://github.com/SitinCloud/Owlyshield.git",
+      "issue_number": 59,
+      "title": "Unsoundness in UnicodeString::as_string_ext",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_ca65b0597f46c8434446f676"
+      ],
+      "canonical_instance_keys": [
+        "SitinCloud/Owlyshield#59:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Starlight-JS/starlight/issues/137",
+      "repository": "Starlight-JS/starlight",
+      "clone_url": "https://github.com/Starlight-JS/starlight.git",
+      "issue_number": 137,
+      "title": "Possible unsound problems in crates/starlight/src/vm/environment.rs",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_7591f9bc4e1dde3ffcd76f27",
+        "instance_6b1830c20130456c1059b42a"
+      ],
+      "canonical_instance_keys": [
+        "Starlight-JS/starlight#137:obligation:01",
+        "Starlight-JS/starlight#137:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Teach2Breach/Tempest/issues/11",
+      "repository": "Teach2Breach/Tempest",
+      "clone_url": "https://github.com/Teach2Breach/Tempest.git",
+      "issue_number": 11,
+      "title": "Maybe unsound in get_function_address",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_2b9e5d8b55627b4b974dc724",
+        "instance_d5c9b217af4f6fc2f3937bed",
+        "instance_f6f1c1e7dc0fe431e7f7c4d6"
+      ],
+      "canonical_instance_keys": [
+        "Teach2Breach/Tempest#11:obligation:01",
+        "Teach2Breach/Tempest#11:obligation:02",
+        "Teach2Breach/Tempest#11:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Traverse-Research/gpu-allocator/issues/255",
+      "repository": "Traverse-Research/gpu-allocator",
+      "clone_url": "https://github.com/Traverse-Research/gpu-allocator.git",
+      "issue_number": 255,
+      "title": "Maybe Unsound in from_winapi_d3d12_resource_desc",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_492f547b21851facd1563bc3"
+      ],
+      "canonical_instance_keys": [
+        "Traverse-Research/gpu-allocator#255:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Umio-Yasuno/amdgpu_top/issues/104",
+      "repository": "Umio-Yasuno/amdgpu_top",
+      "clone_url": "https://github.com/Umio-Yasuno/amdgpu_top.git",
+      "issue_number": 104,
+      "title": "Unsoundness in 'pub fn get'",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_e9a76b991e21a289b16f4b0f"
+      ],
+      "canonical_instance_keys": [
+        "Umio-Yasuno/amdgpu_top#104:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/Xudong-Huang/may/issues/112",
+      "repository": "Xudong-Huang/may",
+      "clone_url": "https://github.com/Xudong-Huang/may.git",
+      "issue_number": 112,
+      "title": "Unsound Use of get_unchecked in wakeup Function",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_c8cbf7cf7703f14597a6a7e5",
+        "instance_5b196f3aa0da488c2ee4d07d",
+        "instance_a75a47ab9d2fa08a5f6a6255",
+        "instance_94fe126c5e2f9dcebfb3f8b9"
+      ],
+      "canonical_instance_keys": [
+        "Xudong-Huang/may#112:obligation:01",
+        "Xudong-Huang/may#112:obligation:02",
+        "Xudong-Huang/may#112:obligation:03",
+        "Xudong-Huang/may#112:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/apache/datafusion-comet/issues/1141",
+      "repository": "apache/datafusion-comet",
+      "clone_url": "https://github.com/apache/datafusion-comet.git",
+      "issue_number": 1141,
+      "title": "Maybe Undefined Behavior in StringView::as_utf8_str",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2917af9489a76279f66710b0"
+      ],
+      "canonical_instance_keys": [
+        "apache/datafusion-comet#1141:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/arceos-org/arceos/issues/204",
+      "repository": "arceos-org/arceos",
+      "clone_url": "https://github.com/arceos-org/arceos.git",
+      "issue_number": 204,
+      "title": "Unsoundness in run_cmd",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_7ca36b92a3919ae5dcfeeb98"
+      ],
+      "canonical_instance_keys": [
+        "arceos-org/arceos#204:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/archseer/enigma/issues/44",
+      "repository": "archseer/enigma",
+      "clone_url": "https://github.com/archseer/enigma.git",
+      "issue_number": 44,
+      "title": "Unsound problem in InstrPtr::module",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_e11a31394c87be3f3b98149d"
+      ],
+      "canonical_instance_keys": [
+        "archseer/enigma#44:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/archseer/enigma/issues/45",
+      "repository": "archseer/enigma",
+      "clone_url": "https://github.com/archseer/enigma.git",
+      "issue_number": 45,
+      "title": "Unsoundness in cmp",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_1c674f19980b9797f192e52f"
+      ],
+      "canonical_instance_keys": [
+        "archseer/enigma#45:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/asg017/sqlite-loadable-rs/issues/24",
+      "repository": "asg017/sqlite-loadable-rs",
+      "clone_url": "https://github.com/asg017/sqlite-loadable-rs.git",
+      "issue_number": 24,
+      "title": "Maybe unsound in set_argv_index and set_omit",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_8ff0cae701b8ccf71c01d2d6",
+        "instance_faa02185ceb39f6804b57932",
+        "instance_ee7c583eb0eb830bcb296b52"
+      ],
+      "canonical_instance_keys": [
+        "asg017/sqlite-loadable-rs#24:obligation:01",
+        "asg017/sqlite-loadable-rs#24:obligation:02",
+        "asg017/sqlite-loadable-rs#24:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/astonbitecode/j4rs/issues/138",
+      "repository": "astonbitecode/j4rs",
+      "clone_url": "https://github.com/astonbitecode/j4rs.git",
+      "issue_number": 138,
+      "title": "Unsoundness in to_rust_string may cause UB due to unsafe assumptions about the input pointer",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2488140aac573e052b601750"
+      ],
+      "canonical_instance_keys": [
+        "astonbitecode/j4rs#138:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/astonbitecode/j4rs/issues/140",
+      "repository": "astonbitecode/j4rs",
+      "clone_url": "https://github.com/astonbitecode/j4rs.git",
+      "issue_number": 140,
+      "title": "Unsoundness in drop_c_string",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_b24972b827e86051136625f7"
+      ],
+      "canonical_instance_keys": [
+        "astonbitecode/j4rs#140:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/async-rs/async-std/issues/1103",
+      "repository": "async-rs/async-std",
+      "clone_url": "https://github.com/async-rs/async-std.git",
+      "issue_number": 1103,
+      "title": "Maybe Multiple unsoundness problems",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c43cd4433e7222076e521a2f"
+      ],
+      "canonical_instance_keys": [
+        "async-rs/async-std#1103:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/awslabs/snapchange/issues/43",
+      "repository": "awslabs/snapchange",
+      "clone_url": "https://github.com/awslabs/snapchange.git",
+      "issue_number": 43,
+      "title": "Unsoundness in pub field \"console_output\"",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_0eb135b30ab9f0dd4e8aad33"
+      ],
+      "canonical_instance_keys": [
+        "awslabs/snapchange#43:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/aya-rs/aya/issues/1112",
+      "repository": "aya-rs/aya",
+      "clone_url": "https://github.com/aya-rs/aya.git",
+      "issue_number": 1112,
+      "title": "Multiple unsoundness problems in aya-ebpf/programs",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 5,
+      "instance_ids": [
+        "instance_95b12b1351f0d2b6b567b945",
+        "instance_d8d6e966daa1d04f71aa17e7",
+        "instance_dbba7aa8bca120366c582400",
+        "instance_c95f77f48799be769a0412b6",
+        "instance_0750634f2f5b49bc1cab78f5"
+      ],
+      "canonical_instance_keys": [
+        "aya-rs/aya#1112:obligation:01",
+        "aya-rs/aya#1112:obligation:02",
+        "aya-rs/aya#1112:obligation:03",
+        "aya-rs/aya#1112:obligation:04",
+        "aya-rs/aya#1112:obligation:05"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bbodi/rustarok/issues/25",
+      "repository": "bbodi/rustarok",
+      "clone_url": "https://github.com/bbodi/rustarok.git",
+      "issue_number": 25,
+      "title": "unsoundness in write_f32 groups",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c78825bee262498237985d9f"
+      ],
+      "canonical_instance_keys": [
+        "bbodi/rustarok#25:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/beling/bsuccinct-rs/issues/11",
+      "repository": "beling/bsuccinct-rs",
+      "clone_url": "https://github.com/beling/bsuccinct-rs.git",
+      "issue_number": 11,
+      "title": "possible unsound code",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_402bdafec64241ec6c3f0a51"
+      ],
+      "canonical_instance_keys": [
+        "beling/bsuccinct-rs#11:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bennetthardwick/rust-obs-plugins/issues/52",
+      "repository": "bennetthardwick/rust-obs-plugins",
+      "clone_url": "https://github.com/bennetthardwick/rust-obs-plugins.git",
+      "issue_number": 52,
+      "title": "Maybe unsound in VideoDataSourceContext::pointer",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_b7b54729c6c8036cec3e44d9",
+        "instance_592f55d0cfb9d1889ea86784",
+        "instance_6f09363786438ca04892fb95",
+        "instance_c0fcdcedff74c3a6b2093e0b"
+      ],
+      "canonical_instance_keys": [
+        "bennetthardwick/rust-obs-plugins#52:obligation:01",
+        "bennetthardwick/rust-obs-plugins#52:obligation:02",
+        "bennetthardwick/rust-obs-plugins#52:obligation:03",
+        "bennetthardwick/rust-obs-plugins#52:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bergercookie/asm-lsp/issues/187",
+      "repository": "bergercookie/asm-lsp",
+      "clone_url": "https://github.com/bergercookie/asm-lsp.git",
+      "issue_number": 187,
+      "title": "get_str and get_string Are Unsound Due to Unchecked UTF-8 Operations",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_40812d2f53f02e652f40ece6",
+        "instance_70bcd1fd2f4042346c6b8ec5"
+      ],
+      "canonical_instance_keys": [
+        "bergercookie/asm-lsp#187:obligation:01",
+        "bergercookie/asm-lsp#187:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bluealloy/revm/issues/1902",
+      "repository": "bluealloy/revm",
+      "clone_url": "https://github.com/bluealloy/revm.git",
+      "issue_number": 1902,
+      "title": "Maybe unsound in ExtBytecode",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cd86546b89ebce7d5810da7a"
+      ],
+      "canonical_instance_keys": [
+        "bluealloy/revm#1902:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bluss/arrayvec/issues/300",
+      "repository": "bluss/arrayvec",
+      "clone_url": "https://github.com/bluss/arrayvec.git",
+      "issue_number": 300,
+      "title": "Maybe Multiple unsoundness problems",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_649d8e10a06761a8108496ff"
+      ],
+      "canonical_instance_keys": [
+        "bluss/arrayvec#300:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/blyssprivacy/sdk/issues/35",
+      "repository": "blyssprivacy/sdk",
+      "clone_url": "https://github.com/blyssprivacy/sdk.git",
+      "issue_number": 35,
+      "title": "Undefined Behavior in Db::get_nice_slice due to Unaligned Reference",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c5ad14ea739b598438b1047d"
+      ],
+      "canonical_instance_keys": [
+        "blyssprivacy/sdk#35:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/bnb-chain/revm/issues/89",
+      "repository": "bnb-chain/revm",
+      "clone_url": "https://github.com/bnb-chain/revm.git",
+      "issue_number": 89,
+      "title": "Maybe unsound in current_opcode",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cd86546b89ebce7d5810da7a"
+      ],
+      "canonical_instance_keys": [
+        "bluealloy/revm#1902:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/brson/rust-sdl/issues/168",
+      "repository": "brson/rust-sdl",
+      "clone_url": "https://github.com/brson/rust-sdl.git",
+      "issue_number": 168,
+      "title": "Maybe unsound in Surface::raw",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2af1a136b61669a998127edf"
+      ],
+      "canonical_instance_keys": [
+        "brson/rust-sdl#168:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/capnproto/capnproto-rust/issues/534",
+      "repository": "capnproto/capnproto-rust",
+      "clone_url": "https://github.com/capnproto/capnproto-rust.git",
+      "issue_number": 534,
+      "title": "Maybe unsound in set_capability_pointer",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_e01c4df89363473e4e55db5c",
+        "instance_4bcade6511e9f1232a7a8035"
+      ],
+      "canonical_instance_keys": [
+        "capnproto/capnproto-rust#534:obligation:01",
+        "capnproto/capnproto-rust#534:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/cea-sec/sanzu/issues/309",
+      "repository": "cea-sec/sanzu",
+      "clone_url": "https://github.com/cea-sec/sanzu.git",
+      "issue_number": 309,
+      "title": "Unsoundness in AVFrame::plane",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2afb62a0a545bd2feac0901f"
+      ],
+      "canonical_instance_keys": [
+        "cea-sec/sanzu#309:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/changlan/kytan/issues/39",
+      "repository": "changlan/kytan",
+      "clone_url": "https://github.com/changlan/kytan.git",
+      "issue_number": 39,
+      "title": "Unsoundness in raw_cksum",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_9d4156bfe9279095ac0ea2cc"
+      ],
+      "canonical_instance_keys": [
+        "changlan/kytan#39:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/chinedufn/swift-bridge/issues/304",
+      "repository": "chinedufn/swift-bridge",
+      "clone_url": "https://github.com/chinedufn/swift-bridge.git",
+      "issue_number": 304,
+      "title": "Bug report: Unsoundness  in FfiSlice::as_slice",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2845d152918b2ed618cceb73"
+      ],
+      "canonical_instance_keys": [
+        "chinedufn/swift-bridge#304:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/crabml/crabml/issues/218",
+      "repository": "crabml/crabml",
+      "clone_url": "https://github.com/crabml/crabml.git",
+      "issue_number": 218,
+      "title": "Unsoundness issue in fn vec_fma_f16_f16_neon",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_21f87300c2f134a74d2733b6",
+        "instance_9f90bc17cfbe63e22e530218"
+      ],
+      "canonical_instance_keys": [
+        "crabml/crabml#218:obligation:01",
+        "crabml/crabml#218:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/danielpclark/rutie/issues/190",
+      "repository": "danielpclark/rutie",
+      "clone_url": "https://github.com/danielpclark/rutie.git",
+      "issue_number": 190,
+      "title": "Unsoundness in parse_arguments",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_f7ff156f6322d1bdc8df172d"
+      ],
+      "canonical_instance_keys": [
+        "danielpclark/rutie#190:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/datenlord/async-rdma/issues/125",
+      "repository": "datenlord/async-rdma",
+      "clone_url": "https://github.com/datenlord/async-rdma.git",
+      "issue_number": 125,
+      "title": "Maybe unsound issue in cm_connect_helper",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_435ee25c2b911782773f4f44"
+      ],
+      "canonical_instance_keys": [
+        "datenlord/async-rdma#125:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/dnglab/dnglab/issues/488",
+      "repository": "dnglab/dnglab",
+      "clone_url": "https://github.com/dnglab/dnglab.git",
+      "issue_number": 488,
+      "title": "Not sure whether it is a UB?",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_db6df4a50eea14447bfcadd8"
+      ],
+      "canonical_instance_keys": [
+        "dnglab/dnglab#488:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/dontpanic92/OpenPAL3/issues/51",
+      "repository": "dontpanic92/OpenPAL3",
+      "clone_url": "https://github.com/dontpanic92/OpenPAL3.git",
+      "issue_number": 51,
+      "title": "Maybe unsound in add_ref",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_2ca014939e32a2e8431d5f1e",
+        "instance_3cb53447904a89cd10e4c8d2",
+        "instance_9178184edecdc2822053fc60",
+        "instance_7cb7cdb881d6a33f2852bf34"
+      ],
+      "canonical_instance_keys": [
+        "dontpanic92/OpenPAL3#51:obligation:01",
+        "dontpanic92/OpenPAL3#51:obligation:02",
+        "dontpanic92/OpenPAL3#51:obligation:03",
+        "dontpanic92/OpenPAL3#51:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/douchuan/jvm/issues/13",
+      "repository": "douchuan/jvm",
+      "clone_url": "https://github.com/douchuan/jvm.git",
+      "issue_number": 13,
+      "title": "Unsound Use of std::str::from_utf8_unchecked in find_symbol",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_a538ca79f0cb21e1946be5ef",
+        "instance_28669cd7498b0d397c754943"
+      ],
+      "canonical_instance_keys": [
+        "douchuan/jvm#13:obligation:01",
+        "douchuan/jvm#13:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/douchuan/jvm/issues/14",
+      "repository": "douchuan/jvm",
+      "clone_url": "https://github.com/douchuan/jvm.git",
+      "issue_number": 14,
+      "title": "Unsoundness in load_class_from_path",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_3175c3bfc65a4a3143d0a36d"
+      ],
+      "canonical_instance_keys": [
+        "douchuan/jvm#14:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/dragonflyoss/nydus/issues/1814",
+      "repository": "dragonflyoss/nydus",
+      "clone_url": "https://github.com/dragonflyoss/nydus.git",
+      "issue_number": 1814,
+      "title": "[Unsoundness] Undefined Behavior in public API alloc_buf due to uninitialized memory usage",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_183fa6a85a50fd08543e6756"
+      ],
+      "canonical_instance_keys": [
+        "dragonflyoss/nydus#1814:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/eclipse-zenoh/zenoh/issues/1643",
+      "repository": "eclipse-zenoh/zenoh",
+      "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+      "issue_number": 1643,
+      "title": "Unsoundness in OwnedDescriptor::atomic",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_b0ee02935f1f1d3352f72494"
+      ],
+      "canonical_instance_keys": [
+        "eclipse-zenoh/zenoh#1643:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/eclipse-zenoh/zenoh/issues/1683",
+      "repository": "eclipse-zenoh/zenoh",
+      "clone_url": "https://github.com/eclipse-zenoh/zenoh.git",
+      "issue_number": 1683,
+      "title": "Maybe unsound in watchdog::descriptor::confirm",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_37c0f5c819778bfd313af717"
+      ],
+      "canonical_instance_keys": [
+        "eclipse-zenoh/zenoh#1683:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/everx-labs/ever-sdk/issues/1062",
+      "repository": "everx-labs/ever-sdk",
+      "clone_url": "https://github.com/everx-labs/ever-sdk.git",
+      "issue_number": 1062,
+      "title": "Maybe unsound in StringData",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_5c35487fca69e0ad45fd1883"
+      ],
+      "canonical_instance_keys": [
+        "everx-labs/ever-sdk#1062:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/evmar/n2/issues/121",
+      "repository": "evmar/n2",
+      "clone_url": "https://github.com/evmar/n2.git",
+      "issue_number": 121,
+      "title": "Bug Report: Invalid Input Handling in `Scanner::slice` Method",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_aaebbc81ebd96d9fa4f293b6"
+      ],
+      "canonical_instance_keys": [
+        "evmar/n2#121:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/evmar/n2/issues/122",
+      "repository": "evmar/n2",
+      "clone_url": "https://github.com/evmar/n2.git",
+      "issue_number": 122,
+      "title": "Bug Report: Out of Bounds Access in `Scanner::peek` Method",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_dbe7f57aae0500874e09b7a4"
+      ],
+      "canonical_instance_keys": [
+        "evmar/n2#122:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/evmar/n2/issues/123",
+      "repository": "evmar/n2",
+      "clone_url": "https://github.com/evmar/n2.git",
+      "issue_number": 123,
+      "title": "Bug Report: Invalid Input Handling in `Scanner::peek_newline` Method",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cfdb1885c0f3481b45c2098d"
+      ],
+      "canonical_instance_keys": [
+        "evmar/n2#123:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/evmar/retrowin32/issues/72",
+      "repository": "evmar/retrowin32",
+      "clone_url": "https://github.com/evmar/retrowin32.git",
+      "issue_number": 72,
+      "title": "Unsoundness in safe 'copy' function may cause UB due to lack of bounds checks",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_f4a7d301842d5d1c7f32dbe1"
+      ],
+      "canonical_instance_keys": [
+        "evmar/retrowin32#72:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/evmar/retrowin32/issues/74",
+      "repository": "evmar/retrowin32",
+      "clone_url": "https://github.com/evmar/retrowin32.git",
+      "issue_number": 74,
+      "title": "Arg<T> Implementation Allows Undefined Behavior Due to Unsafe Pointer Operations",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_75bc7de81905ecda536e9f81",
+        "instance_540e6026a6d841b0c2fd6fdf"
+      ],
+      "canonical_instance_keys": [
+        "evmar/retrowin32#74:obligation:01",
+        "evmar/retrowin32#74:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/flaneur2020/pua-lang/issues/76",
+      "repository": "flaneur2020/pua-lang",
+      "clone_url": "https://github.com/flaneur2020/pua-lang.git",
+      "issue_number": 76,
+      "title": "dealloc Function Causes Undefined Behavior Due to Improper Use of Vec::from_raw_parts",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_5a5644822b9dd7d60bc0b417"
+      ],
+      "canonical_instance_keys": [
+        "flaneur2020/pua-lang#76:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/fugue-re/fugue-core/issues/18",
+      "repository": "fugue-re/fugue-core",
+      "clone_url": "https://github.com/fugue-re/fugue-core.git",
+      "issue_number": 18,
+      "title": "Unsound Use of get_unchecked in unchecked_symbol",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_e925fd150ff6a5e85a7b11f9"
+      ],
+      "canonical_instance_keys": [
+        "fugue-re/fugue-core#18:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/georust/gdal/issues/588",
+      "repository": "georust/gdal",
+      "clone_url": "https://github.com/georust/gdal.git",
+      "issue_number": 588,
+      "title": "Unsoundness in \"_string\" and \"_pathbuf\"",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_bf668430bbd4fbb66dc8d50a",
+        "instance_1924c138a21d07ad03c404b1"
+      ],
+      "canonical_instance_keys": [
+        "georust/gdal#588:obligation:01",
+        "georust/gdal#588:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/gluon-lang/gluon/issues/969",
+      "repository": "gluon-lang/gluon",
+      "clone_url": "https://github.com/gluon-lang/gluon.git",
+      "issue_number": 969,
+      "title": "WriteOnly::write can cause stack overflow or out-of-memory error with large inputs",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_4beeb5a047f89f902a4a1934"
+      ],
+      "canonical_instance_keys": [
+        "gluon-lang/gluon#969:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/hermit-os/uhyve/issues/834",
+      "repository": "hermit-os/uhyve",
+      "clone_url": "https://github.com/hermit-os/uhyve.git",
+      "issue_number": 834,
+      "title": "Maybe unsound in Vring::_flags",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_791da06190ac51cd96976253"
+      ],
+      "canonical_instance_keys": [
+        "hermit-os/uhyve#834:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/hermit-os/uhyve/issues/855",
+      "repository": "hermit-os/uhyve",
+      "clone_url": "https://github.com/hermit-os/uhyve.git",
+      "issue_number": 855,
+      "title": "Maybe unsound in virtio's write_ fn groups",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_5221dba47ed5ff8da0677af4",
+        "instance_7b0d8e16b9ed982fbcb0f8fa",
+        "instance_99037ef2ed3b74cd44e4b90e"
+      ],
+      "canonical_instance_keys": [
+        "hermit-os/uhyve#855:obligation:01",
+        "hermit-os/uhyve#855:obligation:02",
+        "hermit-os/uhyve#855:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/imazen/imageflow/issues/655",
+      "repository": "imazen/imageflow",
+      "clone_url": "https://github.com/imazen/imageflow.git",
+      "issue_number": 655,
+      "title": "Maybe unsound in ffi::BitmapBgra pixels field",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_b9a1473a6e859b6fa616a3a1"
+      ],
+      "canonical_instance_keys": [
+        "imazen/imageflow#655:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/inherd/coco/issues/101",
+      "repository": "inherd/coco",
+      "clone_url": "https://github.com/inherd/coco.git",
+      "issue_number": 101,
+      "title": "Unsoundness in run_ctags",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_4636df8817d3550fca3b7d72"
+      ],
+      "canonical_instance_keys": [
+        "inherd/coco#101:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/jeaye/ncurses-rs/issues/224",
+      "repository": "jeaye/ncurses-rs",
+      "clone_url": "https://github.com/jeaye/ncurses-rs.git",
+      "issue_number": 224,
+      "title": "Unsoundness in ptr_to_string may cause UB due to unsafe assumptions about pointer validity and string encoding",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_4c5312d787377ff8f7db2d19"
+      ],
+      "canonical_instance_keys": [
+        "jeaye/ncurses-rs#224:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/jfecher/ante/issues/221",
+      "repository": "jfecher/ante",
+      "clone_url": "https://github.com/jfecher/ante.git",
+      "issue_number": 221,
+      "title": "[Unsoundness] Critical soundness violations in public API src/util/trustme.rs (make_mut_ref, extend_lifetime)",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_18f1a8b88b340d94badd06e1",
+        "instance_fadaedd9423680963f55851e",
+        "instance_2d22afc508852d1516a3acbb"
+      ],
+      "canonical_instance_keys": [
+        "jfecher/ante#221:obligation:01",
+        "jfecher/ante#221:obligation:02",
+        "jfecher/ante#221:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/joaoviictorti/shadow/issues/5",
+      "repository": "joaoviictorti/shadow",
+      "clone_url": "https://github.com/joaoviictorti/shadow.git",
+      "issue_number": 5,
+      "title": "Maybe unsound in add_remove_port_toggle",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_e028891fee4b07e27bf1a550"
+      ],
+      "canonical_instance_keys": [
+        "joaoviictorti/shadow#5:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/kahing/catfs/issues/77",
+      "repository": "kahing/catfs",
+      "clone_url": "https://github.com/kahing/catfs.git",
+      "issue_number": 77,
+      "title": "[Unsoundness] Critical: Public API make_self allows arbitrary lifetime extension leading to Use-After-Free",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_5766365e47f4e1dd3a5f3e5f"
+      ],
+      "canonical_instance_keys": [
+        "kahing/catfs#77:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/kcl-lang/kcl/issues/1776",
+      "repository": "kcl-lang/kcl",
+      "clone_url": "https://github.com/kcl-lang/kcl.git",
+      "issue_number": 1776,
+      "title": "Maybe unsound in c2str_vec",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c2854220e7ad72a870c174a5"
+      ],
+      "canonical_instance_keys": [
+        "kcl-lang/kcl#1776:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/laptou/jsi-rs/issues/5",
+      "repository": "laptou/jsi-rs",
+      "clone_url": "https://github.com/laptou/jsi-rs.git",
+      "issue_number": 5,
+      "title": "Maybe unsound in new_unchecked",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_8755d19933dd39fb4b00c89b"
+      ],
+      "canonical_instance_keys": [
+        "laptou/jsi-rs#5:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/leetvr/hotham/issues/449",
+      "repository": "leetvr/hotham",
+      "clone_url": "https://github.com/leetvr/hotham.git",
+      "issue_number": 449,
+      "title": "[Bug]: Unsoundness in u8_to_u32",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_d4d023be25147f4d121a0057"
+      ],
+      "canonical_instance_keys": [
+        "leetvr/hotham#449:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/leostera/lam/issues/9",
+      "repository": "leostera/lam",
+      "clone_url": "https://github.com/leostera/lam.git",
+      "issue_number": 9,
+      "title": "Unsound issue in program",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6617a5c540452c45e8dc6e56"
+      ],
+      "canonical_instance_keys": [
+        "leostera/lam#9:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/m4b/dryad/issues/6",
+      "repository": "m4b/dryad",
+      "clone_url": "https://github.com/m4b/dryad.git",
+      "issue_number": 6,
+      "title": "Potential Undefined Behavior in from_executable Due to Unsafe Pointer Usage and Assumptions",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_5183d02456d45e2918e7d8f3"
+      ],
+      "canonical_instance_keys": [
+        "m4b/dryad#6:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/maekawatoshiki/ferrugo/issues/2",
+      "repository": "maekawatoshiki/ferrugo",
+      "clone_url": "https://github.com/maekawatoshiki/ferrugo.git",
+      "issue_number": 2,
+      "title": "Maybe unsound in CodeAttribute",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_911f8bebd6c2794871c84e20"
+      ],
+      "canonical_instance_keys": [
+        "maekawatoshiki/ferrugo#2:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/maekawatoshiki/rapidus/issues/72",
+      "repository": "maekawatoshiki/rapidus",
+      "clone_url": "https://github.com/maekawatoshiki/rapidus.git",
+      "issue_number": 72,
+      "title": "Maybe unsound in cstrp_to_str",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_ab757dc0c9e4656ebbfc98d7"
+      ],
+      "canonical_instance_keys": [
+        "maekawatoshiki/rapidus#72:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/meh/rust-ffmpeg/issues/188",
+      "repository": "meh/rust-ffmpeg",
+      "clone_url": "https://github.com/meh/rust-ffmpeg.git",
+      "issue_number": 188,
+      "title": "Maybe unsound in RateIter::next",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_eea1ad56789867b655630172"
+      ],
+      "canonical_instance_keys": [
+        "meh/rust-ffmpeg#188:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/michelhe/rustboyadvance-ng/issues/177",
+      "repository": "michelhe/rustboyadvance-ng",
+      "clone_url": "https://github.com/michelhe/rustboyadvance-ng.git",
+      "issue_number": 177,
+      "title": "Maybe unsound in WeakPointer::new",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_34a1fcdb594a402a7b9f8ea1"
+      ],
+      "canonical_instance_keys": [
+        "michelhe/rustboyadvance-ng#177:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/microsoft/aici/issues/119",
+      "repository": "microsoft/aici",
+      "clone_url": "https://github.com/microsoft/aici.git",
+      "issue_number": 119,
+      "title": "maybe unsound in busy_reset",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_d2686aec68e5bb32289c42d4"
+      ],
+      "canonical_instance_keys": [
+        "microsoft/aici#119:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/moratorium08/osmium/issues/3",
+      "repository": "moratorium08/osmium",
+      "clone_url": "https://github.com/moratorium08/osmium.git",
+      "issue_number": 3,
+      "title": "Maybe unsound in new?",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_4dda3b7064b779ff2a981dbe"
+      ],
+      "canonical_instance_keys": [
+        "moratorium08/osmium#3:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/moratorium08/osmium/issues/4",
+      "repository": "moratorium08/osmium",
+      "clone_url": "https://github.com/moratorium08/osmium.git",
+      "issue_number": 4,
+      "title": "Unsoundness in receive_data",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_eec8cfd1698cc0ff9a289f89",
+        "instance_f334d45214a8dd5f4268d6bc"
+      ],
+      "canonical_instance_keys": [
+        "moratorium08/osmium#4:obligation:01",
+        "moratorium08/osmium#4:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/mstange/samply/issues/719",
+      "repository": "mstange/samply",
+      "clone_url": "https://github.com/mstange/samply.git",
+      "issue_number": 719,
+      "title": "[Unsoundness] Out-of-bounds read in public API parse_unk_size_null_utf16_string due to unsafe loop condition order",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_8e5b1554aa0fb22c4e44549e"
+      ],
+      "canonical_instance_keys": [
+        "mstange/samply#719:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/mycelial/mycelite/issues/52",
+      "repository": "mycelial/mycelite",
+      "clone_url": "https://github.com/mycelial/mycelite.git",
+      "issue_number": 52,
+      "title": "Unsoundness in PtrIter::next",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_f943fc42732feffa231e56c6"
+      ],
+      "canonical_instance_keys": [
+        "mycelial/mycelite#52:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/nash-io/openlimits/issues/204",
+      "repository": "nash-io/openlimits",
+      "clone_url": "https://github.com/nash-io/openlimits.git",
+      "issue_number": 204,
+      "title": "Unsound Use of CStr::from_ptr in new Function",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_62510064224ce73423e9bca2"
+      ],
+      "canonical_instance_keys": [
+        "nash-io/openlimits#204:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/nervosnetwork/ckb-vm/issues/444",
+      "repository": "nervosnetwork/ckb-vm",
+      "clone_url": "https://github.com/nervosnetwork/ckb-vm.git",
+      "issue_number": 444,
+      "title": "Unsoundness in cast_ptr_to_slice",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_11ae9a4240aed3c2500490ba",
+        "instance_b8fd86dfb84cd7fbe58800d0"
+      ],
+      "canonical_instance_keys": [
+        "nervosnetwork/ckb-vm#444:obligation:01",
+        "nervosnetwork/ckb-vm#444:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/ninja-quant/ninjabook/issues/3",
+      "repository": "ninja-quant/ninjabook",
+      "clone_url": "https://github.com/ninja-quant/ninjabook.git",
+      "issue_number": 3,
+      "title": "Unsound Implementation of get_mut in Orderbook Allows Undefined Behavior",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_9e74ef0226f6bb57ffd6c0f9",
+        "instance_06563bbffeebacf193e7c6b1"
+      ],
+      "canonical_instance_keys": [
+        "ninja-quant/ninjabook#3:obligation:01",
+        "ninja-quant/ninjabook#3:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/nixops4/nixops4/issues/65",
+      "repository": "nixops4/nixops4",
+      "clone_url": "https://github.com/nixops4/nixops4.git",
+      "issue_number": 65,
+      "title": "Maybe unsound in new_raw_clone",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6a7f9afc7330f7566254f09a"
+      ],
+      "canonical_instance_keys": [
+        "nixops4/nixops4#65:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/nuta/kerla/issues/170",
+      "repository": "nuta/kerla",
+      "clone_url": "https://github.com/nuta/kerla.git",
+      "issue_number": 170,
+      "title": "Unsoundness in fn parse_str_field",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_5a865730e5a2b6f506c939d6"
+      ],
+      "canonical_instance_keys": [
+        "nuta/kerla#170:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/o8vm/krabs/issues/30",
+      "repository": "o8vm/krabs",
+      "clone_url": "https://github.com/o8vm/krabs.git",
+      "issue_number": 30,
+      "title": "Unsoundness in",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cf0f49c9a1df1d619807aaed"
+      ],
+      "canonical_instance_keys": [
+        "o8vm/krabs#30:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/occlum/occlum/issues/1645",
+      "repository": "occlum/occlum",
+      "clone_url": "https://github.com/occlum/occlum.git",
+      "issue_number": 1645,
+      "title": "[BUG] Maybe unsound in from_raw_ptr",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_60c95f9761bf3b1e26ee9f18"
+      ],
+      "canonical_instance_keys": [
+        "occlum/occlum#1645:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/only-cliches/NoProto/issues/25",
+      "repository": "only-cliches/NoProto",
+      "clone_url": "https://github.com/only-cliches/NoProto.git",
+      "issue_number": 25,
+      "title": "Multiple Unsoundness issue",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_e6f49fe96524f2383e6e9ab5",
+        "instance_4bfe7da3449beb2fd42d3da7",
+        "instance_7827aafafd9a729daf7d08ee",
+        "instance_df1b3ce18622122082748fa1"
+      ],
+      "canonical_instance_keys": [
+        "only-cliches/NoProto#25:obligation:01",
+        "only-cliches/NoProto#25:obligation:02",
+        "only-cliches/NoProto#25:obligation:03",
+        "only-cliches/NoProto#25:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/oreboot/oreboot/issues/776",
+      "repository": "oreboot/oreboot",
+      "clone_url": "https://github.com/oreboot/oreboot.git",
+      "issue_number": 776,
+      "title": "Unsoundness issue in",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_299ec4861090dd3a9961328a"
+      ],
+      "canonical_instance_keys": [
+        "oreboot/oreboot#776:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/perpetual-ml/perpetual/issues/34",
+      "repository": "perpetual-ml/perpetual",
+      "clone_url": "https://github.com/perpetual-ml/perpetual.git",
+      "issue_number": 34,
+      "title": "Unsound Use of get_unchecked in from_parent_child and from_parent_two_children",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_4218a2bae01fe35bc4ed1ecf",
+        "instance_ea7014ca17d7e176b7f7e247"
+      ],
+      "canonical_instance_keys": [
+        "perpetual-ml/perpetual#34:obligation:01",
+        "perpetual-ml/perpetual#34:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/pipedown/noise/issues/82",
+      "repository": "pipedown/noise",
+      "clone_url": "https://github.com/pipedown/noise.git",
+      "issue_number": 82,
+      "title": "Unsoundness in maybe_add_value",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c322c5f4216b26515653bbc9"
+      ],
+      "canonical_instance_keys": [
+        "pipedown/noise#82:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/pleco-rs/Pleco/issues/163",
+      "repository": "pleco-rs/Pleco",
+      "clone_url": "https://github.com/pleco-rs/Pleco.git",
+      "issue_number": 163,
+      "title": "Unsoundness in pleco_engine/src/root_moves/root_moves_list.rs \"insert_score_depth\" and \"insert_score\"",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_50556f289011974f7c277f21",
+        "instance_fc2510c2f3090980484644dd"
+      ],
+      "canonical_instance_keys": [
+        "pleco-rs/Pleco#163:obligation:01",
+        "pleco-rs/Pleco#163:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/posit-dev/ark/issues/653",
+      "repository": "posit-dev/ark",
+      "clone_url": "https://github.com/posit-dev/ark.git",
+      "issue_number": 653,
+      "title": "Maybe unsound in RLocal::new",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_e3875b19dcfc77d51fa6ca55",
+        "instance_fbe2a82f92b79d07c794a8ee",
+        "instance_ec77bbe8e84db6e1d3e6be46",
+        "instance_020c09a4893feca514a3aaed"
+      ],
+      "canonical_instance_keys": [
+        "posit-dev/ark#653:obligation:01",
+        "posit-dev/ark#653:obligation:02",
+        "posit-dev/ark#653:obligation:03",
+        "posit-dev/ark#653:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/posit-dev/ark/issues/729",
+      "repository": "posit-dev/ark",
+      "clone_url": "https://github.com/posit-dev/ark.git",
+      "issue_number": 729,
+      "title": "Soundness Issue: Unsafe raw pointer operation exposed through safe public API r_show_message",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c82b34ed97a9b6ed444dbff1"
+      ],
+      "canonical_instance_keys": [
+        "posit-dev/ark#729:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/r9os/r9/issues/51",
+      "repository": "r9os/r9",
+      "clone_url": "https://github.com/r9os/r9.git",
+      "issue_number": 51,
+      "title": "Maybe unsound in write_reg groups",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c44037ef58ae14ef6fdddadd"
+      ],
+      "canonical_instance_keys": [
+        "r9os/r9#51:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/raskr/rust-autograd/issues/65",
+      "repository": "raskr/rust-autograd",
+      "clone_url": "https://github.com/raskr/rust-autograd.git",
+      "issue_number": 65,
+      "title": "Unsoundness in gen_random_array",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_1bd42e7f4754c61703cc267f"
+      ],
+      "canonical_instance_keys": [
+        "raskr/rust-autograd#65:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rcore-os/zCore/issues/406",
+      "repository": "rcore-os/zCore",
+      "clone_url": "https://github.com/rcore-os/zCore.git",
+      "issue_number": 406,
+      "title": "unsoundness in nvme_configure_admin_queue(&mut self)",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_2b39b1479066a4cd5dc9749b",
+        "instance_3c584f215932531e4fabe336"
+      ],
+      "canonical_instance_keys": [
+        "rcore-os/zCore#406:obligation:01",
+        "rcore-os/zCore#406:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rust-bio/rust-htslib/issues/459",
+      "repository": "rust-bio/rust-htslib",
+      "clone_url": "https://github.com/rust-bio/rust-htslib.git",
+      "issue_number": 459,
+      "title": "Multiple unsound problems in bcf crate",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 5,
+      "instance_ids": [
+        "instance_0b51958826eed744fc1a3d6c",
+        "instance_4a181cedf198471020638a93",
+        "instance_8a39fa6a771ef022bf4ff98a",
+        "instance_e17081127d39324a92c89c52",
+        "instance_0e3b945f6096181d3d2b7a00"
+      ],
+      "canonical_instance_keys": [
+        "rust-bio/rust-htslib#459:obligation:01",
+        "rust-bio/rust-htslib#459:obligation:02",
+        "rust-bio/rust-htslib#459:obligation:03",
+        "rust-bio/rust-htslib#459:obligation:04",
+        "rust-bio/rust-htslib#459:obligation:05"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustcoreutils/posixutils-rs/issues/380",
+      "repository": "rustcoreutils/posixutils-rs",
+      "clone_url": "https://github.com/rustcoreutils/posixutils-rs.git",
+      "issue_number": 380,
+      "title": "Unsoundness in open_at function",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_9299d93b20e914d7aeee3312"
+      ],
+      "canonical_instance_keys": [
+        "rustcoreutils/posixutils-rs#380:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2140",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2140,
+      "title": "Corundum is unmaintained and may unsoundness",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6c2a54a49617b52a5dcadfeb"
+      ],
+      "canonical_instance_keys": [
+        "NVSL/Corundum#7:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2141",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2141,
+      "title": "Unsoundly mark unsafe function as safe in crate Ngrammatic",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_b57c05fffb758a80f19bf6dd"
+      ],
+      "canonical_instance_keys": [
+        "rustsec/advisory-db#2141:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2146",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2146,
+      "title": "Unsoundness in Pleco crates",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_50556f289011974f7c277f21",
+        "instance_fc2510c2f3090980484644dd"
+      ],
+      "canonical_instance_keys": [
+        "pleco-rs/Pleco#163:obligation:01",
+        "pleco-rs/Pleco#163:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2149",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2149,
+      "title": "Unsoundness in perpetual",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_4218a2bae01fe35bc4ed1ecf",
+        "instance_ea7014ca17d7e176b7f7e247"
+      ],
+      "canonical_instance_keys": [
+        "perpetual-ml/perpetual#34:obligation:01",
+        "perpetual-ml/perpetual#34:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2150",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2150,
+      "title": "Unsoundness in ninjabook",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_9e74ef0226f6bb57ffd6c0f9",
+        "instance_06563bbffeebacf193e7c6b1"
+      ],
+      "canonical_instance_keys": [
+        "ninja-quant/ninjabook#3:obligation:01",
+        "ninja-quant/ninjabook#3:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2151",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2151,
+      "title": "Unsoundness in swift-bridge",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2845d152918b2ed618cceb73"
+      ],
+      "canonical_instance_keys": [
+        "chinedufn/swift-bridge#304:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/sciter-sdk/rust-sciter/issues/150",
+      "repository": "sciter-sdk/rust-sciter",
+      "clone_url": "https://github.com/sciter-sdk/rust-sciter.git",
+      "issue_number": 150,
+      "title": "Unsoundness in get",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 5,
+      "instance_ids": [
+        "instance_2cd11cf75a1319bbffb54e94",
+        "instance_f833689722feb4f9b3d5c654",
+        "instance_d7f1f93bf1732ff8662b520f",
+        "instance_3cde64120c9af388fef18c96",
+        "instance_f375d1ff5a70adf757f2d347"
+      ],
+      "canonical_instance_keys": [
+        "sciter-sdk/rust-sciter#150:obligation:01",
+        "sciter-sdk/rust-sciter#150:obligation:02",
+        "sciter-sdk/rust-sciter#150:obligation:03",
+        "sciter-sdk/rust-sciter#150:obligation:04",
+        "sciter-sdk/rust-sciter#150:obligation:05"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/servo/mozjs/issues/531",
+      "repository": "servo/mozjs",
+      "clone_url": "https://github.com/servo/mozjs.git",
+      "issue_number": 531,
+      "title": "Maybe unsound in CustomAutoRooterGuard::new",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_066fb2f9ce8ef8b39b7aaef3",
+        "instance_e7a58f60df0d45ba340948ac"
+      ],
+      "canonical_instance_keys": [
+        "servo/mozjs#531:obligation:01",
+        "servo/mozjs#531:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/sgmarz/osblog/issues/40",
+      "repository": "sgmarz/osblog",
+      "clone_url": "https://github.com/sgmarz/osblog.git",
+      "issue_number": 40,
+      "title": "Unsoundness in do_syscall",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_f2ad0301552edcb14676cabd"
+      ],
+      "canonical_instance_keys": [
+        "sgmarz/osblog#40:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/signalapp/ringrtc/issues/60",
+      "repository": "signalapp/ringrtc",
+      "clone_url": "https://github.com/signalapp/ringrtc.git",
+      "issue_number": 60,
+      "title": "Possible unsoundness in rtc_Bytes::as_slice",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_30c0e2687ff70ae82460d397"
+      ],
+      "canonical_instance_keys": [
+        "signalapp/ringrtc#60:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/smol-rs/async-task/issues/89",
+      "repository": "smol-rs/async-task",
+      "clone_url": "https://github.com/smol-rs/async-task.git",
+      "issue_number": 89,
+      "title": "Maybe Multiple unsoundness problems",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_0790fde404cf415b58f90339"
+      ],
+      "canonical_instance_keys": [
+        "smol-rs/async-task#89:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/starcoinorg/starcoin/issues/4763",
+      "repository": "starcoinorg/starcoin",
+      "clone_url": "https://github.com/starcoinorg/starcoin.git",
+      "issue_number": 4763,
+      "title": "[Unsoundness] Potential buffer over-read in public API cryptonight_r due to unchecked size parameter",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_bba9be593cb2431a6cc9be6c",
+        "instance_2cea0829ef40068373fb6c4e"
+      ],
+      "canonical_instance_keys": [
+        "starcoinorg/starcoin#4763:obligation:01",
+        "starcoinorg/starcoin#4763:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tensorbase/tensorbase/issues/351",
+      "repository": "tensorbase/tensorbase",
+      "clone_url": "https://github.com/tensorbase/tensorbase.git",
+      "issue_number": 351,
+      "title": "Unsound Use of CString::from_vec_unchecked in bytes_to_cstring",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 5,
+      "instance_ids": [
+        "instance_a089aaca7eb189820e12b2b1",
+        "instance_b83e12345c701261ae271269",
+        "instance_20a1c6260e1703c3f9b5e5cc",
+        "instance_79917cd75ac05cf7b9004c8f",
+        "instance_f7998317d6bb61ddafa2ff38"
+      ],
+      "canonical_instance_keys": [
+        "tensorbase/tensorbase#351:obligation:01",
+        "tensorbase/tensorbase#351:obligation:02",
+        "tensorbase/tensorbase#351:obligation:03",
+        "tensorbase/tensorbase#351:obligation:04",
+        "tensorbase/tensorbase#351:obligation:05"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tensorbase/tensorbase/issues/352",
+      "repository": "tensorbase/tensorbase",
+      "clone_url": "https://github.com/tensorbase/tensorbase.git",
+      "issue_number": 352,
+      "title": "Public API “shape_slice” “shape_vec” “shape_vec_u8” constructs unaligned references causing Undefined Behavior",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_f4979377d7087cd651b187c5",
+        "instance_b0deece14cb838960a178237",
+        "instance_96cb69566013ed775db1794b"
+      ],
+      "canonical_instance_keys": [
+        "tensorbase/tensorbase#352:obligation:01",
+        "tensorbase/tensorbase#352:obligation:02",
+        "tensorbase/tensorbase#352:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tensorchord/pgvecto.rs/issues/653",
+      "repository": "tensorchord/pgvecto.rs",
+      "clone_url": "https://github.com/tensorchord/pgvecto.rs.git",
+      "issue_number": 653,
+      "title": "Public API try_pod_read_unaligned causes Out-of-Bounds read due to missing length check",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_66d80abd4bc7c47783c41ca6",
+        "instance_530053c7655c5c3c695d1ed3",
+        "instance_ac6db1c3b2e4f003bcb00a9c"
+      ],
+      "canonical_instance_keys": [
+        "tensorchord/pgvecto.rs#653:obligation:01",
+        "tensorchord/pgvecto.rs#653:obligation:02",
+        "tensorchord/pgvecto.rs#653:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/topiary/topiary/issues/792",
+      "repository": "topiary/topiary",
+      "clone_url": "https://github.com/topiary/topiary.git",
+      "issue_number": 792,
+      "title": "Unsoundness in 'parse','child_by_field_name' and 'field_id_for_name'",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_bc20f94ab4dcd182c5c72c7c",
+        "instance_2a6e8d5160a82a8a00a8ac9b",
+        "instance_a0333fa495b1ef8fe0418038"
+      ],
+      "canonical_instance_keys": [
+        "topiary/topiary#792:obligation:01",
+        "topiary/topiary#792:obligation:02",
+        "topiary/topiary#792:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/toxoidengine/toxoid/issues/5",
+      "repository": "toxoidengine/toxoid",
+      "clone_url": "https://github.com/toxoidengine/toxoid.git",
+      "issue_number": 5,
+      "title": "Maybe Unsound in init_image",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_9271048e2d7cb8ff69d81c2b"
+      ],
+      "canonical_instance_keys": [
+        "toxoidengine/toxoid#5:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tursodatabase/libsql/issues/1859",
+      "repository": "tursodatabase/libsql",
+      "clone_url": "https://github.com/tursodatabase/libsql.git",
+      "issue_number": 1859,
+      "title": "Unsound Use of str::from_utf8_unchecked in keyword_token",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": true,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_cd6aefa05d8b50319dc425ff"
+      ],
+      "canonical_instance_keys": [
+        "tursodatabase/libsql#1859:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。 至少一个同一问题修复已由维护者合并、直接提交或明确声明完成。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tursodatabase/libsql/issues/1873",
+      "repository": "tursodatabase/libsql",
+      "clone_url": "https://github.com/tursodatabase/libsql.git",
+      "issue_number": 1873,
+      "title": "Maybe unsound in db_version::next_db_version",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_e03aeb4bed6b6a4c376c6e62",
+        "instance_5c0604eafb0a9defc1545378"
+      ],
+      "canonical_instance_keys": [
+        "tursodatabase/libsql#1873:obligation:01",
+        "tursodatabase/libsql#1873:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/tylerwhall/zephyr-rust/issues/58",
+      "repository": "tylerwhall/zephyr-rust",
+      "clone_url": "https://github.com/tylerwhall/zephyr-rust.git",
+      "issue_number": 58,
+      "title": "Maybe unsound in free_mutex",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_7d0d649319814518bdf3434f"
+      ],
+      "canonical_instance_keys": [
+        "tylerwhall/zephyr-rust#58:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/vinc/moros/issues/724",
+      "repository": "vinc/moros",
+      "clone_url": "https://github.com/vinc/moros.git",
+      "issue_number": 724,
+      "title": "Unsound issue in sys::process::exec",
+      "state": "closed",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_c67ec33c806960ace9f0eed5"
+      ],
+      "canonical_instance_keys": [
+        "vinc/moros#724:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/workflow-rs/workflow-rs/issues/14",
+      "repository": "workflow-rs/workflow-rs",
+      "clone_url": "https://github.com/workflow-rs/workflow-rs.git",
+      "issue_number": 14,
+      "title": "unsoundness in buffer_as_slice and buffer_as_slice_mut",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_02f2290225c903d9e43ff4d5",
+        "instance_17d3ea01cff8adefa92def2d"
+      ],
+      "canonical_instance_keys": [
+        "workflow-rs/workflow-rs#14:obligation:01",
+        "workflow-rs/workflow-rs#14:obligation:02"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/xajik/rust-cross-platform-mobile/issues/2",
+      "repository": "xajik/rust-cross-platform-mobile",
+      "clone_url": "https://github.com/xajik/rust-cross-platform-mobile.git",
+      "issue_number": 2,
+      "title": "Maybe unsound in JavaString::new",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6964c4b9f85aee8433e4158b"
+      ],
+      "canonical_instance_keys": [
+        "xajik/rust-cross-platform-mobile#2:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/yamadapc/augmented-audio/issues/615",
+      "repository": "yamadapc/augmented-audio",
+      "clone_url": "https://github.com/yamadapc/augmented-audio.git",
+      "issue_number": 615,
+      "title": "Maybe unsound in SharedGeneric::drop",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_1ab488e21c117061c0b6152b"
+      ],
+      "canonical_instance_keys": [
+        "yamadapc/augmented-audio#615:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zackradisic/rust-vs-zig/issues/2",
+      "repository": "zackradisic/rust-vs-zig",
+      "clone_url": "https://github.com/zackradisic/rust-vs-zig.git",
+      "issue_number": 2,
+      "title": "Maybe unsound in ObjClosure",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 4,
+      "instance_ids": [
+        "instance_3f1629e030b09cbd07650cbb",
+        "instance_c962918ba61555b0d3f428fa",
+        "instance_14b564690f32006ecdf0561f",
+        "instance_45422daf7e9fa81047bae102"
+      ],
+      "canonical_instance_keys": [
+        "zackradisic/rust-vs-zig#2:obligation:01",
+        "zackradisic/rust-vs-zig#2:obligation:02",
+        "zackradisic/rust-vs-zig#2:obligation:03",
+        "zackradisic/rust-vs-zig#2:obligation:04"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zhihu/rucene/issues/19",
+      "repository": "zhihu/rucene",
+      "clone_url": "https://github.com/zhihu/rucene.git",
+      "issue_number": 19,
+      "title": "Unsoundness in BytesRefHash::pool",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 3,
+      "instance_ids": [
+        "instance_3d9d2d08ba4da0a0656cfc67",
+        "instance_66c24234cd4e80710c10a246",
+        "instance_15a78d84032166408e853104"
+      ],
+      "canonical_instance_keys": [
+        "zhihu/rucene#19:obligation:01",
+        "zhihu/rucene#19:obligation:02",
+        "zhihu/rucene#19:obligation:03"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zhihu/rucene/issues/20",
+      "repository": "zhihu/rucene",
+      "clone_url": "https://github.com/zhihu/rucene.git",
+      "issue_number": 20,
+      "title": "Unsoundness in UtilMSBIntroSorter::reader",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_114f3318c7cd56ca83635c53"
+      ],
+      "canonical_instance_keys": [
+        "zhihu/rucene#20:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zhihu/rucene/issues/21",
+      "repository": "zhihu/rucene",
+      "clone_url": "https://github.com/zhihu/rucene.git",
+      "issue_number": 21,
+      "title": "Unsoundness in read_data",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_17ba9a6ea1fcf290e21ffe5f"
+      ],
+      "canonical_instance_keys": [
+        "zhihu/rucene#21:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zmwangx/rust-ffmpeg/issues/225",
+      "repository": "zmwangx/rust-ffmpeg",
+      "clone_url": "https://github.com/zmwangx/rust-ffmpeg.git",
+      "issue_number": 225,
+      "title": "Multiple Unsoundness problems in codec",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 6,
+      "instance_ids": [
+        "instance_f31c6cd547ce863a62edcb7a",
+        "instance_5cb37762879597b89d026eb1",
+        "instance_ceb73c77ec8be863d43c4dd7",
+        "instance_dcf60a28cdcf44969e346589",
+        "instance_a46cfbdde9a657e7df4ac57b",
+        "instance_80c38d7dca8ed13a15d3b73d"
+      ],
+      "canonical_instance_keys": [
+        "zmwangx/rust-ffmpeg#225:obligation:01",
+        "zmwangx/rust-ffmpeg#225:obligation:02",
+        "zmwangx/rust-ffmpeg#225:obligation:03",
+        "zmwangx/rust-ffmpeg#225:obligation:04",
+        "zmwangx/rust-ffmpeg#225:obligation:05",
+        "zmwangx/rust-ffmpeg#225:obligation:06"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/zzau13/yarte/issues/319",
+      "repository": "zzau13/yarte",
+      "clone_url": "https://github.com/zzau13/yarte.git",
+      "issue_number": 319,
+      "title": "Unsoundness in get_nodes",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_218adbe3ba8981deed5b0b0c"
+      ],
+      "canonical_instance_keys": [
+        "zzau13/yarte#319:obligation:01"
+      ],
+      "scan_host": true,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    }
+  ],
+  "advisory_issues": [
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2140",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2140,
+      "title": "Corundum is unmaintained and may unsoundness",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_6c2a54a49617b52a5dcadfeb"
+      ],
+      "canonical_instance_keys": [
+        "NVSL/Corundum#7:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2141",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2141,
+      "title": "Unsoundly mark unsafe function as safe in crate Ngrammatic",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_b57c05fffb758a80f19bf6dd"
+      ],
+      "canonical_instance_keys": [
+        "rustsec/advisory-db#2141:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2146",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2146,
+      "title": "Unsoundness in Pleco crates",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_50556f289011974f7c277f21",
+        "instance_fc2510c2f3090980484644dd"
+      ],
+      "canonical_instance_keys": [
+        "pleco-rs/Pleco#163:obligation:01",
+        "pleco-rs/Pleco#163:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2149",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2149,
+      "title": "Unsoundness in perpetual",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_4218a2bae01fe35bc4ed1ecf",
+        "instance_ea7014ca17d7e176b7f7e247"
+      ],
+      "canonical_instance_keys": [
+        "perpetual-ml/perpetual#34:obligation:01",
+        "perpetual-ml/perpetual#34:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2150",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2150,
+      "title": "Unsoundness in ninjabook",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 2,
+      "instance_ids": [
+        "instance_9e74ef0226f6bb57ffd6c0f9",
+        "instance_06563bbffeebacf193e7c6b1"
+      ],
+      "canonical_instance_keys": [
+        "ninja-quant/ninjabook#3:obligation:01",
+        "ninja-quant/ninjabook#3:obligation:02"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    },
+    {
+      "issue_url": "https://github.com/rustsec/advisory-db/issues/2151",
+      "repository": "rustsec/advisory-db",
+      "clone_url": "https://github.com/rustsec/advisory-db.git",
+      "issue_number": 2151,
+      "title": "Unsoundness in swift-bridge",
+      "state": "open",
+      "valid_issue": true,
+      "accepted_and_fixed": false,
+      "local_instance_count": 1,
+      "instance_ids": [
+        "instance_2845d152918b2ed618cceb73"
+      ],
+      "canonical_instance_keys": [
+        "chinedufn/swift-bridge#304:obligation:01"
+      ],
+      "scan_host": false,
+      "decision_rationale_zh": "未发现对所列全部 unsoundness 修复义务的明确反驳；按独立修复对象保留。",
+      "vulnerable_revision": null,
+      "package": null,
+      "target_kind": null,
+      "scan_status": "frozen_not_scanned"
+    }
+  ],
+  "exclusions": {
+    "scope_excluded": [
+      {
+        "issue_url": "https://github.com/babalae/better-genshin-impact/issues/2192",
+        "repository": "babalae/better-genshin-impact",
+        "issue_number": 2192,
+        "title": "[question] 月落银地图追踪的脚本在哪下载",
+        "reason_zh": "窗口内创建，但不是 unsoundness 上报"
+      },
+      {
+        "issue_url": "https://github.com/endorlabs/MIRAI/issues/12",
+        "repository": "endorlabs/MIRAI",
+        "issue_number": 12,
+        "title": "How to generate Rust program's ICFG",
+        "reason_zh": "窗口内创建，但不是 unsoundness 上报"
+      }
+    ],
+    "explicitly_rebutted_or_withdrawn": [
+      {
+        "issue_url": "https://github.com/Amanieu/corosensei/issues/45",
+        "repository": "Amanieu/corosensei",
+        "issue_number": 45,
+        "title": "Maybe unsound in ValgrindStackRegistration::new",
+        "state": "closed",
+        "reason_zh": "维护者解释该调用在项目语义下不构成 UB，作者随后同意。"
+      },
+      {
+        "issue_url": "https://github.com/BurntSushi/byteorder/issues/219",
+        "repository": "BurntSushi/byteorder",
+        "issue_number": 219,
+        "title": "unsoundness in src/lib.rs",
+        "state": "closed",
+        "reason_zh": "维护者解释输入切片已经有效，作者明确承认报告错误。"
+      },
+      {
+        "issue_url": "https://github.com/BurntSushi/byteorder/issues/220",
+        "repository": "BurntSushi/byteorder",
+        "issue_number": 220,
+        "title": "unsoundness in write_i16_into",
+        "state": "closed",
+        "reason_zh": "维护者指出这是 #219 的完全重复报告；沿用同一明确反驳。"
+      },
+      {
+        "issue_url": "https://github.com/h33p/cglue/issues/20",
+        "repository": "h33p/cglue",
+        "issue_number": 20,
+        "title": "Undefined Behavior in CVec::insert Leading to Memory Corruption",
+        "state": "closed",
+        "reason_zh": "作者明确撤回：崩溃来自测试中的巨额分配，与 CVec::insert 无关。"
+      },
+      {
+        "issue_url": "https://github.com/h33p/cglue/issues/21",
+        "repository": "h33p/cglue",
+        "issue_number": 21,
+        "title": "Undefined Behavior in CVec::insert Leading to Memory Corruption",
+        "state": "closed",
+        "reason_zh": "与 #20 的正文和 PoC 相同；沿用作者对同一报告的明确撤回。"
+      },
+      {
+        "issue_url": "https://github.com/intel/tsffs/issues/123",
+        "repository": "intel/tsffs",
+        "issue_number": 123,
+        "title": "Unsound Use of CStr::from_ptr in add_architecture_hint",
+        "state": "open",
+        "reason_zh": "作者复查后明确撤回 UB 主张，改称只需要 safety 文档。"
+      },
+      {
+        "issue_url": "https://github.com/oreboot/oreboot/issues/761",
+        "repository": "oreboot/oreboot",
+        "issue_number": 761,
+        "title": "maybe unsound in print_mem and print_strmem",
+        "state": "closed",
+        "reason_zh": "维护者明确表示论证不适用于该固件代码并以 not applicable 关闭。"
+      },
+      {
+        "issue_url": "https://github.com/servo/ipc-channel/issues/375",
+        "repository": "servo/ipc-channel",
+        "issue_number": 375,
+        "title": "Bug report: unsoundness in OsIpcSharedMemory::from_bytes",
+        "state": "closed",
+        "reason_zh": "作者明确撤回：崩溃来自巨额分配，不是 unsoundness。"
+      },
+      {
+        "issue_url": "https://github.com/wgpu-mc/wgpu-mc/issues/114",
+        "repository": "wgpu-mc/wgpu-mc",
+        "issue_number": 114,
+        "title": "Maybe unsound in setIndexBuffer",
+        "state": "closed",
+        "reason_zh": "维护者指出 i32 数组的对齐不是报告所称的 1 字节，否定该 unsoundness 论证。"
+      },
+      {
+        "issue_url": "https://github.com/zakarumych/allocator-api2/issues/43",
+        "repository": "zakarumych/allocator-api2",
+        "issue_number": 43,
+        "title": "Maybe Multiple unsoundness problems",
+        "state": "closed",
+        "reason_zh": "维护者解释 ptr::write 的前置条件已满足，作者明确确认代码 sound。"
+      }
+    ]
+  },
+  "freeze_id": "lwz23-valid-issue-scan-roster-v1"
+}

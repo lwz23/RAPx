@@ -1,0 +1,30 @@
+{
+  "schema_version": "rap-unsoundaudit-cratesio-campaign-policy-v1",
+  "campaign_id": "cratesio-2026-08-21",
+  "selection_date": "2026-08-21",
+  "toolchain": {
+    "channel": "nightly-2026-08-14",
+    "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+    "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+    "target_triple": "aarch64-apple-darwin"
+  },
+  "candidate_pool": {
+    "byte_buffers": ["bytes", "byteorder", "bstr", "bytesize", "byte-unit"],
+    "general_collections": ["hashbrown", "indexmap", "dashmap", "slab", "slotmap"],
+    "concurrency_reclamation": ["crossbeam-epoch", "crossbeam-deque", "arc-swap", "flurry", "seize"],
+    "synchronization": ["parking_lot_core", "lock_api", "parking_lot", "spin", "atomic-waker"],
+    "zero_copy_serialization": ["zerocopy", "rkyv", "postcard", "flatbuffers", "scroll"],
+    "pod_layout_casting": ["bytemuck", "safe-transmute", "plain", "ref-cast", "pod"],
+    "memory_mapping": ["memmap2", "memmap", "mmap-rs", "fmmap", "region"],
+    "ffi_dynamic_loading": ["libloading", "dlopen2", "abi_stable", "libffi", "shared_library"],
+    "compact_containers": ["smallvec", "arrayvec", "tinyvec", "heapless", "smallstr"],
+    "hashing_runtime": ["ahash", "rustc-hash", "fxhash", "twox-hash", "seahash"]
+  },
+  "wall_time_seconds": 900,
+  "cargo_jobs": 1,
+  "features": "default",
+  "target_kind": "lib",
+  "suppressed_quota_per_crate": 3,
+  "unestablished_quota_per_crate": 5,
+  "review_seed": "dacd31d8f446692177be93f19314e578f01119d0ef637e80c071ad0cdc3638ec"
+}

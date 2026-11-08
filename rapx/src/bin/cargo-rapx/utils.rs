@@ -1,8 +1,8 @@
 use crate::args;
 use rapx::utils::unit_output::{
     json_output_path, rustc_commit_from_runner, rustc_path_from_wrapper_args,
-    validate_exact_tool_path, verify_expected_commit, write_skip_receipt as write_skip_receipt_file,
-    UnitIdentity,
+    validate_exact_tool_path, verify_expected_commit,
+    write_skip_receipt as write_skip_receipt_file, UnitIdentity,
 };
 use std::{
     env, fs,
@@ -43,8 +43,7 @@ pub fn run_rustc() {
 pub fn run_rap(identity: UnitIdentity) {
     let mut cmd = Command::new(find_rap());
     let serialized_rap_args = env::var("RAP_ARGS").expect("Missing RAP_ARGS.");
-    let invocation =
-        plan_wrapper_invocation(args::skip2().to_vec(), serialized_rap_args);
+    let invocation = plan_wrapper_invocation(args::skip2().to_vec(), serialized_rap_args);
     cmd.args(invocation.argv);
     for (key, value) in invocation.environment {
         cmd.env(key, value);
@@ -52,11 +51,9 @@ pub fn run_rap(identity: UnitIdentity) {
     let cargo_supplied_rustc = rustc_path_from_wrapper_args(args::all_args())
         .expect("Cargo wrapper invocation must include the rustc path at argv[1]");
     let expected_rustc_path_value = env::var("UNSOUND_SCANNER_EXPECTED_RUSTC_PATH").ok();
-    let expected_rustc_path = validate_exact_tool_path(
-        expected_rustc_path_value.as_deref(),
-        "expected exact rustc",
-    )
-    .unwrap_or_else(|err| rapx::utils::log::rap_error_and_exit(err));
+    let expected_rustc_path =
+        validate_exact_tool_path(expected_rustc_path_value.as_deref(), "expected exact rustc")
+            .unwrap_or_else(|err| rapx::utils::log::rap_error_and_exit(err));
     let cargo_supplied_rustc_path =
         validate_exact_tool_path(Some(cargo_supplied_rustc), "Cargo-supplied rustc")
             .unwrap_or_else(|err| rapx::utils::log::rap_error_and_exit(err));
@@ -112,17 +109,13 @@ pub fn run_rap(identity: UnitIdentity) {
 }
 
 pub fn write_skip_receipt(identity: &UnitIdentity, reason: &str) {
-    let json_dir = env::var_os("UNSOUND_SCANNER_RAP_JSON_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            rapx::utils::log::rap_error_and_exit(
-                "UNSOUND_SCANNER_RAP_JSON_DIR is required for per-unit skip receipts",
-            )
-        });
+    let Some(json_dir) = env::var_os("UNSOUND_SCANNER_RAP_JSON_DIR").map(PathBuf::from) else {
+        return;
+    };
     fs::create_dir_all(&json_dir).expect("Failed to create RAP JSON output directory");
     let output_path = json_dir.join(format!("{}.json", identity.unit_id));
-    let project_root = env::var("UNSOUND_SCANNER_PROJECT_ROOT")
-        .unwrap_or_else(|_| "<missing>".to_string());
+    let project_root =
+        env::var("UNSOUND_SCANNER_PROJECT_ROOT").unwrap_or_else(|_| "<missing>".to_string());
     write_skip_receipt_file(&output_path, identity, reason, &project_root).unwrap_or_else(|err| {
         rapx::utils::log::rap_error_and_exit(format!(
             "Failed to atomically write RAP skip receipt '{}': {err}",

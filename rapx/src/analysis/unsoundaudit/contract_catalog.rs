@@ -1,28 +1,74 @@
 use std::collections::BTreeSet;
 
 use super::unsafe_site::{
-    binding::BoundUnsafeSite, ContractPrecision, OperandRole, UnsafeSiteKind,
+    binding::{BoundUnsafeSite, TypeValidityClass},
+    ContractPrecision, OperandRole, UnsafeSiteKind,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(super) enum KnownContractModel {
     GetUnchecked,
+    VecGetUnchecked,
+    PtrRead,
     ReadUnaligned,
     NonNullNewUnchecked,
     AssumeInit,
     FromUtf8Unchecked,
+    StringFromUtf8Unchecked,
+    SliceFromRawParts,
+    CStrFromPtr,
+    CStringFromRaw,
+    BoxFromRaw,
+    VecFromRawParts,
+    PtrOffset,
+    PtrCopy,
     Transmute,
+    ConditionTrue,
 }
 
 impl KnownContractModel {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::GetUnchecked => "slice_get_unchecked_v1",
+            Self::VecGetUnchecked => "vec_get_unchecked_v1",
+            Self::PtrRead => "ptr_read_v1",
             Self::ReadUnaligned => "ptr_read_unaligned_v1",
             Self::NonNullNewUnchecked => "nonnull_new_unchecked_v1",
             Self::AssumeInit => "maybe_uninit_assume_init_v1",
             Self::FromUtf8Unchecked => "str_from_utf8_unchecked_v1",
+            Self::StringFromUtf8Unchecked => "string_from_utf8_unchecked_v1",
+            Self::SliceFromRawParts => "slice_from_raw_parts_v1",
+            Self::CStrFromPtr => "cstr_from_ptr_v1",
+            Self::CStringFromRaw => "cstring_from_raw_v1",
+            Self::BoxFromRaw => "box_from_raw_v1",
+            Self::VecFromRawParts => "vec_from_raw_parts_v1",
+            Self::PtrOffset => "ptr_offset_v1",
+            Self::PtrCopy => "ptr_copy_v1",
             Self::Transmute => "transmute_validity_v1",
+            Self::ConditionTrue => "condition_true_v1",
+        }
+    }
+
+    pub fn from_model_id(id: &str) -> Option<Self> {
+        match id {
+            "slice_get_unchecked_v1" => Some(Self::GetUnchecked),
+            "vec_get_unchecked_v1" => Some(Self::VecGetUnchecked),
+            "ptr_read_v1" => Some(Self::PtrRead),
+            "ptr_read_unaligned_v1" => Some(Self::ReadUnaligned),
+            "nonnull_new_unchecked_v1" => Some(Self::NonNullNewUnchecked),
+            "maybe_uninit_assume_init_v1" => Some(Self::AssumeInit),
+            "str_from_utf8_unchecked_v1" => Some(Self::FromUtf8Unchecked),
+            "string_from_utf8_unchecked_v1" => Some(Self::StringFromUtf8Unchecked),
+            "slice_from_raw_parts_v1" => Some(Self::SliceFromRawParts),
+            "cstr_from_ptr_v1" => Some(Self::CStrFromPtr),
+            "cstring_from_raw_v1" => Some(Self::CStringFromRaw),
+            "box_from_raw_v1" => Some(Self::BoxFromRaw),
+            "vec_from_raw_parts_v1" => Some(Self::VecFromRawParts),
+            "ptr_offset_v1" => Some(Self::PtrOffset),
+            "ptr_copy_v1" => Some(Self::PtrCopy),
+            "transmute_validity_v1" => Some(Self::Transmute),
+            "condition_true_v1" => Some(Self::ConditionTrue),
+            _ => None,
         }
     }
 }
@@ -45,6 +91,7 @@ pub(super) enum ContractPredicate {
     ValidUtf8,
     Aligned,
     LayoutCompatible,
+    ConditionTrue,
 }
 
 impl ContractPredicate {
@@ -59,6 +106,7 @@ impl ContractPredicate {
             Self::ValidUtf8 => "valid_utf8",
             Self::Aligned => "aligned",
             Self::LayoutCompatible => "layout_compatible",
+            Self::ConditionTrue => "condition_true",
         }
     }
 }
@@ -71,6 +119,55 @@ pub(super) enum DischargeModel {
     ExactInitialization,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) enum StaticContractEvidence {
+    TargetAllBitsValidScalar,
+    TargetAllBitsValidByteForm,
+    TargetAllBitsValidRawPointer,
+    TargetAllBitsValidStructural,
+    SameAllBitsValidStructure,
+}
+
+impl StaticContractEvidence {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TargetAllBitsValidScalar => "target_all_bits_valid_scalar",
+            Self::TargetAllBitsValidByteForm => "target_all_bits_valid_byte_form",
+            Self::TargetAllBitsValidRawPointer => "target_all_bits_valid_raw_pointer",
+            Self::TargetAllBitsValidStructural => "target_all_bits_valid_structural",
+            Self::SameAllBitsValidStructure => "same_all_bits_valid_structure",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) enum StaticContractGap {
+    SourceMayContainUninitializedBytes,
+    LifetimeOrProvenanceSensitive,
+    TargetRestrictedValidity,
+    StructuralValidityMismatch,
+    UnknownTypeValidity,
+}
+
+impl StaticContractGap {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceMayContainUninitializedBytes => "source_may_contain_uninitialized_bytes",
+            Self::LifetimeOrProvenanceSensitive => "lifetime_or_provenance_sensitive",
+            Self::TargetRestrictedValidity => "target_restricted_validity",
+            Self::StructuralValidityMismatch => "structural_validity_mismatch",
+            Self::UnknownTypeValidity => "unknown_type_validity",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) enum StaticContractImplication {
+    NotApplicable,
+    Proven(StaticContractEvidence),
+    Unproven(StaticContractGap),
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct ContractDescriptor {
     pub precision: ContractPrecision,
@@ -79,6 +176,7 @@ pub(super) struct ContractDescriptor {
     pub predicates: BTreeSet<ContractPredicate>,
     pub failure_phase: FailurePhase,
     pub discharge: DischargeModel,
+    pub static_implication: StaticContractImplication,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -123,6 +221,7 @@ impl ContractCatalog {
             predicates: BTreeSet::new(),
             failure_phase: FailurePhase::Precondition,
             discharge: DischargeModel::None,
+            static_implication: StaticContractImplication::NotApplicable,
         };
         if !self.models_enabled {
             return opaque();
@@ -130,20 +229,84 @@ impl ContractCatalog {
         if site.seed.kind == UnsafeSiteKind::UnsafeCall {
             if let Some(model) = known {
                 let (selected, predicates, failure_phase, discharge) = match model {
-                    KnownContractModel::GetUnchecked => (
+                    KnownContractModel::GetUnchecked | KnownContractModel::VecGetUnchecked => (
                         select_get_unchecked_subject_role(site),
                         BTreeSet::from([ContractPredicate::InBounds]),
                         FailurePhase::Precondition,
                         DischargeModel::ExactValidation,
                     ),
+                    KnownContractModel::SliceFromRawParts => (
+                        select_pointer_and_extent_roles(site, 0, 1),
+                        BTreeSet::from([
+                            ContractPredicate::NonNull,
+                            ContractPredicate::Aligned,
+                            ContractPredicate::RangeInBounds,
+                            ContractPredicate::ValidForRead,
+                        ]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
+                    KnownContractModel::CStrFromPtr
+                    | KnownContractModel::CStringFromRaw
+                    | KnownContractModel::BoxFromRaw => (
+                        select_roles(site, &[OperandRole::Argument(0)]),
+                        BTreeSet::from([ContractPredicate::NonNull]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
+                    KnownContractModel::VecFromRawParts => (
+                        select_pointer_len_cap_roles(site),
+                        BTreeSet::from([
+                            ContractPredicate::NonNull,
+                            ContractPredicate::RangeInBounds,
+                            ContractPredicate::LayoutCompatible,
+                        ]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
+                    KnownContractModel::PtrOffset => (
+                        select_pointer_and_extent_roles(site, 0, 1),
+                        BTreeSet::from([
+                            ContractPredicate::NonNull,
+                            ContractPredicate::RangeInBounds,
+                        ]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
+                    KnownContractModel::PtrCopy => (
+                        select_ptr_copy_roles(site),
+                        BTreeSet::from([
+                            ContractPredicate::NonNull,
+                            ContractPredicate::RangeInBounds,
+                            ContractPredicate::ValidForRead,
+                        ]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
+                    KnownContractModel::PtrRead => (
+                        select_roles(site, &[OperandRole::Argument(0)]),
+                        BTreeSet::from([
+                            ContractPredicate::ValidForRead,
+                            ContractPredicate::RangeInBounds,
+                            ContractPredicate::NonNull,
+                            ContractPredicate::Aligned,
+                            ContractPredicate::Initialized,
+                            ContractPredicate::ValidForType,
+                        ]),
+                        FailurePhase::Precondition,
+                        DischargeModel::None,
+                    ),
                     KnownContractModel::ReadUnaligned => (
                         select_roles(site, &[OperandRole::Argument(0)]),
                         BTreeSet::from([
+                            ContractPredicate::ValidForRead,
                             ContractPredicate::RangeInBounds,
-                            ContractPredicate::Aligned,
+                            ContractPredicate::NonNull,
+                            ContractPredicate::Initialized,
+                            ContractPredicate::ValidForType,
                         ]),
                         FailurePhase::Precondition,
-                        DischargeModel::ExactRelation,
+                        DischargeModel::None,
                     ),
                     KnownContractModel::NonNullNewUnchecked => (
                         select_roles(site, &[OperandRole::Argument(0)]),
@@ -160,7 +323,8 @@ impl ContractCatalog {
                         FailurePhase::ImmediateValidity,
                         DischargeModel::ExactInitialization,
                     ),
-                    KnownContractModel::FromUtf8Unchecked => (
+                    KnownContractModel::FromUtf8Unchecked
+                    | KnownContractModel::StringFromUtf8Unchecked => (
                         select_roles(site, &[OperandRole::Argument(0)]),
                         BTreeSet::from([ContractPredicate::ValidUtf8]),
                         FailurePhase::ImmediateValidity,
@@ -172,6 +336,12 @@ impl ContractCatalog {
                         FailurePhase::ImmediateValidity,
                         DischargeModel::None,
                     ),
+                    KnownContractModel::ConditionTrue => (
+                        select_roles(site, &[OperandRole::Argument(0)]),
+                        BTreeSet::from([ContractPredicate::ConditionTrue]),
+                        FailurePhase::Precondition,
+                        DischargeModel::ExactRelation,
+                    ),
                 };
                 return ContractDescriptor {
                     precision: ContractPrecision::Precise,
@@ -180,6 +350,11 @@ impl ContractCatalog {
                     predicates,
                     failure_phase,
                     discharge,
+                    static_implication: if model == KnownContractModel::Transmute {
+                        transmute_validity_implication(site)
+                    } else {
+                        StaticContractImplication::NotApplicable
+                    },
                 };
             }
         }
@@ -236,8 +411,123 @@ impl ContractCatalog {
             predicates,
             failure_phase,
             discharge: DischargeModel::None,
+            static_implication: StaticContractImplication::NotApplicable,
         }
     }
+}
+
+fn transmute_validity_implication(site: &BoundUnsafeSite) -> StaticContractImplication {
+    let source = site.type_validity.operand(&OperandRole::Argument(0));
+    let target = site.type_validity.result;
+
+    if matches!(source, TypeValidityClass::UninitializedOrPadding) {
+        return StaticContractImplication::Unproven(
+            StaticContractGap::SourceMayContainUninitializedBytes,
+        );
+    }
+    if matches!(target, TypeValidityClass::ReferenceOrFunctionPointer) {
+        return StaticContractImplication::Unproven(
+            StaticContractGap::LifetimeOrProvenanceSensitive,
+        );
+    }
+    if matches!(
+        target,
+        TypeValidityClass::RestrictedScalar
+            | TypeValidityClass::RestrictedStructural
+            | TypeValidityClass::RestrictedEnum
+    ) {
+        return StaticContractImplication::Unproven(StaticContractGap::TargetRestrictedValidity);
+    }
+    if source == TypeValidityClass::Unknown || target == TypeValidityClass::Unknown {
+        return StaticContractImplication::Unproven(StaticContractGap::UnknownTypeValidity);
+    }
+    if !source.guarantees_initialized_bytes() {
+        return StaticContractImplication::Unproven(
+            StaticContractGap::SourceMayContainUninitializedBytes,
+        );
+    }
+    match target {
+        TypeValidityClass::AllBitsValidScalar => {
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidScalar)
+        }
+        TypeValidityClass::AllBitsValidBytes => {
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidByteForm)
+        }
+        TypeValidityClass::AllBitsValidRawPointer => {
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidRawPointer)
+        }
+        // rustc has already established equal transmute sizes. Once every
+        // source byte is initialized, an all-bits-valid structural target
+        // admits every such bit pattern; the source's structural shape is
+        // irrelevant to the target validity obligation.
+        TypeValidityClass::AllBitsValidStructural => StaticContractImplication::Proven(
+            if source == TypeValidityClass::AllBitsValidStructural {
+                StaticContractEvidence::SameAllBitsValidStructure
+            } else {
+                StaticContractEvidence::TargetAllBitsValidStructural
+            },
+        ),
+        TypeValidityClass::UninitializedOrPadding => StaticContractImplication::Unproven(
+            StaticContractGap::SourceMayContainUninitializedBytes,
+        ),
+        TypeValidityClass::ReferenceOrFunctionPointer => {
+            StaticContractImplication::Unproven(StaticContractGap::LifetimeOrProvenanceSensitive)
+        }
+        TypeValidityClass::RestrictedScalar
+        | TypeValidityClass::RestrictedStructural
+        | TypeValidityClass::RestrictedEnum => {
+            StaticContractImplication::Unproven(StaticContractGap::TargetRestrictedValidity)
+        }
+        TypeValidityClass::Unknown => {
+            StaticContractImplication::Unproven(StaticContractGap::UnknownTypeValidity)
+        }
+    }
+}
+
+fn select_pointer_and_extent_roles(
+    site: &BoundUnsafeSite,
+    pointer_index: u32,
+    extent_index: u32,
+) -> BTreeSet<OperandRole> {
+    let mut roles = select_roles(site, &[OperandRole::Argument(pointer_index)]);
+    roles.extend(select_roles(
+        site,
+        &[
+            OperandRole::Argument(extent_index),
+            OperandRole::Index,
+            OperandRole::Length,
+            OperandRole::Size,
+        ],
+    ));
+    roles
+}
+
+fn select_pointer_len_cap_roles(site: &BoundUnsafeSite) -> BTreeSet<OperandRole> {
+    let mut roles = select_roles(site, &[OperandRole::Argument(0)]);
+    roles.extend(select_roles(
+        site,
+        &[
+            OperandRole::Argument(1),
+            OperandRole::Argument(2),
+            OperandRole::Index,
+            OperandRole::Length,
+            OperandRole::Size,
+        ],
+    ));
+    roles
+}
+
+fn select_ptr_copy_roles(site: &BoundUnsafeSite) -> BTreeSet<OperandRole> {
+    let mut roles = select_roles(site, &[OperandRole::Argument(0), OperandRole::Argument(1)]);
+    roles.extend(select_roles(
+        site,
+        &[
+            OperandRole::Argument(2),
+            OperandRole::Length,
+            OperandRole::Size,
+        ],
+    ));
+    roles
 }
 
 fn select_roles(site: &BoundUnsafeSite, expected: &[OperandRole]) -> BTreeSet<OperandRole> {
@@ -249,17 +539,12 @@ fn select_roles(site: &BoundUnsafeSite, expected: &[OperandRole]) -> BTreeSet<Op
 }
 
 fn select_get_unchecked_subject_role(site: &BoundUnsafeSite) -> BTreeSet<OperandRole> {
-    let index_is_literal = site.operands.iter().any(|operand| {
-        operand.role == OperandRole::Argument(1) && operand.place.is_none()
-    });
-    select_roles(
-        site,
-        &[if index_is_literal {
-            OperandRole::Argument(0)
-        } else {
-            OperandRole::Argument(1)
-        }],
-    )
+    // Bounds are a relation between the exact collection and index.  Keeping
+    // both roles also exposes type-level collection capabilities (for example,
+    // whether an associated slice can be empty) to the P5 classifier.  The
+    // exact validation binding still has to prove the complete relation before
+    // this contract can be discharged.
+    select_roles(site, &[OperandRole::Argument(0), OperandRole::Argument(1)])
 }
 
 pub(super) fn structural_candidate(site: &BoundUnsafeSite) -> Option<StructuralSiteCandidate> {
@@ -292,6 +577,24 @@ pub(super) fn structural_candidate(site: &BoundUnsafeSite) -> Option<StructuralS
             validity_sensitive_result,
         },
     )
+}
+
+pub(super) fn structural_candidate_with_contract(
+    site: &BoundUnsafeSite,
+    contract: &ContractDescriptor,
+) -> Option<StructuralSiteCandidate> {
+    structural_candidate(site).or_else(|| {
+        (site.result_place.is_some()
+            && contract.failure_phase == FailurePhase::ImmediateValidity
+            && contract
+                .predicates
+                .contains(&ContractPredicate::ValidForType))
+        .then(|| StructuralSiteCandidate {
+            site_id: site.seed.site_id(),
+            relevant_roles: contract.relevant_roles.clone(),
+            validity_sensitive_result: true,
+        })
+    })
 }
 
 fn is_structural_memory_role(role: &OperandRole) -> bool {
@@ -328,7 +631,7 @@ mod tests {
         FunctionKey, PlaceKey, StablePosition, StableSpan,
     };
     use crate::analysis::unsoundaudit::unsafe_site::{
-        binding::{MirEventLocation, MirOperandAnchor, MirStage},
+        binding::{MirEventLocation, MirOperandAnchor, MirStage, MirTypeValidity},
         RawSpanAnchor, ResultAnchor, UnsafeSiteSeed,
     };
 
@@ -383,7 +686,21 @@ mod tests {
                 })
                 .collect(),
             result_place: result.map(|_| PlaceKey::new("_9")),
+            type_validity: MirTypeValidity::default(),
         }
+    }
+
+    fn transmute_site(source: TypeValidityClass, target: TypeValidityClass) -> BoundUnsafeSite {
+        let mut site = site(
+            UnsafeSiteKind::UnsafeCall,
+            &[(OperandRole::Argument(0), "Source")],
+            Some("Target"),
+        );
+        site.type_validity = MirTypeValidity {
+            operands: vec![(OperandRole::Argument(0), source)],
+            result: target,
+        };
+        site
     }
 
     #[test]
@@ -408,7 +725,7 @@ mod tests {
         assert_eq!(precise.model_id.as_deref(), Some("slice_get_unchecked_v1"));
         assert_eq!(
             precise.relevant_roles,
-            BTreeSet::from([OperandRole::Argument(1)])
+            BTreeSet::from([OperandRole::Argument(0), OperandRole::Argument(1)])
         );
         assert_eq!(
             precise.predicates,
@@ -418,7 +735,7 @@ mod tests {
     }
 
     #[test]
-    fn get_unchecked_uses_the_index_subject_except_for_a_literal_index() {
+    fn get_unchecked_keeps_both_sides_of_the_bounds_relation() {
         let mut site = site(
             UnsafeSiteKind::UnsafeCall,
             &[
@@ -427,20 +744,22 @@ mod tests {
             ],
             Some("u8"),
         );
-        let variable = ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
+        let variable =
+            ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
         assert_eq!(
             variable.relevant_roles,
-            BTreeSet::from([OperandRole::Argument(1)])
+            BTreeSet::from([OperandRole::Argument(0), OperandRole::Argument(1)])
         );
         site.operands
             .iter_mut()
             .find(|operand| operand.role == OperandRole::Argument(1))
             .unwrap()
             .place = None;
-        let literal = ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
+        let literal =
+            ContractCatalog::full().describe(&site, Some(KnownContractModel::GetUnchecked));
         assert_eq!(
             literal.relevant_roles,
-            BTreeSet::from([OperandRole::Argument(0)])
+            BTreeSet::from([OperandRole::Argument(0), OperandRole::Argument(1)])
         );
     }
 
@@ -499,6 +818,20 @@ mod tests {
     }
 
     #[test]
+    fn validity_contract_keeps_a_user_enum_result_in_the_structural_lane() {
+        let site = site(
+            UnsafeSiteKind::UnsafeCall,
+            &[(OperandRole::Argument(0), "u8")],
+            Some("crate::Tiny"),
+        );
+        assert!(structural_candidate(&site).is_none());
+        let contract = ContractCatalog::full().describe(&site, Some(KnownContractModel::Transmute));
+        let candidate = structural_candidate_with_contract(&site, &contract).unwrap();
+        assert!(candidate.validity_sensitive_result);
+        assert_eq!(candidate.site_id, site.seed.site_id());
+    }
+
+    #[test]
     fn exact_models_have_closed_failure_and_discharge_semantics() {
         let site = site(
             UnsafeSiteKind::UnsafeCall,
@@ -507,9 +840,14 @@ mod tests {
         );
         let cases = [
             (
+                KnownContractModel::PtrRead,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
                 KnownContractModel::ReadUnaligned,
                 FailurePhase::Precondition,
-                DischargeModel::ExactRelation,
+                DischargeModel::None,
             ),
             (
                 KnownContractModel::NonNullNewUnchecked,
@@ -527,9 +865,59 @@ mod tests {
                 DischargeModel::ExactValidation,
             ),
             (
+                KnownContractModel::StringFromUtf8Unchecked,
+                FailurePhase::ImmediateValidity,
+                DischargeModel::ExactValidation,
+            ),
+            (
+                KnownContractModel::VecGetUnchecked,
+                FailurePhase::Precondition,
+                DischargeModel::ExactValidation,
+            ),
+            (
+                KnownContractModel::SliceFromRawParts,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::CStrFromPtr,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::CStringFromRaw,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::BoxFromRaw,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::VecFromRawParts,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::PtrOffset,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
+                KnownContractModel::PtrCopy,
+                FailurePhase::Precondition,
+                DischargeModel::None,
+            ),
+            (
                 KnownContractModel::Transmute,
                 FailurePhase::ImmediateValidity,
                 DischargeModel::None,
+            ),
+            (
+                KnownContractModel::ConditionTrue,
+                FailurePhase::Precondition,
+                DischargeModel::ExactRelation,
             ),
         ];
         for (model, phase, discharge) in cases {
@@ -538,5 +926,228 @@ mod tests {
             assert_eq!(descriptor.failure_phase, phase);
             assert_eq!(descriptor.discharge, discharge);
         }
+    }
+
+    #[test]
+    fn condition_true_selects_only_the_boolean_argument() {
+        let site = site(
+            UnsafeSiteKind::UnsafeCall,
+            &[
+                (OperandRole::Callee, "unsafe fn(bool)"),
+                (OperandRole::Argument(0), "bool"),
+            ],
+            Some("()"),
+        );
+        let contract =
+            ContractCatalog::full().describe(&site, Some(KnownContractModel::ConditionTrue));
+        assert_eq!(contract.precision, ContractPrecision::Precise);
+        assert_eq!(contract.model_id.as_deref(), Some("condition_true_v1"));
+        assert_eq!(
+            contract.relevant_roles,
+            BTreeSet::from([OperandRole::Argument(0)])
+        );
+        assert_eq!(
+            contract.predicates,
+            BTreeSet::from([ContractPredicate::ConditionTrue])
+        );
+        assert_eq!(contract.failure_phase, FailurePhase::Precondition);
+        assert_eq!(contract.discharge, DischargeModel::ExactRelation);
+    }
+
+    #[test]
+    fn pointer_reads_model_alignment_only_when_the_operation_requires_it() {
+        let site = site(
+            UnsafeSiteKind::UnsafeCall,
+            &[(OperandRole::Argument(0), "*const T")],
+            Some("T"),
+        );
+        let aligned = ContractCatalog::full().describe(&site, Some(KnownContractModel::PtrRead));
+        assert_eq!(
+            aligned.predicates,
+            BTreeSet::from([
+                ContractPredicate::ValidForRead,
+                ContractPredicate::RangeInBounds,
+                ContractPredicate::NonNull,
+                ContractPredicate::Aligned,
+                ContractPredicate::Initialized,
+                ContractPredicate::ValidForType,
+            ])
+        );
+        let unaligned =
+            ContractCatalog::full().describe(&site, Some(KnownContractModel::ReadUnaligned));
+        assert_eq!(
+            unaligned.predicates,
+            BTreeSet::from([
+                ContractPredicate::ValidForRead,
+                ContractPredicate::RangeInBounds,
+                ContractPredicate::NonNull,
+                ContractPredicate::Initialized,
+                ContractPredicate::ValidForType,
+            ])
+        );
+        assert!(!unaligned.predicates.contains(&ContractPredicate::Aligned));
+    }
+
+    #[test]
+    fn transmute_proves_only_initialized_sources_into_all_bits_valid_targets() {
+        let scalar = transmute_site(
+            TypeValidityClass::RestrictedScalar,
+            TypeValidityClass::AllBitsValidScalar,
+        );
+        let scalar_contract =
+            ContractCatalog::full().describe(&scalar, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            scalar_contract.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidScalar)
+        );
+
+        let bytes = transmute_site(
+            TypeValidityClass::AllBitsValidStructural,
+            TypeValidityClass::AllBitsValidBytes,
+        );
+        let bytes_contract =
+            ContractCatalog::full().describe(&bytes, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            bytes_contract.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidByteForm)
+        );
+
+        let structural = transmute_site(
+            TypeValidityClass::AllBitsValidStructural,
+            TypeValidityClass::AllBitsValidStructural,
+        );
+        let structural_contract =
+            ContractCatalog::full().describe(&structural, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            structural_contract.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::SameAllBitsValidStructure)
+        );
+
+        let bytes_to_structural = transmute_site(
+            TypeValidityClass::AllBitsValidBytes,
+            TypeValidityClass::AllBitsValidStructural,
+        );
+        let bytes_to_structural = ContractCatalog::full()
+            .describe(&bytes_to_structural, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            bytes_to_structural.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidStructural)
+        );
+    }
+
+    #[test]
+    fn transmute_does_not_prove_uninitialized_padding_or_unknown_sources() {
+        for (source, expected_gap) in [
+            (
+                TypeValidityClass::UninitializedOrPadding,
+                StaticContractGap::SourceMayContainUninitializedBytes,
+            ),
+            (
+                TypeValidityClass::Unknown,
+                StaticContractGap::UnknownTypeValidity,
+            ),
+        ] {
+            let site = transmute_site(source, TypeValidityClass::AllBitsValidScalar);
+            let contract =
+                ContractCatalog::full().describe(&site, Some(KnownContractModel::Transmute));
+            assert_eq!(
+                contract.static_implication,
+                StaticContractImplication::Unproven(expected_gap)
+            );
+        }
+    }
+
+    #[test]
+    fn transmute_keeps_restricted_and_reference_targets_unproven() {
+        for (target, expected_gap) in [
+            (
+                TypeValidityClass::RestrictedScalar,
+                StaticContractGap::TargetRestrictedValidity,
+            ),
+            (
+                TypeValidityClass::RestrictedStructural,
+                StaticContractGap::TargetRestrictedValidity,
+            ),
+            (
+                TypeValidityClass::RestrictedEnum,
+                StaticContractGap::TargetRestrictedValidity,
+            ),
+            (
+                TypeValidityClass::ReferenceOrFunctionPointer,
+                StaticContractGap::LifetimeOrProvenanceSensitive,
+            ),
+        ] {
+            let site = transmute_site(TypeValidityClass::AllBitsValidScalar, target);
+            let contract =
+                ContractCatalog::full().describe(&site, Some(KnownContractModel::Transmute));
+            assert_eq!(
+                contract.static_implication,
+                StaticContractImplication::Unproven(expected_gap)
+            );
+        }
+    }
+
+    #[test]
+    fn transmute_raw_pointer_and_integer_runtime_bit_validity_is_implied() {
+        let pointer_to_integer = transmute_site(
+            TypeValidityClass::AllBitsValidRawPointer,
+            TypeValidityClass::AllBitsValidScalar,
+        );
+        let pointer_to_integer = ContractCatalog::full()
+            .describe(&pointer_to_integer, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            pointer_to_integer.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidScalar)
+        );
+
+        let integer_to_pointer = transmute_site(
+            TypeValidityClass::AllBitsValidScalar,
+            TypeValidityClass::AllBitsValidRawPointer,
+        );
+        let integer_to_pointer = ContractCatalog::full()
+            .describe(&integer_to_pointer, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            integer_to_pointer.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidRawPointer)
+        );
+    }
+
+    #[test]
+    fn transmute_reference_and_function_pointer_validity_is_directional() {
+        let reference_to_integer = transmute_site(
+            TypeValidityClass::ReferenceOrFunctionPointer,
+            TypeValidityClass::AllBitsValidScalar,
+        );
+        let reference_to_integer = ContractCatalog::full()
+            .describe(&reference_to_integer, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            reference_to_integer.static_implication,
+            StaticContractImplication::Proven(StaticContractEvidence::TargetAllBitsValidScalar)
+        );
+
+        let integer_to_reference = transmute_site(
+            TypeValidityClass::AllBitsValidScalar,
+            TypeValidityClass::ReferenceOrFunctionPointer,
+        );
+        let integer_to_reference = ContractCatalog::full()
+            .describe(&integer_to_reference, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            integer_to_reference.static_implication,
+            StaticContractImplication::Unproven(StaticContractGap::LifetimeOrProvenanceSensitive)
+        );
+    }
+
+    #[test]
+    fn empty_catalog_cannot_claim_a_static_transmute_proof() {
+        let site = transmute_site(
+            TypeValidityClass::AllBitsValidScalar,
+            TypeValidityClass::AllBitsValidScalar,
+        );
+        let contract =
+            ContractCatalog::empty().describe(&site, Some(KnownContractModel::Transmute));
+        assert_eq!(
+            contract.static_implication,
+            StaticContractImplication::NotApplicable
+        );
     }
 }

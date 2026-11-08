@@ -244,10 +244,8 @@ pub fn route_rustc_unit(
     if let Some(reason) = crate_skip_reason(&identity.crate_types, &identity.crate_name) {
         return Ok(UnitRoute::Skip { identity, reason });
     }
-    let project_root = required_environment_value(
-        environment.project_root.clone(),
-        "scanner project root",
-    )?;
+    let project_root =
+        required_environment_value(environment.project_root.clone(), "scanner project root")?;
     let project_root = PathBuf::from(&project_root)
         .canonicalize()
         .map_err(|err| format!("failed to resolve scanner project root '{project_root}': {err}"))?;
@@ -259,12 +257,6 @@ pub fn route_rustc_unit(
                 identity.manifest_path
             )
         })?;
-    if !manifest.starts_with(&project_root) {
-        return Ok(UnitRoute::Skip {
-            identity,
-            reason: "manifest_outside_project",
-        });
-    }
     let manifest_dir = manifest
         .parent()
         .ok_or_else(|| format!("Cargo manifest has no parent: {}", manifest.display()))?;
@@ -284,21 +276,26 @@ pub fn route_rustc_unit(
             identity.source_path
         )
     })?;
-    if !source.starts_with(manifest_dir) {
+    let manifest_in_project = manifest.starts_with(&project_root);
+    let source_in_project = source.starts_with(&project_root);
+    if manifest_in_project {
+        if !source.starts_with(manifest_dir) {
+            return Ok(UnitRoute::Skip {
+                identity,
+                reason: "source_outside_manifest",
+            });
+        }
+    } else if !(environment.primary_package && source_in_project) {
         return Ok(UnitRoute::Skip {
             identity,
-            reason: "source_outside_manifest",
+            reason: "manifest_outside_project",
         });
     }
     identity.source_path = source.display().to_string();
     Ok(UnitRoute::Analyze(identity))
 }
 
-pub fn skip_receipt_bytes(
-    identity: &UnitIdentity,
-    reason: &str,
-    project_root: &str,
-) -> Vec<u8> {
+pub fn skip_receipt_bytes(identity: &UnitIdentity, reason: &str, project_root: &str) -> Vec<u8> {
     let crate_types = identity
         .crate_types
         .iter()
@@ -435,7 +432,10 @@ pub fn validate_exact_tool_path(value: Option<&str>, field: &str) -> Result<Path
         ));
     }
     if !canonical.is_file() {
-        return Err(format!("{field} path is not a file: {}", canonical.display()));
+        return Err(format!(
+            "{field} path is not a file: {}",
+            canonical.display()
+        ));
     }
     Ok(canonical)
 }
@@ -539,7 +539,10 @@ pub fn parse_build_verification_challenge(
 
     let challenge = required_string(root, "challenge", "build verification challenge")?;
     validate_sha256(&challenge, "build verification challenge")?;
-    validate_sha256(&actual.expected_challenge, "build verification expected challenge")?;
+    validate_sha256(
+        &actual.expected_challenge,
+        "build verification expected challenge",
+    )?;
     if challenge != actual.expected_challenge {
         return Err("build verification challenge does not match environment".to_string());
     }
@@ -548,13 +551,22 @@ pub fn parse_build_verification_challenge(
     let exact_toolchain = required_string(root, "exact_toolchain", "build verification challenge")?;
     validate_nightly_toolchain(&exact_toolchain)?;
 
-    let cargo = parse_tool_material(required_object(root, "cargo", "build verification challenge")?, "cargo")?;
-    let rustc = parse_tool_material(required_object(root, "rustc", "build verification challenge")?, "rustc")?;
+    let cargo = parse_tool_material(
+        required_object(root, "cargo", "build verification challenge")?,
+        "cargo",
+    )?;
+    let rustc = parse_tool_material(
+        required_object(root, "rustc", "build verification challenge")?,
+        "rustc",
+    )?;
     let cargo_rapx = parse_path_hash(
         required_object(root, "cargo_rapx", "build verification challenge")?,
         "cargo_rapx",
     )?;
-    let rapx = parse_path_hash(required_object(root, "rapx", "build verification challenge")?, "rapx")?;
+    let rapx = parse_path_hash(
+        required_object(root, "rapx", "build verification challenge")?,
+        "rapx",
+    )?;
     let rap_source = parse_path_hash(
         required_object(root, "rap_source", "build verification challenge")?,
         "rap_source",
@@ -568,7 +580,11 @@ pub fn parse_build_verification_challenge(
         "loader",
         "build verification challenge",
     )?)?;
-    let fixture = parse_fixture(required_object(root, "fixture", "build verification challenge")?)?;
+    let fixture = parse_fixture(required_object(
+        root,
+        "fixture",
+        "build verification challenge",
+    )?)?;
 
     if rapx.path != actual.rapx_path {
         return Err("build verification rapx path does not match current executable".to_string());
@@ -577,7 +593,9 @@ pub fn parse_build_verification_challenge(
         return Err("build verification cargo-rapx path does not match rapx sibling".to_string());
     }
     if rustc.path != actual.cargo_supplied_rustc_path {
-        return Err("build verification rustc path does not match Cargo-supplied rustc".to_string());
+        return Err(
+            "build verification rustc path does not match Cargo-supplied rustc".to_string(),
+        );
     }
     let actual_commit = validate_commit_hash(
         Some(&actual.cargo_supplied_rustc_commit),
@@ -585,17 +603,17 @@ pub fn parse_build_verification_challenge(
     )?
     .to_ascii_lowercase();
     if rustc.identity.commit_hash != actual_commit {
-        return Err("build verification rustc commit does not match Cargo-supplied rustc".to_string());
+        return Err(
+            "build verification rustc commit does not match Cargo-supplied rustc".to_string(),
+        );
     }
     if loader.environment_variable != actual.loader_environment_variable {
         return Err("build verification loader environment variable mismatch".to_string());
     }
-    if !verification_loader_path_matches(
-        &loader.path,
-        &actual.loader_path,
-        &fixture.project_root,
-    ) {
-        return Err("build verification loader path does not match process environment".to_string());
+    if !verification_loader_path_matches(&loader.path, &actual.loader_path, &fixture.project_root) {
+        return Err(
+            "build verification loader path does not match process environment".to_string(),
+        );
     }
 
     Ok(BuildVerificationReceipt {
@@ -641,7 +659,10 @@ fn verification_loader_path_matches(
     let cargo_target_deps = work_dir.join("target").join("debug").join("deps");
     let actual_paths = env::split_paths(actual_loader_path).collect::<Vec<_>>();
     let expected_loader_path = Path::new(expected_loader_path);
-    let current_cargo_paths = [cargo_target_deps.clone(), expected_loader_path.to_path_buf()];
+    let current_cargo_paths = [
+        cargo_target_deps.clone(),
+        expected_loader_path.to_path_buf(),
+    ];
     if actual_paths == current_cargo_paths {
         return true;
     }
@@ -714,7 +735,8 @@ pub fn build_verification_receipt_from_environment_with_current_exe(
     let cargo_supplied_rustc_commit = env::var("UNSOUND_SCANNER_CARGO_SUPPLIED_RUSTC_COMMIT")
         .map_err(|_| "missing Cargo-supplied rustc commit".to_string())?;
     let loader_environment_variable = verification_loader_environment_variable()?;
-    let forbidden_loader_environment_variable = if loader_environment_variable == "LD_LIBRARY_PATH" {
+    let forbidden_loader_environment_variable = if loader_environment_variable == "LD_LIBRARY_PATH"
+    {
         "DYLD_LIBRARY_PATH"
     } else {
         "LD_LIBRARY_PATH"
@@ -803,7 +825,10 @@ struct LoaderMaterial {
     contents_sha256: String,
 }
 
-fn parse_tool_material(object: &[(String, JsonValue)], field: &str) -> Result<ToolMaterial, String> {
+fn parse_tool_material(
+    object: &[(String, JsonValue)],
+    field: &str,
+) -> Result<ToolMaterial, String> {
     require_exact_keys(object, &["path", "sha256", "identity"], field)?;
     let path = required_string(object, "path", field)?;
     validate_canonical_path(&path, &format!("{field} path"))?;
@@ -812,7 +837,14 @@ fn parse_tool_material(object: &[(String, JsonValue)], field: &str) -> Result<To
     let identity = required_object(object, "identity", field)?;
     require_exact_keys(
         identity,
-        &["component", "release", "commit_hash", "commit_date", "host", "first_line"],
+        &[
+            "component",
+            "release",
+            "commit_hash",
+            "commit_date",
+            "host",
+            "first_line",
+        ],
         &format!("{field} identity"),
     )?;
     let component = required_string(identity, "component", &format!("{field} identity"))?;
@@ -821,13 +853,19 @@ fn parse_tool_material(object: &[(String, JsonValue)], field: &str) -> Result<To
     }
     let release = required_nonempty_string(identity, "release", &format!("{field} identity"))?;
     let commit_hash = validate_commit_hash(
-        Some(&required_string(identity, "commit_hash", &format!("{field} identity"))?),
+        Some(&required_string(
+            identity,
+            "commit_hash",
+            &format!("{field} identity"),
+        )?),
         &format!("{field} identity commit_hash"),
     )?
     .to_ascii_lowercase();
-    let commit_date = required_nonempty_string(identity, "commit_date", &format!("{field} identity"))?;
+    let commit_date =
+        required_nonempty_string(identity, "commit_date", &format!("{field} identity"))?;
     let host = required_nonempty_string(identity, "host", &format!("{field} identity"))?;
-    let first_line = required_nonempty_string(identity, "first_line", &format!("{field} identity"))?;
+    let first_line =
+        required_nonempty_string(identity, "first_line", &format!("{field} identity"))?;
     Ok(ToolMaterial {
         path,
         sha256,
@@ -854,7 +892,12 @@ fn parse_path_hash(object: &[(String, JsonValue)], field: &str) -> Result<PathHa
 fn parse_fixture(object: &[(String, JsonValue)]) -> Result<FixtureMaterial, String> {
     require_exact_keys(
         object,
-        &["project_root", "manifest_sha256", "source_sha256", "lock_sha256"],
+        &[
+            "project_root",
+            "manifest_sha256",
+            "source_sha256",
+            "lock_sha256",
+        ],
         "fixture",
     )?;
     let project_root = required_string(object, "project_root", "fixture")?;
@@ -880,9 +923,7 @@ fn parse_loader_material(object: &[(String, JsonValue)]) -> Result<LoaderMateria
         "loader",
     )?;
     let environment_variable = required_string(object, "environment_variable", "loader")?;
-    if environment_variable != "LD_LIBRARY_PATH"
-        && environment_variable != "DYLD_LIBRARY_PATH"
-    {
+    if environment_variable != "LD_LIBRARY_PATH" && environment_variable != "DYLD_LIBRARY_PATH" {
         return Err("build verification loader environment variable is invalid".to_string());
     }
     let path = required_string(object, "path", "loader")?;
@@ -972,10 +1013,16 @@ fn require_exact_keys(
 }
 
 fn validate_sha256(value: &str, field: &str) -> Result<(), String> {
-    if value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)) {
+    if value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
         Ok(())
     } else {
-        Err(format!("{field} must be 64 lowercase hexadecimal characters"))
+        Err(format!(
+            "{field} must be 64 lowercase hexadecimal characters"
+        ))
     }
 }
 
@@ -1014,9 +1061,10 @@ fn validate_nightly_toolchain(value: &str) -> Result<(), String> {
     let valid = date.len() == 10
         && date.as_bytes()[4] == b'-'
         && date.as_bytes()[7] == b'-'
-        && date.bytes().enumerate().all(|(index, byte)| {
-            matches!(index, 4 | 7) || byte.is_ascii_digit()
-        });
+        && date
+            .bytes()
+            .enumerate()
+            .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit());
     if valid {
         Ok(())
     } else {
@@ -1053,7 +1101,10 @@ struct StrictJsonParser<'a> {
 
 impl<'a> StrictJsonParser<'a> {
     fn new(input: &'a str) -> Self {
-        Self { input: input.as_bytes(), index: 0 }
+        Self {
+            input: input.as_bytes(),
+            index: 0,
+        }
     }
 
     fn parse(mut self) -> Result<JsonValue, String> {
@@ -1061,7 +1112,9 @@ impl<'a> StrictJsonParser<'a> {
         let value = self.value(0)?;
         self.skip_whitespace();
         if self.index != self.input.len() {
-            return Err("unexpected trailing data in build verification challenge JSON".to_string());
+            return Err(
+                "unexpected trailing data in build verification challenge JSON".to_string(),
+            );
         }
         Ok(value)
     }
@@ -1107,7 +1160,9 @@ impl<'a> StrictJsonParser<'a> {
             self.skip_whitespace();
             let key = self.string_value()?;
             if entries.iter().any(|(existing, _)| existing == &key) {
-                return Err(format!("duplicate JSON key '{key}' in build verification challenge"));
+                return Err(format!(
+                    "duplicate JSON key '{key}' in build verification challenge"
+                ));
             }
             self.skip_whitespace();
             self.expect(b':')?;
@@ -1175,10 +1230,14 @@ impl<'a> StrictJsonParser<'a> {
         self.expect(b'\"')?;
         let mut output = String::new();
         loop {
-            let byte = self.next().ok_or_else(|| "unterminated JSON string in build verification challenge".to_string())?;
+            let byte = self.next().ok_or_else(|| {
+                "unterminated JSON string in build verification challenge".to_string()
+            })?;
             match byte {
                 b'\"' => return Ok(output),
-                b'\\' => match self.next().ok_or_else(|| "unterminated JSON escape in build verification challenge".to_string())? {
+                b'\\' => match self.next().ok_or_else(|| {
+                    "unterminated JSON escape in build verification challenge".to_string()
+                })? {
                     b'\"' => output.push('\"'),
                     b'\\' => output.push('\\'),
                     b'/' => output.push('/'),
@@ -1211,11 +1270,16 @@ impl<'a> StrictJsonParser<'a> {
                             u32::from(first)
                         };
                         let character = char::from_u32(code).ok_or_else(|| {
-                            "invalid JSON unicode escape in build verification challenge".to_string()
+                            "invalid JSON unicode escape in build verification challenge"
+                                .to_string()
                         })?;
                         output.push(character);
                     }
-                    _ => return Err("invalid JSON escape in build verification challenge".to_string()),
+                    _ => {
+                        return Err(
+                            "invalid JSON escape in build verification challenge".to_string()
+                        )
+                    }
                 },
                 0..=0x1f => return Err("control character in JSON string".to_string()),
                 byte if byte.is_ascii() => output.push(char::from(byte)),
@@ -1234,7 +1298,9 @@ impl<'a> StrictJsonParser<'a> {
     fn hex_code_unit(&mut self) -> Result<u16, String> {
         let mut value = 0_u16;
         for _ in 0..4 {
-            let byte = self.next().ok_or_else(|| "short JSON unicode escape".to_string())?;
+            let byte = self
+                .next()
+                .ok_or_else(|| "short JSON unicode escape".to_string())?;
             value = value * 16
                 + match byte {
                     b'0'..=b'9' => u16::from(byte - b'0'),
@@ -1293,10 +1359,10 @@ pub fn verify_expected_commit(
     expected: Option<&str>,
     field: &str,
 ) -> Result<String, String> {
-    let actual = validate_commit_hash(Some(actual), &format!("actual {field} commit"))?
-        .to_ascii_lowercase();
-    let expected = validate_commit_hash(expected, &format!("expected {field} commit"))?
-        .to_ascii_lowercase();
+    let actual =
+        validate_commit_hash(Some(actual), &format!("actual {field} commit"))?.to_ascii_lowercase();
+    let expected =
+        validate_commit_hash(expected, &format!("expected {field} commit"))?.to_ascii_lowercase();
     if actual != expected {
         return Err(format!(
             "{field} commit mismatch: expected {expected}, got {actual}"

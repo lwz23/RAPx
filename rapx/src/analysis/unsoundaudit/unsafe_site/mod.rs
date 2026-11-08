@@ -550,6 +550,7 @@ impl AdapterManifest {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BindingStatus {
     BoundExact,
+    OptimizedAwayExact,
     Unbound,
     Ambiguous,
     Elided,
@@ -605,6 +606,7 @@ pub enum PrimaryPattern {
 pub enum ClassificationConfidence {
     Exact,
     Structural,
+    Heuristic,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -615,6 +617,35 @@ pub enum CausalSourceKind {
     InternalDerivation,
     GenericCapabilityGap,
     ExternalBehaviorOutput,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) enum SuppressionReason {
+    ContractImpliedByType,
+    PointerViewHasNoCapabilityGap,
+    RootHasNoRelevantCapabilitySurface,
+    NonpersistentPublicField,
+    TraitNotDownstreamImplementable,
+    InternalBehaviorController,
+    UnrealizableCallContext,
+    SourceCannotSatisfyRequirement,
+    ContractDischarged,
+}
+
+impl SuppressionReason {
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Self::ContractImpliedByType => "contract_implied_by_type",
+            Self::PointerViewHasNoCapabilityGap => "pointer_view_has_no_capability_gap",
+            Self::RootHasNoRelevantCapabilitySurface => "root_has_no_relevant_capability_surface",
+            Self::NonpersistentPublicField => "nonpersistent_public_field",
+            Self::TraitNotDownstreamImplementable => "trait_not_downstream_implementable",
+            Self::InternalBehaviorController => "internal_behavior_controller",
+            Self::UnrealizableCallContext => "unrealizable_call_context",
+            Self::SourceCannotSatisfyRequirement => "source_cannot_satisfy_requirement",
+            Self::ContractDischarged => "contract_discharged",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -682,6 +713,7 @@ pub enum V3WitnessStepKind {
     Entry,
     Source,
     LocalCall,
+    Callback,
     SccCycle,
     UnsafeSite,
     Exposure,

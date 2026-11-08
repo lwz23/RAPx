@@ -2,12 +2,12 @@ use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
 use fern::{self, Dispatch};
 use log::LevelFilter;
+#[rustversion::before(1.83)]
+use rustc_data_structures::sync::Lrc;
 #[rustversion::since(1.83)]
 use rustc_span::source_map::get_source_map;
 #[rustversion::before(1.83)]
 use rustc_span::source_map::SourceMap;
-#[rustversion::before(1.83)]
-use rustc_data_structures::sync::Lrc;
 use rustc_span::{FileName, Pos, Span};
 #[rustversion::before(1.83)]
 use std::cell::RefCell;

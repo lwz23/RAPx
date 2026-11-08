@@ -1,0 +1,21 @@
+{
+  "pattern": "P1",
+  "present_roots": [
+    "public_ptr_read",
+    "public_index"
+  ],
+  "absent_roots": [
+    "read_unchecked",
+    "read_null_checked",
+    "get_private_index",
+    "get_private_index_checked"
+  ],
+  "warning_present_roots": [
+    "read_unchecked",
+    "get_private_index"
+  ],
+  "warning_absent_roots": [
+    "public_ptr_read",
+    "public_index"
+  ]
+}

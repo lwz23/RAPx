@@ -1,0 +1,43 @@
+{
+  "binary_hashes": {
+    "binary_dir": "/private/tmp/rapx-cratesio-current-build.0mlCwi/target/rapx-perf",
+    "build_log_sha256": "c39e6469a7616c73ffd60071c0897849a17ac42120d305b303d50363f8bb870b",
+    "cargo_rapx_sha256": "28e55fa63813b8ad4a7ef9a7c243535b6c739a6566bb70d1878043157de0b8a7",
+    "rapx_sha256": "c08bd5eee756aa4a3d7ec06627005dba93dfe2456a3db99a83231bbf52ed99c1"
+  },
+  "campaign_id": "cratesio-2026-08-21",
+  "execution_limits": {
+    "cargo_jobs": 1,
+    "features": "default",
+    "memory_hard_limit": null,
+    "target_kind": "lib",
+    "wall_time_seconds": 900
+  },
+  "mechanism_pack": {
+    "capability_matrix_sha256": "417998c8f275aa32aa59a021edd1775c18a193cb99d82a2ad40746511d9394df",
+    "totals": {
+      "active_count": 50,
+      "considered_count": 128,
+      "family_count": 49,
+      "pure_suppressed_count": 38,
+      "reclassified_count": 12,
+      "suppressed_count": 50,
+      "unestablished_count": 28
+    }
+  },
+  "policy_sha256": "7be8e601723d2171333b389bc5a7eba071cd557140c89d10e0240715bd743c2e",
+  "review_seed": "dacd31d8f446692177be93f19314e578f01119d0ef637e80c071ad0cdc3638ec",
+  "roster_sha256": "db171dd4b3c4e0ada8abe26acd44245777b7b9a137a71b1239ea2e336067a129",
+  "sampling_quotas": {
+    "suppressed_quota_per_crate": 3,
+    "unestablished_quota_per_crate": 5
+  },
+  "schema_version": "rap-unsoundaudit-cratesio-campaign-protocol-v1",
+  "selection_date": "2026-08-21",
+  "toolchain": {
+    "cargo_commit": "eb98b54bc9f3c74519f43d066cb3fd02ebc88df0",
+    "channel": "nightly-2026-08-14",
+    "rustc_commit": "ba28ff76f353a722f31c4f3dd2ac4e437d36411b",
+    "target_triple": "aarch64-apple-darwin"
+  }
+}

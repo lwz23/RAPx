@@ -1,0 +1,100 @@
+{
+  "scope_excluded": [
+    {
+      "issue_url": "https://github.com/babalae/better-genshin-impact/issues/2192",
+      "repository": "babalae/better-genshin-impact",
+      "issue_number": 2192,
+      "title": "[question] 月落银地图追踪的脚本在哪下载",
+      "reason_zh": "窗口内创建，但不是 unsoundness 上报"
+    },
+    {
+      "issue_url": "https://github.com/endorlabs/MIRAI/issues/12",
+      "repository": "endorlabs/MIRAI",
+      "issue_number": 12,
+      "title": "How to generate Rust program's ICFG",
+      "reason_zh": "窗口内创建，但不是 unsoundness 上报"
+    }
+  ],
+  "explicitly_rebutted_or_withdrawn": [
+    {
+      "issue_url": "https://github.com/Amanieu/corosensei/issues/45",
+      "repository": "Amanieu/corosensei",
+      "issue_number": 45,
+      "title": "Maybe unsound in ValgrindStackRegistration::new",
+      "state": "closed",
+      "reason_zh": "维护者解释该调用在项目语义下不构成 UB，作者随后同意。"
+    },
+    {
+      "issue_url": "https://github.com/BurntSushi/byteorder/issues/219",
+      "repository": "BurntSushi/byteorder",
+      "issue_number": 219,
+      "title": "unsoundness in src/lib.rs",
+      "state": "closed",
+      "reason_zh": "维护者解释输入切片已经有效，作者明确承认报告错误。"
+    },
+    {
+      "issue_url": "https://github.com/BurntSushi/byteorder/issues/220",
+      "repository": "BurntSushi/byteorder",
+      "issue_number": 220,
+      "title": "unsoundness in write_i16_into",
+      "state": "closed",
+      "reason_zh": "维护者指出这是 #219 的完全重复报告；沿用同一明确反驳。"
+    },
+    {
+      "issue_url": "https://github.com/h33p/cglue/issues/20",
+      "repository": "h33p/cglue",
+      "issue_number": 20,
+      "title": "Undefined Behavior in CVec::insert Leading to Memory Corruption",
+      "state": "closed",
+      "reason_zh": "作者明确撤回：崩溃来自测试中的巨额分配，与 CVec::insert 无关。"
+    },
+    {
+      "issue_url": "https://github.com/h33p/cglue/issues/21",
+      "repository": "h33p/cglue",
+      "issue_number": 21,
+      "title": "Undefined Behavior in CVec::insert Leading to Memory Corruption",
+      "state": "closed",
+      "reason_zh": "与 #20 的正文和 PoC 相同；沿用作者对同一报告的明确撤回。"
+    },
+    {
+      "issue_url": "https://github.com/intel/tsffs/issues/123",
+      "repository": "intel/tsffs",
+      "issue_number": 123,
+      "title": "Unsound Use of CStr::from_ptr in add_architecture_hint",
+      "state": "open",
+      "reason_zh": "作者复查后明确撤回 UB 主张，改称只需要 safety 文档。"
+    },
+    {
+      "issue_url": "https://github.com/oreboot/oreboot/issues/761",
+      "repository": "oreboot/oreboot",
+      "issue_number": 761,
+      "title": "maybe unsound in print_mem and print_strmem",
+      "state": "closed",
+      "reason_zh": "维护者明确表示论证不适用于该固件代码并以 not applicable 关闭。"
+    },
+    {
+      "issue_url": "https://github.com/servo/ipc-channel/issues/375",
+      "repository": "servo/ipc-channel",
+      "issue_number": 375,
+      "title": "Bug report: unsoundness in OsIpcSharedMemory::from_bytes",
+      "state": "closed",
+      "reason_zh": "作者明确撤回：崩溃来自巨额分配，不是 unsoundness。"
+    },
+    {
+      "issue_url": "https://github.com/wgpu-mc/wgpu-mc/issues/114",
+      "repository": "wgpu-mc/wgpu-mc",
+      "issue_number": 114,
+      "title": "Maybe unsound in setIndexBuffer",
+      "state": "closed",
+      "reason_zh": "维护者指出 i32 数组的对齐不是报告所称的 1 字节，否定该 unsoundness 论证。"
+    },
+    {
+      "issue_url": "https://github.com/zakarumych/allocator-api2/issues/43",
+      "repository": "zakarumych/allocator-api2",
+      "issue_number": 43,
+      "title": "Maybe Multiple unsoundness problems",
+      "state": "closed",
+      "reason_zh": "维护者解释 ptr::write 的前置条件已满足，作者明确确认代码 sound。"
+    }
+  ]
+}
