@@ -53,11 +53,11 @@ pub(super) struct UnitMetadata {
     pub rap_compiler_commit: String,
 }
 
-pub struct LwzCheck<'tcx> {
+pub struct UnsoundAuditCheck<'tcx> {
     pub tcx: TyCtxt<'tcx>,
 }
 
-impl<'tcx> LwzCheck<'tcx> {
+impl<'tcx> UnsoundAuditCheck<'tcx> {
     pub fn new(tcx: TyCtxt<'tcx>) -> Self {
         Self { tcx }
     }

@@ -259,7 +259,7 @@ impl RapCallback {
         self.unsoundaudit = true;
     }
 
-    pub fn is_lwz_enabled(self) -> bool {
+    pub fn is_unsoundaudit_enabled(self) -> bool {
         self.unsoundaudit
     }
 }
@@ -313,9 +313,9 @@ pub fn start_analyzer(tcx: TyCtxt, callback: RapCallback) {
 
     run_optional_analyses(tcx, callback);
 
-    if callback.is_lwz_enabled() {
+    if callback.is_unsoundaudit_enabled() {
         println!("UnsoundAudit is enabled");
-        analysis::unsoundaudit::LwzCheck::new(tcx).start();
+        analysis::unsoundaudit::UnsoundAuditCheck::new(tcx).start();
     }
 }
 
