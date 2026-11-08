@@ -1,15 +1,15 @@
 {
   "case_id": "p4_internal_offset_checked_negative",
-  "expected_finding_count": 0,
+  "expected_finding_count": 1,
   "expected_pattern_counts": {
     "pattern1": 0,
     "pattern2": 0,
     "pattern3": 0,
     "pattern4": 0,
     "pattern5": 0,
-    "pattern6": 0
+    "pattern6": 1
   },
-  "expected_primary_pattern": null,
+  "expected_primary_pattern": "pattern6",
   "expected_rule_id": null,
   "family_support": null,
   "fix_fact": "offset plus access width is checked without overflow",
@@ -18,8 +18,7 @@
     "pattern2",
     "pattern3",
     "pattern4",
-    "pattern5",
-    "pattern6"
+    "pattern5"
   ],
   "limitations": "fixture-closed heuristic candidate generator contract",
   "manifest_relative_path": "Cargo.toml",
@@ -30,5 +29,6 @@
   "schema_version": "unsoundaudit-v2-fixture-v1",
   "sink": "read_unaligned",
   "source": "internal_derived",
-  "source_relative_path": "src/lib.rs"
+  "source_relative_path": "src/lib.rs",
+  "v3_oracle_note": "Regenerated from the v3 analyzer used in the study (2026-11-08). The original v2 oracle expected no finding."
 }

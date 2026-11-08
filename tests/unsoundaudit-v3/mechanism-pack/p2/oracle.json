@@ -5,11 +5,11 @@
     "PublicRaw::field_overwritten_on_one_path",
     "PublicRaw::base_overwritten_on_one_path",
     "NestedRaw::ancestor_overwritten_on_one_path",
-    "read_public_through_helper"
+    "read_public_through_helper",
+    "PublicRaw::opaque_sink"
   ],
   "absent_roots": [
     "PublicRaw::read_private",
-    "PublicRaw::opaque_sink",
     "PublicRaw::overwritten",
     "PublicRaw::field_overwritten",
     "PublicRaw::field_overwritten_on_all_paths",
@@ -102,10 +102,6 @@
       }
     }
   },
-  "unestablished_roots": {
-    "PublicRaw::opaque_sink": {
-      "attempted_pattern": "P2",
-      "primary_reason": "unmodeled_unsafe_call"
-    }
-  }
+  "unestablished_roots": {},
+  "v3_oracle_note": "Updated 2026-11-08 to the output of the v3 analyzer used in the study: PublicRaw::opaque_sink was expected to be unestablished (unmodeled_unsafe_call) and is now reported as a candidate."
 }

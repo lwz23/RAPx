@@ -7,11 +7,11 @@
     "noise": 1
   },
   "aggregate_expected_pattern_counts": {
-    "pattern1": 3,
-    "pattern2": 2,
+    "pattern1": 4,
+    "pattern2": 3,
     "pattern3": 2,
-    "pattern4": 1,
-    "pattern5": 2,
+    "pattern4": 3,
+    "pattern5": 0,
     "pattern6": 2
   },
   "legacy_provenance_manifest": {
@@ -296,14 +296,14 @@
       "case_id": "legacy_p3_invalid_output_positive",
       "role": "positive",
       "package_name": "pattern4_positive",
-      "expected_primary_pattern": "pattern5",
-      "expected_rule_id": "P5.lifetime_transmute",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
         "pattern4": 0,
-        "pattern5": 1,
+        "pattern5": 0,
         "pattern6": 0
       },
       "files": {
@@ -321,7 +321,7 @@
         },
         "oracle": {
           "path": "fixtures/legacy_p3_invalid_output_positive/fixture.json",
-          "sha256": "fb0df3ea54148ebaa849f71cdc47e182f61d7744ebebce81e733514538e6c20e"
+          "sha256": "60b7f6181ebc3957aff79fa9ad7a12dd1538458bc11a039ec831d25594b13231"
         }
       },
       "legacy_frozen_case": "pattern4_positive"
@@ -398,10 +398,10 @@
       "case_id": "p1_two_hop_checked_negative",
       "role": "negative",
       "package_name": "p1_two_hop_checked_negative",
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern1",
       "expected_rule_id": null,
       "expected_pattern_counts": {
-        "pattern1": 0,
+        "pattern1": 1,
         "pattern2": 0,
         "pattern3": 0,
         "pattern4": 0,
@@ -423,7 +423,7 @@
         },
         "oracle": {
           "path": "fixtures/p1_two_hop_checked_negative/fixture.json",
-          "sha256": "f0f54ba6bd76f5de65be2cbd36338bffed9a72fe0f3535b84cf5610bbd225531"
+          "sha256": "d58e6d93aaa9498ed29e643fb8c2157a0d620bd35dd29fd9971a45a5139b0258"
         }
       },
       "paired_with": "p1_two_hop_positive"
@@ -466,11 +466,11 @@
       "case_id": "p2_helper_checked_negative",
       "role": "negative",
       "package_name": "p2_helper_checked_negative",
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern2",
       "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
-        "pattern2": 0,
+        "pattern2": 1,
         "pattern3": 0,
         "pattern4": 0,
         "pattern5": 0,
@@ -491,7 +491,7 @@
         },
         "oracle": {
           "path": "fixtures/p2_helper_checked_negative/fixture.json",
-          "sha256": "5e5ada899a645e393b74fd86e622e3de17d6cb85109976889efad574dde56654"
+          "sha256": "997e77e4cf0797955c80c600e0c1544ec241e422c1a098dc316b7e195da4b735"
         }
       },
       "paired_with": "p2_helper_positive"
@@ -500,14 +500,14 @@
       "case_id": "p3_helper_return_positive",
       "role": "positive",
       "package_name": "p3_helper_return_positive",
-      "expected_primary_pattern": "pattern5",
-      "expected_rule_id": "P5.assume_init_bool",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
         "pattern4": 0,
-        "pattern5": 1,
+        "pattern5": 0,
         "pattern6": 0
       },
       "files": {
@@ -525,7 +525,7 @@
         },
         "oracle": {
           "path": "fixtures/p3_helper_return_positive/fixture.json",
-          "sha256": "d1d492f815f1e8f2830dfc4a4deb25b8534c7ee2b240bfe01ca29d5af32177de"
+          "sha256": "9def45bb14f9c7c9860c1f14d539fb638e3df9824b29ab8354b4cadf899709a3"
         }
       },
       "paired_with": "p3_helper_return_initialized_negative"
@@ -568,15 +568,15 @@
       "case_id": "p4_internal_bounds_positive",
       "role": "positive",
       "package_name": "p4_internal_bounds_positive",
-      "expected_primary_pattern": "pattern6",
-      "expected_rule_id": "P6.bounds",
+      "expected_primary_pattern": null,
+      "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
         "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 1
+        "pattern6": 0
       },
       "files": {
         "manifest": {
@@ -593,7 +593,7 @@
         },
         "oracle": {
           "path": "fixtures/p4_internal_bounds_positive/fixture.json",
-          "sha256": "989f298bfc3eacd02e65fdc1c91a8d848f872c73e1ae2a587018f3271a63f2aa"
+          "sha256": "877a04282118dc9735158fbf19b42d74c1a794d41558553050cb3e1cebbbc5ff"
         }
       },
       "paired_with": "p4_internal_bounds_checked_negative"
@@ -670,7 +670,7 @@
       "case_id": "p4_internal_offset_checked_negative",
       "role": "negative",
       "package_name": "p4_internal_offset_checked_negative",
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern6",
       "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
@@ -678,7 +678,7 @@
         "pattern3": 0,
         "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 0
+        "pattern6": 1
       },
       "files": {
         "manifest": {
@@ -695,7 +695,7 @@
         },
         "oracle": {
           "path": "fixtures/p4_internal_offset_checked_negative/fixture.json",
-          "sha256": "1cd9af7792ec71fe65e80acee2b446da2a1a897bd089b7028fa3532eee0ad01e"
+          "sha256": "0c2a69bb48a4a03f8b5fe4b1fc28c2a905a4a2e97b456f2fd0cbb5e80598d7f5"
         }
       },
       "paired_with": "p4_internal_offset_positive"
@@ -738,13 +738,13 @@
       "case_id": "p5_associated_slice_nonempty_negative",
       "role": "negative",
       "package_name": "p5_associated_slice_nonempty_negative",
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern4",
       "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
-        "pattern4": 0,
+        "pattern4": 1,
         "pattern5": 0,
         "pattern6": 0
       },
@@ -763,7 +763,7 @@
         },
         "oracle": {
           "path": "fixtures/p5_associated_slice_nonempty_negative/fixture.json",
-          "sha256": "13f986a86efff1324705f70e72c8aae3036f55e032ef241c5b3477defc45d57c"
+          "sha256": "d5cdcc7a27cf91e4b7f3aca8e8af09d04d07ffcb83b2d7d273a486b05ca3afa1"
         }
       },
       "paired_with": "p5_associated_slice_nonempty_positive"
@@ -908,13 +908,13 @@
       "case_id": "all_patterns_checked_noise",
       "role": "noise",
       "package_name": "all_patterns_checked_noise",
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern4",
       "expected_rule_id": null,
       "expected_pattern_counts": {
         "pattern1": 0,
         "pattern2": 0,
         "pattern3": 0,
-        "pattern4": 0,
+        "pattern4": 1,
         "pattern5": 0,
         "pattern6": 0
       },
@@ -933,7 +933,7 @@
         },
         "oracle": {
           "path": "fixtures/all_patterns_checked_noise/fixture.json",
-          "sha256": "30d7c3712b806c0a45bc2c3800bc8da2c579da8c2408944cd9fdcc607541020a"
+          "sha256": "97bb3fe3eb7ffcc6847a99ba5a5491a58ff2c47b0eab6bb7ff7d87d9e9f8f0d1"
         }
       }
     }

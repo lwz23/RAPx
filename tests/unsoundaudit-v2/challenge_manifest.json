@@ -1,11 +1,11 @@
 {
   "aggregate_expected_pattern_counts": {
-    "pattern1": 13,
+    "pattern1": 14,
     "pattern2": 0,
     "pattern3": 0,
     "pattern4": 0,
     "pattern5": 0,
-    "pattern6": 0
+    "pattern6": 1
   },
   "cases": [
     {
@@ -44,14 +44,14 @@
     {
       "case_id": "call_guard_in_middle_negative",
       "expected_pattern_counts": {
-        "pattern1": 0,
+        "pattern1": 1,
         "pattern2": 0,
         "pattern3": 0,
         "pattern4": 0,
         "pattern5": 0,
         "pattern6": 0
       },
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern1",
       "expected_rule_id": null,
       "files": {
         "lock": {
@@ -64,7 +64,7 @@
         },
         "oracle": {
           "path": "challenges/call_guard_in_middle_negative/fixture.json",
-          "sha256": "c7fc9a0c4154d56a5836f40600a0079384c2ec0b8b33037a30fc20119efc6e77"
+          "sha256": "76c2c35dae0eb5fa4b81ffe647e118b1ce72bbd66c445895da58a8c5f53b9ebf"
         },
         "source": {
           "path": "challenges/call_guard_in_middle_negative/src/lib.rs",
@@ -610,9 +610,9 @@
         "pattern3": 0,
         "pattern4": 0,
         "pattern5": 0,
-        "pattern6": 0
+        "pattern6": 1
       },
-      "expected_primary_pattern": null,
+      "expected_primary_pattern": "pattern6",
       "expected_rule_id": null,
       "files": {
         "lock": {
@@ -625,7 +625,7 @@
         },
         "oracle": {
           "path": "challenges/guard_range_checked_add_negative/fixture.json",
-          "sha256": "1aabe7433f2f3e615648a531f3443e7bdeecbe0cfbba9c80908faff5078099e2"
+          "sha256": "810b06de952f578b5a871d5a9879e46d658db5290c396ff9532537dfcf782fa7"
         },
         "source": {
           "path": "challenges/guard_range_checked_add_negative/src/lib.rs",

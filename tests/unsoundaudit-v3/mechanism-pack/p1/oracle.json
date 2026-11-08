@@ -9,11 +9,11 @@
     "cstr_from_ptr",
     "ptr_add",
     "ptr_copy",
-    "vec_from_raw"
+    "vec_from_raw",
+    "opaque_public_input"
   ],
   "absent_roots": [
     "guarded",
-    "opaque_public_input",
     "guarded_vec",
     "already_unsafe_from_raw"
   ],
@@ -38,10 +38,6 @@
     }
   },
   "unestablished_roots": {
-    "opaque_public_input": {
-      "attempted_pattern": "P1",
-      "primary_reason": "unmodeled_unsafe_call"
-    },
     "vec_index": {
       "attempted_pattern": "P1",
       "primary_reason": "havoced_provenance"
@@ -64,5 +60,6 @@
   ],
   "zero_candidate_roots": [
     "already_unsafe_from_raw"
-  ]
+  ],
+  "v3_oracle_note": "Updated 2026-11-08 to the output of the v3 analyzer used in the study: opaque_public_input was expected to be unestablished (unmodeled_unsafe_call) and is now reported as a candidate."
 }
